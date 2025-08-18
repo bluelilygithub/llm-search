@@ -5,7 +5,7 @@ from config import Config
 import uuid
 from datetime import datetime
 
-app = Flask(__name__, static_folder='templates/static')
+app = Flask(__name__, static_folder='static')
 app.config.from_object(Config)
 
 db = SQLAlchemy(app)
