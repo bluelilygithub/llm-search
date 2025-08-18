@@ -58,7 +58,7 @@ class KnowledgeBaseApp {
         projectList.innerHTML = '';
         projects.forEach(project => {
             const item = document.createElement('div');
-            item.className = 'project-item';
+            item.className = 'conversation-item';
             item.textContent = project.name;
             item.onclick = () => this.selectProject(project);
             if (this.currentProject && this.currentProject.id === project.id) {
@@ -71,7 +71,7 @@ class KnowledgeBaseApp {
         if (!newBtn) {
             newBtn = document.createElement('button');
             newBtn.id = 'new-project-btn';
-            newBtn.className = 'new-project-btn';
+            newBtn.className = 'new-chat-btn';
             newBtn.textContent = '+ New Project';
             newBtn.onclick = () => this.showNewProjectPrompt();
             sidebar.insertBefore(newBtn, projectList);
