@@ -63,7 +63,7 @@ class KnowledgeBaseApp {
         if (!toggleBtn) {
             toggleBtn = document.createElement('button');
             toggleBtn.id = 'toggle-projects-btn';
-            toggleBtn.className = 'sidebar-btn';
+            toggleBtn.className = 'new-chat-btn';
             toggleBtn.textContent = '▼ Projects';
             toggleBtn.onclick = () => {
                 const projectList = document.getElementById('project-list');
@@ -79,7 +79,7 @@ class KnowledgeBaseApp {
         if (!newBtn) {
             newBtn = document.createElement('button');
             newBtn.id = 'new-project-btn';
-            newBtn.className = 'sidebar-btn';
+            newBtn.className = 'new-chat-btn';
             newBtn.textContent = '+ New Project';
             newBtn.onclick = () => { this.addingProject = true; this.loadProjects(); };
         }
