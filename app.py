@@ -129,16 +129,18 @@ def add_message(conversation_id):
 
 @app.route('/chat', methods=['POST'])
 def chat():
-    data = request.get_json()
-    
-    if not data or not data.get('message') or not data.get('model'):
-        return jsonify({'error': 'Message and model are required'}), 400
-    
-    conversation_id = data.get('conversation_id')
-    user_message = data['message']
-    model = data['model']
-    
     try:
+        data = request.get_json()
+        
+        if not data or not data.get('message') or not data.get('model'):
+            return jsonify({'error': 'Message and model are required'}), 400
+        
+        conversation_id = data.get('conversation_id')
+        user_message = data['message']
+        model = data['model']
+        
+        print(f"Chat request: model={model}, message={user_message[:50]}...")
+        
         # Get conversation history if conversation exists
         messages = []
         if conversation_id:
@@ -150,8 +152,10 @@ def chat():
         # Add current user message
         messages.append({'role': 'user', 'content': user_message})
         
+        print(f"Calling LLM service...")
         # Get AI response
         ai_response = llm_service.get_response(model, messages)
+        print(f"Got response: {ai_response[:50]}...")
         
         return jsonify({
             'response': ai_response,
@@ -160,6 +164,7 @@ def chat():
         })
         
     except Exception as e:
+        print(f"Chat error: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
