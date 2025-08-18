@@ -70,6 +70,35 @@ def create_project():
         'updated_at': project.updated_at.isoformat() if project.updated_at else None
     }), 201
 
+@app.route('/projects/<project_id>', methods=['DELETE'])
+def delete_project(project_id):
+    from models import Project, Conversation
+    project = Project.query.get_or_404(project_id)
+    # Set project_id to None for all related conversations
+    Conversation.query.filter_by(project_id=project_id).update({'project_id': None})
+    db.session.delete(project)
+    db.session.commit()
+    return jsonify({'success': True})
+
+@app.route('/projects/<project_id>', methods=['PATCH'])
+def rename_project(project_id):
+    from models import Project
+    project = Project.query.get_or_404(project_id)
+    data = request.get_json()
+    if not data or not data.get('name'):
+        return jsonify({'error': 'Project name is required'}), 400
+    project.name = data['name']
+    if 'description' in data:
+        project.description = data['description']
+    db.session.commit()
+    return jsonify({
+        'id': str(project.id),
+        'name': project.name,
+        'description': project.description,
+        'created_at': project.created_at.isoformat(),
+        'updated_at': project.updated_at.isoformat() if project.updated_at else None
+    })
+
 @app.route('/conversations', methods=['GET'])
 def get_conversations():
     project_id = request.args.get('project_id')

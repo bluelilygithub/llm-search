@@ -56,6 +56,20 @@ class KnowledgeBaseApp {
             sidebar.insertBefore(projectList, sidebar.children[1]);
         }
         projectList.innerHTML = '';
+        // Toggle/collapse projects
+        let toggleBtn = document.getElementById('toggle-projects-btn');
+        if (!toggleBtn) {
+            toggleBtn = document.createElement('button');
+            toggleBtn.id = 'toggle-projects-btn';
+            toggleBtn.className = 'new-chat-btn';
+            toggleBtn.textContent = '▼ Projects';
+            toggleBtn.onclick = () => {
+                projectList.classList.toggle('collapsed');
+                toggleBtn.textContent = projectList.classList.contains('collapsed') ? '► Projects' : '▼ Projects';
+            };
+            sidebar.insertBefore(toggleBtn, projectList);
+        }
+        if (projectList.classList.contains('collapsed')) return;
         // Add 'All Projects' option
         const allItem = document.createElement('div');
         allItem.className = 'conversation-item';
@@ -69,33 +83,79 @@ class KnowledgeBaseApp {
         projects.forEach(project => {
             const item = document.createElement('div');
             item.className = 'conversation-item';
-            item.textContent = project.name;
-            item.onclick = () => this.selectProject(project);
             if (this.currentProject && this.currentProject.id === project.id) {
                 item.classList.add('active');
             }
+            // Project name or input for renaming
+            if (this.renamingProject && this.renamingProject.id === project.id) {
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.value = project.name;
+                input.onkeydown = (e) => {
+                    if (e.key === 'Enter') this.renameProject(project, input.value);
+                    if (e.key === 'Escape') this.renamingProject = null, this.loadProjects();
+                };
+                item.appendChild(input);
+                input.focus();
+            } else {
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = project.name;
+                nameSpan.onclick = () => this.selectProject(project);
+                item.appendChild(nameSpan);
+            }
+            // Rename (pencil) icon
+            const renameBtn = document.createElement('button');
+            renameBtn.className = 'input-btn';
+            renameBtn.title = 'Rename Project';
+            renameBtn.innerHTML = '<i class="fas fa-pencil-alt"></i>';
+            renameBtn.onclick = (e) => { e.stopPropagation(); this.renamingProject = project; this.loadProjects(); };
+            item.appendChild(renameBtn);
+            // Delete (trash) icon
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'input-btn';
+            deleteBtn.title = 'Delete Project';
+            deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+            deleteBtn.onclick = (e) => { e.stopPropagation(); this.deleteProject(project); };
+            item.appendChild(deleteBtn);
             projectList.appendChild(item);
         });
-        // Add New Project button
+        // Inline input for new project
+        let inputRow = document.getElementById('new-project-input-row');
+        if (this.addingProject) {
+            if (!inputRow) {
+                inputRow = document.createElement('div');
+                inputRow.id = 'new-project-input-row';
+                inputRow.className = 'conversation-item';
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.placeholder = 'Project name...';
+                input.onkeydown = (e) => {
+                    if (e.key === 'Enter') this.createProject(input.value);
+                    if (e.key === 'Escape') this.addingProject = false, this.loadProjects();
+                };
+                inputRow.appendChild(input);
+                projectList.appendChild(inputRow);
+                input.focus();
+            }
+        } else if (inputRow) {
+            inputRow.remove();
+        }
+        // New Project button (styled like New Chat)
         let newBtn = document.getElementById('new-project-btn');
         if (!newBtn) {
             newBtn = document.createElement('button');
             newBtn.id = 'new-project-btn';
             newBtn.className = 'new-chat-btn';
             newBtn.textContent = '+ New Project';
-            newBtn.onclick = () => this.showNewProjectPrompt();
+            newBtn.onclick = () => { this.addingProject = true; this.loadProjects(); };
             sidebar.insertBefore(newBtn, projectList);
         }
     }
 
-    showNewProjectPrompt() {
-        const name = prompt('Enter project name:');
-        if (name) {
-            this.createProject(name);
-        }
-    }
+    showNewProjectPrompt() { /* no-op, replaced by inline input */ }
 
     async createProject(name) {
+        if (!name) return;
         try {
             const response = await fetch('/projects', {
                 method: 'POST',
@@ -103,9 +163,42 @@ class KnowledgeBaseApp {
                 body: JSON.stringify({ name })
             });
             if (!response.ok) throw new Error('Failed to create project');
+            this.addingProject = false;
             await this.loadProjects();
+            console.log('Created project:', name);
         } catch (error) {
             console.error('Failed to create project:', error);
+        }
+    }
+
+    async deleteProject(project) {
+        if (!confirm(`Delete project "${project.name}"? All related conversations will become unfiltered.`)) return;
+        try {
+            const response = await fetch(`/projects/${project.id}`, { method: 'DELETE' });
+            if (!response.ok) throw new Error('Failed to delete project');
+            if (this.currentProject && this.currentProject.id === project.id) this.currentProject = null;
+            await this.loadProjects();
+            this.loadConversations();
+            console.log('Deleted project:', project.name);
+        } catch (error) {
+            console.error('Failed to delete project:', error);
+        }
+    }
+
+    async renameProject(project, newName) {
+        if (!newName) return;
+        try {
+            const response = await fetch(`/projects/${project.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: newName })
+            });
+            if (!response.ok) throw new Error('Failed to rename project');
+            this.renamingProject = null;
+            await this.loadProjects();
+            console.log('Renamed project:', newName);
+        } catch (error) {
+            console.error('Failed to rename project:', error);
         }
     }
 
