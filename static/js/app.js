@@ -110,11 +110,16 @@ class KnowledgeBaseApp {
         
         const avatar = message.role === 'user' ? 'U' : 'AI';
         
+        // If assistant, include model in time
+        let timeString = this.formatTime(message.timestamp);
+        if (message.role === 'assistant' && this.selectedModel) {
+            timeString += ` (${this.selectedModel})`;
+        }
         messageDiv.innerHTML = `
             <div class="message-avatar">${avatar}</div>
             <div class="message-content">
                 ${this.formatMessageContent(message.content)}
-                <div class="message-time">${this.formatTime(message.timestamp)}</div>
+                <div class="message-time">${timeString}</div>
             </div>
         `;
         
