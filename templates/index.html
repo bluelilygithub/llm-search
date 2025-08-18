@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Knowledge Base</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>AI Knowledge Base</h2>
+                <button class="new-chat-btn" onclick="startNewChat()">
+                    <i class="fas fa-plus"></i> New Chat
+                </button>
+            </div>
+            
+            <div class="search-section">
+                <div class="search-input-container">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" id="conversation-search" placeholder="Search conversations..." onkeyup="searchConversations()">
+                </div>
+            </div>
+
+            <div class="conversations-list" id="conversations-list">
+                <!-- Conversations will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Main Chat Area -->
+        <div class="main-content">
+            <div class="chat-header">
+                <div class="model-selector">
+                    <select id="llm-model" onchange="updateModel()">
+                        <option value="gpt-4">GPT-4</option>
+                        <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                        <option value="claude-3-opus">Claude 3 Opus</option>
+                        <option value="claude-3-sonnet">Claude 3 Sonnet</option>
+                        <option value="claude-3-haiku">Claude 3 Haiku</option>
+                    </select>
+                </div>
+                
+                <div class="conversation-actions">
+                    <button class="action-btn" onclick="searchKnowledgeBase()" title="Search Knowledge Base">
+                        <i class="fas fa-database"></i>
+                    </button>
+                    <button class="action-btn" onclick="exportConversation()" title="Export to Markdown">
+                        <i class="fas fa-download"></i>
+                    </button>
+                    <button class="action-btn" onclick="tagConversation()" title="Add Tags">
+                        <i class="fas fa-tags"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="chat-messages" id="chat-messages">
+                <div class="welcome-message">
+                    <h3>Welcome to your AI Knowledge Base</h3>
+                    <p>Start a conversation or search your previous chats to find relevant information.</p>
+                </div>
+            </div>
+
+            <div class="chat-input-container">
+                <div class="kb-search-results" id="kb-search-results" style="display: none;">
+                    <!-- Knowledge base search results will appear here -->
+                </div>
+                
+                <div class="input-section">
+                    <div class="input-controls">
+                        <button class="input-btn" onclick="triggerFileUpload()" title="Upload File">
+                            <i class="fas fa-paperclip"></i>
+                        </button>
+                        <button class="input-btn" onclick="startVoiceInput()" title="Voice Input" id="voice-btn">
+                            <i class="fas fa-microphone"></i>
+                        </button>
+                        <button class="input-btn" onclick="addUrlReference()" title="Add URL">
+                            <i class="fas fa-link"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="message-input-wrapper">
+                        <textarea id="message-input" placeholder="Search knowledge base or ask a question..." 
+                                rows="1" onkeydown="handleInputKeydown(event)" oninput="handleInputChange()"></textarea>
+                        <button class="send-btn" onclick="sendMessage()" id="send-btn">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <input type="file" id="file-input" multiple style="display: none;" onchange="handleFileUpload(event)">
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="search-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Search Knowledge Base</h3>
+                <span class="close" onclick="closeSearchModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="kb-search-input" placeholder="Search your conversations..." onkeyup="performKnowledgeBaseSearch()">
+                <div id="search-results-container">
+                    <!-- Search results will appear here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="tag-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add Tags</h3>
+                <span class="close" onclick="closeTagModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="tag-input" placeholder="Add tags (comma separated)..." onkeydown="handleTagInput(event)">
+                <div class="existing-tags" id="existing-tags">
+                    <!-- Existing tags will appear here -->
+                </div>
+                <button onclick="saveTags()">Save Tags</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

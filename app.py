@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from config import Config
@@ -19,7 +19,7 @@ def health_check():
 
 @app.route('/')
 def index():
-    return jsonify({'message': 'AI Knowledge Base Interface', 'version': '1.0.0'})
+    return render_template('index.html')
 
 @app.route('/init-db')
 def init_database():
