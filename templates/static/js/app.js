@@ -1,7 +1,7 @@
 class KnowledgeBaseApp {
     constructor() {
         this.currentConversationId = null;
-        this.selectedModel = 'gpt-4';
+        this.selectedModel = 'gpt-3.5-turbo';
         this.uploadedFiles = [];
         this.urlReferences = [];
         this.isRecording = false;

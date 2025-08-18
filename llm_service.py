@@ -7,44 +7,39 @@ import os
 
 class LLMService:
     def __init__(self):
-        # Set defaults first
-        self.openai_client = None
-        self.anthropic_client = None
+        # Initialize all availability flags
+        self.openai_available = False
+        self.anthropic_available = False
+        self.gemini_available = False
         
-        try:
-            # Initialize OpenAI client (v0.28 style)
-            openai_key = os.getenv('OPENAI_API_KEY')
-            if openai_key:
-                openai.api_key = openai_key
-                self.openai_available = True
-                print("OpenAI client initialized successfully")
-            else:
-                self.openai_available = False
-        except Exception as e:
-            print(f"OpenAI client initialization failed: {e}")
-            self.openai_available = False
-            
-        try:
-            # Initialize Anthropic client
-            claude_key = os.getenv('CLAUDE_API_KEY')
-            if claude_key:
+        # Initialize OpenAI (v0.28 style - no client object)
+        openai_key = os.getenv('OPENAI_API_KEY')
+        if openai_key:
+            openai.api_key = openai_key
+            self.openai_available = True
+            print("OpenAI API key configured")
+        
+        # Initialize Anthropic client safely
+        claude_key = os.getenv('CLAUDE_API_KEY')
+        if claude_key:
+            try:
                 self.anthropic_client = anthropic.Anthropic(api_key=claude_key)
-                print("Anthropic client initialized successfully")
-        except Exception as e:
-            print(f"Anthropic client initialization failed: {e}")
-            
-        try:
-            # Initialize Gemini
-            gemini_key = os.getenv('GEMINI_API_KEY')
-            if gemini_key:
+                self.anthropic_available = True
+                print("Anthropic client initialized")
+            except Exception as e:
+                print(f"Anthropic failed: {e}")
+                self.anthropic_available = False
+        
+        # Initialize Gemini safely
+        gemini_key = os.getenv('GEMINI_API_KEY')
+        if gemini_key:
+            try:
                 genai.configure(api_key=gemini_key)
                 self.gemini_available = True
-                print("Gemini client initialized successfully")
-            else:
+                print("Gemini configured")
+            except Exception as e:
+                print(f"Gemini failed: {e}")
                 self.gemini_available = False
-        except Exception as e:
-            print(f"Gemini client initialization failed: {e}")
-            self.gemini_available = False
         
     def get_response(self, model, messages, max_tokens=4000, temperature=0.7):
         """Get response from specified LLM model"""
@@ -76,7 +71,7 @@ class LLMService:
     
     def _get_anthropic_response(self, model, messages, max_tokens, temperature):
         """Get response from Anthropic Claude models"""
-        if not self.anthropic_client:
+        if not self.anthropic_available:
             raise Exception("Anthropic API key not configured")
             
         try:
