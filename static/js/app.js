@@ -465,72 +465,33 @@ class KnowledgeBaseApp {
     }
 
     async startVoiceInput() {
-        if (this.isRecording) {
-            this.stopVoiceInput();
+        // Use Web Speech API for speech-to-text
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+            this.showError('Speech recognition is not supported in this browser.');
             return;
         }
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'en-US';
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
 
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            // Use OGG/Opus for best compatibility
-            const options = MediaRecorder.isTypeSupported('audio/ogg; codecs=opus') ? { mimeType: 'audio/ogg; codecs=opus' } : {};
-            this.mediaRecorder = new MediaRecorder(stream, options);
-            this.isRecording = true;
-            const voiceBtn = document.getElementById('voice-btn');
-            voiceBtn.classList.add('recording');
-            const audioChunks = [];
-            this.mediaRecorder.ondataavailable = event => {
-                audioChunks.push(event.data);
-            };
-            this.mediaRecorder.onstop = async () => {
-                // Use OGG/Opus format
-                const audioBlob = new Blob(audioChunks, { type: 'audio/ogg; codecs=opus' });
-                await this.transcribeAudio(audioBlob);
-                voiceBtn.classList.remove('recording');
-                this.isRecording = false;
-            };
-            this.mediaRecorder.start();
-        } catch (error) {
-            console.error('Voice input failed:', error);
-            this.showError('Voice input not available');
-        }
-    }
+        const voiceBtn = document.getElementById('voice-btn');
+        voiceBtn.classList.add('recording');
 
-    stopVoiceInput() {
-        if (this.mediaRecorder && this.isRecording) {
-            this.mediaRecorder.stop();
-            this.mediaRecorder.stream.getTracks().forEach(track => track.stop());
-        }
-    }
-
-    async transcribeAudio(audioBlob) {
-        const supportedTypes = [
-            'audio/flac', 'audio/x-flac',
-            'audio/m4a', 'audio/mp4',
-            'audio/mpeg', 'audio/mp3', 'audio/mpga',
-            'audio/ogg', 'audio/wav', 'audio/webm', 'audio/oga'
-        ];
-        if (!supportedTypes.includes(audioBlob.type)) {
-            this.showError('Unsupported audio format. Please use one of: flac, m4a, mp3, mp4, mpeg, mpga, oga, ogg, wav, webm.');
-            return;
-        }
-        const formData = new FormData();
-        // Use a supported extension, e.g., .ogg
-        formData.append('audio', audioBlob, 'recording.ogg');
-        try {
-            const response = await fetch('/transcribe', {
-                method: 'POST',
-                body: formData
-            });
-            const data = await response.json();
-            if (data.transcription) {
-                document.getElementById('message-input').value = data.transcription;
-            } else {
-                this.showError('Transcription failed: ' + (data.error || 'Unknown error'));
-            }
-        } catch (error) {
-            this.showError('Transcription failed: ' + error.message);
-        }
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            const messageInput = document.getElementById('message-input');
+            messageInput.value = transcript;
+            messageInput.focus();
+        };
+        recognition.onerror = (event) => {
+            this.showError('Speech recognition error: ' + event.error);
+        };
+        recognition.onend = () => {
+            voiceBtn.classList.remove('recording');
+        };
+        recognition.start();
     }
 
     // URL reference functionality
