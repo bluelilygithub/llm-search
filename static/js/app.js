@@ -124,10 +124,13 @@ class KnowledgeBaseApp {
             }
             const response = await fetch(url);
             const conversations = await response.json();
+            console.log('Current project:', this.currentProject);
+            console.log('Fetched conversations:', conversations);
             // Filter on frontend as a fallback (in case backend returns all)
             let filtered = conversations;
             if (this.currentProject && this.currentProject.id) {
                 filtered = conversations.filter(conv => conv.project_id === this.currentProject.id);
+                console.log('Filtered conversations:', filtered);
             }
             this.renderConversations(filtered);
         } catch (error) {
@@ -643,8 +646,14 @@ class KnowledgeBaseApp {
         const items = document.querySelectorAll('.conversation-item');
         
         items.forEach(item => {
-            const title = item.querySelector('.conversation-title').textContent.toLowerCase();
-            const tags = item.querySelector('.conversation-tags').textContent.toLowerCase();
+            // Only filter conversation items that have a .conversation-title (not project items)
+            const titleElem = item.querySelector('.conversation-title');
+            if (!titleElem) {
+                // console.log('Skipping project item:', item.textContent);
+                return;
+            }
+            const title = titleElem.textContent.toLowerCase();
+            const tags = (item.querySelector('.conversation-tags')?.textContent || '').toLowerCase();
             
             if (title.includes(query) || tags.includes(query)) {
                 item.style.display = 'block';
