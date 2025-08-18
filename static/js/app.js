@@ -506,7 +506,6 @@ class KnowledgeBaseApp {
     }
 
     async transcribeAudio(audioBlob) {
-        // Supported formats for Whisper API
         const supportedTypes = [
             'audio/flac', 'audio/x-flac',
             'audio/m4a', 'audio/mp4',
@@ -517,9 +516,27 @@ class KnowledgeBaseApp {
             this.showError('Unsupported audio format. Please use one of: flac, m4a, mp3, mp4, mpeg, mpga, oga, ogg, wav, webm.');
             return;
         }
-        // Placeholder for Whisper API integration
-        console.log('Transcribing audio...', audioBlob);
-        this.showError('Voice transcription coming soon!');
+
+        const formData = new FormData();
+        // Use a supported extension, e.g., .wav
+        formData.append('audio', audioBlob, 'audio.wav');
+
+        try {
+            const response = await fetch('/transcribe', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            if (data.transcription) {
+                // Do something with the transcription, e.g., send to LLM
+                console.log('Transcription:', data.transcription);
+                // Optionally, you can call your chat/LLM function here
+            } else {
+                this.showError('Transcription failed: ' + (data.error || 'Unknown error'));
+            }
+        } catch (error) {
+            this.showError('Transcription failed: ' + error.message);
+        }
     }
 
     // URL reference functionality
