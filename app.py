@@ -80,6 +80,7 @@ def get_conversations():
     return jsonify([
         {
             'id': str(conv.id),
+            'project_id': str(conv.project_id) if conv.project_id else None,
             'title': conv.title,
             'llm_model': conv.llm_model,
             'created_at': conv.created_at.isoformat(),
