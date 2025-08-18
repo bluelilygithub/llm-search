@@ -41,6 +41,15 @@ class LLMService:
                 print(f"Gemini failed: {e}")
                 self.gemini_available = False
         
+        # Initialize Hugging Face
+        self.hf_api_key = os.getenv('HUGGING_FACE_API_KEY')
+        if self.hf_api_key:
+            self.hf_headers = {"Authorization": f"Bearer {self.hf_api_key}"}
+            self.hf_available = True
+            print("Hugging Face configured")
+        else:
+            self.hf_available = False
+        
     def get_response(self, model, messages, max_tokens=4000, temperature=0.7):
         """Get response from specified LLM model"""
         
@@ -50,6 +59,8 @@ class LLMService:
             return self._get_anthropic_response(model, messages, max_tokens, temperature)
         elif model.startswith('gemini'):
             return self._get_gemini_response(model, messages, max_tokens, temperature)
+        elif model in ['llama2-70b', 'mixtral-8x7b', 'codellama-34b']:
+            return self._get_huggingface_response(model, messages, max_tokens, temperature)
         else:
             raise ValueError(f"Model {model} not available")
     
@@ -147,6 +158,9 @@ class LLMService:
     
     def _get_huggingface_response(self, model, messages, max_tokens, temperature):
         """Get response from Hugging Face models"""
+        if not self.hf_available:
+            raise Exception("Hugging Face API key not configured")
+            
         try:
             # Map model names to HF endpoints
             model_mapping = {
