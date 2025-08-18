@@ -19,14 +19,22 @@ class LLMService:
             self.openai_available = True
             print("OpenAI API key configured")
         
-        # Initialize Anthropic client 
+        # Initialize Anthropic client with proper error handling
+        self.anthropic_available = False
         claude_key = os.getenv('CLAUDE_API_KEY')
         if claude_key:
-            self.anthropic_client = anthropic.Anthropic(api_key=claude_key)
-            self.anthropic_available = True
-            print("Anthropic client initialized")
+            try:
+                self.anthropic_client = anthropic.Anthropic(api_key=claude_key)
+                self.anthropic_available = True
+                print("Anthropic client initialized")
+            except TypeError as e:
+                if 'proxies' in str(e):
+                    print("Anthropic client incompatible with deployment environment")
+                else:
+                    print(f"Anthropic initialization error: {e}")
+            except Exception as e:
+                print(f"Anthropic failed: {e}")
         else:
-            self.anthropic_available = False
             print("No Claude API key found")
         
         # Initialize Gemini safely
