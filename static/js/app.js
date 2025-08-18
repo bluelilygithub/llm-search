@@ -49,28 +49,68 @@ class KnowledgeBaseApp {
 
     renderProjects(projects) {
         const sidebar = document.querySelector('.sidebar');
-        let projectList = document.getElementById('project-list');
-        if (!projectList) {
-            projectList = document.createElement('div');
-            projectList.id = 'project-list';
-            sidebar.insertBefore(projectList, sidebar.children[1]);
-        }
-        projectList.innerHTML = '';
-        // Toggle/collapse projects
+        // Projects toggle button
         let toggleBtn = document.getElementById('toggle-projects-btn');
         if (!toggleBtn) {
             toggleBtn = document.createElement('button');
             toggleBtn.id = 'toggle-projects-btn';
             toggleBtn.className = 'new-chat-btn';
+            toggleBtn.style.marginBottom = '8px';
             toggleBtn.textContent = '▼ Projects';
             toggleBtn.onclick = () => {
                 projectList.classList.toggle('collapsed');
                 toggleBtn.textContent = projectList.classList.contains('collapsed') ? '► Projects' : '▼ Projects';
             };
-            sidebar.insertBefore(toggleBtn, projectList);
+            sidebar.insertBefore(toggleBtn, sidebar.children[1]);
         }
-        if (projectList.classList.contains('collapsed')) return;
-        // Add 'All Projects' option
+        // New Project button
+        let newBtn = document.getElementById('new-project-btn');
+        if (!newBtn) {
+            newBtn = document.createElement('button');
+            newBtn.id = 'new-project-btn';
+            newBtn.className = 'new-chat-btn';
+            newBtn.textContent = '+ New Project';
+            newBtn.style.marginBottom = '8px';
+            newBtn.onclick = () => { this.addingProject = true; this.loadProjects(); };
+            sidebar.insertBefore(newBtn, toggleBtn.nextSibling);
+        }
+        // New project input field (styled like search input)
+        let inputRow = document.getElementById('new-project-input-row');
+        if (this.addingProject) {
+            if (!inputRow) {
+                inputRow = document.createElement('div');
+                inputRow.id = 'new-project-input-row';
+                inputRow.style.padding = '8px 20px 0 20px';
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.placeholder = 'Project name...';
+                input.className = 'search-input';
+                input.style.width = '100%';
+                input.style.marginBottom = '8px';
+                input.onkeydown = (e) => {
+                    if (e.key === 'Enter') this.createProject(input.value);
+                    if (e.key === 'Escape') this.addingProject = false, this.loadProjects();
+                };
+                inputRow.appendChild(input);
+                newBtn.insertAdjacentElement('afterend', inputRow);
+                input.focus();
+            }
+        } else if (inputRow) {
+            inputRow.remove();
+        }
+        // Project list
+        let projectList = document.getElementById('project-list');
+        if (!projectList) {
+            projectList = document.createElement('div');
+            projectList.id = 'project-list';
+            sidebar.insertBefore(projectList, newBtn.nextSibling);
+        }
+        if (projectList.classList.contains('collapsed')) {
+            projectList.innerHTML = '';
+            return;
+        }
+        projectList.innerHTML = '';
+        // All Projects option
         const allItem = document.createElement('div');
         allItem.className = 'conversation-item';
         allItem.textContent = 'All Projects';
@@ -83,6 +123,8 @@ class KnowledgeBaseApp {
         projects.forEach(project => {
             const item = document.createElement('div');
             item.className = 'conversation-item';
+            item.style.display = 'flex';
+            item.style.alignItems = 'center';
             if (this.currentProject && this.currentProject.id === project.id) {
                 item.classList.add('active');
             }
@@ -91,6 +133,8 @@ class KnowledgeBaseApp {
                 const input = document.createElement('input');
                 input.type = 'text';
                 input.value = project.name;
+                input.className = 'search-input';
+                input.style.flex = '1';
                 input.onkeydown = (e) => {
                     if (e.key === 'Enter') this.renameProject(project, input.value);
                     if (e.key === 'Escape') this.renamingProject = null, this.loadProjects();
@@ -100,56 +144,37 @@ class KnowledgeBaseApp {
             } else {
                 const nameSpan = document.createElement('span');
                 nameSpan.textContent = project.name;
+                nameSpan.style.flex = '1';
+                nameSpan.style.cursor = 'pointer';
                 nameSpan.onclick = () => this.selectProject(project);
                 item.appendChild(nameSpan);
             }
+            // Inline edit/delete icons
+            const iconRow = document.createElement('span');
+            iconRow.style.display = 'flex';
+            iconRow.style.gap = '4px';
+            iconRow.style.alignItems = 'center';
             // Rename (pencil) icon
             const renameBtn = document.createElement('button');
             renameBtn.className = 'input-btn';
+            renameBtn.style.width = '24px';
+            renameBtn.style.height = '24px';
             renameBtn.title = 'Rename Project';
             renameBtn.innerHTML = '<i class="fas fa-pencil-alt"></i>';
             renameBtn.onclick = (e) => { e.stopPropagation(); this.renamingProject = project; this.loadProjects(); };
-            item.appendChild(renameBtn);
+            iconRow.appendChild(renameBtn);
             // Delete (trash) icon
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'input-btn';
+            deleteBtn.style.width = '24px';
+            deleteBtn.style.height = '24px';
             deleteBtn.title = 'Delete Project';
             deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
             deleteBtn.onclick = (e) => { e.stopPropagation(); this.deleteProject(project); };
-            item.appendChild(deleteBtn);
+            iconRow.appendChild(deleteBtn);
+            item.appendChild(iconRow);
             projectList.appendChild(item);
         });
-        // Inline input for new project
-        let inputRow = document.getElementById('new-project-input-row');
-        if (this.addingProject) {
-            if (!inputRow) {
-                inputRow = document.createElement('div');
-                inputRow.id = 'new-project-input-row';
-                inputRow.className = 'conversation-item';
-                const input = document.createElement('input');
-                input.type = 'text';
-                input.placeholder = 'Project name...';
-                input.onkeydown = (e) => {
-                    if (e.key === 'Enter') this.createProject(input.value);
-                    if (e.key === 'Escape') this.addingProject = false, this.loadProjects();
-                };
-                inputRow.appendChild(input);
-                projectList.appendChild(inputRow);
-                input.focus();
-            }
-        } else if (inputRow) {
-            inputRow.remove();
-        }
-        // New Project button (styled like New Chat)
-        let newBtn = document.getElementById('new-project-btn');
-        if (!newBtn) {
-            newBtn = document.createElement('button');
-            newBtn.id = 'new-project-btn';
-            newBtn.className = 'new-chat-btn';
-            newBtn.textContent = '+ New Project';
-            newBtn.onclick = () => { this.addingProject = true; this.loadProjects(); };
-            sidebar.insertBefore(newBtn, projectList);
-        }
     }
 
     showNewProjectPrompt() { /* no-op, replaced by inline input */ }
