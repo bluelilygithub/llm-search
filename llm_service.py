@@ -7,15 +7,38 @@ import os
 
 class LLMService:
     def __init__(self):
-        self.openai_client = openai.OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
-        self.anthropic_client = anthropic.Anthropic(api_key=os.getenv('CLAUDE_API_KEY'))
-        
-        # Configure Google Gemini
-        genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
-        
-        # Hugging Face API setup
-        self.hf_api_key = os.getenv('HUGGING_FACE_API_KEY')
-        self.hf_headers = {"Authorization": f"Bearer {self.hf_api_key}"}
+        try:
+            # Initialize OpenAI client
+            openai_key = os.getenv('OPENAI_API_KEY')
+            if openai_key:
+                self.openai_client = openai.OpenAI(api_key=openai_key)
+            else:
+                self.openai_client = None
+                
+            # Initialize Anthropic client
+            claude_key = os.getenv('CLAUDE_API_KEY')
+            if claude_key:
+                self.anthropic_client = anthropic.Anthropic(api_key=claude_key)
+            else:
+                self.anthropic_client = None
+            
+            # Configure Google Gemini
+            gemini_key = os.getenv('GEMINI_API_KEY')
+            if gemini_key:
+                genai.configure(api_key=gemini_key)
+                self.gemini_available = True
+            else:
+                self.gemini_available = False
+            
+            # Hugging Face API setup
+            self.hf_api_key = os.getenv('HUGGING_FACE_API_KEY')
+            if self.hf_api_key:
+                self.hf_headers = {"Authorization": f"Bearer {self.hf_api_key}"}
+            else:
+                self.hf_headers = None
+                
+        except Exception as e:
+            print(f"Warning: LLM service initialization error: {e}")
         
     def get_response(self, model, messages, max_tokens=4000, temperature=0.7):
         """Get response from specified LLM model"""
@@ -33,6 +56,9 @@ class LLMService:
     
     def _get_openai_response(self, model, messages, max_tokens, temperature):
         """Get response from OpenAI models"""
+        if not self.openai_client:
+            raise Exception("OpenAI API key not configured")
+            
         try:
             response = self.openai_client.chat.completions.create(
                 model=model,
