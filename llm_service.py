@@ -1,6 +1,5 @@
 import openai
 import anthropic
-import google.generativeai as genai
 import requests
 from config import Config
 import os
@@ -21,21 +20,6 @@ class LLMService:
                 self.anthropic_client = anthropic.Anthropic(api_key=claude_key)
             else:
                 self.anthropic_client = None
-            
-            # Configure Google Gemini
-            gemini_key = os.getenv('GEMINI_API_KEY')
-            if gemini_key:
-                genai.configure(api_key=gemini_key)
-                self.gemini_available = True
-            else:
-                self.gemini_available = False
-            
-            # Hugging Face API setup
-            self.hf_api_key = os.getenv('HUGGING_FACE_API_KEY')
-            if self.hf_api_key:
-                self.hf_headers = {"Authorization": f"Bearer {self.hf_api_key}"}
-            else:
-                self.hf_headers = None
                 
         except Exception as e:
             print(f"Warning: LLM service initialization error: {e}")
@@ -47,12 +31,8 @@ class LLMService:
             return self._get_openai_response(model, messages, max_tokens, temperature)
         elif model.startswith('claude'):
             return self._get_anthropic_response(model, messages, max_tokens, temperature)
-        elif model.startswith('gemini'):
-            return self._get_gemini_response(model, messages, max_tokens, temperature)
-        elif model in ['llama2-70b', 'mixtral-8x7b', 'codellama-34b']:
-            return self._get_huggingface_response(model, messages, max_tokens, temperature)
         else:
-            raise ValueError(f"Unsupported model: {model}")
+            raise ValueError(f"Model {model} not available in simplified version")
     
     def _get_openai_response(self, model, messages, max_tokens, temperature):
         """Get response from OpenAI models"""
