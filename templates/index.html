@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Knowledge Base</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="static/css/style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
@@ -35,11 +35,28 @@
             <div class="chat-header">
                 <div class="model-selector">
                     <select id="llm-model" onchange="updateModel()">
-                        <option value="gpt-4">GPT-4</option>
-                        <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-                        <option value="claude-3-opus">Claude 3 Opus</option>
-                        <option value="claude-3-sonnet">Claude 3 Sonnet</option>
-                        <option value="claude-3-haiku">Claude 3 Haiku</option>
+                        <optgroup label="OpenAI">
+                            <option value="gpt-4">GPT-4</option>
+                            <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                            <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                            <option value="o1-preview">O1 Preview</option>
+                            <option value="o1-mini">O1 Mini</option>
+                        </optgroup>
+                        <optgroup label="Anthropic">
+                            <option value="claude-3.5-sonnet">Claude 3.5 Sonnet</option>
+                            <option value="claude-3-opus">Claude 3 Opus</option>
+                            <option value="claude-3-sonnet">Claude 3 Sonnet</option>
+                            <option value="claude-3-haiku">Claude 3 Haiku</option>
+                        </optgroup>
+                        <optgroup label="Google">
+                            <option value="gemini-pro">Gemini Pro</option>
+                            <option value="gemini-flash">Gemini Flash</option>
+                        </optgroup>
+                        <optgroup label="Hugging Face">
+                            <option value="llama2-70b">Llama 2 70B</option>
+                            <option value="mixtral-8x7b">Mixtral 8x7B</option>
+                            <option value="codellama-34b">CodeLlama 34B</option>
+                        </optgroup>
                     </select>
                 </div>
                 
@@ -127,6 +144,6 @@
         </div>
     </div>
 
-    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script src="static/js/app.js"></script>
 </body>
 </html>

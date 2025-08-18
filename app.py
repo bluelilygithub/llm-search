@@ -5,13 +5,16 @@ from config import Config
 import uuid
 from datetime import datetime
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='templates/static')
 app.config.from_object(Config)
 
 db = SQLAlchemy(app)
 CORS(app)
 
 from models import Conversation, Message, Attachment
+from llm_service import LLMService
+
+llm_service = LLMService()
 
 @app.route('/health')
 def health_check():
@@ -123,6 +126,41 @@ def add_message(conversation_id):
         'content': message.content,
         'timestamp': message.timestamp.isoformat()
     }), 201
+
+@app.route('/chat', methods=['POST'])
+def chat():
+    data = request.get_json()
+    
+    if not data or not data.get('message') or not data.get('model'):
+        return jsonify({'error': 'Message and model are required'}), 400
+    
+    conversation_id = data.get('conversation_id')
+    user_message = data['message']
+    model = data['model']
+    
+    try:
+        # Get conversation history if conversation exists
+        messages = []
+        if conversation_id:
+            conv_uuid = uuid.UUID(conversation_id)
+            conversation = Conversation.query.get_or_404(conv_uuid)
+            db_messages = Message.query.filter_by(conversation_id=conv_uuid).order_by(Message.timestamp.asc()).all()
+            messages = llm_service.format_conversation_for_llm(db_messages)
+        
+        # Add current user message
+        messages.append({'role': 'user', 'content': user_message})
+        
+        # Get AI response
+        ai_response = llm_service.get_response(model, messages)
+        
+        return jsonify({
+            'response': ai_response,
+            'model': model,
+            'timestamp': datetime.utcnow().isoformat()
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
