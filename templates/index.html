@@ -16,6 +16,15 @@
                 <button class="new-chat-btn" onclick="startNewChat()">
                     <i class="fas fa-plus"></i> New Chat
                 </button>
+                <button class="new-chat-btn" id="toggle-projects-btn" onclick="window.app.toggleProjects()">
+                    ▼ Projects
+                </button>
+                <button class="new-chat-btn" id="new-project-btn" onclick="window.app.showNewProjectInput()">
+                    + New Project
+                </button>
+                <div id="new-project-input-row" style="display:none;">
+                    <input type="text" class="project-input" id="new-project-input" placeholder="Project name..." onkeydown="window.app.handleNewProjectInput(event)">
+                </div>
             </div>
             
             <div class="search-section">
