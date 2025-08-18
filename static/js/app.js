@@ -474,24 +474,20 @@ class KnowledgeBaseApp {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             this.mediaRecorder = new MediaRecorder(stream);
             this.isRecording = true;
-            
             const voiceBtn = document.getElementById('voice-btn');
             voiceBtn.classList.add('recording');
-            
             const audioChunks = [];
             this.mediaRecorder.ondataavailable = event => {
                 audioChunks.push(event.data);
             };
-            
             this.mediaRecorder.onstop = async () => {
-                const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                // Use webm format for compatibility
+                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
                 await this.transcribeAudio(audioBlob);
                 voiceBtn.classList.remove('recording');
                 this.isRecording = false;
             };
-            
             this.mediaRecorder.start();
-            
         } catch (error) {
             console.error('Voice input failed:', error);
             this.showError('Voice input not available');
@@ -516,11 +512,9 @@ class KnowledgeBaseApp {
             this.showError('Unsupported audio format. Please use one of: flac, m4a, mp3, mp4, mpeg, mpga, oga, ogg, wav, webm.');
             return;
         }
-
         const formData = new FormData();
-        // Use a supported extension, e.g., .wav
-        formData.append('audio', audioBlob, 'audio.wav');
-
+        // Use a supported extension, e.g., .webm
+        formData.append('audio', audioBlob, 'audio.webm');
         try {
             const response = await fetch('/transcribe', {
                 method: 'POST',
@@ -528,7 +522,6 @@ class KnowledgeBaseApp {
             });
             const data = await response.json();
             if (data.transcription) {
-                // Insert transcription into the chat input box
                 document.getElementById('message-input').value = data.transcription;
             } else {
                 this.showError('Transcription failed: ' + (data.error || 'Unknown error'));

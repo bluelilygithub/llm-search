@@ -174,6 +174,7 @@ def transcribe_audio():
             return jsonify({'error': 'No audio file provided'}), 400
 
         audio_file = request.files['audio']
+        print('Received file:', audio_file.filename, 'Content-Type:', audio_file.content_type)
         if audio_file.filename == '':
             return jsonify({'error': 'No audio file selected'}), 400
 
