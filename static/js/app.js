@@ -1,3 +1,5 @@
+// testing
+
 class KnowledgeBaseApp {
     constructor() {
         this.currentConversationId = null;
@@ -456,18 +458,21 @@ class KnowledgeBaseApp {
         console.log('Uploaded files:', this.uploadedFiles);
     }
 
-    // Voice input functionality
+    // Voice input functionality (Web Speech API only)
     setupVoiceInput() {
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            console.warn('Voice input not supported in this browser');
-            return;
+        // No setup needed for Web Speech API
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+            console.warn('Speech recognition is not supported in this browser');
         }
     }
 
     async startVoiceInput() {
+        alert('Mic button pressed!');
+        console.log('Class startVoiceInput called');
         // Use Web Speech API for speech-to-text
         if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
             this.showError('Speech recognition is not supported in this browser.');
+            console.log('Speech recognition not supported in this browser.');
             return;
         }
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -478,21 +483,29 @@ class KnowledgeBaseApp {
 
         const voiceBtn = document.getElementById('voice-btn');
         voiceBtn.classList.add('recording');
+        console.log('Speech recognition started');
 
         recognition.onresult = (event) => {
             const transcript = event.results[0][0].transcript;
+            console.log('Speech recognition result:', transcript);
             const messageInput = document.getElementById('message-input');
             messageInput.value = transcript;
             messageInput.focus();
         };
         recognition.onerror = (event) => {
+            console.error('Speech recognition error:', event.error);
             this.showError('Speech recognition error: ' + event.error);
         };
         recognition.onend = () => {
+            console.log('Speech recognition ended');
             voiceBtn.classList.remove('recording');
         };
         recognition.start();
     }
+
+    // Remove MediaRecorder and backend-based voice input methods
+    stopVoiceInput() {}
+    async transcribeAudio(audioBlob) {}
 
     // URL reference functionality
     addUrlReference() {
