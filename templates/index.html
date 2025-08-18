@@ -13,17 +13,22 @@
         <div class="sidebar">
             <div class="sidebar-header">
                 <h2>AI Knowledge Base</h2>
-                <button class="new-chat-btn" onclick="startNewChat()">
-                    <i class="fas fa-plus"></i> New Chat
-                </button>
-                <button class="new-chat-btn" id="toggle-projects-btn" onclick="window.app.toggleProjects()">
-                    ▼ Projects
-                </button>
-                <button class="new-chat-btn" id="new-project-btn" onclick="window.app.showNewProjectInput()">
-                    + New Project
-                </button>
-                <div id="new-project-input-row" style="display:none;">
-                    <input type="text" class="project-input" id="new-project-input" placeholder="Project name..." onkeydown="window.app.handleNewProjectInput(event)">
+                <div class="sidebar-btn-row">
+                    <button class="new-chat-btn" id="new-chat-btn">
+                        <i class="fas fa-plus"></i> New Chat
+                    </button>
+                    <button class="new-chat-btn" id="new-project-btn">
+                        + New Project
+                    </button>
+                </div>
+                <div id="projects-section" class="projects-section">
+                    <button class="new-chat-btn" id="toggle-projects-btn">
+                        ▼ Projects
+                    </button>
+                    <div id="new-project-input-row" style="display:none;">
+                        <input type="text" class="project-input" id="new-project-input" placeholder="Project name..." onkeydown="window.app.handleNewProjectInput(event)">
+                    </div>
+                    <div id="project-list"></div>
                 </div>
             </div>
             

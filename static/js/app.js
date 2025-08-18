@@ -857,15 +857,13 @@ class KnowledgeBaseApp {
 
 // Initialize the app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    const toggleBtn = document.getElementById('toggle-projects-btn');
-    if (toggleBtn) {
-        toggleBtn.onclick = function() {
-            const section = document.getElementById('projects-section');
-            section.classList.toggle('collapsed');
-            this.textContent = section.classList.contains('collapsed') ? '► Projects' : '▼ Projects';
-        };
-    }
     window.app = new KnowledgeBaseApp();
+    document.getElementById('new-project-btn').onclick = function() {
+        window.app.showNewProjectInput();
+    };
+    document.getElementById('new-chat-btn').onclick = function() {
+        window.app.startNewChat();
+    };
 });
 
 // Global functions for HTML onclick handlers
