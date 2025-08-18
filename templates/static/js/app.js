@@ -520,9 +520,35 @@ class KnowledgeBaseApp {
     }
 
     async transcribeAudio(audioBlob) {
-        // Placeholder for Whisper API integration
-        console.log('Transcribing audio...', audioBlob);
-        this.showError('Voice transcription coming soon!');
+        try {
+            const formData = new FormData();
+            formData.append('audio', audioBlob, 'recording.wav');
+            
+            const response = await fetch('/transcribe', {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Transcription failed: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // Put transcribed text in the input field
+                const messageInput = document.getElementById('message-input');
+                messageInput.value = data.transcription;
+                this.autoResizeTextarea();
+                messageInput.focus();
+            } else {
+                throw new Error(data.error || 'Transcription failed');
+            }
+            
+        } catch (error) {
+            console.error('Transcription error:', error);
+            this.showError('Voice transcription failed. Please try again.');
+        }
     }
 
     // URL reference functionality

@@ -167,5 +167,33 @@ def chat():
         print(f"Chat error: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/transcribe', methods=['POST'])
+def transcribe_audio():
+    try:
+        if 'audio' not in request.files:
+            return jsonify({'error': 'No audio file provided'}), 400
+        
+        audio_file = request.files['audio']
+        if audio_file.filename == '':
+            return jsonify({'error': 'No audio file selected'}), 400
+        
+        # Use OpenAI Whisper API for transcription
+        import openai
+        
+        transcription = openai.Audio.transcribe(
+            model="whisper-1",
+            file=audio_file,
+            response_format="text"
+        )
+        
+        return jsonify({
+            'transcription': transcription,
+            'success': True
+        })
+        
+    except Exception as e:
+        print(f"Transcription error: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
