@@ -4,6 +4,7 @@ from flask_cors import CORS
 from config import Config
 import uuid
 from datetime import datetime
+from flask_migrate import Migrate
 
 app = Flask(__name__, static_folder='static')
 app.config.from_object(Config)
@@ -15,6 +16,8 @@ from models import Conversation, Message, Attachment, Project
 from llm_service import LLMService
 
 llm_service = LLMService()
+
+migrate = Migrate(app, db)
 
 @app.route('/health')
 def health_check():
