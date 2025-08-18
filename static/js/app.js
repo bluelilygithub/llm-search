@@ -573,19 +573,13 @@ class KnowledgeBaseApp {
 
     handleInputChange() {
         this.autoResizeTextarea();
-        
-        // Trigger knowledge base search suggestions as user types
-        const query = document.getElementById('message-input').value.trim();
-        if (query.length > 3) {
-            this.debounce(this.showSearchSuggestions.bind(this), 300)(query);
-        } else {
-            this.hideSearchSuggestions();
-        }
+        // No type-ahead search suggestions
+        // Previously triggered showSearchSuggestions here
+        this.hideSearchSuggestions();
     }
 
     showSearchSuggestions(query) {
-        // Placeholder for integrated search suggestions
-        console.log('Searching for:', query);
+        // No-op: type-ahead suggestions removed
     }
 
     hideSearchSuggestions() {

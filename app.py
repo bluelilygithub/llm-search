@@ -11,7 +11,7 @@ app.config.from_object(Config)
 db = SQLAlchemy(app)
 CORS(app)
 
-from models import Conversation, Message, Attachment
+from models import Conversation, Message, Attachment, Project
 from llm_service import LLMService
 
 llm_service = LLMService()

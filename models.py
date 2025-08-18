@@ -3,16 +3,24 @@ from datetime import datetime
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 
+class Project(db.Model):
+    __tablename__ = 'projects'
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    conversations = db.relationship('Conversation', backref='project', lazy=True, cascade='all, delete-orphan')
+
 class Conversation(db.Model):
     __tablename__ = 'conversations'
-    
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    project_id = db.Column(UUID(as_uuid=True), db.ForeignKey('projects.id'), nullable=True)  # New field
     title = db.Column(db.String(255), nullable=False)
     llm_model = db.Column(db.String(100), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     tags = db.Column(db.JSON, default=list)
-    
     messages = db.relationship('Message', backref='conversation', lazy=True, cascade='all, delete-orphan')
 
 class Message(db.Model):

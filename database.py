@@ -1,5 +1,5 @@
 from app import app, db
-from models import Document, DocumentEmbedding, SearchQuery
+from models import Conversation, Message, Attachment, SearchQuery, Project
 from sqlalchemy import text
 
 def init_database():
