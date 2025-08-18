@@ -1,5 +1,3 @@
-console.log('APP.JS VERSION TEST-20240710');
-
 class KnowledgeBaseApp {
     constructor() {
         this.currentConversationId = null;
