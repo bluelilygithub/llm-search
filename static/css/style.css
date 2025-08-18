@@ -721,3 +721,7 @@ body {
 .projects-section.collapsed > *:not(#toggle-projects-btn) {
     display: none !important;
 }
+
+#new-project-btn {
+    margin-left: 20px;
+}
