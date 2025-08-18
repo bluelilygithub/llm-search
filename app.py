@@ -72,16 +72,23 @@ def create_project():
 
 @app.route('/conversations', methods=['GET'])
 def get_conversations():
-    conversations = Conversation.query.order_by(Conversation.updated_at.desc()).all()
-    return jsonify([{
-        'id': str(conv.id),
-        'title': conv.title,
-        'llm_model': conv.llm_model,
-        'created_at': conv.created_at.isoformat(),
-        'updated_at': conv.updated_at.isoformat(),
-        'tags': conv.tags or [],
-        'message_count': len(conv.messages)
-    } for conv in conversations])
+    project_id = request.args.get('project_id')
+    query = Conversation.query
+    if project_id:
+        query = query.filter_by(project_id=project_id)
+    conversations = query.order_by(Conversation.updated_at.desc()).all()
+    return jsonify([
+        {
+            'id': str(conv.id),
+            'title': conv.title,
+            'llm_model': conv.llm_model,
+            'created_at': conv.created_at.isoformat(),
+            'updated_at': conv.updated_at.isoformat(),
+            'tags': conv.tags or [],
+            'message_count': len(conv.messages)
+        }
+        for conv in conversations
+    ])
 
 # Update create_conversation to accept project_id
 @app.route('/conversations', methods=['POST'])

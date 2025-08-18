@@ -119,12 +119,17 @@ class KnowledgeBaseApp {
     async loadConversations() {
         try {
             let url = '/conversations';
-            if (this.currentProject) {
+            if (this.currentProject && this.currentProject.id) {
                 url += `?project_id=${this.currentProject.id}`;
             }
             const response = await fetch(url);
             const conversations = await response.json();
-            this.renderConversations(conversations);
+            // Filter on frontend as a fallback (in case backend returns all)
+            let filtered = conversations;
+            if (this.currentProject && this.currentProject.id) {
+                filtered = conversations.filter(conv => conv.project_id === this.currentProject.id);
+            }
+            this.renderConversations(filtered);
         } catch (error) {
             console.error('Failed to load conversations:', error);
         }
@@ -279,7 +284,7 @@ class KnowledgeBaseApp {
             llm_model: this.selectedModel,
             tags: []
         };
-        if (this.currentProject) {
+        if (this.currentProject && this.currentProject.id) {
             body.project_id = this.currentProject.id;
         }
         const response = await fetch('/conversations', {
