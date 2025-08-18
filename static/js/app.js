@@ -54,12 +54,15 @@ class KnowledgeBaseApp {
         if (!toggleBtn) {
             toggleBtn = document.createElement('button');
             toggleBtn.id = 'toggle-projects-btn';
-            toggleBtn.className = 'new-chat-btn';
+            toggleBtn.className = 'sidebar-btn';
             toggleBtn.style.marginBottom = '8px';
             toggleBtn.textContent = '▼ Projects';
             toggleBtn.onclick = () => {
-                projectList.classList.toggle('collapsed');
-                toggleBtn.textContent = projectList.classList.contains('collapsed') ? '► Projects' : '▼ Projects';
+                const projectList = document.getElementById('project-list');
+                if (projectList) {
+                    projectList.classList.toggle('collapsed');
+                    toggleBtn.textContent = projectList.classList.contains('collapsed') ? '► Projects' : '▼ Projects';
+                }
             };
             sidebar.insertBefore(toggleBtn, sidebar.children[1]);
         }
@@ -68,7 +71,7 @@ class KnowledgeBaseApp {
         if (!newBtn) {
             newBtn = document.createElement('button');
             newBtn.id = 'new-project-btn';
-            newBtn.className = 'new-chat-btn';
+            newBtn.className = 'sidebar-btn';
             newBtn.textContent = '+ New Project';
             newBtn.style.marginBottom = '8px';
             newBtn.onclick = () => { this.addingProject = true; this.loadProjects(); };
@@ -84,9 +87,7 @@ class KnowledgeBaseApp {
                 const input = document.createElement('input');
                 input.type = 'text';
                 input.placeholder = 'Project name...';
-                input.className = 'search-input';
-                input.style.width = '100%';
-                input.style.marginBottom = '8px';
+                input.className = 'project-input';
                 input.onkeydown = (e) => {
                     if (e.key === 'Enter') this.createProject(input.value);
                     if (e.key === 'Escape') this.addingProject = false, this.loadProjects();
@@ -133,7 +134,7 @@ class KnowledgeBaseApp {
                 const input = document.createElement('input');
                 input.type = 'text';
                 input.value = project.name;
-                input.className = 'search-input';
+                input.className = 'project-input';
                 input.style.flex = '1';
                 input.onkeydown = (e) => {
                     if (e.key === 'Enter') this.renameProject(project, input.value);
@@ -144,8 +145,7 @@ class KnowledgeBaseApp {
             } else {
                 const nameSpan = document.createElement('span');
                 nameSpan.textContent = project.name;
-                nameSpan.style.flex = '1';
-                nameSpan.style.cursor = 'pointer';
+                nameSpan.className = 'project-name';
                 nameSpan.onclick = () => this.selectProject(project);
                 item.appendChild(nameSpan);
             }

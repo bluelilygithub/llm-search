@@ -53,6 +53,48 @@ body {
     background-color: #e8e8e8;
 }
 
+.sidebar-btn {
+    width: 100%;
+    padding: 10px 16px;
+    background-color: #f4f4f4;
+    border: 1px solid #d9d9d9;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #1a1a1a;
+    transition: background-color 0.2s;
+    margin-bottom: 8px;
+    text-align: left;
+}
+.sidebar-btn:hover {
+    background-color: #e8e8e8;
+}
+
+.project-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #d9d9d9;
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+    margin-bottom: 8px;
+    box-sizing: border-box;
+}
+.project-input:focus {
+    border-color: #2563eb;
+}
+
+.project-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: #1a1a1a;
+    flex: 1;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .search-section {
     padding: 16px 20px;
     border-bottom: 1px solid #e5e5e5;
