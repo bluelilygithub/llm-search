@@ -4,28 +4,39 @@ from sqlalchemy.dialects.postgresql import UUID
 from pgvector.sqlalchemy import Vector
 import uuid
 
-class Document(db.Model):
-    __tablename__ = 'documents'
+class Conversation(db.Model):
+    __tablename__ = 'conversations'
     
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     title = db.Column(db.String(255), nullable=False)
-    content = db.Column(db.Text, nullable=False)
-    source_url = db.Column(db.String(500))
-    document_type = db.Column(db.String(50), default='text')
-    metadata = db.Column(db.JSON)
+    llm_model = db.Column(db.String(100), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    tags = db.Column(db.JSON, default=list)
     
-    embeddings = db.relationship('DocumentEmbedding', backref='document', lazy=True, cascade='all, delete-orphan')
+    messages = db.relationship('Message', backref='conversation', lazy=True, cascade='all, delete-orphan')
 
-class DocumentEmbedding(db.Model):
-    __tablename__ = 'document_embeddings'
+class Message(db.Model):
+    __tablename__ = 'messages'
     
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    document_id = db.Column(UUID(as_uuid=True), db.ForeignKey('documents.id'), nullable=False)
-    embedding = db.Column(Vector(1536))
-    chunk_text = db.Column(db.Text, nullable=False)
-    chunk_index = db.Column(db.Integer, nullable=False)
+    conversation_id = db.Column(UUID(as_uuid=True), db.ForeignKey('conversations.id'), nullable=False)
+    role = db.Column(db.String(20), nullable=False)  # 'user' or 'assistant'
+    content = db.Column(db.Text, nullable=False)
+    embeddings = db.Column(Vector(1536))
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    attachments = db.relationship('Attachment', backref='message', lazy=True, cascade='all, delete-orphan')
+
+class Attachment(db.Model):
+    __tablename__ = 'attachments'
+    
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    message_id = db.Column(UUID(as_uuid=True), db.ForeignKey('messages.id'), nullable=False)
+    filename = db.Column(db.String(255), nullable=False)
+    content_type = db.Column(db.String(100), nullable=False)
+    file_path = db.Column(db.String(500), nullable=False)
+    processed_content = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class SearchQuery(db.Model):
