@@ -6,11 +6,13 @@ class KnowledgeBaseApp {
         this.urlReferences = [];
         this.isRecording = false;
         this.mediaRecorder = null;
+        this.currentProject = null; // Added for project management
         
         this.init();
     }
 
     init() {
+        this.loadProjects(); // Load projects on app initialization
         this.loadConversations();
         this.setupEventListeners();
         this.autoResizeTextarea();
@@ -34,9 +36,83 @@ class KnowledgeBaseApp {
         textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px';
     }
 
+    // --- Project Management ---
+    async loadProjects() {
+        try {
+            const response = await fetch('/projects');
+            const projects = await response.json();
+            this.renderProjects(projects);
+        } catch (error) {
+            console.error('Failed to load projects:', error);
+        }
+    }
+
+    renderProjects(projects) {
+        const sidebar = document.querySelector('.sidebar');
+        let projectList = document.getElementById('project-list');
+        if (!projectList) {
+            projectList = document.createElement('div');
+            projectList.id = 'project-list';
+            sidebar.insertBefore(projectList, sidebar.children[1]);
+        }
+        projectList.innerHTML = '';
+        projects.forEach(project => {
+            const item = document.createElement('div');
+            item.className = 'project-item';
+            item.textContent = project.name;
+            item.onclick = () => this.selectProject(project);
+            if (this.currentProject && this.currentProject.id === project.id) {
+                item.classList.add('active');
+            }
+            projectList.appendChild(item);
+        });
+        // Add New Project button
+        let newBtn = document.getElementById('new-project-btn');
+        if (!newBtn) {
+            newBtn = document.createElement('button');
+            newBtn.id = 'new-project-btn';
+            newBtn.className = 'new-project-btn';
+            newBtn.textContent = '+ New Project';
+            newBtn.onclick = () => this.showNewProjectPrompt();
+            sidebar.insertBefore(newBtn, projectList);
+        }
+    }
+
+    showNewProjectPrompt() {
+        const name = prompt('Enter project name:');
+        if (name) {
+            this.createProject(name);
+        }
+    }
+
+    async createProject(name) {
+        try {
+            const response = await fetch('/projects', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name })
+            });
+            if (!response.ok) throw new Error('Failed to create project');
+            await this.loadProjects();
+        } catch (error) {
+            console.error('Failed to create project:', error);
+        }
+    }
+
+    selectProject(project) {
+        this.currentProject = project;
+        this.loadProjects();
+        this.loadConversations();
+    }
+
+    // --- Conversation Filtering by Project ---
     async loadConversations() {
         try {
-            const response = await fetch('/conversations');
+            let url = '/conversations';
+            if (this.currentProject) {
+                url += `?project_id=${this.currentProject.id}`;
+            }
+            const response = await fetch(url);
             const conversations = await response.json();
             this.renderConversations(conversations);
         } catch (error) {
@@ -188,19 +264,21 @@ class KnowledgeBaseApp {
     async createNewConversation(firstMessage) {
         const title = firstMessage.length > 50 ? 
             firstMessage.substring(0, 50) + '...' : firstMessage;
-            
+        const body = {
+            title: title,
+            llm_model: this.selectedModel,
+            tags: []
+        };
+        if (this.currentProject) {
+            body.project_id = this.currentProject.id;
+        }
         const response = await fetch('/conversations', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                title: title,
-                llm_model: this.selectedModel,
-                tags: []
-            })
+            body: JSON.stringify(body)
         });
-
         const conversation = await response.json();
         this.currentConversationId = conversation.id;
         this.loadConversations(); // Refresh sidebar

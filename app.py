@@ -35,6 +35,41 @@ def init_database():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/projects', methods=['GET'])
+def get_projects():
+    from models import Project
+    projects = Project.query.order_by(Project.created_at.desc()).all()
+    return jsonify([
+        {
+            'id': str(project.id),
+            'name': project.name,
+            'description': project.description,
+            'created_at': project.created_at.isoformat(),
+            'updated_at': project.updated_at.isoformat() if project.updated_at else None
+        }
+        for project in projects
+    ])
+
+@app.route('/projects', methods=['POST'])
+def create_project():
+    from models import Project
+    data = request.get_json()
+    if not data or not data.get('name'):
+        return jsonify({'error': 'Project name is required'}), 400
+    project = Project(
+        name=data['name'],
+        description=data.get('description', '')
+    )
+    db.session.add(project)
+    db.session.commit()
+    return jsonify({
+        'id': str(project.id),
+        'name': project.name,
+        'description': project.description,
+        'created_at': project.created_at.isoformat(),
+        'updated_at': project.updated_at.isoformat() if project.updated_at else None
+    }), 201
+
 @app.route('/conversations', methods=['GET'])
 def get_conversations():
     conversations = Conversation.query.order_by(Conversation.updated_at.desc()).all()
@@ -48,22 +83,21 @@ def get_conversations():
         'message_count': len(conv.messages)
     } for conv in conversations])
 
+# Update create_conversation to accept project_id
 @app.route('/conversations', methods=['POST'])
 def create_conversation():
     data = request.get_json()
-    
     if not data or not data.get('title') or not data.get('llm_model'):
         return jsonify({'error': 'Title and llm_model are required'}), 400
-    
+    from models import Conversation
     conversation = Conversation(
         title=data['title'],
         llm_model=data['llm_model'],
-        tags=data.get('tags', [])
+        tags=data.get('tags', []),
+        project_id=data.get('project_id')
     )
-    
     db.session.add(conversation)
     db.session.commit()
-    
     return jsonify({
         'id': str(conversation.id),
         'title': conversation.title,
