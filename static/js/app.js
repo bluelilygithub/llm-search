@@ -528,9 +528,8 @@ class KnowledgeBaseApp {
             });
             const data = await response.json();
             if (data.transcription) {
-                // Do something with the transcription, e.g., send to LLM
-                console.log('Transcription:', data.transcription);
-                // Optionally, you can call your chat/LLM function here
+                // Insert transcription into the chat input box
+                document.getElementById('message-input').value = data.transcription;
             } else {
                 this.showError('Transcription failed: ' + (data.error || 'Unknown error'));
             }
