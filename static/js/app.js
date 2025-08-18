@@ -932,3 +932,102 @@ function handleTagInput(event) {
 function saveTags() {
     window.app.saveTags();
 }
+
+// Add these methods to KnowledgeBaseApp
+
+// Toggle projects section
+window.app.toggleProjects = function() {
+    const section = document.getElementById('projects-section');
+    const toggleBtn = document.getElementById('toggle-projects-btn');
+    section.classList.toggle('collapsed');
+    toggleBtn.textContent = section.classList.contains('collapsed') ? '► Projects' : '▼ Projects';
+};
+
+// Show new project input
+window.app.showNewProjectInput = function() {
+    document.getElementById('new-project-input-row').style.display = '';
+    document.getElementById('new-project-input').focus();
+};
+
+// Handle new project input
+window.app.handleNewProjectInput = function(e) {
+    if (e.key === 'Enter') {
+        window.app.createProject(e.target.value);
+        e.target.value = '';
+        document.getElementById('new-project-input-row').style.display = 'none';
+    }
+    if (e.key === 'Escape') {
+        document.getElementById('new-project-input-row').style.display = 'none';
+    }
+};
+
+// Update renderProjects to only update the project list
+KnowledgeBaseApp.prototype.renderProjects = function(projects) {
+    const projectList = document.getElementById('project-list');
+    if (!projectList) return;
+    projectList.innerHTML = '';
+    // All Projects option
+    const allItem = document.createElement('div');
+    allItem.className = 'conversation-item';
+    allItem.textContent = 'All Projects';
+    allItem.onclick = () => this.selectProject(null);
+    if (!this.currentProject) {
+        allItem.classList.add('active');
+    }
+    projectList.appendChild(allItem);
+    // List all projects
+    projects.forEach(project => {
+        const item = document.createElement('div');
+        item.className = 'conversation-item';
+        item.style.display = 'flex';
+        item.style.alignItems = 'center';
+        if (this.currentProject && this.currentProject.id === project.id) {
+            item.classList.add('active');
+        }
+        // Project name or input for renaming
+        if (this.renamingProject && this.renamingProject.id === project.id) {
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = project.name;
+            input.className = 'project-input';
+            input.style.flex = '1';
+            input.onkeydown = (e) => {
+                if (e.key === 'Enter') this.renameProject(project, input.value);
+                if (e.key === 'Escape') this.renamingProject = null, this.loadProjects();
+            };
+            item.appendChild(input);
+            input.focus();
+        } else {
+            const nameSpan = document.createElement('span');
+            nameSpan.textContent = project.name;
+            nameSpan.className = 'project-name';
+            nameSpan.onclick = () => this.selectProject(project);
+            item.appendChild(nameSpan);
+        }
+        // Inline edit/delete icons
+        const iconRow = document.createElement('span');
+        iconRow.style.display = 'flex';
+        iconRow.style.gap = '4px';
+        iconRow.style.alignItems = 'center';
+        // Rename (pencil) icon
+        const renameBtn = document.createElement('button');
+        renameBtn.className = 'input-btn';
+        renameBtn.style.width = '24px';
+        renameBtn.style.height = '24px';
+        renameBtn.title = 'Rename Project';
+        renameBtn.innerHTML = '<i class="fas fa-pencil-alt"></i>';
+        renameBtn.onclick = (e) => { e.stopPropagation(); this.renamingProject = project; this.loadProjects(); };
+        iconRow.appendChild(renameBtn);
+        // Delete (trash) icon
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'input-btn';
+        deleteBtn.style.width = '24px';
+        deleteBtn.style.height = '24px';
+        deleteBtn.title = 'Delete Project';
+        deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+        deleteBtn.onclick = (e) => { e.stopPropagation(); this.deleteProject(project); };
+        iconRow.appendChild(deleteBtn);
+        item.appendChild(iconRow);
+        projectList.appendChild(item);
+    });
+};
