@@ -177,6 +177,14 @@ class KnowledgeBaseApp {
             this.hideTypingIndicator();
             console.error('Failed to send message:', error);
             this.showError('Failed to send message. Please try again.');
+            
+            // Don't reset currentConversationId on error - keep the conversation
+            // Remove the user message that was added to UI since it failed
+            const messages = document.querySelectorAll('.message');
+            const lastMessage = messages[messages.length - 1];
+            if (lastMessage && lastMessage.classList.contains('user')) {
+                lastMessage.remove();
+            }
         }
     }
 

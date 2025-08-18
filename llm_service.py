@@ -1,28 +1,50 @@
 import openai
 import anthropic
+import google.generativeai as genai
 import requests
 from config import Config
 import os
 
 class LLMService:
     def __init__(self):
+        # Set defaults first
+        self.openai_client = None
+        self.anthropic_client = None
+        
         try:
-            # Initialize OpenAI client
+            # Initialize OpenAI client (v0.28 style)
             openai_key = os.getenv('OPENAI_API_KEY')
             if openai_key:
-                self.openai_client = openai.OpenAI(api_key=openai_key)
+                openai.api_key = openai_key
+                self.openai_available = True
+                print("OpenAI client initialized successfully")
             else:
-                self.openai_client = None
-                
+                self.openai_available = False
+        except Exception as e:
+            print(f"OpenAI client initialization failed: {e}")
+            self.openai_available = False
+            
+        try:
             # Initialize Anthropic client
             claude_key = os.getenv('CLAUDE_API_KEY')
             if claude_key:
                 self.anthropic_client = anthropic.Anthropic(api_key=claude_key)
-            else:
-                self.anthropic_client = None
-                
+                print("Anthropic client initialized successfully")
         except Exception as e:
-            print(f"Warning: LLM service initialization error: {e}")
+            print(f"Anthropic client initialization failed: {e}")
+            
+        try:
+            # Initialize Gemini
+            gemini_key = os.getenv('GEMINI_API_KEY')
+            if gemini_key:
+                genai.configure(api_key=gemini_key)
+                self.gemini_available = True
+                print("Gemini client initialized successfully")
+            else:
+                self.gemini_available = False
+        except Exception as e:
+            print(f"Gemini client initialization failed: {e}")
+            self.gemini_available = False
         
     def get_response(self, model, messages, max_tokens=4000, temperature=0.7):
         """Get response from specified LLM model"""
@@ -31,16 +53,18 @@ class LLMService:
             return self._get_openai_response(model, messages, max_tokens, temperature)
         elif model.startswith('claude'):
             return self._get_anthropic_response(model, messages, max_tokens, temperature)
+        elif model.startswith('gemini'):
+            return self._get_gemini_response(model, messages, max_tokens, temperature)
         else:
-            raise ValueError(f"Model {model} not available in simplified version")
+            raise ValueError(f"Model {model} not available")
     
     def _get_openai_response(self, model, messages, max_tokens, temperature):
         """Get response from OpenAI models"""
-        if not self.openai_client:
+        if not self.openai_available:
             raise Exception("OpenAI API key not configured")
             
         try:
-            response = self.openai_client.chat.completions.create(
+            response = openai.ChatCompletion.create(
                 model=model,
                 messages=messages,
                 max_tokens=max_tokens,
@@ -52,6 +76,9 @@ class LLMService:
     
     def _get_anthropic_response(self, model, messages, max_tokens, temperature):
         """Get response from Anthropic Claude models"""
+        if not self.anthropic_client:
+            raise Exception("Anthropic API key not configured")
+            
         try:
             # Convert messages format for Anthropic
             anthropic_messages = []
@@ -70,6 +97,7 @@ class LLMService:
             model_mapping = {
                 'claude-3-opus': 'claude-3-opus-20240229',
                 'claude-3-sonnet': 'claude-3-sonnet-20240229',
+                'claude-3.5-sonnet': 'claude-3-5-sonnet-20240620',
                 'claude-3-haiku': 'claude-3-haiku-20240307'
             }
             
@@ -90,6 +118,9 @@ class LLMService:
     
     def _get_gemini_response(self, model, messages, max_tokens, temperature):
         """Get response from Google Gemini models"""
+        if not self.gemini_available:
+            raise Exception("Gemini API key not configured")
+            
         try:
             # Map model names
             model_mapping = {
