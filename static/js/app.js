@@ -506,6 +506,17 @@ class KnowledgeBaseApp {
     }
 
     async transcribeAudio(audioBlob) {
+        // Supported formats for Whisper API
+        const supportedTypes = [
+            'audio/flac', 'audio/x-flac',
+            'audio/m4a', 'audio/mp4',
+            'audio/mpeg', 'audio/mp3', 'audio/mpga',
+            'audio/ogg', 'audio/wav', 'audio/webm', 'audio/oga'
+        ];
+        if (!supportedTypes.includes(audioBlob.type)) {
+            this.showError('Unsupported audio format. Please use one of: flac, m4a, mp3, mp4, mpeg, mpga, oga, ogg, wav, webm.');
+            return;
+        }
         // Placeholder for Whisper API integration
         console.log('Transcribing audio...', audioBlob);
         this.showError('Voice transcription coming soon!');

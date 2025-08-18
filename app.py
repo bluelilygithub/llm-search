@@ -172,25 +172,33 @@ def transcribe_audio():
     try:
         if 'audio' not in request.files:
             return jsonify({'error': 'No audio file provided'}), 400
-        
+
         audio_file = request.files['audio']
         if audio_file.filename == '':
             return jsonify({'error': 'No audio file selected'}), 400
-        
+
+        # Supported formats for Whisper API
+        SUPPORTED_FORMATS = ['flac', 'm4a', 'mp3', 'mp4', 'mpeg', 'mpga', 'oga', 'ogg', 'wav', 'webm']
+        ext = audio_file.filename.rsplit('.', 1)[-1].lower()
+        if ext not in SUPPORTED_FORMATS:
+            return jsonify({
+                'error': f'Unsupported file format: .{ext}. Supported formats: {SUPPORTED_FORMATS}'
+            }), 400
+
         # Use OpenAI Whisper API for transcription
         import openai
-        
+
         transcription = openai.Audio.transcribe(
             model="whisper-1",
             file=audio_file,
             response_format="text"
         )
-        
+
         return jsonify({
             'transcription': transcription,
             'success': True
         })
-        
+
     except Exception as e:
         print(f"Transcription error: {str(e)}")
         return jsonify({'error': str(e)}), 500
