@@ -19,16 +19,15 @@ class LLMService:
             self.openai_available = True
             print("OpenAI API key configured")
         
-        # Initialize Anthropic client safely
+        # Initialize Anthropic client 
         claude_key = os.getenv('CLAUDE_API_KEY')
         if claude_key:
-            try:
-                self.anthropic_client = anthropic.Anthropic(api_key=claude_key)
-                self.anthropic_available = True
-                print("Anthropic client initialized")
-            except Exception as e:
-                print(f"Anthropic failed: {e}")
-                self.anthropic_available = False
+            self.anthropic_client = anthropic.Anthropic(api_key=claude_key)
+            self.anthropic_available = True
+            print("Anthropic client initialized")
+        else:
+            self.anthropic_available = False
+            print("No Claude API key found")
         
         # Initialize Gemini safely
         gemini_key = os.getenv('GEMINI_API_KEY')
