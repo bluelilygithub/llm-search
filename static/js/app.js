@@ -64,11 +64,13 @@ class KnowledgeBaseApp {
             toggleBtn = document.createElement('button');
             toggleBtn.id = 'toggle-projects-btn';
             toggleBtn.className = 'sidebar-btn';
-            toggleBtn.style.marginBottom = '8px';
             toggleBtn.textContent = '▼ Projects';
             toggleBtn.onclick = () => {
-                projectsSection.classList.toggle('collapsed');
-                toggleBtn.textContent = projectsSection.classList.contains('collapsed') ? '► Projects' : '▼ Projects';
+                const projectList = document.getElementById('project-list');
+                if (projectList) {
+                    projectsSection.classList.toggle('collapsed');
+                    toggleBtn.textContent = projectsSection.classList.contains('collapsed') ? '► Projects' : '▼ Projects';
+                }
             };
         }
         projectsSection.appendChild(toggleBtn);
@@ -79,7 +81,6 @@ class KnowledgeBaseApp {
             newBtn.id = 'new-project-btn';
             newBtn.className = 'sidebar-btn';
             newBtn.textContent = '+ New Project';
-            newBtn.style.marginBottom = '8px';
             newBtn.onclick = () => { this.addingProject = true; this.loadProjects(); };
         }
         projectsSection.appendChild(newBtn);
