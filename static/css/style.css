@@ -711,3 +711,7 @@ body {
         transform: translateY(0);
     }
 }
+
+.projects-section.collapsed > *:not(#toggle-projects-btn) {
+    display: none !important;
+}

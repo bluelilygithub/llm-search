@@ -49,6 +49,15 @@ class KnowledgeBaseApp {
 
     renderProjects(projects) {
         const sidebar = document.querySelector('.sidebar');
+        // Projects section wrapper
+        let projectsSection = document.getElementById('projects-section');
+        if (!projectsSection) {
+            projectsSection = document.createElement('div');
+            projectsSection.id = 'projects-section';
+            projectsSection.className = 'projects-section';
+            sidebar.insertBefore(projectsSection, sidebar.children[1]);
+        }
+        projectsSection.innerHTML = '';
         // Projects toggle button
         let toggleBtn = document.getElementById('toggle-projects-btn');
         if (!toggleBtn) {
@@ -58,14 +67,11 @@ class KnowledgeBaseApp {
             toggleBtn.style.marginBottom = '8px';
             toggleBtn.textContent = '▼ Projects';
             toggleBtn.onclick = () => {
-                const projectList = document.getElementById('project-list');
-                if (projectList) {
-                    projectList.classList.toggle('collapsed');
-                    toggleBtn.textContent = projectList.classList.contains('collapsed') ? '► Projects' : '▼ Projects';
-                }
+                projectsSection.classList.toggle('collapsed');
+                toggleBtn.textContent = projectsSection.classList.contains('collapsed') ? '► Projects' : '▼ Projects';
             };
-            sidebar.insertBefore(toggleBtn, sidebar.children[1]);
         }
+        projectsSection.appendChild(toggleBtn);
         // New Project button
         let newBtn = document.getElementById('new-project-btn');
         if (!newBtn) {
@@ -75,8 +81,8 @@ class KnowledgeBaseApp {
             newBtn.textContent = '+ New Project';
             newBtn.style.marginBottom = '8px';
             newBtn.onclick = () => { this.addingProject = true; this.loadProjects(); };
-            sidebar.insertBefore(newBtn, toggleBtn.nextSibling);
         }
+        projectsSection.appendChild(newBtn);
         // New project input field (styled like search input)
         let inputRow = document.getElementById('new-project-input-row');
         if (this.addingProject) {
@@ -93,7 +99,7 @@ class KnowledgeBaseApp {
                     if (e.key === 'Escape') this.addingProject = false, this.loadProjects();
                 };
                 inputRow.appendChild(input);
-                newBtn.insertAdjacentElement('afterend', inputRow);
+                projectsSection.appendChild(inputRow);
                 input.focus();
             }
         } else if (inputRow) {
@@ -104,7 +110,6 @@ class KnowledgeBaseApp {
         if (!projectList) {
             projectList = document.createElement('div');
             projectList.id = 'project-list';
-            sidebar.insertBefore(projectList, newBtn.nextSibling);
         }
         if (projectList.classList.contains('collapsed')) {
             projectList.innerHTML = '';
@@ -175,6 +180,7 @@ class KnowledgeBaseApp {
             item.appendChild(iconRow);
             projectList.appendChild(item);
         });
+        projectsSection.appendChild(projectList);
     }
 
     showNewProjectPrompt() { /* no-op, replaced by inline input */ }
