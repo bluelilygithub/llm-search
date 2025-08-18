@@ -472,7 +472,9 @@ class KnowledgeBaseApp {
 
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            this.mediaRecorder = new MediaRecorder(stream);
+            // Use OGG/Opus for best compatibility
+            const options = MediaRecorder.isTypeSupported('audio/ogg; codecs=opus') ? { mimeType: 'audio/ogg; codecs=opus' } : {};
+            this.mediaRecorder = new MediaRecorder(stream, options);
             this.isRecording = true;
             const voiceBtn = document.getElementById('voice-btn');
             voiceBtn.classList.add('recording');
@@ -481,8 +483,8 @@ class KnowledgeBaseApp {
                 audioChunks.push(event.data);
             };
             this.mediaRecorder.onstop = async () => {
-                // Use webm format for compatibility
-                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                // Use OGG/Opus format
+                const audioBlob = new Blob(audioChunks, { type: 'audio/ogg; codecs=opus' });
                 await this.transcribeAudio(audioBlob);
                 voiceBtn.classList.remove('recording');
                 this.isRecording = false;
@@ -513,8 +515,8 @@ class KnowledgeBaseApp {
             return;
         }
         const formData = new FormData();
-        // Use a supported extension, e.g., .webm
-        formData.append('audio', audioBlob, 'audio.webm');
+        // Use a supported extension, e.g., .ogg
+        formData.append('audio', audioBlob, 'recording.ogg');
         try {
             const response = await fetch('/transcribe', {
                 method: 'POST',

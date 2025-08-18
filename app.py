@@ -178,7 +178,7 @@ def transcribe_audio():
         if audio_file.filename == '':
             return jsonify({'error': 'No audio file selected'}), 400
 
-        # Supported formats for Whisper API
+        # Supported formats for Google Speech-to-Text
         SUPPORTED_FORMATS = ['flac', 'm4a', 'mp3', 'mp4', 'mpeg', 'mpga', 'oga', 'ogg', 'wav', 'webm']
         ext = audio_file.filename.rsplit('.', 1)[-1].lower()
         if ext not in SUPPORTED_FORMATS:
@@ -186,17 +186,35 @@ def transcribe_audio():
                 'error': f'Unsupported file format: .{ext}. Supported formats: {SUPPORTED_FORMATS}'
             }), 400
 
-        # Use OpenAI Whisper API for transcription
-        import openai
+        from google.cloud import speech
+        import io
 
-        transcription = openai.Audio.transcribe(
-            model="whisper-1",
-            file=audio_file,
-            response_format="text"
+        client = speech.SpeechClient()
+        audio_content = audio_file.read()
+        audio = speech.RecognitionAudio(content=audio_content)
+
+        # Use OGG_OPUS encoding for .ogg and .webm, LINEAR16 for others
+        if ext in ['ogg', 'webm']:
+            encoding = speech.RecognitionConfig.AudioEncoding.OGG_OPUS
+            sample_rate = 48000  # Opus is usually 48000 Hz
+        else:
+            encoding = speech.RecognitionConfig.AudioEncoding.LINEAR16
+            sample_rate = 16000  # Default for LINEAR16
+
+        config = speech.RecognitionConfig(
+            encoding=encoding,
+            sample_rate_hertz=sample_rate,
+            language_code="en-US",
         )
 
+        response = client.recognize(config=config, audio=audio)
+
+        transcription = ''
+        for result in response.results:
+            transcription += result.alternatives[0].transcript + ' '
+
         return jsonify({
-            'transcription': transcription,
+            'transcription': transcription.strip(),
             'success': True
         })
 
