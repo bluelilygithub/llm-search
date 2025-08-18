@@ -56,6 +56,16 @@ class KnowledgeBaseApp {
             sidebar.insertBefore(projectList, sidebar.children[1]);
         }
         projectList.innerHTML = '';
+        // Add 'All Projects' option
+        const allItem = document.createElement('div');
+        allItem.className = 'conversation-item';
+        allItem.textContent = 'All Projects';
+        allItem.onclick = () => this.selectProject(null);
+        if (!this.currentProject) {
+            allItem.classList.add('active');
+        }
+        projectList.appendChild(allItem);
+        // List all projects
         projects.forEach(project => {
             const item = document.createElement('div');
             item.className = 'conversation-item';
