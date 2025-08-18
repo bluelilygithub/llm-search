@@ -1,7 +1,6 @@
 from app import db
 from datetime import datetime
 from sqlalchemy.dialects.postgresql import UUID
-from pgvector.sqlalchemy import Vector
 import uuid
 
 class Conversation(db.Model):
@@ -23,7 +22,7 @@ class Message(db.Model):
     conversation_id = db.Column(UUID(as_uuid=True), db.ForeignKey('conversations.id'), nullable=False)
     role = db.Column(db.String(20), nullable=False)  # 'user' or 'assistant'
     content = db.Column(db.Text, nullable=False)
-    embeddings = db.Column(Vector(1536))
+    # embeddings = db.Column(Vector(1536))  # Will add back with pgvector
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     
     attachments = db.relationship('Attachment', backref='message', lazy=True, cascade='all, delete-orphan')
@@ -44,6 +43,6 @@ class SearchQuery(db.Model):
     
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     query_text = db.Column(db.Text, nullable=False)
-    query_embedding = db.Column(Vector(1536))
+    # query_embedding = db.Column(Vector(1536))  # Will add back with pgvector
     results_count = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
