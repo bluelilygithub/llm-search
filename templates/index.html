@@ -16,6 +16,9 @@
                 <button class="new-chat-btn" id="new-chat-btn">
                     <i class="fas fa-plus"></i> New Chat
                 </button>
+                <button class="new-chat-btn" id="settings-btn">
+                    <i class="fas fa-cog"></i> Settings
+                </button>
                 <div id="projects-section" class="projects-section">
                     <button class="new-chat-btn" id="toggle-projects-btn">
                         ▼ Projects
@@ -152,6 +155,19 @@
                     <!-- Existing tags will appear here -->
                 </div>
                 <button onclick="saveTags()">Save Tags</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="settings-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Settings & Usage Tracking</h3>
+                <span class="close" onclick="closeSettingsModal()">&times;</span>
+            </div>
+            <div class="modal-body" id="settings-body">
+                <!-- Usage, error, and LLM cost stats will appear here -->
+                <p>Usage and tracking info coming soon.</p>
             </div>
         </div>
     </div>

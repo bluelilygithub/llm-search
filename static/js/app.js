@@ -964,6 +964,13 @@ KnowledgeBaseApp.prototype.toggleProjects = function() {
     toggleBtn.textContent = section.classList.contains('collapsed') ? '► Projects' : '▼ Projects';
 };
 
+KnowledgeBaseApp.prototype.openSettingsModal = function() {
+    document.getElementById('settings-modal').style.display = 'flex';
+};
+KnowledgeBaseApp.prototype.closeSettingsModal = function() {
+    document.getElementById('settings-modal').style.display = 'none';
+};
+
 // Initialize the app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     window.app = new KnowledgeBaseApp();
@@ -972,6 +979,9 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     document.getElementById('new-chat-btn').onclick = function() {
         window.app.startNewChat();
+    };
+    document.getElementById('settings-btn').onclick = function() {
+        window.app.openSettingsModal();
     };
 });
 
