@@ -219,9 +219,14 @@
             
             if (remaining <= 0) {
                 indicator.className += ' danger';
+                const hours = Math.floor(freeAccess.hours_until_reset || 0);
+                const minutes = Math.floor(((freeAccess.hours_until_reset || 0) % 1) * 60);
+                const resetText = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+                
                 indicator.innerHTML = `
                     <div><strong>Free queries exhausted</strong></div>
                     <div>Used: ${used}/${total}</div>
+                    <div><small>Resets in ${resetText}</small></div>
                     <div><small>Login for unlimited access</small></div>
                 `;
             } else if (remaining <= 3) {

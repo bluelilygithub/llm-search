@@ -552,6 +552,11 @@ class KnowledgeBaseApp {
                 throw new Error(data.error || `HTTP error! status: ${response.status}`);
             }
             
+            // Update free access indicator if present
+            if (data.free_access) {
+                this.updateUsageIndicator(data.free_access);
+            }
+            
             return data.response;
             
         } catch (error) {
@@ -1023,6 +1028,48 @@ class KnowledgeBaseApp {
         `;
         container.appendChild(errorDiv);
         this.scrollToBottom();
+    }
+
+    updateUsageIndicator(freeAccess) {
+        const existingIndicator = document.getElementById('usage-indicator');
+        if (existingIndicator) {
+            existingIndicator.remove();
+        }
+
+        const indicator = document.createElement('div');
+        indicator.id = 'usage-indicator';
+        indicator.className = 'usage-indicator';
+        
+        const remaining = freeAccess.queries_remaining;
+        const total = freeAccess.limit;
+        const used = freeAccess.queries_used;
+        
+        if (remaining <= 0) {
+            indicator.className += ' danger';
+            const hours = Math.floor(freeAccess.hours_until_reset || 0);
+            const minutes = Math.floor(((freeAccess.hours_until_reset || 0) % 1) * 60);
+            const resetText = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+            
+            indicator.innerHTML = `
+                <div><strong>Free queries exhausted</strong></div>
+                <div>Used: ${used}/${total}</div>
+                <div><small>Resets in ${resetText}</small></div>
+                <div><small>Login for unlimited access</small></div>
+            `;
+        } else if (remaining <= 3) {
+            indicator.className += ' warning';
+            indicator.innerHTML = `
+                <div><strong>${remaining} free queries left</strong></div>
+                <div>Used: ${used}/${total}</div>
+            `;
+        } else {
+            indicator.innerHTML = `
+                <div><strong>${remaining} free queries remaining</strong></div>
+                <div>Used: ${used}/${total}</div>
+            `;
+        }
+        
+        document.body.appendChild(indicator);
     }
 }
 

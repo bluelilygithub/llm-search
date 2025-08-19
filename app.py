@@ -330,11 +330,20 @@ def chat():
         db.session.add(usage_log)
         db.session.commit()
         
-        return jsonify({
+        # Prepare response
+        response_data = {
             'response': ai_response,
             'model': model,
             'timestamp': datetime.utcnow().isoformat()
-        })
+        }
+        
+        # Add updated free access info if applicable
+        if getattr(request, 'access_type', None) == 'free_tier':
+            from auth import FreeAccessManager
+            updated_free_info = FreeAccessManager.check_free_access()
+            response_data['free_access'] = updated_free_info
+        
+        return jsonify(response_data)
         
     except Exception as e:
         app.logger.error(f"Chat error: {str(e)}", exc_info=True)

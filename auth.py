@@ -40,12 +40,16 @@ class FreeAccessManager:
         
         remaining = max(0, cls.FREE_QUERY_LIMIT - query_count)
         
+        reset_time = cutoff_time + timedelta(hours=cls.RESET_HOURS)
+        
         return {
             'has_access': remaining > 0,
             'queries_used': query_count,
             'queries_remaining': remaining,
             'limit': cls.FREE_QUERY_LIMIT,
-            'reset_time': cutoff_time + timedelta(hours=cls.RESET_HOURS)
+            'reset_time': reset_time.isoformat(),
+            'reset_time_formatted': reset_time.strftime('%Y-%m-%d %H:%M:%S UTC'),
+            'hours_until_reset': max(0, (reset_time - datetime.utcnow()).total_seconds() / 3600)
         }
     
     @classmethod
@@ -188,8 +192,17 @@ class SimpleAuth:
                 
                 if not has_access:
                     if request.is_json:
+                        error_msg = 'Access denied'
+                        if free_info:
+                            hours = int(free_info.get('hours_until_reset', 0))
+                            minutes = int((free_info.get('hours_until_reset', 0) % 1) * 60)
+                            if hours > 0:
+                                error_msg = f'Daily free queries exhausted. Access will reset in {hours}h {minutes}m.'
+                            else:
+                                error_msg = f'Daily free queries exhausted. Access will reset in {minutes}m.'
+                        
                         return jsonify({
-                            'error': 'Access denied',
+                            'error': error_msg,
                             'free_access': free_info
                         }), 403
                     else:
