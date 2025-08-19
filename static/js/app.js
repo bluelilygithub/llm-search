@@ -484,7 +484,7 @@ class KnowledgeBaseApp {
             
         } catch (error) {
             console.error('LLM API error:', error);
-            throw new Error('Failed to get AI response');
+            throw error; // Preserve the original error message
         }
     }
 
@@ -901,9 +901,23 @@ class KnowledgeBaseApp {
     }
 
     showError(message) {
-        // Simple error display
         console.error(message);
-        // Could implement toast notifications here
+        
+        // Display error as a message in the chat
+        const container = document.getElementById('chat-messages');
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'message assistant error';
+        errorDiv.innerHTML = `
+            <div class="message-avatar" style="background-color: #f44336;">!</div>
+            <div class="message-content">
+                <div class="error-message">
+                    <i class="fas fa-exclamation-triangle" style="color: #f44336; margin-right: 8px;"></i>
+                    <strong>Error:</strong> ${message}
+                </div>
+            </div>
+        `;
+        container.appendChild(errorDiv);
+        this.scrollToBottom();
     }
 }
 
