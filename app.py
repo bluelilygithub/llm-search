@@ -387,6 +387,7 @@ def upload_attachments(conversation_id):
 @app.route('/upload-context', methods=['POST'])
 def upload_context():
     conversation_id = request.form.get('conversation_id')
+    print('UPLOAD: conversation_id =', conversation_id)
     if not conversation_id:
         return jsonify({'error': 'Missing conversation_id'}), 400
     try:
@@ -415,9 +416,11 @@ def upload_context():
         print(f"Context extraction error: {e}")
         import traceback; traceback.print_exc()
         return jsonify({'error': f'Failed to extract text: {e}'}), 500
-    # Load, append, and save context_documents
+    print('UPLOAD: filename =', filename)
+    print('UPLOAD: extracted content =', content[:200])
     import json
     docs = conversation.context_documents
+    print('UPLOAD: before update context_documents =', docs)
     if not docs:
         docs = []
     elif isinstance(docs, str):
@@ -429,6 +432,7 @@ def upload_context():
         docs = []
     docs.append({'filename': filename, 'content': content})
     conversation.context_documents = docs
+    print('UPLOAD: after update context_documents =', conversation.context_documents)
     db.session.commit()
     preview = content[:500] + ('...' if len(content) > 500 else '')
     return jsonify({'success': True, 'filename': filename, 'preview': preview})
