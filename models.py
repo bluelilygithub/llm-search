@@ -21,6 +21,7 @@ class Conversation(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     tags = db.Column(db.JSON, default=list)
+    context_documents = db.Column(db.JSON, default=list)  # New: stores uploaded context docs as list of dicts
     messages = db.relationship('Message', backref='conversation', lazy=True, cascade='all, delete-orphan')
 
 class Message(db.Model):

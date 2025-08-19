@@ -715,10 +715,12 @@ class KnowledgeBaseApp {
         const container = document.getElementById('chat-messages');
         const messageDiv = document.createElement('div');
         messageDiv.className = 'message user new';
+        // Extract just the filename for the /uploads route
+        const filename = attachment.filename;
         messageDiv.innerHTML = `
             <div class="message-avatar">U</div>
             <div class="message-content">
-                <a href="/${attachment.file_path.replace('\\', '/')}" target="_blank">${attachment.filename}</a>
+                <a href="/uploads/${encodeURIComponent(filename)}" target="_blank">${filename}</a>
                 <div class="message-time">${this.formatTime(attachment.created_at)}</div>
             </div>
         `;
@@ -995,3 +997,46 @@ function handleTagInput(event) {
 function saveTags() {
     window.app.saveTags();
 }
+
+KnowledgeBaseApp.prototype.handleContextUpload = async function(event) {
+    const files = Array.from(event.target.files);
+    if (!this.currentConversationId) {
+        this.showError('Please start or select a conversation before uploading context.');
+        return;
+    }
+    if (!files.length) return;
+    const file = files[0]; // Only one context doc at a time
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('conversation_id', this.currentConversationId);
+    try {
+        const response = await fetch('/upload-context', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+        if (data.success) {
+            this.showContextUploadMessage(data.filename, data.preview);
+        } else {
+            this.showError(data.error || 'Context upload failed.');
+        }
+    } catch (error) {
+        this.showError('Context upload failed.');
+        console.error('Context upload error:', error);
+    }
+};
+
+KnowledgeBaseApp.prototype.showContextUploadMessage = function(filename, preview) {
+    const container = document.getElementById('chat-messages');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message user new';
+    messageDiv.innerHTML = `
+        <div class="message-avatar">U</div>
+        <div class="message-content">
+            <strong>Guideline uploaded:</strong> ${filename}<br>
+            <div class="context-preview">${preview.replace(/\n/g, '<br>')}</div>
+        </div>
+    `;
+    container.appendChild(messageDiv);
+    this.scrollToBottom();
+};

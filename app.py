@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request, render_template
+from flask import Flask, jsonify, request, render_template, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from config import Config
@@ -7,6 +7,13 @@ from datetime import datetime
 from flask_migrate import Migrate
 import os
 from werkzeug.utils import secure_filename
+
+from PyPDF2 import PdfReader
+import io
+try:
+    from docx import Document as DocxDocument
+except ImportError:
+    DocxDocument = None
 
 app = Flask(__name__, static_folder='static')
 app.config.from_object(Config)
@@ -355,6 +362,49 @@ def upload_attachments(conversation_id):
         print(f"Attachment upload error: {e}")
         import traceback; traceback.print_exc()
         return jsonify({'error': str(e)}), 500
+
+@app.route('/upload-context', methods=['POST'])
+def upload_context():
+    conversation_id = request.form.get('conversation_id')
+    if not conversation_id:
+        return jsonify({'error': 'Missing conversation_id'}), 400
+    try:
+        conv_uuid = uuid.UUID(conversation_id)
+    except ValueError:
+        return jsonify({'error': 'Invalid conversation ID'}), 400
+    conversation = Conversation.query.get_or_404(conv_uuid)
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file part in the request'}), 400
+    file = request.files['file']
+    filename = secure_filename(file.filename)
+    ext = filename.rsplit('.', 1)[-1].lower()
+    content = ''
+    try:
+        if ext == 'pdf':
+            reader = PdfReader(file)
+            content = '\n'.join(page.extract_text() or '' for page in reader.pages)
+        elif ext in ['docx', 'doc'] and DocxDocument:
+            doc = DocxDocument(file)
+            content = '\n'.join([p.text for p in doc.paragraphs])
+        elif ext in ['txt', 'md', 'csv']:
+            content = file.read().decode('utf-8', errors='ignore')
+        else:
+            return jsonify({'error': f'Unsupported file type: .{ext}'}), 400
+    except Exception as e:
+        print(f"Context extraction error: {e}")
+        import traceback; traceback.print_exc()
+        return jsonify({'error': f'Failed to extract text: {e}'}), 500
+    # Store in conversation context_documents
+    if conversation.context_documents is None:
+        conversation.context_documents = []
+    conversation.context_documents.append({'filename': filename, 'content': content})
+    db.session.commit()
+    preview = content[:500] + ('...' if len(content) > 500 else '')
+    return jsonify({'success': True, 'filename': filename, 'preview': preview})
+
+@app.route('/uploads/<path:filename>')
+def uploaded_file(filename):
+    return send_from_directory(UPLOAD_FOLDER, filename)
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
