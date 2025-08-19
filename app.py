@@ -407,10 +407,20 @@ def upload_context():
         print(f"Context extraction error: {e}")
         import traceback; traceback.print_exc()
         return jsonify({'error': f'Failed to extract text: {e}'}), 500
-    # Store in conversation context_documents
-    if conversation.context_documents is None:
-        conversation.context_documents = []
-    conversation.context_documents.append({'filename': filename, 'content': content})
+    # Load, append, and save context_documents
+    import json
+    docs = conversation.context_documents
+    if not docs:
+        docs = []
+    elif isinstance(docs, str):
+        try:
+            docs = json.loads(docs)
+        except Exception:
+            docs = []
+    if not isinstance(docs, list):
+        docs = []
+    docs.append({'filename': filename, 'content': content})
+    conversation.context_documents = docs
     db.session.commit()
     preview = content[:500] + ('...' if len(content) > 500 else '')
     return jsonify({'success': True, 'filename': filename, 'preview': preview})
