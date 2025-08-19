@@ -77,13 +77,41 @@ class FreeAccessLog(db.Model):
     __tablename__ = 'free_access_logs'
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     session_id = db.Column(db.String(255), nullable=False, index=True)
-    ip_address = db.Column(db.String(45), nullable=True)  # IPv6 support
+    ip_address = db.Column(db.String(45), nullable=True, index=True)  # IPv6 support
     user_agent = db.Column(db.Text, nullable=True)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     model = db.Column(db.String(100), nullable=False)
     query_count = db.Column(db.Integer, default=1)
+    tracking_key = db.Column(db.String(64), nullable=True, index=True)  # Combined IP+UA hash
     
     # Index for efficient queries
     __table_args__ = (
         db.Index('idx_session_timestamp', 'session_id', 'timestamp'),
+        db.Index('idx_ip_timestamp', 'ip_address', 'timestamp'),
+        db.Index('idx_tracking_key_timestamp', 'tracking_key', 'timestamp'),
+    )
+
+class IPWhitelist(db.Model):
+    __tablename__ = 'ip_whitelist'
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    ip_address = db.Column(db.String(45), nullable=False, unique=True, index=True)
+    description = db.Column(db.String(255), nullable=True)  # e.g., "Demo office", "John's home"
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_by = db.Column(db.String(100), nullable=True)  # Who added this IP
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    
+class IPUsageSummary(db.Model):
+    __tablename__ = 'ip_usage_summary'
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    ip_address = db.Column(db.String(45), nullable=False, index=True)
+    date = db.Column(db.Date, nullable=False, index=True)
+    total_queries = db.Column(db.Integer, default=0)
+    unique_sessions = db.Column(db.Integer, default=0)
+    last_user_agent = db.Column(db.Text, nullable=True)
+    last_activity = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Compound unique index
+    __table_args__ = (
+        db.UniqueConstraint('ip_address', 'date', name='unique_ip_date'),
+        db.Index('idx_ip_date', 'ip_address', 'date'),
     )

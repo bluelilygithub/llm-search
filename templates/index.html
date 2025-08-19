@@ -172,9 +172,45 @@
                 <span class="close" onclick="window.app.closeSettingsModal()">&times;</span>
             </div>
             <div class="modal-body" id="settings-body">
-                <canvas id="llm-usage-chart" style="max-width:100%;margin-bottom:20px;"></canvas>
-                <!-- Usage, error, and LLM cost stats will appear here -->
-                <div id="llm-usage-table"></div>
+                <div class="settings-tabs">
+                    <button class="tab-btn active" onclick="showTab('usage')">Usage Stats</button>
+                    <button class="tab-btn" onclick="showTab('whitelist')" id="whitelist-tab" style="display:none;">IP Whitelist</button>
+                </div>
+                
+                <div id="usage-tab" class="tab-content">
+                    <canvas id="llm-usage-chart" style="max-width:100%;margin-bottom:20px;"></canvas>
+                    <!-- Usage, error, and LLM cost stats will appear here -->
+                    <div id="llm-usage-table"></div>
+                </div>
+                
+                <div id="whitelist-tab-content" class="tab-content" style="display:none;">
+                    <div class="admin-section">
+                        <h4>Current IP Address</h4>
+                        <div id="current-ip-info" style="padding: 10px; background: #f8f9fa; border-radius: 4px; margin-bottom: 20px;">
+                            <div id="current-ip-display">Loading...</div>
+                            <button class="btn btn-sm btn-primary" onclick="whitelistCurrentIP()" id="whitelist-current-btn">
+                                Add to Whitelist
+                            </button>
+                        </div>
+                        
+                        <h4>Add IP to Whitelist</h4>
+                        <div style="margin-bottom: 20px;">
+                            <input type="text" id="new-ip-address" placeholder="192.168.1.1" style="margin-right: 10px; padding: 5px;">
+                            <input type="text" id="ip-description" placeholder="Description (optional)" style="margin-right: 10px; padding: 5px;">
+                            <button class="btn btn-primary" onclick="addIPToWhitelist()">Add IP</button>
+                        </div>
+                        
+                        <h4>Whitelisted IPs</h4>
+                        <div id="whitelist-table">
+                            <div class="loading">Loading whitelist...</div>
+                        </div>
+                        
+                        <h4>Usage Statistics</h4>
+                        <div id="usage-stats">
+                            <div class="loading">Loading stats...</div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -256,8 +292,199 @@
             }
         }
 
-        // Check auth status on load
-        document.addEventListener('DOMContentLoaded', checkAuthStatus);
+        // Admin functions
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            
+            // Show selected tab
+            document.getElementById(tabName + '-tab').style.display = 'block';
+            event.target.classList.add('active');
+            
+            if (tabName === 'whitelist') {
+                loadWhitelistData();
+            }
+        }
+        
+        async function loadWhitelistData() {
+            try {
+                // Load current IP
+                const ipResponse = await fetch('/admin/current-ip');
+                const ipData = await ipResponse.json();
+                
+                const currentIPDisplay = document.getElementById('current-ip-display');
+                const whitelistBtn = document.getElementById('whitelist-current-btn');
+                
+                if (ipData.is_whitelisted) {
+                    currentIPDisplay.innerHTML = `
+                        <strong>${ipData.ip_address}</strong> - <span style="color: green;">✓ Whitelisted</span><br>
+                        <small>${ipData.whitelist_info.description || 'No description'}</small>
+                    `;
+                    whitelistBtn.style.display = 'none';
+                } else {
+                    currentIPDisplay.innerHTML = `<strong>${ipData.ip_address}</strong> - <span style="color: orange;">Not whitelisted</span>`;
+                    whitelistBtn.style.display = 'inline-block';
+                }
+                
+                // Load whitelist
+                const whitelistResponse = await fetch('/admin/whitelist');
+                const whitelist = await whitelistResponse.json();
+                
+                const whitelistTable = document.getElementById('whitelist-table');
+                if (whitelist.length === 0) {
+                    whitelistTable.innerHTML = '<div>No IPs whitelisted</div>';
+                } else {
+                    whitelistTable.innerHTML = `
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="border-bottom: 1px solid #ddd;">
+                                    <th style="text-align: left; padding: 8px;">IP Address</th>
+                                    <th style="text-align: left; padding: 8px;">Description</th>
+                                    <th style="text-align: left; padding: 8px;">Added</th>
+                                    <th style="text-align: center; padding: 8px;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${whitelist.map(entry => `
+                                    <tr style="border-bottom: 1px solid #eee;">
+                                        <td style="padding: 8px; font-family: monospace;">${entry.ip_address}</td>
+                                        <td style="padding: 8px;">${entry.description || 'No description'}</td>
+                                        <td style="padding: 8px;">${new Date(entry.created_at).toLocaleDateString()}</td>
+                                        <td style="padding: 8px; text-align: center;">
+                                            <button class="btn btn-sm btn-danger" onclick="removeIPFromWhitelist('${entry.ip_address}')">Remove</button>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    `;
+                }
+                
+                // Load usage stats
+                const statsResponse = await fetch('/admin/usage-stats');
+                const stats = await statsResponse.json();
+                
+                document.getElementById('usage-stats').innerHTML = `
+                    <div style="margin-bottom: 15px;">
+                        <strong>Today:</strong> ${stats.today_stats.total_queries} queries from ${stats.today_stats.unique_ips} unique IPs<br>
+                        <strong>Whitelisted IPs:</strong> ${stats.whitelist_count}
+                    </div>
+                    <div>
+                        <strong>Top IPs (Last 7 Days):</strong>
+                        <ul style="margin-top: 10px;">
+                            ${stats.top_ips.slice(0, 5).map(ip => `
+                                <li style="margin: 5px 0; font-family: monospace;">
+                                    ${ip.ip_address}: ${ip.total_queries} queries, ${ip.unique_sessions} sessions
+                                </li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                `;
+                
+            } catch (error) {
+                console.error('Failed to load whitelist data:', error);
+                document.getElementById('whitelist-table').innerHTML = '<div style="color: red;">Failed to load data</div>';
+            }
+        }
+        
+        async function whitelistCurrentIP() {
+            try {
+                const ipResponse = await fetch('/admin/current-ip');
+                const ipData = await ipResponse.json();
+                
+                const description = prompt('Enter description for this IP:', 'Demo Access');
+                if (description === null) return;
+                
+                const response = await fetch('/admin/whitelist', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ip_address: ipData.ip_address,
+                        description: description,
+                        created_by: 'admin'
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert('IP added to whitelist successfully!');
+                    loadWhitelistData();
+                } else {
+                    alert('Error: ' + result.error);
+                }
+                
+            } catch (error) {
+                alert('Failed to add IP to whitelist');
+            }
+        }
+        
+        async function addIPToWhitelist() {
+            const ip = document.getElementById('new-ip-address').value.trim();
+            const description = document.getElementById('ip-description').value.trim() || 'Demo Access';
+            
+            if (!ip) {
+                alert('Please enter an IP address');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/admin/whitelist', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ip_address: ip,
+                        description: description,
+                        created_by: 'admin'
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert('IP added to whitelist successfully!');
+                    document.getElementById('new-ip-address').value = '';
+                    document.getElementById('ip-description').value = '';
+                    loadWhitelistData();
+                } else {
+                    alert('Error: ' + result.error);
+                }
+                
+            } catch (error) {
+                alert('Failed to add IP to whitelist');
+            }
+        }
+        
+        async function removeIPFromWhitelist(ip) {
+            if (!confirm(`Remove ${ip} from whitelist?`)) return;
+            
+            try {
+                const response = await fetch(`/admin/whitelist/${encodeURIComponent(ip)}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert('IP removed from whitelist');
+                    loadWhitelistData();
+                } else {
+                    alert('Error: ' + result.error);
+                }
+                
+            } catch (error) {
+                alert('Failed to remove IP from whitelist');
+            }
+        }
+
+        // Check auth status on load and show admin tab if authenticated
+        document.addEventListener('DOMContentLoaded', async () => {
+            const authStatus = await checkAuthStatus();
+            if (authStatus.authenticated) {
+                document.getElementById('whitelist-tab').style.display = 'inline-block';
+            }
+        });
     </script>
 </body>
 </html>

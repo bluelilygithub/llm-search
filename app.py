@@ -845,5 +845,126 @@ def log_client_error():
         app.logger.error(f"Failed to log client error: {e}")
         return jsonify({'error': 'Failed to log error'}), 500
 
+# Admin IP Management Endpoints
+@app.route('/admin/whitelist', methods=['GET'])
+@auth.login_required
+def get_ip_whitelist():
+    """Get all whitelisted IPs"""
+    from models import IPWhitelist
+    whitelist = IPWhitelist.query.filter_by(is_active=True).order_by(IPWhitelist.created_at.desc()).all()
+    
+    return jsonify([
+        {
+            'id': str(entry.id),
+            'ip_address': entry.ip_address,
+            'description': entry.description,
+            'created_at': entry.created_at.isoformat(),
+            'created_by': entry.created_by
+        }
+        for entry in whitelist
+    ])
+
+@app.route('/admin/whitelist', methods=['POST'])
+@auth.login_required
+def add_ip_to_whitelist():
+    """Add IP to whitelist"""
+    from auth import FreeAccessManager
+    
+    data = request.get_json()
+    if not data or not data.get('ip_address'):
+        return jsonify({'error': 'IP address is required'}), 400
+    
+    ip_address = data['ip_address'].strip()
+    description = data.get('description', 'Demo Access')
+    created_by = data.get('created_by', 'admin')
+    
+    success, message = FreeAccessManager.add_to_whitelist(ip_address, description, created_by)
+    
+    if success:
+        return jsonify({'message': message}), 201
+    else:
+        return jsonify({'error': message}), 400
+
+@app.route('/admin/whitelist/<ip_address>', methods=['DELETE'])
+@auth.login_required  
+def remove_ip_from_whitelist(ip_address):
+    """Remove IP from whitelist"""
+    from auth import FreeAccessManager
+    
+    success, message = FreeAccessManager.remove_from_whitelist(ip_address)
+    
+    if success:
+        return jsonify({'message': message})
+    else:
+        return jsonify({'error': message}), 404
+
+@app.route('/admin/usage-stats', methods=['GET'])
+@auth.login_required
+def get_usage_stats():
+    """Get comprehensive usage statistics"""
+    from models import IPUsageSummary, FreeAccessLog, IPWhitelist
+    from sqlalchemy import func, desc
+    from datetime import datetime, timedelta
+    
+    # Get top IPs by usage in last 7 days
+    week_ago = datetime.utcnow() - timedelta(days=7)
+    
+    top_ips = db.session.query(
+        FreeAccessLog.ip_address,
+        func.count(FreeAccessLog.id).label('total_queries'),
+        func.count(func.distinct(FreeAccessLog.session_id)).label('unique_sessions'),
+        func.max(FreeAccessLog.timestamp).label('last_activity')
+    ).filter(
+        FreeAccessLog.timestamp >= week_ago
+    ).group_by(
+        FreeAccessLog.ip_address
+    ).order_by(
+        desc('total_queries')
+    ).limit(20).all()
+    
+    # Get whitelist count
+    whitelist_count = IPWhitelist.query.filter_by(is_active=True).count()
+    
+    # Get today's stats
+    today = datetime.utcnow().date()
+    today_stats = db.session.query(
+        func.sum(IPUsageSummary.total_queries).label('total_queries'),
+        func.count(func.distinct(IPUsageSummary.ip_address)).label('unique_ips')
+    ).filter(IPUsageSummary.date == today).first()
+    
+    return jsonify({
+        'top_ips': [
+            {
+                'ip_address': row.ip_address,
+                'total_queries': row.total_queries,
+                'unique_sessions': row.unique_sessions,
+                'last_activity': row.last_activity.isoformat() if row.last_activity else None
+            }
+            for row in top_ips
+        ],
+        'whitelist_count': whitelist_count,
+        'today_stats': {
+            'total_queries': today_stats.total_queries or 0,
+            'unique_ips': today_stats.unique_ips or 0
+        }
+    })
+
+@app.route('/admin/current-ip', methods=['GET'])
+def get_current_ip():
+    """Get current user's IP for easy whitelisting"""
+    from auth import FreeAccessManager
+    
+    ip = FreeAccessManager.get_client_ip()
+    is_whitelisted, whitelist_entry = FreeAccessManager.is_whitelisted(ip)
+    
+    return jsonify({
+        'ip_address': ip,
+        'is_whitelisted': is_whitelisted,
+        'whitelist_info': {
+            'description': whitelist_entry.description if whitelist_entry else None,
+            'created_at': whitelist_entry.created_at.isoformat() if whitelist_entry else None
+        } if whitelist_entry else None
+    })
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

@@ -925,3 +925,88 @@ body {
     background-color: #f8d7da;
     color: #721c24;
 }
+
+/* Admin interface styles */
+.settings-tabs {
+    display: flex;
+    border-bottom: 2px solid #e9ecef;
+    margin-bottom: 20px;
+}
+
+.tab-btn {
+    background: none;
+    border: none;
+    padding: 12px 24px;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    font-weight: 500;
+    color: #6c757d;
+    transition: all 0.2s;
+}
+
+.tab-btn:hover {
+    color: #495057;
+    background-color: #f8f9fa;
+}
+
+.tab-btn.active {
+    color: #007bff;
+    border-bottom-color: #007bff;
+}
+
+.tab-content {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.admin-section h4 {
+    color: #495057;
+    margin-bottom: 15px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.admin-section .btn {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.admin-section .btn:hover {
+    background-color: #0056b3;
+}
+
+.admin-section .btn-sm {
+    padding: 4px 8px;
+    font-size: 12px;
+}
+
+.admin-section .btn-danger {
+    background-color: #dc3545;
+}
+
+.admin-section .btn-danger:hover {
+    background-color: #c82333;
+}
+
+.admin-section input[type="text"] {
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    padding: 6px 12px;
+    font-size: 14px;
+}
+
+.admin-section input[type="text"]:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}

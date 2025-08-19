@@ -3,14 +3,54 @@ from flask import session, redirect, url_for, request, jsonify
 import os
 import hashlib
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 import uuid
+import ipaddress
 
 class FreeAccessManager:
-    """Manage free tier access with 10 queries per 24 hours"""
+    """Robust free tier access management with IP tracking and whitelisting"""
     
     FREE_QUERY_LIMIT = 10
     RESET_HOURS = 24
+    
+    @classmethod
+    def get_client_ip(cls):
+        """Get the real client IP, handling proxies/load balancers"""
+        # Check for forwarded IP (Railway, Cloudflare, etc.)
+        if request.headers.get('CF-Connecting-IP'):
+            return request.headers.get('CF-Connecting-IP')
+        if request.headers.get('X-Forwarded-For'):
+            return request.headers.get('X-Forwarded-For').split(',')[0].strip()
+        if request.headers.get('X-Real-IP'):
+            return request.headers.get('X-Real-IP')
+        return request.remote_addr
+    
+    @classmethod
+    def get_tracking_key(cls, ip=None):
+        """Generate tracking key from IP + User Agent hash"""
+        if ip is None:
+            ip = cls.get_client_ip()
+        user_agent = request.headers.get('User-Agent', '')[:200]
+        
+        # Create hash of IP + shortened user agent
+        combined = f"{ip}:{user_agent}"
+        return hashlib.sha256(combined.encode()).hexdigest()[:32]
+    
+    @classmethod 
+    def is_whitelisted(cls, ip=None):
+        """Check if IP is whitelisted for unlimited access"""
+        from database import db
+        from models import IPWhitelist
+        
+        if ip is None:
+            ip = cls.get_client_ip()
+            
+        whitelist_entry = db.session.query(IPWhitelist).filter(
+            IPWhitelist.ip_address == ip,
+            IPWhitelist.is_active == True
+        ).first()
+        
+        return whitelist_entry is not None, whitelist_entry
     
     @classmethod
     def get_session_id(cls):
@@ -21,59 +61,182 @@ class FreeAccessManager:
     
     @classmethod
     def check_free_access(cls, session_id=None):
-        """Check if user has free queries remaining"""
+        """Check if user has free queries remaining using hybrid tracking"""
         from database import db
         from models import FreeAccessLog
+        
+        ip = cls.get_client_ip()
+        
+        # Check if IP is whitelisted
+        is_whitelisted, whitelist_entry = cls.is_whitelisted(ip)
+        if is_whitelisted:
+            return {
+                'has_access': True,
+                'queries_used': 0,
+                'queries_remaining': 999,
+                'limit': 999,
+                'reset_time': (datetime.utcnow() + timedelta(hours=24)).isoformat(),
+                'reset_time_formatted': 'Unlimited (Whitelisted)',
+                'hours_until_reset': 24,
+                'whitelisted': True,
+                'whitelist_description': whitelist_entry.description if whitelist_entry else 'Unlimited Demo Access'
+            }
         
         if session_id is None:
             session_id = cls.get_session_id()
         
-        # Get queries in the last 24 hours for this session
+        tracking_key = cls.get_tracking_key(ip)
         cutoff_time = datetime.utcnow() - timedelta(hours=cls.RESET_HOURS)
         
-        query_count = db.session.query(
+        # Check usage by multiple methods and take the maximum
+        
+        # 1. Session-based usage
+        session_usage = db.session.query(
             db.func.coalesce(db.func.sum(FreeAccessLog.query_count), 0)
         ).filter(
             FreeAccessLog.session_id == session_id,
             FreeAccessLog.timestamp >= cutoff_time
         ).scalar()
         
-        remaining = max(0, cls.FREE_QUERY_LIMIT - query_count)
+        # 2. IP-based usage
+        ip_usage = db.session.query(
+            db.func.coalesce(db.func.sum(FreeAccessLog.query_count), 0)
+        ).filter(
+            FreeAccessLog.ip_address == ip,
+            FreeAccessLog.timestamp >= cutoff_time
+        ).scalar()
+        
+        # 3. Tracking key usage (IP + User Agent hash)
+        tracking_usage = db.session.query(
+            db.func.coalesce(db.func.sum(FreeAccessLog.query_count), 0)
+        ).filter(
+            FreeAccessLog.tracking_key == tracking_key,
+            FreeAccessLog.timestamp >= cutoff_time
+        ).scalar()
+        
+        # Use the highest usage count (most restrictive)
+        max_usage = max(session_usage, ip_usage, tracking_usage)
+        remaining = max(0, cls.FREE_QUERY_LIMIT - max_usage)
         
         reset_time = cutoff_time + timedelta(hours=cls.RESET_HOURS)
         
         return {
             'has_access': remaining > 0,
-            'queries_used': query_count,
+            'queries_used': max_usage,
             'queries_remaining': remaining,
             'limit': cls.FREE_QUERY_LIMIT,
             'reset_time': reset_time.isoformat(),
             'reset_time_formatted': reset_time.strftime('%Y-%m-%d %H:%M:%S UTC'),
-            'hours_until_reset': max(0, (reset_time - datetime.utcnow()).total_seconds() / 3600)
+            'hours_until_reset': max(0, (reset_time - datetime.utcnow()).total_seconds() / 3600),
+            'whitelisted': False,
+            'tracking_method': f'session:{session_usage}, ip:{ip_usage}, key:{tracking_usage}, max:{max_usage}'
         }
     
     @classmethod
     def log_free_query(cls, model, session_id=None):
-        """Log a free tier query"""
+        """Log a free tier query with comprehensive tracking"""
         from database import db
-        from models import FreeAccessLog
+        from models import FreeAccessLog, IPUsageSummary
+        
+        ip = cls.get_client_ip()
+        
+        # Skip logging if whitelisted
+        is_whitelisted, _ = cls.is_whitelisted(ip)
+        if is_whitelisted:
+            return cls.check_free_access(session_id)
         
         if session_id is None:
             session_id = cls.get_session_id()
         
+        tracking_key = cls.get_tracking_key(ip)
+        user_agent = request.headers.get('User-Agent', '')[:500]
+        
         # Log the query
         log_entry = FreeAccessLog(
             session_id=session_id,
-            ip_address=request.remote_addr,
-            user_agent=request.headers.get('User-Agent', '')[:500],  # Truncate
+            ip_address=ip,
+            user_agent=user_agent,
             model=model,
-            query_count=1
+            query_count=1,
+            tracking_key=tracking_key
         )
         
         db.session.add(log_entry)
+        
+        # Update daily IP usage summary
+        today = date.today()
+        usage_summary = db.session.query(IPUsageSummary).filter(
+            IPUsageSummary.ip_address == ip,
+            IPUsageSummary.date == today
+        ).first()
+        
+        if usage_summary:
+            usage_summary.total_queries += 1
+            usage_summary.last_user_agent = user_agent
+            usage_summary.last_activity = datetime.utcnow()
+        else:
+            usage_summary = IPUsageSummary(
+                ip_address=ip,
+                date=today,
+                total_queries=1,
+                unique_sessions=1,
+                last_user_agent=user_agent
+            )
+            db.session.add(usage_summary)
+        
         db.session.commit()
         
         return cls.check_free_access(session_id)
+    
+    @classmethod
+    def add_to_whitelist(cls, ip_address, description="Demo Access", created_by="admin"):
+        """Add IP to whitelist"""
+        from database import db
+        from models import IPWhitelist
+        
+        try:
+            # Validate IP address
+            ipaddress.ip_address(ip_address)
+            
+            # Check if already exists
+            existing = db.session.query(IPWhitelist).filter(
+                IPWhitelist.ip_address == ip_address
+            ).first()
+            
+            if existing:
+                existing.is_active = True
+                existing.description = description
+                existing.created_by = created_by
+            else:
+                whitelist_entry = IPWhitelist(
+                    ip_address=ip_address,
+                    description=description,
+                    created_by=created_by
+                )
+                db.session.add(whitelist_entry)
+            
+            db.session.commit()
+            return True, "IP added to whitelist successfully"
+            
+        except Exception as e:
+            return False, str(e)
+    
+    @classmethod
+    def remove_from_whitelist(cls, ip_address):
+        """Remove IP from whitelist"""
+        from database import db
+        from models import IPWhitelist
+        
+        whitelist_entry = db.session.query(IPWhitelist).filter(
+            IPWhitelist.ip_address == ip_address
+        ).first()
+        
+        if whitelist_entry:
+            whitelist_entry.is_active = False
+            db.session.commit()
+            return True, "IP removed from whitelist"
+        
+        return False, "IP not found in whitelist"
 
 class SimpleAuth:
     """Simple authentication system for demo/development use"""
