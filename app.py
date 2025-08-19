@@ -235,8 +235,16 @@ def chat():
             db_messages = Message.query.filter_by(conversation_id=conv_uuid).order_by(Message.timestamp.asc()).all()
             messages = llm_service.format_conversation_for_llm(db_messages)
             # Add context document(s) to prompt if present
-            if hasattr(conversation, 'context_documents') and conversation.context_documents:
-                for doc in conversation.context_documents:
+            import json
+            docs = getattr(conversation, 'context_documents', None)
+            print('DEBUG: context_documents =', docs, type(docs))
+            if isinstance(docs, str):
+                try:
+                    docs = json.loads(docs)
+                except Exception:
+                    docs = []
+            if docs:
+                for doc in docs:
                     if doc and 'content' in doc:
                         messages.insert(0, {
                             'role': 'system',
