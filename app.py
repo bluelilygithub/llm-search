@@ -283,8 +283,25 @@ def chat():
         })
         
     except Exception as e:
-        print(f"Chat error: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        error_msg = str(e)
+        print(f"Chat error: {error_msg}")
+        
+        # Provide helpful error messages for common issues
+        if 'maximum context length' in error_msg.lower():
+            friendly_error = f"Document too large for {model}. Try using Gemini Pro for large documents, or split your content into smaller parts."
+        elif 'api key' in error_msg.lower():
+            friendly_error = f"API key issue with {model}. Please check your configuration."
+        elif 'rate limit' in error_msg.lower():
+            friendly_error = f"Rate limit exceeded for {model}. Please wait a moment and try again."
+        else:
+            friendly_error = error_msg
+            
+        return jsonify({
+            'error': friendly_error,
+            'technical_error': error_msg,
+            'model': model,
+            'timestamp': datetime.utcnow().isoformat()
+        }), 500
 
 @app.route('/transcribe', methods=['POST'])
 def transcribe_audio():
@@ -474,18 +491,39 @@ def upload_context():
         print('UPLOAD: after update context_documents =', conversation.context_documents)
         db.session.commit()
         
+        # Get file type for icon
+        file_type = get_file_type(filename)
+        
         preview = processed_content[:500] + ('...' if len(processed_content) > 500 else '')
         return jsonify({
             'success': True, 
             'filename': filename, 
             'preview': preview,
-            'task_type': task_type
+            'task_type': task_type,
+            'file_type': file_type,
+            'file_size': len(content),
+            'word_count': len(content.split()) if content else 0
         })
         
     except Exception as e:
         print(f"Context extraction error: {e}")
         import traceback; traceback.print_exc()
         return jsonify({'error': str(e)}), 500
+
+def get_file_type(filename):
+    """Get file type for icon display"""
+    ext = filename.rsplit('.', 1)[-1].lower()
+    
+    file_types = {
+        'pdf': 'pdf',
+        'doc': 'word', 'docx': 'word',
+        'txt': 'text', 'md': 'text', 'csv': 'text',
+        'jpg': 'image', 'jpeg': 'image', 'png': 'image', 'gif': 'image',
+        'mp3': 'audio', 'wav': 'audio', 'm4a': 'audio',
+        'mp4': 'video', 'avi': 'video', 'mov': 'video'
+    }
+    
+    return file_types.get(ext, 'file')
 
 def process_document_by_task(content, filename, task_type):
     """Process document content based on intended task"""

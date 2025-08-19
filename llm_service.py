@@ -215,31 +215,35 @@ class LLMService:
             raise Exception(f"Hugging Face API error: {str(e)}")
     
     def get_model_limits(self, model):
-        """Get token limits for different models"""
+        """Get practical token limits for different models"""
         limits = {
-            # OpenAI Models
-            'gpt-4': {'max_tokens': 8192, 'context_window': 128000},
-            'gpt-4-turbo': {'max_tokens': 4096, 'context_window': 128000},
-            'gpt-3.5-turbo': {'max_tokens': 4096, 'context_window': 16385},
-            'o1-preview': {'max_tokens': 32768, 'context_window': 128000},
-            'o1-mini': {'max_tokens': 65536, 'context_window': 128000},
+            # OpenAI Models - Updated to practical limits
+            'gpt-4': {'max_tokens': 4000, 'context_window': 8000},  # Reduced for safety
+            'gpt-4-turbo': {'max_tokens': 4000, 'context_window': 120000},
+            'gpt-3.5-turbo': {'max_tokens': 2000, 'context_window': 14000},  # Conservative
+            'o1-preview': {'max_tokens': 8000, 'context_window': 120000},
+            'o1-mini': {'max_tokens': 8000, 'context_window': 120000},
             
-            # Anthropic Claude Models
-            'claude-3-opus': {'max_tokens': 4096, 'context_window': 200000},
-            'claude-3-sonnet': {'max_tokens': 4096, 'context_window': 200000},
-            'claude-3-haiku': {'max_tokens': 4096, 'context_window': 200000},
-            'claude-3.5-sonnet': {'max_tokens': 8192, 'context_window': 200000},
+            # Anthropic Claude Models - High capacity
+            'claude-3-opus': {'max_tokens': 4000, 'context_window': 180000},
+            'claude-3-sonnet': {'max_tokens': 4000, 'context_window': 180000}, 
+            'claude-3-haiku': {'max_tokens': 4000, 'context_window': 180000},
+            'claude-3.5-sonnet': {'max_tokens': 8000, 'context_window': 180000},
+            'claude-sonnet-4-20250514': {'max_tokens': 8000, 'context_window': 180000},
+            'claude-3-5-sonnet-20241022': {'max_tokens': 8000, 'context_window': 180000},
             
-            # Google Gemini Models
-            'gemini-pro': {'max_tokens': 8192, 'context_window': 1000000},
-            'gemini-flash': {'max_tokens': 8192, 'context_window': 1000000},
+            # Google Gemini Models - Highest capacity
+            'gemini-pro': {'max_tokens': 8000, 'context_window': 900000},
+            'gemini-flash': {'max_tokens': 8000, 'context_window': 900000},
+            'gemini-1.5-pro': {'max_tokens': 8000, 'context_window': 2000000},
+            'gemini-1.5-flash': {'max_tokens': 8000, 'context_window': 1000000},
             
-            # Hugging Face Models
-            'llama2-70b': {'max_tokens': 4096, 'context_window': 4096},
-            'mixtral-8x7b': {'max_tokens': 4096, 'context_window': 32768},
-            'codellama-34b': {'max_tokens': 4096, 'context_window': 16384}
+            # Hugging Face Models - Limited
+            'llama2-70b': {'max_tokens': 2000, 'context_window': 3000},
+            'mixtral-8x7b': {'max_tokens': 3000, 'context_window': 30000}, 
+            'codellama-34b': {'max_tokens': 3000, 'context_window': 14000}
         }
-        return limits.get(model, {'max_tokens': 4000, 'context_window': 8000})
+        return limits.get(model, {'max_tokens': 2000, 'context_window': 6000})
     
     def format_conversation_for_llm(self, messages):
         """Convert database messages to LLM API format"""
