@@ -384,23 +384,11 @@ def upload_attachments(conversation_id):
         import traceback; traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
-@app.route('/upload-context', methods=['POST'])
-def upload_context():
-    conversation_id = request.form.get('conversation_id')
-    print('UPLOAD: conversation_id =', conversation_id)
-    if not conversation_id:
-        return jsonify({'error': 'Missing conversation_id'}), 400
-    try:
-        conv_uuid = uuid.UUID(conversation_id)
-    except ValueError:
-        return jsonify({'error': 'Invalid conversation ID'}), 400
-    conversation = Conversation.query.get_or_404(conv_uuid)
-    if 'file' not in request.files:
-        return jsonify({'error': 'No file part in the request'}), 400
-    file = request.files['file']
-    filename = secure_filename(file.filename)
+def extract_document_content(file, filename):
+    """Generic document content extractor - supports PDF, DOCX, TXT, MD, CSV"""
     ext = filename.rsplit('.', 1)[-1].lower()
     content = ''
+    
     try:
         if ext == 'pdf':
             reader = PdfReader(file)
@@ -411,31 +399,94 @@ def upload_context():
         elif ext in ['txt', 'md', 'csv']:
             content = file.read().decode('utf-8', errors='ignore')
         else:
-            return jsonify({'error': f'Unsupported file type: .{ext}'}), 400
+            raise ValueError(f'Unsupported file type: .{ext}')
+    except Exception as e:
+        raise Exception(f'Failed to extract text from {filename}: {e}')
+    
+    return content
+
+@app.route('/upload-context', methods=['POST'])
+def upload_context():
+    conversation_id = request.form.get('conversation_id')
+    task_type = request.form.get('task_type', 'instructions')  # New: instructions, summary, analysis, etc.
+    
+    print('UPLOAD: conversation_id =', conversation_id, 'task_type =', task_type)
+    
+    if not conversation_id:
+        return jsonify({'error': 'Missing conversation_id'}), 400
+    try:
+        conv_uuid = uuid.UUID(conversation_id)
+    except ValueError:
+        return jsonify({'error': 'Invalid conversation ID'}), 400
+    
+    conversation = Conversation.query.get_or_404(conv_uuid)
+    
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file part in the request'}), 400
+    
+    file = request.files['file']
+    filename = secure_filename(file.filename)
+    
+    try:
+        # Use generic content extractor
+        content = extract_document_content(file, filename)
+        
+        # Apply task-specific processing
+        processed_content = process_document_by_task(content, filename, task_type)
+        
+        print('UPLOAD: filename =', filename)
+        print('UPLOAD: extracted content =', content[:200])
+        
+        import json
+        docs = conversation.context_documents
+        print('UPLOAD: before update context_documents =', docs)
+        
+        if not docs:
+            docs = []
+        elif isinstance(docs, str):
+            try:
+                docs = json.loads(docs)
+            except Exception:
+                docs = []
+        if not isinstance(docs, list):
+            docs = []
+        
+        docs.append({
+            'filename': filename, 
+            'content': processed_content,
+            'task_type': task_type,
+            'original_content': content  # Keep original for reference
+        })
+        
+        conversation.context_documents = docs
+        print('UPLOAD: after update context_documents =', conversation.context_documents)
+        db.session.commit()
+        
+        preview = processed_content[:500] + ('...' if len(processed_content) > 500 else '')
+        return jsonify({
+            'success': True, 
+            'filename': filename, 
+            'preview': preview,
+            'task_type': task_type
+        })
+        
     except Exception as e:
         print(f"Context extraction error: {e}")
         import traceback; traceback.print_exc()
-        return jsonify({'error': f'Failed to extract text: {e}'}), 500
-    print('UPLOAD: filename =', filename)
-    print('UPLOAD: extracted content =', content[:200])
-    import json
-    docs = conversation.context_documents
-    print('UPLOAD: before update context_documents =', docs)
-    if not docs:
-        docs = []
-    elif isinstance(docs, str):
-        try:
-            docs = json.loads(docs)
-        except Exception:
-            docs = []
-    if not isinstance(docs, list):
-        docs = []
-    docs.append({'filename': filename, 'content': content})
-    conversation.context_documents = docs
-    print('UPLOAD: after update context_documents =', conversation.context_documents)
-    db.session.commit()
-    preview = content[:500] + ('...' if len(content) > 500 else '')
-    return jsonify({'success': True, 'filename': filename, 'preview': preview})
+        return jsonify({'error': str(e)}), 500
+
+def process_document_by_task(content, filename, task_type):
+    """Process document content based on intended task"""
+    
+    task_prompts = {
+        'instructions': f"Use this document as guidelines and instructions for your responses:\n\n{content}",
+        'summary': f"Please summarize the following document ({filename}):\n\n{content}",
+        'analysis': f"Please analyze the following document ({filename}):\n\n{content}",
+        'reference': f"Reference document ({filename}) - use this information to answer questions:\n\n{content}",
+        'template': f"Use this document as a template or example ({filename}):\n\n{content}"
+    }
+    
+    return task_prompts.get(task_type, f"Document ({filename}):\n\n{content}")
 
 @app.route('/uploads/<path:filename>')
 def uploaded_file(filename):
