@@ -964,8 +964,27 @@ KnowledgeBaseApp.prototype.toggleProjects = function() {
     toggleBtn.textContent = section.classList.contains('collapsed') ? '► Projects' : '▼ Projects';
 };
 
-KnowledgeBaseApp.prototype.openSettingsModal = function() {
-    document.getElementById('settings-modal').style.display = 'flex';
+KnowledgeBaseApp.prototype.openSettingsModal = async function() {
+    const modal = document.getElementById('settings-modal');
+    const body = document.getElementById('settings-body');
+    body.innerHTML = '<p>Loading usage stats...</p>';
+    modal.style.display = 'flex';
+    try {
+        const response = await fetch('/llm-usage-stats');
+        const data = await response.json();
+        if (data.stats && data.stats.length > 0) {
+            let html = '<table style="width:100%;margin-top:10px;"><tr><th>Model</th><th>Calls</th><th>Tokens</th><th>Cost (est.)</th></tr>';
+            data.stats.forEach(row => {
+                html += `<tr><td>${row.model}</td><td>${row.calls}</td><td>${row.total_tokens}</td><td>$${row.total_cost.toFixed(4)}</td></tr>`;
+            });
+            html += '</table>';
+            body.innerHTML = html;
+        } else {
+            body.innerHTML = '<p>No usage data yet.</p>';
+        }
+    } catch (e) {
+        body.innerHTML = '<p>Error loading usage stats.</p>';
+    }
 };
 KnowledgeBaseApp.prototype.closeSettingsModal = function() {
     document.getElementById('settings-modal').style.display = 'none';

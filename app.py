@@ -291,6 +291,17 @@ def chat():
         ai_response = llm_service.get_response(model, messages)
         print(f"Got response: {ai_response[:50]}...")
         
+        # After getting ai_response, log usage
+        from models import LLMUsageLog
+        usage_log = LLMUsageLog(
+            model=model,
+            conversation_id=conversation_id if conversation_id else None,
+            tokens=0,  # Placeholder, update if token info is available
+            estimated_cost=None
+        )
+        db.session.add(usage_log)
+        db.session.commit()
+        
         return jsonify({
             'response': ai_response,
             'model': model,
@@ -729,6 +740,27 @@ def extract_url_content():
 @app.route('/uploads/<path:filename>')
 def uploaded_file(filename):
     return send_from_directory(UPLOAD_FOLDER, filename)
+
+@app.route('/llm-usage-stats', methods=['GET'])
+def llm_usage_stats():
+    from models import LLMUsageLog
+    from sqlalchemy import func
+    stats = db.session.query(
+        LLMUsageLog.model,
+        func.count().label('calls'),
+        func.coalesce(func.sum(LLMUsageLog.tokens), 0).label('total_tokens'),
+        func.coalesce(func.sum(LLMUsageLog.estimated_cost), 0.0).label('total_cost')
+    ).group_by(LLMUsageLog.model).all()
+    result = [
+        {
+            'model': row.model,
+            'calls': row.calls,
+            'total_tokens': row.total_tokens,
+            'total_cost': float(row.total_cost)
+        }
+        for row in stats
+    ]
+    return jsonify({'stats': result})
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
