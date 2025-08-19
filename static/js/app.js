@@ -474,6 +474,12 @@ class KnowledgeBaseApp {
             }
 
             const data = await response.json();
+            
+            // Check for API errors in the response
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            
             return data.response;
             
         } catch (error) {
@@ -1016,7 +1022,7 @@ KnowledgeBaseApp.prototype.handleContextUpload = async function(event) {
         });
         const data = await response.json();
         if (data.success) {
-            this.showContextUploadMessage(data.filename, data.preview);
+            this.showContextUploadMessage(data.filename, data.preview, data.file_type, data.word_count, data.task_type);
         } else {
             this.showError(data.error || 'Context upload failed.');
         }
@@ -1026,14 +1032,37 @@ KnowledgeBaseApp.prototype.handleContextUpload = async function(event) {
     }
 };
 
-KnowledgeBaseApp.prototype.showContextUploadMessage = function(filename, preview) {
+KnowledgeBaseApp.prototype.showContextUploadMessage = function(filename, preview, fileType, wordCount, taskType) {
     const container = document.getElementById('chat-messages');
     const messageDiv = document.createElement('div');
     messageDiv.className = 'message user new';
+    
+    // Get appropriate icon based on file type
+    const getFileIcon = (type) => {
+        const icons = {
+            'pdf': 'fas fa-file-pdf',
+            'word': 'fas fa-file-word', 
+            'text': 'fas fa-file-alt',
+            'image': 'fas fa-file-image',
+            'audio': 'fas fa-file-audio',
+            'video': 'fas fa-file-video',
+            'file': 'fas fa-file'
+        };
+        return icons[type] || 'fas fa-file';
+    };
+    
+    const taskLabel = taskType === 'instructions' ? 'Guidelines' : 
+                     taskType === 'summary' ? 'Document to summarize' :
+                     taskType === 'analysis' ? 'Document to analyze' : 'Document';
+    
     messageDiv.innerHTML = `
         <div class="message-avatar">U</div>
         <div class="message-content">
-            <strong>Guideline uploaded:</strong> ${filename}<br>
+            <div class="file-upload-info">
+                <i class="${getFileIcon(fileType)}" style="color: #4CAF50; margin-right: 8px;"></i>
+                <strong>${taskLabel} uploaded:</strong> ${filename}
+                ${wordCount ? `<span style="color: #666; font-size: 0.9em;"> (${wordCount} words)</span>` : ''}
+            </div>
             <div class="context-preview">${preview.replace(/\n/g, '<br>')}</div>
         </div>
     `;
