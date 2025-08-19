@@ -413,7 +413,8 @@ class KnowledgeBaseApp {
         } catch (error) {
             this.hideTypingIndicator();
             console.error('Failed to send message:', error);
-            this.showError('Failed to send message. Please try again.');
+            // Show the actual error message instead of generic message
+            this.showError(error.message || 'Failed to send message. Please try again.');
         }
     }
 
