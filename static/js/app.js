@@ -967,12 +967,32 @@ KnowledgeBaseApp.prototype.toggleProjects = function() {
 KnowledgeBaseApp.prototype.openSettingsModal = async function() {
     const modal = document.getElementById('settings-modal');
     const body = document.getElementById('settings-body');
-    const tableDiv = document.getElementById('llm-usage-table');
-    body.innerHTML = '<canvas id="llm-usage-chart" style="max-width:100%;margin-bottom:20px;"></canvas><div id="llm-usage-table"></div>';
+    body.innerHTML = `
+        <div id="llm-cost-alert"></div>
+        <div style="display:flex;gap:20px;flex-wrap:wrap;justify-content:center;align-items:flex-start;">
+            <div style="flex:1;min-width:300px;max-width:400px;">
+                <canvas id="llm-usage-chart"></canvas>
+            </div>
+            <div style="flex:1;min-width:300px;max-width:400px;">
+                <canvas id="llm-usage-line"></canvas>
+            </div>
+        </div>
+        <div id="llm-usage-table" style="margin-top:20px;"></div>
+        <div id="llm-error-log" style="margin-top:20px;"></div>
+    `;
     modal.style.display = 'flex';
     try {
+        // Fetch usage stats
         const response = await fetch('/llm-usage-stats');
         const data = await response.json();
+        // Cost alert
+        const totalCost = data.stats ? data.stats.reduce((sum, r) => sum + r.total_cost, 0) : 0;
+        const alertDiv = document.getElementById('llm-cost-alert');
+        if (totalCost > 10) {
+            alertDiv.innerHTML = `<div style="background:#fff3cd;color:#856404;padding:10px 15px;border-radius:6px;margin-bottom:10px;font-weight:bold;border:1px solid #ffeeba;">⚠️ Monthly LLM cost exceeds $10: $${totalCost.toFixed(2)}</div>`;
+        } else {
+            alertDiv.innerHTML = '';
+        }
         // Table
         if (data.stats && data.stats.length > 0) {
             let html = '<table style="width:100%;margin-top:10px;"><tr><th>Model</th><th>Calls</th><th>Tokens</th><th>Cost (est.)</th></tr>';
@@ -1024,17 +1044,9 @@ KnowledgeBaseApp.prototype.openSettingsModal = async function() {
                         tension: 0.2
                     };
                 });
-                // Add a second canvas for the line chart
-                let lineCanvas = document.getElementById('llm-usage-line');
-                if (!lineCanvas) {
-                    lineCanvas = document.createElement('canvas');
-                    lineCanvas.id = 'llm-usage-line';
-                    lineCanvas.style.maxWidth = '100%';
-                    lineCanvas.style.marginBottom = '20px';
-                    body.insertBefore(lineCanvas, document.getElementById('llm-usage-chart').nextSibling);
-                }
+                const lineCtx = document.getElementById('llm-usage-line').getContext('2d');
                 if (window.llmUsageLineChart) window.llmUsageLineChart.destroy();
-                window.llmUsageLineChart = new Chart(lineCanvas.getContext('2d'), {
+                window.llmUsageLineChart = new Chart(lineCtx, {
                     type: 'line',
                     data: {
                         labels: allDates,
@@ -1047,6 +1059,24 @@ KnowledgeBaseApp.prototype.openSettingsModal = async function() {
                     }
                 });
             }
+        }
+        // Error log
+        try {
+            const errResp = await fetch('/llm-error-log');
+            const errData = await errResp.json();
+            if (errData.errors && errData.errors.length > 0) {
+                let errHtml = '<h4 style="margin-top:20px;">Recent LLM Errors</h4>';
+                errHtml += '<table style="width:100%;font-size:0.95em;"><tr><th>Time</th><th>Model</th><th>Error</th></tr>';
+                errData.errors.forEach(e => {
+                    errHtml += `<tr><td>${e.timestamp.replace('T',' ').slice(0,19)}</td><td>${e.model}</td><td style="max-width:300px;overflow-x:auto;">${e.error_message}</td></tr>`;
+                });
+                errHtml += '</table>';
+                document.getElementById('llm-error-log').innerHTML = errHtml;
+            } else {
+                document.getElementById('llm-error-log').innerHTML = '<p>No recent LLM errors.</p>';
+            }
+        } catch (e) {
+            document.getElementById('llm-error-log').innerHTML = '<p>Error loading error log.</p>';
         }
     } catch (e) {
         document.getElementById('llm-usage-table').innerHTML = '<p>Error loading usage stats.</p>';
