@@ -6,6 +6,7 @@
     <title>AI Knowledge Base</title>
     <link rel="stylesheet" href="static/css/style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <div class="app-container">
@@ -166,8 +167,9 @@
                 <span class="close" onclick="window.app.closeSettingsModal()">&times;</span>
             </div>
             <div class="modal-body" id="settings-body">
+                <canvas id="llm-usage-chart" style="max-width:100%;margin-bottom:20px;"></canvas>
                 <!-- Usage, error, and LLM cost stats will appear here -->
-                <p>Usage and tracking info coming soon.</p>
+                <div id="llm-usage-table"></div>
             </div>
         </div>
     </div>

@@ -967,23 +967,89 @@ KnowledgeBaseApp.prototype.toggleProjects = function() {
 KnowledgeBaseApp.prototype.openSettingsModal = async function() {
     const modal = document.getElementById('settings-modal');
     const body = document.getElementById('settings-body');
-    body.innerHTML = '<p>Loading usage stats...</p>';
+    const tableDiv = document.getElementById('llm-usage-table');
+    body.innerHTML = '<canvas id="llm-usage-chart" style="max-width:100%;margin-bottom:20px;"></canvas><div id="llm-usage-table"></div>';
     modal.style.display = 'flex';
     try {
         const response = await fetch('/llm-usage-stats');
         const data = await response.json();
+        // Table
         if (data.stats && data.stats.length > 0) {
             let html = '<table style="width:100%;margin-top:10px;"><tr><th>Model</th><th>Calls</th><th>Tokens</th><th>Cost (est.)</th></tr>';
             data.stats.forEach(row => {
                 html += `<tr><td>${row.model}</td><td>${row.calls}</td><td>${row.total_tokens}</td><td>$${row.total_cost.toFixed(4)}</td></tr>`;
             });
             html += '</table>';
-            body.innerHTML = html;
+            document.getElementById('llm-usage-table').innerHTML = html;
         } else {
-            body.innerHTML = '<p>No usage data yet.</p>';
+            document.getElementById('llm-usage-table').innerHTML = '<p>No usage data yet.</p>';
+        }
+        // Graphs
+        if (data.stats && data.stats.length > 0) {
+            // Bar chart: total calls per model
+            const ctx = document.getElementById('llm-usage-chart').getContext('2d');
+            if (window.llmUsageChart) window.llmUsageChart.destroy();
+            window.llmUsageChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.stats.map(r => r.model),
+                    datasets: [{
+                        label: 'Total Calls',
+                        data: data.stats.map(r => r.calls),
+                        backgroundColor: 'rgba(54, 162, 235, 0.6)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    title: { display: true, text: 'LLM Calls by Model' }
+                }
+            });
+            // Line chart: calls per day per model (overlayed)
+            if (data.timeseries && data.timeseries.length > 0) {
+                // Prepare data
+                const allDates = [...new Set(data.timeseries.map(r => r.date))].sort();
+                const allModels = [...new Set(data.timeseries.map(r => r.model))];
+                const datasets = allModels.map((model, i) => {
+                    const color = ['#36a2eb', '#ff6384', '#4bc0c0', '#9966ff', '#ff9f40'][i % 5];
+                    return {
+                        label: model,
+                        data: allDates.map(date => {
+                            const rec = data.timeseries.find(r => r.model === model && r.date === date);
+                            return rec ? rec.calls : 0;
+                        }),
+                        borderColor: color,
+                        backgroundColor: color,
+                        fill: false,
+                        tension: 0.2
+                    };
+                });
+                // Add a second canvas for the line chart
+                let lineCanvas = document.getElementById('llm-usage-line');
+                if (!lineCanvas) {
+                    lineCanvas = document.createElement('canvas');
+                    lineCanvas.id = 'llm-usage-line';
+                    lineCanvas.style.maxWidth = '100%';
+                    lineCanvas.style.marginBottom = '20px';
+                    body.insertBefore(lineCanvas, document.getElementById('llm-usage-chart').nextSibling);
+                }
+                if (window.llmUsageLineChart) window.llmUsageLineChart.destroy();
+                window.llmUsageLineChart = new Chart(lineCanvas.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: allDates,
+                        datasets: datasets
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: { legend: { display: true } },
+                        title: { display: true, text: 'LLM Calls per Day (by Model)' }
+                    }
+                });
+            }
         }
     } catch (e) {
-        body.innerHTML = '<p>Error loading usage stats.</p>';
+        document.getElementById('llm-usage-table').innerHTML = '<p>Error loading usage stats.</p>';
     }
 };
 KnowledgeBaseApp.prototype.closeSettingsModal = function() {

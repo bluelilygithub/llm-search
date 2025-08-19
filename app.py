@@ -743,7 +743,9 @@ def uploaded_file(filename):
 @app.route('/llm-usage-stats', methods=['GET'])
 def llm_usage_stats():
     from models import LLMUsageLog
-    from sqlalchemy import func
+    from sqlalchemy import func, cast, Date
+    import datetime
+    # Aggregate by model (existing)
     stats = db.session.query(
         LLMUsageLog.model,
         func.count().label('calls'),
@@ -759,7 +761,27 @@ def llm_usage_stats():
         }
         for row in stats
     ]
-    return jsonify({'stats': result})
+    # Aggregate by day and model for the last 14 days
+    today = datetime.date.today()
+    start_date = today - datetime.timedelta(days=13)
+    timeseries = db.session.query(
+        cast(LLMUsageLog.timestamp, Date).label('date'),
+        LLMUsageLog.model,
+        func.count().label('calls'),
+        func.coalesce(func.sum(LLMUsageLog.tokens), 0).label('tokens'),
+        func.coalesce(func.sum(LLMUsageLog.estimated_cost), 0.0).label('cost')
+    ).filter(LLMUsageLog.timestamp >= start_date).group_by('date', LLMUsageLog.model).order_by('date').all()
+    timeseries_result = [
+        {
+            'date': row.date.isoformat(),
+            'model': row.model,
+            'calls': row.calls,
+            'tokens': row.tokens,
+            'cost': float(row.cost)
+        }
+        for row in timeseries
+    ]
+    return jsonify({'stats': result, 'timeseries': timeseries_result})
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
