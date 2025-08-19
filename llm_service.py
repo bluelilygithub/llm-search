@@ -177,31 +177,13 @@ class LLMService:
             raise Exception("Gemini API key not configured")
             
         try:
-            # Map model names
-            model_mapping = {
-                'gemini-pro': 'gemini-1.5-pro',
-                'gemini-flash': 'gemini-1.5-flash'
-            }
-            
-            mapped_model = model_mapping.get(model, model)
-            model_instance = genai.GenerativeModel(mapped_model)
-            
-            # Convert messages to Gemini format
-            conversation_text = ""
-            for msg in messages:
-                role = "Human" if msg['role'] == 'user' else "Assistant"
-                conversation_text += f"{role}: {msg['content']}\n\n"
-            
-            response = model_instance.generate_content(
-                conversation_text,
-                generation_config=genai.types.GenerationConfig(
-                    max_output_tokens=max_tokens,
-                    temperature=temperature,
-                )
-            )
+            prompt = '\n'.join([f"{m['role']}: {m['content']}" for m in messages])
+            response = genai.generate_content(prompt, model=model, generation_config={"max_output_tokens": max_tokens, "temperature": temperature})
             text = response.text if hasattr(response, 'text') else str(response)
-            # Gemini API may not return token usage; set to 0 for now
-            tokens = getattr(response, 'usage_metadata', {}).get('total_tokens', 0) if hasattr(response, 'usage_metadata') else 0
+            # Gemini API: use attribute access for usage_metadata
+            tokens = 0
+            if hasattr(response, 'usage_metadata') and hasattr(response.usage_metadata, 'total_tokens'):
+                tokens = response.usage_metadata.total_tokens
             # Example pricing: Gemini Pro $0.00025/1K tokens
             cost = tokens * 0.00025
             return text, tokens, cost

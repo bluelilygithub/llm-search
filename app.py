@@ -318,27 +318,8 @@ def chat():
         )
         db.session.add(error_log)
         db.session.commit()
-        
-        # Provide helpful error messages for common issues
-        if ('maximum context length' in error_msg.lower() or 
-            'too large' in error_msg.lower() or 
-            'request too large' in error_msg.lower()):
-            friendly_error = f"Document too large for {model}. Try using Gemini Pro (2M tokens) or Claude (180K tokens) for large documents."
-        elif ('tokens per min' in error_msg.lower() or 
-              'rate limit' in error_msg.lower() or 
-              'tpm:' in error_msg.lower()):
-            friendly_error = f"Rate limit exceeded for {model}. Try Gemini Pro or Claude (higher limits), or wait a moment and try again."
-        elif 'api key' in error_msg.lower():
-            friendly_error = f"API key issue with {model}. Please check your configuration."
-        else:
-            friendly_error = error_msg
-            
-        return jsonify({
-            'error': friendly_error,
-            'technical_error': error_msg,
-            'model': model,
-            'timestamp': datetime.utcnow().isoformat()
-        }), 500
+        # Remove any reference to error_msg variable
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/transcribe', methods=['POST'])
 def transcribe_audio():
