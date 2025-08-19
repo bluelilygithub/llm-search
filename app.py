@@ -28,10 +28,11 @@ app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB max file size
 db = SQLAlchemy(app)
 CORS(app)
 
-# Rate limiting
+# Rate limiting with database storage
 limiter = Limiter(
     key_func=get_remote_address,
-    default_limits=["1000 per day", "100 per hour"]
+    default_limits=["1000 per day", "100 per hour"],
+    storage_uri=app.config.get('DATABASE_URL') or app.config.get('SQLALCHEMY_DATABASE_URI')
 )
 limiter.init_app(app)
 
@@ -607,7 +608,12 @@ def extract_url_content():
         from bs4 import BeautifulSoup
         
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Accept-Encoding': 'gzip, deflate',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1'
         }
         
         response = requests.get(url, headers=headers, timeout=10)
@@ -682,7 +688,15 @@ def extract_url_content():
         })
         
     except requests.RequestException as e:
-        return jsonify({'error': f'Failed to fetch URL: {str(e)}'}), 400
+        status_code = getattr(e.response, 'status_code', None) if hasattr(e, 'response') else None
+        if status_code == 403:
+            return jsonify({'error': 'Website blocked access. Try copying and pasting the content instead, or use a different URL.'}), 400
+        elif status_code == 404:
+            return jsonify({'error': 'URL not found (404). Please check the URL is correct.'}), 400
+        elif status_code == 429:
+            return jsonify({'error': 'Website rate limited our request. Please try again later.'}), 400
+        else:
+            return jsonify({'error': f'Failed to fetch URL: {str(e)}'}), 400
     except Exception as e:
         print(f"URL extraction error: {e}")
         import traceback; traceback.print_exc()
