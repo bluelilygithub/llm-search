@@ -12,3 +12,5 @@ google-cloud-speech
 Flask-Migrate
 PyPDF2
 python-docx
+beautifulsoup4
+Flask-Limiter

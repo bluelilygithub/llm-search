@@ -1,11 +1,15 @@
 from flask import Flask, jsonify, request, render_template, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from config import Config
 import uuid
 from datetime import datetime
 from flask_migrate import Migrate
 import os
+import re
+import html
 from werkzeug.utils import secure_filename
 
 from PyPDF2 import PdfReader
@@ -18,8 +22,18 @@ except ImportError:
 app = Flask(__name__, static_folder='static')
 app.config.from_object(Config)
 
+# Security configurations
+app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB max file size
+
 db = SQLAlchemy(app)
 CORS(app)
+
+# Rate limiting
+limiter = Limiter(
+    app,
+    key_func=get_remote_address,
+    default_limits=["1000 per day", "100 per hour"]
+)
 
 from models import Conversation, Message, Attachment, Project
 from llm_service import LLMService
@@ -214,6 +228,7 @@ def add_message(conversation_id):
     }), 201
 
 @app.route('/chat', methods=['POST'])
+@limiter.limit("30 per minute")
 def chat():
     try:
         data = request.get_json()
@@ -237,7 +252,7 @@ def chat():
             # Add context document(s) to prompt if present
             import json
             docs = getattr(conversation, 'context_documents', None)
-            print('DEBUG: context_documents =', docs, type(docs))
+            # Debug logging removed for security
             if isinstance(docs, str):
                 try:
                     docs = json.loads(docs)
@@ -417,6 +432,27 @@ def upload_attachments(conversation_id):
         import traceback; traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
+def sanitize_content(content):
+    """Sanitize extracted content to prevent security issues"""
+    if not content:
+        return content
+    
+    # Limit content size to prevent memory issues
+    MAX_CONTENT_SIZE = 5 * 1024 * 1024  # 5MB text limit
+    if len(content) > MAX_CONTENT_SIZE:
+        content = content[:MAX_CONTENT_SIZE] + "\n\n[Content truncated for security...]"
+    
+    # Remove potentially malicious patterns
+    content = html.escape(content)  # Escape HTML entities
+    content = re.sub(r'<script[^>]*>.*?</script>', '', content, flags=re.DOTALL | re.IGNORECASE)
+    content = re.sub(r'<iframe[^>]*>.*?</iframe>', '', content, flags=re.DOTALL | re.IGNORECASE)
+    
+    # Clean up excessive whitespace
+    content = re.sub(r'\n\s*\n\s*\n', '\n\n', content)
+    content = content.strip()
+    
+    return content
+
 def extract_document_content(file, filename):
     """Generic document content extractor - supports PDF, DOCX, TXT, MD, CSV"""
     ext = filename.rsplit('.', 1)[-1].lower()
@@ -436,14 +472,15 @@ def extract_document_content(file, filename):
     except Exception as e:
         raise Exception(f'Failed to extract text from {filename}: {e}')
     
-    return content
+    return sanitize_content(content)
 
 @app.route('/upload-context', methods=['POST'])
+@limiter.limit("10 per minute")
 def upload_context():
     conversation_id = request.form.get('conversation_id')
     task_type = request.form.get('task_type', 'instructions')  # New: instructions, summary, analysis, etc.
     
-    print('UPLOAD: conversation_id =', conversation_id, 'task_type =', task_type)
+    # Upload logging removed for security
     
     if not conversation_id:
         return jsonify({'error': 'Missing conversation_id'}), 400
@@ -467,12 +504,12 @@ def upload_context():
         # Apply task-specific processing
         processed_content = process_document_by_task(content, filename, task_type)
         
-        print('UPLOAD: filename =', filename)
-        print('UPLOAD: extracted content =', content[:200])
+        # File logging removed for security
+        # Content logging removed for security
         
         import json
         docs = conversation.context_documents
-        print('UPLOAD: before update context_documents =', docs)
+        # Context logging removed for security
         
         if not docs:
             docs = []
@@ -492,14 +529,14 @@ def upload_context():
         })
         
         conversation.context_documents = docs
-        print('UPLOAD: after update context_documents =', conversation.context_documents)
+        # Context update logging removed for security
         db.session.commit()
         
         # Get file type for icon
         file_type = get_file_type(filename)
         word_count = len(content.split()) if content else 0
         
-        print(f'UPLOAD: file_type={file_type}, word_count={word_count}, task_type={task_type}')
+        # Upload metadata logging removed for security
         
         preview = processed_content[:500] + ('...' if len(processed_content) > 500 else '')
         response_data = {
@@ -512,7 +549,7 @@ def upload_context():
             'word_count': word_count
         }
         
-        print(f'UPLOAD: returning response_data={response_data}')
+        # Response logging removed for security
         return jsonify(response_data)
         
     except Exception as e:
@@ -547,6 +584,109 @@ def process_document_by_task(content, filename, task_type):
     }
     
     return task_prompts.get(task_type, f"Document ({filename}):\n\n{content}")
+
+@app.route('/extract-url', methods=['POST'])
+@limiter.limit("5 per minute")
+def extract_url_content():
+    """Extract content from a URL and add it as context"""
+    data = request.get_json()
+    
+    if not data or not data.get('url') or not data.get('conversation_id'):
+        return jsonify({'error': 'URL and conversation_id are required'}), 400
+    
+    url = data['url']
+    conversation_id = data['conversation_id']
+    task_type = data.get('task_type', 'reference')
+    
+    try:
+        conv_uuid = uuid.UUID(conversation_id)
+        conversation = Conversation.query.get_or_404(conv_uuid)
+        
+        # Extract content from URL using requests and basic HTML parsing
+        import requests
+        from bs4 import BeautifulSoup
+        
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+        
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+        
+        # Check content size
+        content_length = response.headers.get('content-length')
+        if content_length and int(content_length) > 10 * 1024 * 1024:  # 10MB limit
+            return jsonify({'error': 'URL content too large (max 10MB)'}), 400
+        
+        # Parse HTML and extract text
+        soup = BeautifulSoup(response.content, 'html.parser')
+        
+        # Remove script and style elements
+        for script in soup(["script", "style", "nav", "footer", "header"]):
+            script.decompose()
+        
+        # Get text content
+        content = soup.get_text()
+        
+        # Clean up whitespace
+        lines = (line.strip() for line in content.splitlines())
+        content = '\n'.join(line for line in lines if line)
+        
+        # Sanitize the extracted content
+        content = sanitize_content(content)
+        
+        if not content:
+            return jsonify({'error': 'No readable content found at URL'}), 400
+        
+        # Process content like uploaded documents
+        processed_content = process_document_by_task(content, url, task_type)
+        
+        # Add to conversation context
+        import json
+        docs = conversation.context_documents
+        if not docs:
+            docs = []
+        elif isinstance(docs, str):
+            try:
+                docs = json.loads(docs)
+            except Exception:
+                docs = []
+        if not isinstance(docs, list):
+            docs = []
+        
+        docs.append({
+            'filename': url,
+            'content': processed_content,
+            'task_type': task_type,
+            'original_content': content,
+            'source_type': 'url'
+        })
+        
+        conversation.context_documents = docs
+        db.session.commit()
+        
+        # Extract title for display
+        title_tag = soup.find('title')
+        title = title_tag.get_text().strip() if title_tag else url
+        
+        word_count = len(content.split()) if content else 0
+        preview = content[:500] + ('...' if len(content) > 500 else '')
+        
+        return jsonify({
+            'success': True,
+            'url': url,
+            'title': title,
+            'preview': preview,
+            'word_count': word_count,
+            'task_type': task_type
+        })
+        
+    except requests.RequestException as e:
+        return jsonify({'error': f'Failed to fetch URL: {str(e)}'}), 400
+    except Exception as e:
+        print(f"URL extraction error: {e}")
+        import traceback; traceback.print_exc()
+        return jsonify({'error': f'Failed to process URL: {str(e)}'}), 500
 
 @app.route('/uploads/<path:filename>')
 def uploaded_file(filename):

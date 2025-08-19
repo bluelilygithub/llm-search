@@ -781,14 +781,37 @@ class KnowledgeBaseApp {
     async transcribeAudio(audioBlob) {}
 
     // URL reference functionality
-    addUrlReference() {
-        const url = prompt('Enter URL to reference:');
-        if (url && this.isValidUrl(url)) {
-            this.urlReferences.push({
-                url: url,
-                title: this.extractDomain(url)
+    async addUrlReference() {
+        const url = prompt('Enter URL to extract content from:');
+        if (!url || !this.isValidUrl(url)) return;
+        
+        if (!this.currentConversationId) {
+            this.showError('Please start or select a conversation before adding URL content.');
+            return;
+        }
+        
+        try {
+            const response = await fetch('/extract-url', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    url: url,
+                    conversation_id: this.currentConversationId,
+                    task_type: 'reference'  // Can be made configurable
+                })
             });
-            this.renderUrlReferences();
+            
+            const data = await response.json();
+            if (data.success) {
+                this.showUrlUploadMessage(data.url, data.title, data.preview, data.word_count, data.task_type);
+            } else {
+                this.showError(data.error || 'Failed to extract URL content.');
+            }
+        } catch (error) {
+            this.showError('Failed to extract URL content.');
+            console.error('URL extraction error:', error);
         }
     }
 
@@ -1072,6 +1095,30 @@ KnowledgeBaseApp.prototype.showContextUploadMessage = function(filename, preview
             <div class="file-upload-info">
                 <i class="${getFileIcon(fileType)}" style="color: #4CAF50; margin-right: 8px;"></i>
                 <strong>${taskLabel} uploaded:</strong> ${filename}
+                ${wordCount ? `<span style="color: #666; font-size: 0.9em;"> (${wordCount} words)</span>` : ''}
+            </div>
+            <div class="context-preview">${preview.replace(/\n/g, '<br>')}</div>
+        </div>
+    `;
+    container.appendChild(messageDiv);
+    this.scrollToBottom();
+};
+
+KnowledgeBaseApp.prototype.showUrlUploadMessage = function(url, title, preview, wordCount, taskType) {
+    const container = document.getElementById('chat-messages');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message user new';
+    
+    const taskLabel = taskType === 'instructions' ? 'Guidelines from URL' : 
+                     taskType === 'summary' ? 'URL to summarize' :
+                     taskType === 'analysis' ? 'URL to analyze' : 'URL Reference';
+    
+    messageDiv.innerHTML = `
+        <div class="message-avatar">U</div>
+        <div class="message-content">
+            <div class="file-upload-info">
+                <i class="fas fa-link" style="color: #2196F3; margin-right: 8px;"></i>
+                <strong>${taskLabel}:</strong> <a href="${url}" target="_blank">${title}</a>
                 ${wordCount ? `<span style="color: #666; font-size: 0.9em;"> (${wordCount} words)</span>` : ''}
             </div>
             <div class="context-preview">${preview.replace(/\n/g, '<br>')}</div>
