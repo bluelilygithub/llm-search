@@ -246,9 +246,21 @@ def chat():
             if docs:
                 for doc in docs:
                     if doc and 'content' in doc:
+                        task_type = doc.get('task_type', 'instructions')
+                        filename = doc.get('filename', 'uploaded file')
+                        content = doc['content']
+                        
+                        # Create context-aware system message
+                        if task_type == 'summary':
+                            system_msg = f"You have been provided with a document ({filename}) to summarize. You can analyze, count words, and provide detailed summaries of this content:\n\n{content}"
+                        elif task_type == 'analysis':
+                            system_msg = f"You have been provided with a document ({filename}) to analyze. You can examine, count words, and provide detailed analysis of this content:\n\n{content}"
+                        else:
+                            system_msg = f"Document reference ({filename}): You have access to this document content and can answer questions about it, count words, analyze it, or use it as guidelines:\n\n{content}"
+                        
                         messages.insert(0, {
                             'role': 'system',
-                            'content': f"Guideline document ({doc.get('filename', 'uploaded file')}):\n{doc['content'][:4000]}"
+                            'content': system_msg  # Full document content
                         })
         # Debug: print the full prompt
         print("\n--- LLM PROMPT MESSAGES ---")
