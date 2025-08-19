@@ -88,46 +88,51 @@ class LLMService:
             raise Exception(f"OpenAI API error: {str(e)}")
     
     def _get_anthropic_response(self, model, messages, max_tokens, temperature):
-        """Get response from Anthropic Claude models"""
+        """Get response from Anthropic Claude models. Tries all known models if the requested one fails."""
         if not self.anthropic_available:
             raise Exception("Anthropic API key not configured")
-            
-        try:
-            # Convert messages format for Anthropic
-            anthropic_messages = []
-            system_message = None
-            
-            for msg in messages:
-                if msg['role'] == 'system':
-                    system_message = msg['content']
-                else:
-                    anthropic_messages.append({
-                        'role': msg['role'],
-                        'content': msg['content']
-                    })
-            
-            # Map model names
-            model_mapping = {
-                'claude-3-opus': 'claude-3-opus-20240229',
-                'claude-3-sonnet': 'claude-3-sonnet-20240229',
-                'claude-3.5-sonnet': 'claude-3-5-sonnet-20240620',
-                'claude-3-haiku': 'claude-3-haiku-20240307'
-            }
-            
-            mapped_model = model_mapping.get(model, model)
-            
-            response = self.anthropic_client.messages.create(
-                model=mapped_model,
-                max_tokens=max_tokens,
-                temperature=temperature,
-                system=system_message or "You are a helpful AI assistant.",
-                messages=anthropic_messages
-            )
-            
-            return response.content[0].text
-            
-        except Exception as e:
-            raise Exception(f"Anthropic API error: {str(e)}")
+        
+        claude_models = [
+            'claude-sonnet-4-20250514',
+            'claude-opus-4',
+            'claude-3-5-sonnet-20241022',
+            'claude-3-5-haiku-20241022',
+            'claude-3-opus-20240229',
+            'claude-3-sonnet-20240229',
+            'claude-3.5-sonnet-20240620',
+            'claude-3-haiku-20240307'
+        ]
+        # Always try the requested model first, then the rest
+        try_models = [model] + [m for m in claude_models if m != model]
+        
+        # Convert messages format for Anthropic
+        anthropic_messages = []
+        system_message = None
+        for msg in messages:
+            if msg['role'] == 'system':
+                system_message = msg['content']
+            else:
+                anthropic_messages.append({
+                    'role': msg['role'],
+                    'content': msg['content']
+                })
+        last_error = None
+        for try_model in try_models:
+            try:
+                response = self.anthropic_client.messages.create(
+                    model=try_model,
+                    max_tokens=max_tokens,
+                    temperature=temperature,
+                    system=system_message or "You are a helpful AI assistant.",
+                    messages=anthropic_messages
+                )
+                # If response is valid, return it
+                if response and hasattr(response, 'content') and response.content and hasattr(response.content[0], 'text'):
+                    return response.content[0].text
+            except Exception as e:
+                last_error = str(e)
+                continue
+        raise Exception(f"Anthropic API error: All models failed. Last error: {last_error}")
     
     def _get_gemini_response(self, model, messages, max_tokens, temperature):
         """Get response from Google Gemini models"""

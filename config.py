@@ -1,4 +1,4 @@
-import os
+image.pngimport os
 from dotenv import load_dotenv
 
 load_dotenv()
