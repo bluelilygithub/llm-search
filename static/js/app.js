@@ -235,9 +235,22 @@ class KnowledgeBaseApp {
     }
 
     selectProject(project) {
+        // Only trigger if changing project
+        const isNewProject = !this.currentProject || !project || this.currentProject.id !== project.id;
         this.currentProject = project;
         this.loadProjects();
         this.loadConversations();
+        if (isNewProject) {
+            this.currentConversationId = null;
+            document.getElementById('chat-messages').innerHTML = `
+                <div class="welcome-message">
+                    <h3>New Conversation</h3>
+                    <p>Start a conversation or search your knowledge base.</p>
+                </div>
+            `;
+            document.getElementById('message-input').value = '';
+            this.autoResizeTextarea();
+        }
     }
 
     // --- Conversation Filtering by Project ---
