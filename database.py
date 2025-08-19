@@ -1,9 +1,21 @@
-from app import app, db
-from models import Conversation, Message, Attachment, SearchQuery, Project
+from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 from sqlalchemy import text
+import logging
 
-def init_database():
+# Create the SQLAlchemy instance
+db = SQLAlchemy()
+migrate = Migrate()
+
+def init_db(app):
+    """Initialize database with Flask app"""
+    db.init_app(app)
+    migrate.init_app(app, db)
+    return db
+
+def init_database(app):
     """Initialize the database with required extensions and tables."""
+    logger = logging.getLogger('database')
     with app.app_context():
         try:
             # Enable pgvector extension
@@ -13,23 +25,20 @@ def init_database():
             # Create all tables
             db.create_all()
             
-            print("Database initialized successfully!")
+            logger.info("Database initialized successfully!")
             return True
         except Exception as e:
-            print(f"Database initialization failed: {e}")
+            logger.error(f"Database initialization failed: {e}")
             return False
 
-def test_connection():
+def test_connection(app):
     """Test database connection."""
+    logger = logging.getLogger('database')
     with app.app_context():
         try:
             db.session.execute(text('SELECT 1'))
-            print("Database connection successful!")
+            logger.info("Database connection successful!")
             return True
         except Exception as e:
-            print(f"Database connection failed: {e}")
+            logger.error(f"Database connection failed: {e}")
             return False
-
-if __name__ == '__main__':
-    if test_connection():
-        init_database()

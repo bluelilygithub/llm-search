@@ -1,12 +1,10 @@
 from flask import Flask, jsonify, request, render_template, send_from_directory
-from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from config import Config
 import uuid
 from datetime import datetime
-from flask_migrate import Migrate
 import os
 import re
 import html
@@ -19,13 +17,26 @@ try:
 except ImportError:
     DocxDocument = None
 
+# Initialize Flask app
 app = Flask(__name__, static_folder='static')
-app.config.from_object(Config)
+
+# Configure app based on environment
+from config import config
+config_name = os.getenv('FLASK_CONFIG', 'default')
+app.config.from_object(config[config_name])
+config[config_name].init_app(app)
 
 # Security configurations
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB max file size
 
-db = SQLAlchemy(app)
+# Setup logging
+from logger import setup_logging
+setup_logging(app)
+
+# Initialize database
+from database import db, init_db
+db = init_db(app)
+
 CORS(app)
 
 # Rate limiting - use in-memory for simplicity
@@ -35,12 +46,15 @@ limiter = Limiter(
 )
 limiter.init_app(app)
 
+# Import models after db initialization
 from models import Conversation, Message, Attachment, Project
 from llm_service import LLMService
 
-llm_service = LLMService()
+# Initialize authentication
+from auth import auth
+auth.init_app(app)
 
-migrate = Migrate(app, db)
+llm_service = LLMService()
 
 UPLOAD_FOLDER = os.path.join(os.getcwd(), 'uploads')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -240,7 +254,7 @@ def chat():
         user_message = data['message']
         model = data['model']
         
-        print(f"Chat request: model={model}, message={user_message[:50]}...")
+        app.logger.info(f"Chat request: model={model}, message_length={len(user_message)}")
         
         # Get conversation history if conversation exists
         messages = []
@@ -277,19 +291,16 @@ def chat():
                             'role': 'system',
                             'content': system_msg  # Full document content
                         })
-        # Debug: print the full prompt
-        print("\n--- LLM PROMPT MESSAGES ---")
-        for idx, m in enumerate(messages):
-            print(f"{idx}. {m['role']}: {m['content'][:300].replace(chr(10), ' ')}{' ...' if len(m['content']) > 300 else ''}")
-        print("--- END PROMPT ---\n")
+        # Log prompt details
+        app.logger.debug(f"LLM request with {len(messages)} messages for model {model}")
         
         # Add current user message
         messages.append({'role': 'user', 'content': user_message})
         
-        print(f"Calling LLM service...")
+        app.logger.info(f"Calling LLM service for model: {model}")
         # Get AI response and usage info
         ai_response, tokens, estimated_cost = llm_service.get_response(model, messages)
-        print(f"Got response: {ai_response[:50]}...")
+        app.logger.info(f"Got response from {model}: {tokens} tokens, cost: ${estimated_cost:.4f}")
         # Log usage
         from models import LLMUsageLog
         usage_log = LLMUsageLog(
@@ -308,17 +319,19 @@ def chat():
         })
         
     except Exception as e:
-        print(f"Chat error: {str(e)}")
-        # Log error
-        from models import LLMErrorLog
-        error_log = LLMErrorLog(
-            model=model,
-            conversation_id=conversation_id if 'conversation_id' in locals() and conversation_id else None,
-            error_message=str(e)
-        )
-        db.session.add(error_log)
-        db.session.commit()
-        # Remove any reference to error_msg variable
+        app.logger.error(f"Chat error: {str(e)}", exc_info=True)
+        # Log error to database
+        try:
+            from models import LLMErrorLog
+            error_log = LLMErrorLog(
+                model=model if 'model' in locals() else 'unknown',
+                conversation_id=conversation_id if 'conversation_id' in locals() and conversation_id else None,
+                error_message=str(e)
+            )
+            db.session.add(error_log)
+            db.session.commit()
+        except Exception as db_error:
+            app.logger.error(f"Failed to log error to database: {db_error}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/transcribe', methods=['POST'])
@@ -328,7 +341,7 @@ def transcribe_audio():
             return jsonify({'error': 'No audio file provided'}), 400
 
         audio_file = request.files['audio']
-        print('Received file:', audio_file.filename, 'Content-Type:', audio_file.content_type)
+        app.logger.info(f'Audio transcription request: {audio_file.filename}, Content-Type: {audio_file.content_type}')
         if audio_file.filename == '':
             return jsonify({'error': 'No audio file selected'}), 400
 
@@ -373,7 +386,7 @@ def transcribe_audio():
         })
 
     except Exception as e:
-        print(f"Transcription error: {str(e)}")
+        app.logger.error(f"Transcription error: {str(e)}", exc_info=True)
         return jsonify({'error': str(e)}), 500
 
 @app.route('/conversations/<conversation_id>/attachments', methods=['POST'])
@@ -427,8 +440,7 @@ def upload_attachments(conversation_id):
         db.session.commit()
         return jsonify({'attachments': attachments}), 201
     except Exception as e:
-        print(f"Attachment upload error: {e}")
-        import traceback; traceback.print_exc()
+        app.logger.error(f"Attachment upload error: {e}", exc_info=True)
         return jsonify({'error': str(e)}), 500
 
 def sanitize_content(content):
@@ -552,8 +564,7 @@ def upload_context():
         return jsonify(response_data)
         
     except Exception as e:
-        print(f"Context extraction error: {e}")
-        import traceback; traceback.print_exc()
+        app.logger.error(f"Context extraction error: {e}", exc_info=True)
         return jsonify({'error': str(e)}), 500
 
 def get_file_type(filename):
@@ -721,8 +732,7 @@ def extract_url_content():
         else:
             return jsonify({'error': f'Failed to fetch URL: {str(e)}'}), 400
     except Exception as e:
-        print(f"URL extraction error: {e}")
-        import traceback; traceback.print_exc()
+        app.logger.error(f"URL extraction error: {e}", exc_info=True)
         return jsonify({'error': f'Failed to process URL: {str(e)}'}), 500
 
 @app.route('/uploads/<path:filename>')
@@ -786,6 +796,27 @@ def llm_error_log():
         for e in errors
     ]
     return jsonify({'errors': result})
+
+@app.route('/api/log-error', methods=['POST'])
+def log_client_error():
+    """Log client-side JavaScript errors"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
+        # Log the client error
+        app.logger.error(
+            f"Client Error: {data.get('type', 'Unknown')} - {data.get('message', 'No message')} "
+            f"URL: {data.get('url', 'Unknown')} "
+            f"User-Agent: {data.get('userAgent', 'Unknown')}"
+        )
+        
+        return jsonify({'success': True}), 200
+        
+    except Exception as e:
+        app.logger.error(f"Failed to log client error: {e}")
+        return jsonify({'error': 'Failed to log error'}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

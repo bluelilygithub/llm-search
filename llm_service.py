@@ -4,9 +4,13 @@ import google.generativeai as genai
 import requests
 from config import Config
 import os
+import logging
 
 class LLMService:
     def __init__(self):
+        # Initialize logger
+        self.logger = logging.getLogger('llm_service')
+        
         # Initialize all availability flags
         self.openai_available = False
         self.anthropic_available = False
@@ -17,7 +21,7 @@ class LLMService:
         if openai_key:
             self.openai_client = OpenAI(api_key=openai_key)
             self.openai_available = True
-            print("OpenAI API key configured")
+            self.logger.info("OpenAI API key configured")
         else:
             self.openai_client = None
         
@@ -26,9 +30,9 @@ class LLMService:
         self.claude_key = os.getenv('CLAUDE_API_KEY')
         if self.claude_key:
             self.anthropic_available = True
-            print("Anthropic API key configured for direct HTTP requests")
+            self.logger.info("Anthropic API key configured")
         else:
-            print("No Claude API key found")
+            self.logger.warning("No Claude API key found")
         
         # Initialize Gemini safely
         gemini_key = os.getenv('GEMINI_API_KEY')
@@ -36,9 +40,9 @@ class LLMService:
             try:
                 genai.configure(api_key=gemini_key)
                 self.gemini_available = True
-                print("Gemini configured")
+                self.logger.info("Gemini API key configured")
             except Exception as e:
-                print(f"Gemini failed: {e}")
+                self.logger.error(f"Gemini configuration failed: {e}")
                 self.gemini_available = False
         
         # Initialize Hugging Face
@@ -46,7 +50,7 @@ class LLMService:
         if self.hf_api_key:
             self.hf_headers = {"Authorization": f"Bearer {self.hf_api_key}"}
             self.hf_available = True
-            print("Hugging Face configured")
+            self.logger.info("Hugging Face API key configured")
         else:
             self.hf_available = False
         
@@ -82,7 +86,7 @@ class LLMService:
             total_chars = sum(len(str(msg.get('content', ''))) for msg in messages)
             estimated_tokens = total_chars // 3  # Rough estimate: 3 chars per token
             
-            print(f"OpenAI request: model={model}, estimated_tokens={estimated_tokens}, max_tokens={max_tokens}")
+            self.logger.info(f"OpenAI request: model={model}, estimated_tokens={estimated_tokens}, max_tokens={max_tokens}")
             
             # Check if we're likely to exceed limits
             model_limits = self.get_model_limits(model)
@@ -123,7 +127,7 @@ class LLMService:
             return text, tokens, cost
             
         except Exception as e:
-            print(f"OpenAI API detailed error: {type(e).__name__}: {str(e)}")
+            self.logger.error(f"OpenAI API error: {type(e).__name__}: {str(e)}")
             raise Exception(f"OpenAI API error: {str(e)}")
     
     def _get_anthropic_response(self, model, messages, max_tokens, temperature):

@@ -8,6 +8,9 @@ class KnowledgeBaseApp {
         this.mediaRecorder = null;
         this.currentProject = null; // Added for project management
         
+        // Setup global error handling
+        this.setupGlobalErrorHandling();
+        
         this.init();
     }
 
@@ -16,6 +19,78 @@ class KnowledgeBaseApp {
         this.loadConversations();
         this.setupEventListeners();
         this.autoResizeTextarea();
+    }
+
+    setupGlobalErrorHandling() {
+        // Handle uncaught JavaScript errors
+        window.addEventListener('error', (event) => {
+            this.handleError('JavaScript Error', event.error || event.message);
+        });
+
+        // Handle unhandled promise rejections
+        window.addEventListener('unhandledrejection', (event) => {
+            this.handleError('Promise Rejection', event.reason);
+        });
+    }
+
+    handleError(type, error, context = '') {
+        console.error(`${type}:`, error);
+        
+        // Show user-friendly error message
+        this.showErrorNotification(`${type}: ${this.getErrorMessage(error)}`, context);
+        
+        // Log to server if needed (optional)
+        this.logErrorToServer(type, error, context);
+    }
+
+    getErrorMessage(error) {
+        if (typeof error === 'string') return error;
+        if (error?.message) return error.message;
+        if (error?.toString) return error.toString();
+        return 'An unexpected error occurred';
+    }
+
+    showErrorNotification(message, context = '') {
+        // Create error notification element
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'error-notification';
+        errorDiv.innerHTML = `
+            <div class="error-content">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>${message}</span>
+                <button class="close-error" onclick="this.parentElement.parentElement.remove()">×</button>
+            </div>
+        `;
+        
+        // Add to page
+        document.body.appendChild(errorDiv);
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            if (errorDiv.parentElement) {
+                errorDiv.remove();
+            }
+        }, 5000);
+    }
+
+    async logErrorToServer(type, error, context) {
+        try {
+            await fetch('/api/log-error', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type,
+                    message: this.getErrorMessage(error),
+                    context,
+                    url: window.location.href,
+                    userAgent: navigator.userAgent,
+                    timestamp: new Date().toISOString()
+                })
+            });
+        } catch (e) {
+            // Don't throw if error logging fails
+            console.warn('Failed to log error to server:', e);
+        }
     }
 
     setupEventListeners() {
