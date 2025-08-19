@@ -287,12 +287,16 @@ def chat():
         print(f"Chat error: {error_msg}")
         
         # Provide helpful error messages for common issues
-        if 'maximum context length' in error_msg.lower():
-            friendly_error = f"Document too large for {model}. Try using Gemini Pro for large documents, or split your content into smaller parts."
+        if ('maximum context length' in error_msg.lower() or 
+            'too large' in error_msg.lower() or 
+            'request too large' in error_msg.lower()):
+            friendly_error = f"Document too large for {model}. Try using Gemini Pro (2M tokens) or Claude (180K tokens) for large documents."
+        elif ('tokens per min' in error_msg.lower() or 
+              'rate limit' in error_msg.lower() or 
+              'tpm:' in error_msg.lower()):
+            friendly_error = f"Rate limit exceeded for {model}. Try Gemini Pro or Claude (higher limits), or wait a moment and try again."
         elif 'api key' in error_msg.lower():
             friendly_error = f"API key issue with {model}. Please check your configuration."
-        elif 'rate limit' in error_msg.lower():
-            friendly_error = f"Rate limit exceeded for {model}. Please wait a moment and try again."
         else:
             friendly_error = error_msg
             
