@@ -1,4 +1,4 @@
-import openai
+from openai import OpenAI
 import anthropic
 import google.generativeai as genai
 import requests
@@ -12,12 +12,14 @@ class LLMService:
         self.anthropic_available = False
         self.gemini_available = False
         
-        # Initialize OpenAI (v0.28 style - no client object)
+        # Initialize OpenAI (v1.x style - client object)
         openai_key = os.getenv('OPENAI_API_KEY')
         if openai_key:
-            openai.api_key = openai_key
+            self.openai_client = OpenAI(api_key=openai_key)
             self.openai_available = True
             print("OpenAI API key configured")
+        else:
+            self.openai_client = None
         
         # Initialize Anthropic for direct HTTP requests
         self.anthropic_available = False
@@ -53,9 +55,9 @@ class LLMService:
         # Map legacy Gemini model names to current names
         GEMINI_MODEL_MAP = {
             'gemini-pro': 'models/gemini-1.5-pro-002',
-            'gemini-flash': 'models/gemini-1.0-flash-latest',
+            'gemini-flash': 'models/gemini-1.5-flash-latest',
             'models/gemini-pro': 'models/gemini-1.5-pro-002',
-            'models/gemini-flash': 'models/gemini-1.0-flash-latest'
+            'models/gemini-flash': 'models/gemini-1.5-flash-latest'
         }
         if model in GEMINI_MODEL_MAP:
             model = GEMINI_MODEL_MAP[model]
@@ -71,8 +73,8 @@ class LLMService:
             raise ValueError(f"Model {model} not available")
     
     def _get_openai_response(self, model, messages, max_tokens, temperature):
-        """Get response from OpenAI models"""
-        if not self.openai_available:
+        """Get response from OpenAI models using v1.x client"""
+        if not self.openai_available or not self.openai_client:
             raise Exception("OpenAI API key not configured")
             
         try:
@@ -87,23 +89,39 @@ class LLMService:
             if estimated_tokens + max_tokens > model_limits['context_window']:
                 raise Exception(f"Request too large for {model}. Estimated {estimated_tokens} tokens, max allowed {model_limits['context_window']}. Try using Gemini Pro or Claude for large documents.")
             
-            response = openai.ChatCompletion.create(
-                model=model,
-                messages=messages,
-                max_tokens=max_tokens,
-                temperature=temperature
-            )
+            # O1 models have different API requirements
+            if model.startswith('o1'):
+                response = self.openai_client.chat.completions.create(
+                    model=model,
+                    messages=messages,
+                    max_completion_tokens=max_tokens
+                    # O1 models don't support temperature parameter
+                )
+            else:
+                response = self.openai_client.chat.completions.create(
+                    model=model,
+                    messages=messages,
+                    max_tokens=max_tokens,
+                    temperature=temperature
+                )
+            
             text = response.choices[0].message.content
-            tokens = response['usage']['total_tokens'] if 'usage' in response else 0
-            # Example pricing (update as needed):
-            # gpt-4: $0.03/1K prompt, $0.06/1K completion; gpt-3.5: $0.001/1K
-            if model.startswith('gpt-4'):
+            tokens = response.usage.total_tokens if response.usage else 0
+            
+            # Updated pricing (as of 2024):
+            # gpt-4: $0.03/1K prompt, $0.06/1K completion; gpt-3.5: $0.001/1K; o1: $15/1M
+            if model.startswith('o1-preview'):
+                cost = tokens * 0.000015  # $15/1M tokens
+            elif model.startswith('o1-mini'):
+                cost = tokens * 0.000003  # $3/1M tokens  
+            elif model.startswith('gpt-4'):
                 cost = tokens * 0.00006  # $0.06/1K tokens (rough estimate)
             elif model.startswith('gpt-3.5'):
                 cost = tokens * 0.000002  # $0.002/1K tokens
             else:
                 cost = tokens * 0.00002  # fallback
             return text, tokens, cost
+            
         except Exception as e:
             print(f"OpenAI API detailed error: {type(e).__name__}: {str(e)}")
             raise Exception(f"OpenAI API error: {str(e)}")
@@ -249,12 +267,14 @@ class LLMService:
     def get_model_limits(self, model):
         """Get practical token limits for different models"""
         limits = {
-            # OpenAI Models - Updated to practical limits
-            'gpt-4': {'max_tokens': 4000, 'context_window': 8000},  # Reduced for safety
-            'gpt-4-turbo': {'max_tokens': 4000, 'context_window': 120000},
-            'gpt-3.5-turbo': {'max_tokens': 2000, 'context_window': 14000},  # Conservative
-            'o1-preview': {'max_tokens': 8000, 'context_window': 120000},
-            'o1-mini': {'max_tokens': 8000, 'context_window': 120000},
+            # OpenAI Models - Updated to current limits (2024)
+            'gpt-4': {'max_tokens': 4000, 'context_window': 8000},
+            'gpt-4-turbo': {'max_tokens': 4000, 'context_window': 128000},
+            'gpt-4o': {'max_tokens': 4000, 'context_window': 128000},
+            'gpt-4o-mini': {'max_tokens': 4000, 'context_window': 128000},
+            'gpt-3.5-turbo': {'max_tokens': 4000, 'context_window': 16000},
+            'o1-preview': {'max_tokens': 32768, 'context_window': 128000},
+            'o1-mini': {'max_tokens': 65536, 'context_window': 128000},
             
             # Anthropic Claude Models - High capacity
             'claude-3-opus': {'max_tokens': 4000, 'context_window': 180000},
