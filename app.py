@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request, render_template, send_from_directory
+from flask import Flask, jsonify, request, render_template, send_from_directory, redirect, url_for
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -65,7 +65,15 @@ def health_check():
 
 @app.route('/')
 def index():
+    if not auth.is_authenticated():
+        return redirect(url_for('login_page'))
     return render_template('index.html')
+
+@app.route('/login')
+def login_page():
+    if auth.is_authenticated():
+        return redirect(url_for('index'))
+    return render_template('login.html')
 
 @app.route('/init-db')
 def init_database():
@@ -76,6 +84,7 @@ def init_database():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/projects', methods=['GET'])
+@auth.login_required
 def get_projects():
     from models import Project
     projects = Project.query.order_by(Project.created_at.desc()).all()
@@ -140,6 +149,7 @@ def rename_project(project_id):
     })
 
 @app.route('/conversations', methods=['GET'])
+@auth.login_required
 def get_conversations():
     project_id = request.args.get('project_id')
     query = Conversation.query
@@ -243,6 +253,7 @@ def add_message(conversation_id):
 
 @app.route('/chat', methods=['POST'])
 @limiter.limit("30 per minute")
+@auth.login_required
 def chat():
     try:
         data = request.get_json()
