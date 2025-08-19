@@ -242,6 +242,11 @@ def chat():
                             'role': 'system',
                             'content': f"Guideline document ({doc.get('filename', 'uploaded file')}):\n{doc['content'][:4000]}"
                         })
+        # Debug: print the full prompt
+        print("\n--- LLM PROMPT MESSAGES ---")
+        for idx, m in enumerate(messages):
+            print(f"{idx}. {m['role']}: {m['content'][:300].replace(chr(10), ' ')}{' ...' if len(m['content']) > 300 else ''}")
+        print("--- END PROMPT ---\n")
         
         # Add current user message
         messages.append({'role': 'user', 'content': user_message})
