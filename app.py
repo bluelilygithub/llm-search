@@ -314,41 +314,47 @@ def upload_attachments(conversation_id):
     if not files or files[0].filename == '':
         return jsonify({'error': 'No files selected'}), 400
     attachments = []
-    for file in files:
-        filename = secure_filename(file.filename)
-        file_path = os.path.join(UPLOAD_FOLDER, filename)
-        # Ensure unique filename
-        base, ext = os.path.splitext(filename)
-        counter = 1
-        while os.path.exists(file_path):
-            filename = f"{base}_{counter}{ext}"
+    try:
+        for file in files:
+            filename = secure_filename(file.filename)
             file_path = os.path.join(UPLOAD_FOLDER, filename)
-            counter += 1
-        file.save(file_path)
-        # Create a new message for the attachment (role='user', content='[file upload]')
-        message = Message(
-            conversation_id=conv_uuid,
-            role='user',
-            content=f'[File uploaded: {filename}]'
-        )
-        db.session.add(message)
-        db.session.flush()  # Get message.id
-        attachment = Attachment(
-            message_id=message.id,
-            filename=filename,
-            content_type=file.content_type,
-            file_path=os.path.relpath(file_path, os.getcwd())
-        )
-        db.session.add(attachment)
-        attachments.append({
-            'id': str(attachment.id),
-            'filename': filename,
-            'content_type': file.content_type,
-            'file_path': attachment.file_path,
-            'created_at': attachment.created_at.isoformat()
-        })
-    db.session.commit()
-    return jsonify({'attachments': attachments}), 201
+            # Ensure unique filename
+            base, ext = os.path.splitext(filename)
+            counter = 1
+            while os.path.exists(file_path):
+                filename = f"{base}_{counter}{ext}"
+                file_path = os.path.join(UPLOAD_FOLDER, filename)
+                counter += 1
+            file.save(file_path)
+            # Create a new message for the attachment (role='user', content='[file upload]')
+            message = Message(
+                conversation_id=conv_uuid,
+                role='user',
+                content=f'[File uploaded: {filename}]'
+            )
+            db.session.add(message)
+            db.session.flush()  # Get message.id
+            attachment = Attachment(
+                message_id=message.id,
+                filename=filename,
+                content_type=file.content_type,
+                file_path=os.path.relpath(file_path, os.getcwd()),
+                created_at=datetime.utcnow()  # Ensure created_at is set
+            )
+            db.session.add(attachment)
+            attachments.append({
+                'id': str(attachment.id),
+                'filename': filename,
+                'content_type': file.content_type,
+                'file_path': attachment.file_path,
+                'created_at': attachment.created_at.isoformat() if hasattr(attachment, 'created_at') else datetime.utcnow().isoformat()
+            })
+        db.session.commit()
+        return jsonify({'attachments': attachments}), 201
+    except Exception as e:
+        print(f"Attachment upload error: {e}")
+        import traceback; traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
