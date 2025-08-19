@@ -19,21 +19,12 @@ class LLMService:
             self.openai_available = True
             print("OpenAI API key configured")
         
-        # Initialize Anthropic client with proper error handling
+        # Initialize Anthropic for direct HTTP requests
         self.anthropic_available = False
-        claude_key = os.getenv('CLAUDE_API_KEY')
-        if claude_key:
-            try:
-                self.anthropic_client = anthropic.Anthropic(api_key=claude_key)
-                self.anthropic_available = True
-                print("Anthropic client initialized")
-            except TypeError as e:
-                if 'proxies' in str(e):
-                    print("Anthropic client incompatible with deployment environment")
-                else:
-                    print(f"Anthropic initialization error: {e}")
-            except Exception as e:
-                print(f"Anthropic failed: {e}")
+        self.claude_key = os.getenv('CLAUDE_API_KEY')
+        if self.claude_key:
+            self.anthropic_available = True
+            print("Anthropic API key configured for direct HTTP requests")
         else:
             print("No Claude API key found")
         
@@ -88,10 +79,9 @@ class LLMService:
             raise Exception(f"OpenAI API error: {str(e)}")
     
     def _get_anthropic_response(self, model, messages, max_tokens, temperature):
-        """Get response from Anthropic Claude models. Tries all known models if the requested one fails."""
-        if not self.anthropic_available:
+        """Get response from Anthropic Claude models using direct HTTP requests."""
+        if not self.anthropic_available or not self.claude_key:
             raise Exception("Anthropic API key not configured")
-        
         claude_models = [
             'claude-sonnet-4-20250514',
             'claude-opus-4',
@@ -102,9 +92,7 @@ class LLMService:
             'claude-3.5-sonnet-20240620',
             'claude-3-haiku-20240307'
         ]
-        # Always try the requested model first, then the rest
         try_models = [model] + [m for m in claude_models if m != model]
-        
         # Convert messages format for Anthropic
         anthropic_messages = []
         system_message = None
@@ -119,16 +107,27 @@ class LLMService:
         last_error = None
         for try_model in try_models:
             try:
-                response = self.anthropic_client.messages.create(
-                    model=try_model,
-                    max_tokens=max_tokens,
-                    temperature=temperature,
-                    system=system_message or "You are a helpful AI assistant.",
-                    messages=anthropic_messages
+                resp = requests.post(
+                    "https://api.anthropic.com/v1/messages",
+                    headers={
+                        "x-api-key": self.claude_key,
+                        "anthropic-version": "2023-06-01",
+                        "Content-Type": "application/json"
+                    },
+                    json={
+                        "model": try_model,
+                        "max_tokens": max_tokens,
+                        "temperature": temperature,
+                        "system": system_message or "You are a helpful AI assistant.",
+                        "messages": anthropic_messages
+                    },
+                    timeout=15
                 )
-                # If response is valid, return it
-                if response and hasattr(response, 'content') and response.content and hasattr(response.content[0], 'text'):
-                    return response.content[0].text
+                data = resp.json()
+                if resp.ok and data.get('content') and data['content'][0].get('text'):
+                    return data['content'][0]['text']
+                else:
+                    last_error = data
             except Exception as e:
                 last_error = str(e)
                 continue
