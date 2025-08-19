@@ -20,6 +20,9 @@
                 <button class="new-chat-btn" id="settings-btn">
                     <i class="fas fa-cog"></i> Settings
                 </button>
+                <button class="new-chat-btn logout-btn" id="logout-btn" onclick="logout()" style="display:none;">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
                 <div id="projects-section" class="projects-section">
                     <button class="new-chat-btn" id="toggle-projects-btn">
                         ▼ Projects
@@ -177,5 +180,79 @@
     </div>
 
     <script src="static/js/app.js"></script>
+    <script>
+        // Authentication functions
+        async function checkAuthStatus() {
+            try {
+                const response = await fetch('/auth/status');
+                const data = await response.json();
+                
+                if (data.auth_enabled) {
+                    document.getElementById('logout-btn').style.display = 'block';
+                }
+                
+                // Show free tier usage if applicable
+                if (data.free_access && !data.authenticated) {
+                    showUsageIndicator(data.free_access);
+                }
+                
+                return data;
+            } catch (error) {
+                console.error('Failed to check auth status:', error);
+                return { authenticated: false, auth_enabled: false };
+            }
+        }
+
+        function showUsageIndicator(freeAccess) {
+            const existingIndicator = document.getElementById('usage-indicator');
+            if (existingIndicator) {
+                existingIndicator.remove();
+            }
+
+            const indicator = document.createElement('div');
+            indicator.id = 'usage-indicator';
+            indicator.className = 'usage-indicator';
+            
+            const remaining = freeAccess.queries_remaining;
+            const total = freeAccess.limit;
+            const used = freeAccess.queries_used;
+            
+            if (remaining <= 0) {
+                indicator.className += ' danger';
+                indicator.innerHTML = `
+                    <div><strong>Free queries exhausted</strong></div>
+                    <div>Used: ${used}/${total}</div>
+                    <div><small>Login for unlimited access</small></div>
+                `;
+            } else if (remaining <= 3) {
+                indicator.className += ' warning';
+                indicator.innerHTML = `
+                    <div><strong>${remaining} free queries left</strong></div>
+                    <div>Used: ${used}/${total}</div>
+                `;
+            } else {
+                indicator.innerHTML = `
+                    <div><strong>${remaining} free queries remaining</strong></div>
+                    <div>Used: ${used}/${total}</div>
+                `;
+            }
+            
+            document.body.appendChild(indicator);
+        }
+
+        async function logout() {
+            try {
+                const response = await fetch('/auth/logout', { method: 'POST' });
+                if (response.ok) {
+                    window.location.href = '/login';
+                }
+            } catch (error) {
+                console.error('Logout failed:', error);
+            }
+        }
+
+        // Check auth status on load
+        document.addEventListener('DOMContentLoaded', checkAuthStatus);
+    </script>
 </body>
 </html>

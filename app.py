@@ -65,7 +65,8 @@ def health_check():
 
 @app.route('/')
 def index():
-    if not auth.is_authenticated():
+    has_access, access_type, free_info = auth.has_access()
+    if not has_access:
         return redirect(url_for('login_page'))
     return render_template('index.html')
 
@@ -253,7 +254,7 @@ def add_message(conversation_id):
 
 @app.route('/chat', methods=['POST'])
 @limiter.limit("30 per minute")
-@auth.login_required
+@auth.access_required(allow_free=True)
 def chat():
     try:
         data = request.get_json()
@@ -264,6 +265,12 @@ def chat():
         conversation_id = data.get('conversation_id')
         user_message = data['message']
         model = data['model']
+        
+        # Handle free tier access
+        if getattr(request, 'access_type', None) == 'free_tier':
+            from auth import FreeAccessManager
+            free_info = FreeAccessManager.log_free_query(model)
+            app.logger.info(f"Free tier chat: model={model}, remaining={free_info['queries_remaining']}")
         
         app.logger.info(f"Chat request: model={model}, message_length={len(user_message)}")
         

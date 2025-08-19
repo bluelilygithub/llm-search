@@ -72,3 +72,18 @@ class LLMErrorLog(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     error_message = db.Column(db.Text, nullable=False)
     conversation_id = db.Column(UUID(as_uuid=True), db.ForeignKey('conversations.id'), nullable=True)
+
+class FreeAccessLog(db.Model):
+    __tablename__ = 'free_access_logs'
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    session_id = db.Column(db.String(255), nullable=False, index=True)
+    ip_address = db.Column(db.String(45), nullable=True)  # IPv6 support
+    user_agent = db.Column(db.Text, nullable=True)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    model = db.Column(db.String(100), nullable=False)
+    query_count = db.Column(db.Integer, default=1)
+    
+    # Index for efficient queries
+    __table_args__ = (
+        db.Index('idx_session_timestamp', 'session_id', 'timestamp'),
+    )

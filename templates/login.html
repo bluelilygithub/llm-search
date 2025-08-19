@@ -115,6 +115,10 @@
         <div class="login-header">
             <h1>🤖 AI Knowledge Base</h1>
             <p>Please enter your password to continue</p>
+            <div class="free-access-info" style="margin-top: 16px; padding: 12px; background: #e7f5ff; border-radius: 8px; font-size: 14px;">
+                <strong>🎁 Free Access Available!</strong><br>
+                <span id="free-access-text">Get 10 free queries per day without login</span>
+            </div>
         </div>
         
         <form id="loginForm">
@@ -124,7 +128,15 @@
             </div>
             
             <button type="submit" class="login-btn" id="loginBtn">
-                Sign In
+                Sign In for Unlimited Access
+            </button>
+            
+            <div style="text-align: center; margin: 16px 0; color: #666; font-size: 14px;">
+                OR
+            </div>
+            
+            <button type="button" class="login-btn" id="freeAccessBtn" style="background: #28a745; border-color: #28a745;" onclick="useFreeAccess()">
+                Continue with Free Access
             </button>
             
             <div class="error-message" id="errorMessage"></div>
@@ -175,6 +187,38 @@
         
         // Focus password field on load
         document.getElementById('password').focus();
+        
+        // Check and display free access info
+        async function checkFreeAccess() {
+            try {
+                const response = await fetch('/auth/status');
+                const data = await response.json();
+                
+                if (data.free_access) {
+                    const remaining = data.free_access.queries_remaining;
+                    const total = data.free_access.limit;
+                    const freeAccessText = document.getElementById('free-access-text');
+                    
+                    if (remaining > 0) {
+                        freeAccessText.textContent = `${remaining}/${total} free queries remaining today`;
+                    } else {
+                        freeAccessText.textContent = 'Free queries exhausted for today. Login for unlimited access.';
+                        document.getElementById('freeAccessBtn').disabled = true;
+                        document.getElementById('freeAccessBtn').textContent = 'Free Access Exhausted';
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to check free access:', error);
+            }
+        }
+        
+        function useFreeAccess() {
+            // Just redirect to main page - the access check will handle it
+            window.location.href = '/';
+        }
+        
+        // Check free access on load
+        checkFreeAccess();
     </script>
 </body>
 </html>

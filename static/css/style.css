@@ -887,3 +887,41 @@ body {
 .success-notification .error-content {
     color: #16a34a;
 }
+
+/* Logout button styling */
+.logout-btn {
+    background-color: #dc3545 !important;
+    border-color: #dc3545 !important;
+}
+
+.logout-btn:hover {
+    background-color: #c82333 !important;
+    border-color: #bd2130 !important;
+}
+
+/* Free tier usage indicator */
+.usage-indicator {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #f8f9fa;
+    border: 2px solid #e9ecef;
+    border-radius: 12px;
+    padding: 12px 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    font-size: 14px;
+    color: #495057;
+    z-index: 1000;
+}
+
+.usage-indicator.warning {
+    border-color: #ffc107;
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.usage-indicator.danger {
+    border-color: #dc3545;
+    background-color: #f8d7da;
+    color: #721c24;
+}
