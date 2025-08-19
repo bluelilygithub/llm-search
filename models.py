@@ -64,3 +64,11 @@ class LLMUsageLog(db.Model):
     tokens = db.Column(db.Integer, nullable=True)
     estimated_cost = db.Column(db.Float, nullable=True)
     conversation_id = db.Column(UUID(as_uuid=True), db.ForeignKey('conversations.id'), nullable=True)
+
+class LLMErrorLog(db.Model):
+    __tablename__ = 'llm_error_logs'
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    model = db.Column(db.String(100), nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    error_message = db.Column(db.Text, nullable=False)
+    conversation_id = db.Column(UUID(as_uuid=True), db.ForeignKey('conversations.id'), nullable=True)

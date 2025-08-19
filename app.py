@@ -308,8 +308,16 @@ def chat():
         })
         
     except Exception as e:
-        error_msg = str(e)
-        print(f"Chat error: {error_msg}")
+        print(f"Chat error: {str(e)}")
+        # Log error
+        from models import LLMErrorLog
+        error_log = LLMErrorLog(
+            model=model,
+            conversation_id=conversation_id if 'conversation_id' in locals() and conversation_id else None,
+            error_message=str(e)
+        )
+        db.session.add(error_log)
+        db.session.commit()
         
         # Provide helpful error messages for common issues
         if ('maximum context length' in error_msg.lower() or 
@@ -782,6 +790,21 @@ def llm_usage_stats():
         for row in timeseries
     ]
     return jsonify({'stats': result, 'timeseries': timeseries_result})
+
+@app.route('/llm-error-log', methods=['GET'])
+def llm_error_log():
+    from models import LLMErrorLog
+    errors = LLMErrorLog.query.order_by(LLMErrorLog.timestamp.desc()).limit(20).all()
+    result = [
+        {
+            'timestamp': e.timestamp.isoformat(),
+            'model': e.model,
+            'error_message': e.error_message,
+            'conversation_id': str(e.conversation_id) if e.conversation_id else None
+        }
+        for e in errors
+    ]
+    return jsonify({'errors': result})
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
