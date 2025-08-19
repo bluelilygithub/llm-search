@@ -753,9 +753,9 @@ class KnowledgeBaseApp {
         recognition.lang = 'en-US';
         recognition.interimResults = false;
         recognition.maxAlternatives = 1;
-
-        const voiceBtn = document.getElementById('voice-btn');
-        voiceBtn.classList.add('recording');
+            
+            const voiceBtn = document.getElementById('voice-btn');
+            voiceBtn.classList.add('recording');
         console.log('Speech recognition started');
 
         recognition.onresult = (event) => {
@@ -771,7 +771,7 @@ class KnowledgeBaseApp {
         };
         recognition.onend = () => {
             console.log('Speech recognition ended');
-            voiceBtn.classList.remove('recording');
+                voiceBtn.classList.remove('recording');
         };
         recognition.start();
     }
@@ -807,7 +807,7 @@ class KnowledgeBaseApp {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    url: url,
+                url: url,
                     conversation_id: this.currentConversationId,
                     task_type: 'reference'  // Can be made configurable
                 })
@@ -882,7 +882,7 @@ class KnowledgeBaseApp {
         this.autoResizeTextarea();
         // No type-ahead search suggestions
         // Previously triggered showSearchSuggestions here
-        this.hideSearchSuggestions();
+            this.hideSearchSuggestions();
     }
 
     showSearchSuggestions(query) {
