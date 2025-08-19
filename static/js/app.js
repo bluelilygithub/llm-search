@@ -782,8 +782,18 @@ class KnowledgeBaseApp {
 
     // URL reference functionality
     async addUrlReference() {
-        const url = prompt('Enter URL to extract content from:');
-        if (!url || !this.isValidUrl(url)) return;
+        let url = prompt('Enter URL to extract content from:');
+        if (!url) return;
+        
+        // Auto-add https if no protocol specified
+        if (!url.match(/^https?:\/\//)) {
+            url = 'https://' + url;
+        }
+        
+        if (!this.isValidUrl(url)) {
+            this.showError('Invalid URL format. Please check the URL and try again.');
+            return;
+        }
         
         if (!this.currentConversationId) {
             this.showError('Please start or select a conversation before adding URL content.');

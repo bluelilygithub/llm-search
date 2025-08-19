@@ -615,8 +615,25 @@ def extract_url_content():
             'Upgrade-Insecure-Requests': '1'
         }
         
-        response = requests.get(url, headers=headers, timeout=10)
-        response.raise_for_status()
+        # Try with different approaches if first fails
+        session = requests.Session()
+        session.headers.update(headers)
+        
+        try:
+            response = session.get(url, timeout=15, allow_redirects=True)
+            response.raise_for_status()
+        except requests.exceptions.SSLError:
+            # Try without SSL verification as fallback
+            response = session.get(url, timeout=15, allow_redirects=True, verify=False)
+            response.raise_for_status()
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+            # Try with HTTP instead of HTTPS
+            if url.startswith('https://'):
+                http_url = url.replace('https://', 'http://', 1)
+                response = session.get(http_url, timeout=15, allow_redirects=True)
+                response.raise_for_status()
+            else:
+                raise
         
         # Check content size
         content_length = response.headers.get('content-length')
@@ -688,12 +705,20 @@ def extract_url_content():
         
     except requests.RequestException as e:
         status_code = getattr(e.response, 'status_code', None) if hasattr(e, 'response') else None
+        error_str = str(e).lower()
+        
         if status_code == 403:
             return jsonify({'error': 'Website blocked access. Try copying and pasting the content instead, or use a different URL.'}), 400
         elif status_code == 404:
             return jsonify({'error': 'URL not found (404). Please check the URL is correct.'}), 400
         elif status_code == 429:
             return jsonify({'error': 'Website rate limited our request. Please try again later.'}), 400
+        elif 'connection aborted' in error_str or 'remote end closed' in error_str:
+            return jsonify({'error': 'Website closed connection. The site may be down or blocking automated access. Try copying the content manually.'}), 400
+        elif 'timeout' in error_str:
+            return jsonify({'error': 'Website took too long to respond. Please try again or use a different URL.'}), 400
+        elif 'ssl' in error_str:
+            return jsonify({'error': 'SSL certificate issue. The website may have security problems.'}), 400
         else:
             return jsonify({'error': f'Failed to fetch URL: {str(e)}'}), 400
     except Exception as e:
