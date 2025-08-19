@@ -68,6 +68,17 @@ class LLMService:
             raise Exception("OpenAI API key not configured")
             
         try:
+            # Calculate rough token count to prevent silent failures
+            total_chars = sum(len(str(msg.get('content', ''))) for msg in messages)
+            estimated_tokens = total_chars // 3  # Rough estimate: 3 chars per token
+            
+            print(f"OpenAI request: model={model}, estimated_tokens={estimated_tokens}, max_tokens={max_tokens}")
+            
+            # Check if we're likely to exceed limits
+            model_limits = self.get_model_limits(model)
+            if estimated_tokens + max_tokens > model_limits['context_window']:
+                raise Exception(f"Request too large for {model}. Estimated {estimated_tokens} tokens, max allowed {model_limits['context_window']}. Try using Gemini Pro or Claude for large documents.")
+            
             response = openai.ChatCompletion.create(
                 model=model,
                 messages=messages,
@@ -76,6 +87,7 @@ class LLMService:
             )
             return response.choices[0].message.content
         except Exception as e:
+            print(f"OpenAI API detailed error: {type(e).__name__}: {str(e)}")
             raise Exception(f"OpenAI API error: {str(e)}")
     
     def _get_anthropic_response(self, model, messages, max_tokens, temperature):

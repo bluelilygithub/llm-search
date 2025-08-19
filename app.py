@@ -497,17 +497,23 @@ def upload_context():
         
         # Get file type for icon
         file_type = get_file_type(filename)
+        word_count = len(content.split()) if content else 0
+        
+        print(f'UPLOAD: file_type={file_type}, word_count={word_count}, task_type={task_type}')
         
         preview = processed_content[:500] + ('...' if len(processed_content) > 500 else '')
-        return jsonify({
+        response_data = {
             'success': True, 
             'filename': filename, 
             'preview': preview,
             'task_type': task_type,
             'file_type': file_type,
             'file_size': len(content),
-            'word_count': len(content.split()) if content else 0
-        })
+            'word_count': word_count
+        }
+        
+        print(f'UPLOAD: returning response_data={response_data}')
+        return jsonify(response_data)
         
     except Exception as e:
         print(f"Context extraction error: {e}")
