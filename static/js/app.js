@@ -684,15 +684,46 @@ class KnowledgeBaseApp {
         document.getElementById('file-input').click();
     }
 
-    handleFileUpload(event) {
+    async handleFileUpload(event) {
         const files = Array.from(event.target.files);
-        this.uploadedFiles.push(...files);
-        this.renderUploadedFiles();
+        if (!this.currentConversationId) {
+            this.showError('Please start or select a conversation before uploading files.');
+            return;
+        }
+        if (!files.length) return;
+        const formData = new FormData();
+        files.forEach(file => formData.append('files', file));
+        try {
+            const response = await fetch(`/conversations/${this.currentConversationId}/attachments`, {
+                method: 'POST',
+                body: formData
+            });
+            if (!response.ok) throw new Error('Failed to upload files');
+            const data = await response.json();
+            if (data.attachments) {
+                data.attachments.forEach(att => {
+                    this.addAttachmentToChat(att);
+                });
+            }
+        } catch (error) {
+            this.showError('File upload failed.');
+            console.error('File upload error:', error);
+        }
     }
 
-    renderUploadedFiles() {
-        // Implementation for showing uploaded files
-        console.log('Uploaded files:', this.uploadedFiles);
+    addAttachmentToChat(attachment) {
+        const container = document.getElementById('chat-messages');
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message user new';
+        messageDiv.innerHTML = `
+            <div class="message-avatar">U</div>
+            <div class="message-content">
+                <a href="/${attachment.file_path.replace('\\', '/')}" target="_blank">${attachment.filename}</a>
+                <div class="message-time">${this.formatTime(attachment.created_at)}</div>
+            </div>
+        `;
+        container.appendChild(messageDiv);
+        this.scrollToBottom();
     }
 
     // Voice input functionality (Web Speech API only)

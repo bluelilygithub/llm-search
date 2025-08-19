@@ -5,6 +5,8 @@ from config import Config
 import uuid
 from datetime import datetime
 from flask_migrate import Migrate
+import os
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__, static_folder='static')
 app.config.from_object(Config)
@@ -18,6 +20,9 @@ from llm_service import LLMService
 llm_service = LLMService()
 
 migrate = Migrate(app, db)
+
+UPLOAD_FOLDER = os.path.join(os.getcwd(), 'uploads')
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 @app.route('/health')
 def health_check():
@@ -295,6 +300,55 @@ def transcribe_audio():
     except Exception as e:
         print(f"Transcription error: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
+@app.route('/conversations/<conversation_id>/attachments', methods=['POST'])
+def upload_attachments(conversation_id):
+    try:
+        conv_uuid = uuid.UUID(conversation_id)
+    except ValueError:
+        return jsonify({'error': 'Invalid conversation ID'}), 400
+    conversation = Conversation.query.get_or_404(conv_uuid)
+    if 'files' not in request.files:
+        return jsonify({'error': 'No files part in the request'}), 400
+    files = request.files.getlist('files')
+    if not files or files[0].filename == '':
+        return jsonify({'error': 'No files selected'}), 400
+    attachments = []
+    for file in files:
+        filename = secure_filename(file.filename)
+        file_path = os.path.join(UPLOAD_FOLDER, filename)
+        # Ensure unique filename
+        base, ext = os.path.splitext(filename)
+        counter = 1
+        while os.path.exists(file_path):
+            filename = f"{base}_{counter}{ext}"
+            file_path = os.path.join(UPLOAD_FOLDER, filename)
+            counter += 1
+        file.save(file_path)
+        # Create a new message for the attachment (role='user', content='[file upload]')
+        message = Message(
+            conversation_id=conv_uuid,
+            role='user',
+            content=f'[File uploaded: {filename}]'
+        )
+        db.session.add(message)
+        db.session.flush()  # Get message.id
+        attachment = Attachment(
+            message_id=message.id,
+            filename=filename,
+            content_type=file.content_type,
+            file_path=os.path.relpath(file_path, os.getcwd())
+        )
+        db.session.add(attachment)
+        attachments.append({
+            'id': str(attachment.id),
+            'filename': filename,
+            'content_type': file.content_type,
+            'file_path': attachment.file_path,
+            'created_at': attachment.created_at.isoformat()
+        })
+    db.session.commit()
+    return jsonify({'attachments': attachments}), 201
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
