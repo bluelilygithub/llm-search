@@ -28,11 +28,10 @@ app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB max file size
 db = SQLAlchemy(app)
 CORS(app)
 
-# Rate limiting with database storage
+# Rate limiting - use in-memory for simplicity
 limiter = Limiter(
     key_func=get_remote_address,
-    default_limits=["1000 per day", "100 per hour"],
-    storage_uri=app.config.get('DATABASE_URL') or app.config.get('SQLALCHEMY_DATABASE_URI')
+    default_limits=["1000 per day", "100 per hour"]
 )
 limiter.init_app(app)
 
