@@ -287,17 +287,16 @@ def chat():
         messages.append({'role': 'user', 'content': user_message})
         
         print(f"Calling LLM service...")
-        # Get AI response
-        ai_response = llm_service.get_response(model, messages)
+        # Get AI response and usage info
+        ai_response, tokens, estimated_cost = llm_service.get_response(model, messages)
         print(f"Got response: {ai_response[:50]}...")
-        
-        # After getting ai_response, log usage
+        # Log usage
         from models import LLMUsageLog
         usage_log = LLMUsageLog(
             model=model,
             conversation_id=conversation_id if conversation_id else None,
-            tokens=0,  # Placeholder, update if token info is available
-            estimated_cost=None
+            tokens=tokens,
+            estimated_cost=estimated_cost
         )
         db.session.add(usage_log)
         db.session.commit()

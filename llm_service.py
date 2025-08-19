@@ -49,7 +49,7 @@ class LLMService:
             self.hf_available = False
         
     def get_response(self, model, messages, max_tokens=4000, temperature=0.7):
-        """Get response from specified LLM model"""
+        """Get response from specified LLM model. Returns (response_text, tokens, estimated_cost)"""
         
         if model.startswith('gpt') or model.startswith('o1'):
             return self._get_openai_response(model, messages, max_tokens, temperature)
@@ -85,7 +85,17 @@ class LLMService:
                 max_tokens=max_tokens,
                 temperature=temperature
             )
-            return response.choices[0].message.content
+            text = response.choices[0].message.content
+            tokens = response['usage']['total_tokens'] if 'usage' in response else 0
+            # Example pricing (update as needed):
+            # gpt-4: $0.03/1K prompt, $0.06/1K completion; gpt-3.5: $0.001/1K
+            if model.startswith('gpt-4'):
+                cost = tokens * 0.00006  # $0.06/1K tokens (rough estimate)
+            elif model.startswith('gpt-3.5'):
+                cost = tokens * 0.000002  # $0.002/1K tokens
+            else:
+                cost = tokens * 0.00002  # fallback
+            return text, tokens, cost
         except Exception as e:
             print(f"OpenAI API detailed error: {type(e).__name__}: {str(e)}")
             raise Exception(f"OpenAI API error: {str(e)}")
@@ -137,7 +147,23 @@ class LLMService:
                 )
                 data = resp.json()
                 if resp.ok and data.get('content') and data['content'][0].get('text'):
-                    return data['content'][0]['text']
+                    text = data['content'][0]['text']
+                    # Anthropic API may return usage info in 'usage' or 'usage_metadata'
+                    tokens = 0
+                    if 'usage' in data and 'output_tokens' in data['usage']:
+                        tokens = data['usage']['output_tokens']
+                    elif 'usage_metadata' in data and 'output_tokens' in data['usage_metadata']:
+                        tokens = data['usage_metadata']['output_tokens']
+                    # Example pricing: Claude 3 Sonnet $3/1M, Opus $15/1M, Haiku $0.25/1M
+                    if 'sonnet' in try_model:
+                        cost = tokens * 0.003  # $3/1M tokens
+                    elif 'opus' in try_model:
+                        cost = tokens * 0.015  # $15/1M tokens
+                    elif 'haiku' in try_model:
+                        cost = tokens * 0.00025  # $0.25/1M tokens
+                    else:
+                        cost = tokens * 0.003
+                    return text, tokens, cost
                 else:
                     last_error = data
             except Exception as e:
@@ -173,8 +199,12 @@ class LLMService:
                     temperature=temperature,
                 )
             )
-            
-            return response.text
+            text = response.text if hasattr(response, 'text') else str(response)
+            # Gemini API may not return token usage; set to 0 for now
+            tokens = getattr(response, 'usage_metadata', {}).get('total_tokens', 0) if hasattr(response, 'usage_metadata') else 0
+            # Example pricing: Gemini Pro $0.00025/1K tokens
+            cost = tokens * 0.00025
+            return text, tokens, cost
             
         except Exception as e:
             raise Exception(f"Gemini API error: {str(e)}")
@@ -219,9 +249,13 @@ class LLMService:
             
             result = response.json()
             if isinstance(result, list) and len(result) > 0:
-                return result[0].get('generated_text', 'No response generated')
+                text = result[0].get('generated_text', 'No response generated')
+                # Hugging Face free models do not return token usage or cost
+                tokens = 0
+                cost = 0.0
+                return text, tokens, cost
             else:
-                return str(result)
+                return str(result), 0, 0.0
                 
         except Exception as e:
             raise Exception(f"Hugging Face API error: {str(e)}")
