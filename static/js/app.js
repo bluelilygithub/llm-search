@@ -469,15 +469,11 @@ class KnowledgeBaseApp {
                 })
             });
 
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
             const data = await response.json();
             
-            // Check for API errors in the response
-            if (data.error) {
-                throw new Error(data.error);
+            // Check for API errors (backend returns 500 with error details)
+            if (!response.ok || data.error) {
+                throw new Error(data.error || `HTTP error! status: ${response.status}`);
             }
             
             return data.response;
