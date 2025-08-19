@@ -172,22 +172,18 @@ class LLMService:
         raise Exception(f"Anthropic API error: All models failed. Last error: {last_error}")
     
     def _get_gemini_response(self, model, messages, max_tokens, temperature):
-        """Get response from Google Gemini models"""
         if not self.gemini_available:
             raise Exception("Gemini API key not configured")
-            
         try:
             prompt = '\n'.join([f"{m['role']}: {m['content']}" for m in messages])
-            response = genai.generate_content(prompt, model=model, generation_config={"max_output_tokens": max_tokens, "temperature": temperature})
+            model_obj = genai.GenerativeModel(model)
+            response = model_obj.generate_content(prompt, generation_config={"max_output_tokens": max_tokens, "temperature": temperature})
             text = response.text if hasattr(response, 'text') else str(response)
-            # Gemini API: use attribute access for usage_metadata
             tokens = 0
             if hasattr(response, 'usage_metadata') and hasattr(response.usage_metadata, 'total_tokens'):
                 tokens = response.usage_metadata.total_tokens
-            # Example pricing: Gemini Pro $0.00025/1K tokens
             cost = tokens * 0.00025
             return text, tokens, cost
-            
         except Exception as e:
             raise Exception(f"Gemini API error: {str(e)}")
     
