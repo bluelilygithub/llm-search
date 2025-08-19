@@ -50,12 +50,20 @@ class LLMService:
         
     def get_response(self, model, messages, max_tokens=4000, temperature=0.7):
         """Get response from specified LLM model. Returns (response_text, tokens, estimated_cost)"""
-        
+        # Map legacy Gemini model names to current names
+        GEMINI_MODEL_MAP = {
+            'gemini-pro': 'models/gemini-1.5-pro-002',
+            'gemini-flash': 'models/gemini-1.0-flash-latest',
+            'models/gemini-pro': 'models/gemini-1.5-pro-002',
+            'models/gemini-flash': 'models/gemini-1.0-flash-latest'
+        }
+        if model in GEMINI_MODEL_MAP:
+            model = GEMINI_MODEL_MAP[model]
         if model.startswith('gpt') or model.startswith('o1'):
             return self._get_openai_response(model, messages, max_tokens, temperature)
         elif model.startswith('claude'):
             return self._get_anthropic_response(model, messages, max_tokens, temperature)
-        elif model.startswith('gemini'):
+        elif model.startswith('models/gemini'):
             return self._get_gemini_response(model, messages, max_tokens, temperature)
         elif model in ['llama2-70b', 'mixtral-8x7b', 'codellama-34b']:
             return self._get_huggingface_response(model, messages, max_tokens, temperature)
