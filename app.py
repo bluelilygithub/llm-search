@@ -234,6 +234,14 @@ def chat():
             conversation = Conversation.query.get_or_404(conv_uuid)
             db_messages = Message.query.filter_by(conversation_id=conv_uuid).order_by(Message.timestamp.asc()).all()
             messages = llm_service.format_conversation_for_llm(db_messages)
+            # Add context document(s) to prompt if present
+            if hasattr(conversation, 'context_documents') and conversation.context_documents:
+                for doc in conversation.context_documents:
+                    if doc and 'content' in doc:
+                        messages.insert(0, {
+                            'role': 'system',
+                            'content': f"Guideline document ({doc.get('filename', 'uploaded file')}):\n{doc['content'][:4000]}"
+                        })
         
         # Add current user message
         messages.append({'role': 'user', 'content': user_message})
