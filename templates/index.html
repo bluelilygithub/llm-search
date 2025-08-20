@@ -13,100 +13,198 @@
 </head>
 <body>
     <div class="app-container">
-        <!-- Sidebar -->
-        <div class="sidebar">
+        <!-- Improved Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <!-- Header -->
             <div class="sidebar-header">
-                <h2>AI Knowledge Base</h2>
-                <button class="new-chat-btn" id="new-chat-btn">
-                    <i class="fas fa-plus"></i> New Chat
-                </button>
-                <div id="projects-section" class="projects-section">
-                    <button class="new-chat-btn" id="toggle-projects-btn">
-                        ▼ Projects
-                    </button>
-                    <button class="new-chat-btn" id="new-project-btn">
-                        + New Project
-                    </button>
-                    <div id="new-project-input-row" style="display:none;">
-                        <input type="text" class="project-input" id="new-project-input" placeholder="Project name..." onkeydown="window.app.handleNewProjectInput(event)">
+                <div class="sidebar-header-content">
+                    <div class="sidebar-logo">
+                        <div class="logo-icon">
+                            <i class="fas fa-comments"></i>
+                        </div>
+                        <div class="logo-text" id="logo-text">
+                            <h1>AI Knowledge Base</h1>
+                        </div>
                     </div>
-                    <div id="project-list"></div>
-                </div>
-            </div>
-            
-            <div class="search-section">
-                <div class="search-input-container">
-                    <i class="fas fa-search search-icon"></i>
-                    <input type="text" id="conversation-search" placeholder="Search conversations, tags, or content..." oninput="debouncedSearchConversations()">
+                    <button class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()">
+                        <i class="fas fa-chevron-left" id="toggle-icon"></i>
+                    </button>
                 </div>
             </div>
 
-            <div class="conversations-list" id="conversations-list">
-                <!-- Conversations will be loaded here -->
+            <!-- Search & New Chat (Visible when expanded) -->
+            <div class="sidebar-main-actions" id="sidebar-main-actions">
+                <div class="search-container">
+                    <div class="search-input-wrapper">
+                        <i class="fas fa-search search-icon"></i>
+                        <input type="text" id="conversation-search" placeholder="Search conversations, projects..." oninput="debouncedSearchConversations()">
+                    </div>
+                </div>
+
+                <div class="new-chat-container">
+                    <button class="new-chat-btn" id="new-chat-btn" onclick="startNewChat()">
+                        <i class="fas fa-plus"></i>
+                        <span>New Chat</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Navigation Content -->
+            <div class="sidebar-content" id="sidebar-content">
+                <!-- Recent Conversations Section -->
+                <div class="nav-section">
+                    <button class="section-header" onclick="toggleSection('recent')" id="recent-header">
+                        <div class="section-header-content">
+                            <div class="section-title">
+                                <i class="fas fa-clock"></i>
+                                <span class="section-label">Recent</span>
+                            </div>
+                            <div class="section-toggle">
+                                <i class="fas fa-minus" id="recent-toggle"></i>
+                            </div>
+                        </div>
+                    </button>
+                    
+                    <div class="section-content expanded" id="recent-content">
+                        <div class="conversations-scroll-area">
+                            <div class="conversations-list" id="conversations-list">
+                                <!-- Recent conversations will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Projects Section -->
+                <div class="nav-section">
+                    <button class="section-header" onclick="toggleSection('projects')" id="projects-header">
+                        <div class="section-header-content">
+                            <div class="section-title">
+                                <i class="fas fa-folder-open"></i>
+                                <span class="section-label">Projects</span>
+                            </div>
+                            <div class="section-toggle">
+                                <i class="fas fa-minus" id="projects-toggle"></i>
+                            </div>
+                        </div>
+                    </button>
+                    
+                    <div class="section-content expanded" id="projects-content">
+                        <div class="projects-scroll-area">
+                            <div class="project-list" id="project-list">
+                                <!-- Projects will be loaded here -->
+                            </div>
+                        </div>
+                        
+                        <!-- New Project Button -->
+                        <div class="new-project-container">
+                            <button class="new-project-btn" id="new-project-btn" onclick="showNewProjectInput()">
+                                <div class="new-project-icon">
+                                    <i class="fas fa-plus"></i>
+                                </div>
+                                <span>New Project</span>
+                            </button>
+                            
+                            <!-- Hidden input for new project -->
+                            <div class="new-project-input-container" id="new-project-input-row" style="display:none;">
+                                <input type="text" class="new-project-input" id="new-project-input" placeholder="Project name..." onkeydown="handleNewProjectInput(event)">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Collapsed Sidebar Icons -->
+            <div class="sidebar-collapsed-content" id="sidebar-collapsed-content" style="display: none;">
+                <div class="collapsed-nav-icons">
+                    <button class="collapsed-nav-btn" onclick="toggleSection('recent')" title="Recent">
+                        <i class="fas fa-clock"></i>
+                    </button>
+                    <button class="collapsed-nav-btn" onclick="toggleSection('projects')" title="Projects">
+                        <i class="fas fa-folder-open"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Bottom Settings -->
+            <div class="sidebar-footer" id="sidebar-footer">
+                <button class="settings-btn" onclick="window.app.openSettingsModal()" title="Settings">
+                    <i class="fas fa-cog"></i>
+                    <span class="settings-label">Settings</span>
+                </button>
             </div>
         </div>
 
-        <!-- Main Chat Area -->
+        <!-- Main Content -->
         <div class="main-content">
-            <div class="chat-header">
-                <div class="model-selector">
-                    <select id="llm-model" onchange="updateModel()">
-                        <optgroup label="OpenAI">
-                            <option value="gpt-3.5-turbo" selected>GPT-3.5 Turbo</option>
-                            <option value="gpt-4">GPT-4</option>
-                            <option value="gpt-4-turbo">GPT-4 Turbo</option>
-                            <option value="gpt-4o">GPT-4o</option>
-                            <option value="gpt-4o-mini">GPT-4o Mini</option>
-                            <option value="o1-preview">O1 Preview</option>
-                            <option value="o1-mini">O1 Mini</option>
-                        </optgroup>
-                        <optgroup label="Anthropic">
-                            <option value="claude-3.5-sonnet">Claude 3.5 Sonnet</option>
-                            <option value="claude-3-opus">Claude 3 Opus</option>
-                            <option value="claude-3-sonnet">Claude 3 Sonnet</option>
-                            <option value="claude-3-haiku">Claude 3 Haiku</option>
-                        </optgroup>
-                        <optgroup label="Google">
-                            <option value="gemini-pro">Gemini Pro</option>
-                            <option value="gemini-flash">Gemini Flash</option>
-                        </optgroup>
-                        <optgroup label="Hugging Face">
-                            <option value="llama2-70b">Llama 2 70B</option>
-                            <option value="mixtral-8x7b">Mixtral 8x7B</option>
-                            <option value="codellama-34b">CodeLlama 34B</option>
-                        </optgroup>
-                        <optgroup label="Stability AI">
-                            <option value="stable-image-ultra">Stable Image Ultra</option>
-                            <option value="stable-image-core">Stable Image Core</option>
-                            <option value="stable-image-sd3">Stable Image SD3</option>
-                            <option value="stable-audio-2">Stable Audio 2</option>
-                        </optgroup>
-                    </select>
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <div class="top-bar-left">
+                    <div class="model-selector-container">
+                        <select class="model-selector" id="llm-model" onchange="updateModel()">
+                            <optgroup label="OpenAI">
+                                <option value="gpt-3.5-turbo" selected>GPT-3.5 Turbo</option>
+                                <option value="gpt-4">GPT-4</option>
+                                <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                                <option value="gpt-4o">GPT-4o</option>
+                                <option value="gpt-4o-mini">GPT-4o Mini</option>
+                                <option value="o1-preview">O1 Preview</option>
+                                <option value="o1-mini">O1 Mini</option>
+                            </optgroup>
+                            <optgroup label="Anthropic">
+                                <option value="claude-3.5-sonnet">Claude 3.5 Sonnet</option>
+                                <option value="claude-3-opus">Claude 3 Opus</option>
+                                <option value="claude-3-sonnet">Claude 3 Sonnet</option>
+                                <option value="claude-3-haiku">Claude 3 Haiku</option>
+                            </optgroup>
+                            <optgroup label="Google">
+                                <option value="gemini-pro">Gemini Pro</option>
+                                <option value="gemini-flash">Gemini Flash</option>
+                            </optgroup>
+                            <optgroup label="Hugging Face">
+                                <option value="llama2-70b">Llama 2 70B</option>
+                                <option value="mixtral-8x7b">Mixtral 8x7B</option>
+                                <option value="codellama-34b">CodeLlama 34B</option>
+                            </optgroup>
+                            <optgroup label="Stability AI">
+                                <option value="stable-image-ultra">Stable Image Ultra</option>
+                                <option value="stable-image-core">Stable Image Core</option>
+                                <option value="stable-image-sd3">Stable Image SD3</option>
+                                <option value="stable-audio-2">Stable Audio 2</option>
+                            </optgroup>
+                        </select>
+                    </div>
                 </div>
                 
-                <div class="conversation-actions">
-                    <button class="action-btn" onclick="toggleContextPanel()" title="Context Panel" id="context-toggle-btn">
+                <div class="top-bar-right">
+                    <button class="top-bar-btn" onclick="toggleContextPanel()" title="Context Panel" id="context-toggle-btn">
                         <i class="fas fa-layer-group"></i>
                     </button>
-                    <button class="action-btn" onclick="exportConversation()" title="Export to Markdown">
+                    <button class="top-bar-btn" onclick="exportConversation()" title="Export to Markdown">
                         <i class="fas fa-download"></i>
                     </button>
-                    <button class="action-btn" onclick="tagConversation()" title="Organize with Tags">
+                    <button class="top-bar-btn" onclick="tagConversation()" title="Organize with Tags">
                         <i class="fas fa-tags"></i>
                     </button>
-                    <button class="action-btn" onclick="window.app.openSettingsModal()" title="Settings" id="settings-btn">
+                    <button class="top-bar-btn" onclick="window.app.openSettingsModal()" title="Settings" id="settings-btn">
                         <i class="fas fa-cog"></i>
                     </button>
-                    <button class="action-btn logout-btn" onclick="logout()" title="Logout" id="logout-btn" style="display:none;">
+                    <button class="top-bar-btn logout-btn" onclick="logout()" title="Logout" id="logout-btn" style="display:none;">
                         <i class="fas fa-sign-out-alt"></i>
                     </button>
                 </div>
             </div>
 
-            <div class="chat-messages" id="chat-messages">
-                <div class="welcome-message">
-                    <h3>Welcome to your AI Knowledge Base</h3>
-                    <p>Start a conversation or search your previous chats to find relevant information.</p>
+            <!-- Chat Messages Area -->
+            <div class="chat-messages-container">
+                <div class="chat-messages" id="chat-messages">
+                    <!-- Empty State -->
+                    <div class="empty-state" id="empty-state">
+                        <div class="empty-state-icon">
+                            <i class="fas fa-comments"></i>
+                        </div>
+                        <h2 class="empty-state-title">New Conversation</h2>
+                        <p class="empty-state-description">Start a conversation or search your knowledge base.</p>
+                    </div>
                 </div>
             </div>
 
@@ -155,30 +253,30 @@
                 </div>
             </div>
 
-            <div class="chat-input-container">
+            <!-- Bottom Input -->
+            <div class="bottom-input-container">
                 <div class="kb-search-results" id="kb-search-results" style="display: none;">
                     <!-- Knowledge base search results will appear here -->
                 </div>
                 
-                <div class="input-section">
-                    <div class="message-input-wrapper">
-                        <div class="input-controls-left">
-                            <button class="input-btn-inline" onclick="triggerFileUpload()" title="Upload File">
-                                <i class="fas fa-paperclip"></i>
-                            </button>
-                            <button class="input-btn-inline" onclick="startVoiceInput()" title="Voice Input" id="voice-btn">
-                                <i class="fas fa-microphone"></i>
-                            </button>
-                            <button class="input-btn-inline" onclick="addUrlReference()" title="Add URL">
-                                <i class="fas fa-link"></i>
-                            </button>
-                        </div>
-                        <textarea id="message-input" placeholder="Ask a question or search knowledge base..." 
-                                rows="1" onkeydown="handleInputKeydown(event)" oninput="handleInputChange()"></textarea>
-                        <button class="send-btn" onclick="sendMessage()" id="send-btn">
-                            <i class="fas fa-paper-plane"></i>
+                <div class="input-area">
+                    <div class="input-controls-left">
+                        <button class="input-control-btn" onclick="triggerFileUpload()" title="Add attachment">
+                            <i class="fas fa-paperclip"></i>
+                        </button>
+                        <button class="input-control-btn" onclick="startVoiceInput()" title="Voice Input" id="voice-btn">
+                            <i class="fas fa-microphone"></i>
                         </button>
                     </div>
+                    
+                    <div class="message-input-container">
+                        <textarea id="message-input" placeholder="Ask a question or search knowledge base..." 
+                                rows="1" onkeydown="handleInputKeydown(event)" oninput="handleInputChange()"></textarea>
+                    </div>
+                    
+                    <button class="send-button" onclick="sendMessage()" id="send-btn">
+                        Send
+                    </button>
                 </div>
                 
                 <input type="file" id="file-input" multiple style="display: none;" onchange="window.app.handleContextUpload(event)">
@@ -186,8 +284,7 @@
         </div>
     </div>
 
-    <!-- Modals -->
-
+    <!-- Modals (Keep existing modals unchanged) -->
     <div id="tag-modal" class="modal" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
@@ -395,7 +492,91 @@
 
     <script src="static/js/app.js"></script>
     <script>
-        // Authentication functions
+        // Global functions for new UI
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const logoText = document.getElementById('logo-text');
+            const toggleIcon = document.getElementById('toggle-icon');
+            const sidebarMainActions = document.getElementById('sidebar-main-actions');
+            const sidebarContent = document.getElementById('sidebar-content');
+            const sidebarCollapsedContent = document.getElementById('sidebar-collapsed-content');
+            const sidebarFooter = document.getElementById('sidebar-footer');
+            
+            sidebar.classList.toggle('collapsed');
+            
+            if (sidebar.classList.contains('collapsed')) {
+                // Collapsed state
+                logoText.style.display = 'none';
+                toggleIcon.className = 'fas fa-chevron-right';
+                sidebarMainActions.style.display = 'none';
+                sidebarContent.style.display = 'none';
+                sidebarCollapsedContent.style.display = 'block';
+                sidebarFooter.querySelector('.settings-label').style.display = 'none';
+            } else {
+                // Expanded state
+                logoText.style.display = 'block';
+                toggleIcon.className = 'fas fa-chevron-left';
+                sidebarMainActions.style.display = 'block';
+                sidebarContent.style.display = 'block';
+                sidebarCollapsedContent.style.display = 'none';
+                sidebarFooter.querySelector('.settings-label').style.display = 'inline';
+            }
+        }
+
+        function toggleSection(sectionName) {
+            const content = document.getElementById(sectionName + '-content');
+            const toggle = document.getElementById(sectionName + '-toggle');
+            
+            if (content.classList.contains('expanded')) {
+                content.classList.remove('expanded');
+                toggle.className = 'fas fa-plus';
+            } else {
+                content.classList.add('expanded');
+                toggle.className = 'fas fa-minus';
+            }
+        }
+
+        function startNewChat() {
+            if (window.app && window.app.startNewConversation) {
+                window.app.startNewConversation();
+            }
+        }
+
+        function showNewProjectInput() {
+            const inputRow = document.getElementById('new-project-input-row');
+            const input = document.getElementById('new-project-input');
+            
+            inputRow.style.display = 'block';
+            input.focus();
+        }
+
+        function handleNewProjectInput(event) {
+            if (event.key === 'Enter') {
+                const input = event.target;
+                const projectName = input.value.trim();
+                
+                if (projectName) {
+                    // Handle project creation
+                    if (window.app && window.app.createNewProject) {
+                        window.app.createNewProject(projectName);
+                    }
+                    
+                    input.value = '';
+                    document.getElementById('new-project-input-row').style.display = 'none';
+                }
+            } else if (event.key === 'Escape') {
+                event.target.value = '';
+                document.getElementById('new-project-input-row').style.display = 'none';
+            }
+        }
+
+        function updateModel() {
+            if (window.app && window.app.updateModel) {
+                window.app.updateModel();
+            }
+        }
+
+        // Authentication functions (keep existing)
         async function checkAuthStatus() {
             try {
                 const response = await fetch('/auth/status');
@@ -470,7 +651,7 @@
             }
         }
 
-        // Admin functions
+        // Admin functions (keep existing)
         function showTab(tabName) {
             // Hide all tabs
             document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');

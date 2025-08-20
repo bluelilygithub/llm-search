@@ -19,7 +19,7 @@ class KnowledgeBaseApp {
         this.loadConversations();
         this.setupEventListeners();
         this.autoResizeTextarea();
-        this.showModelInstructions(); // Show instructions for initially selected model
+        // No longer showing model instructions automatically
     }
 
     setupGlobalErrorHandling() {
@@ -163,143 +163,179 @@ class KnowledgeBaseApp {
     }
 
     renderProjects(projects) {
-        const sidebar = document.querySelector('.sidebar');
-        // Projects section wrapper
-        let projectsSection = document.getElementById('projects-section');
-        if (!projectsSection) {
-            projectsSection = document.createElement('div');
-            projectsSection.id = 'projects-section';
-            projectsSection.className = 'projects-section';
-            sidebar.insertBefore(projectsSection, sidebar.children[1]);
-        }
-        projectsSection.innerHTML = '';
-        // Projects toggle button
-        let toggleBtn = document.getElementById('toggle-projects-btn');
-        if (!toggleBtn) {
-            toggleBtn = document.createElement('button');
-            toggleBtn.id = 'toggle-projects-btn';
-            toggleBtn.className = 'new-chat-btn';
-            toggleBtn.textContent = '▼ Projects';
-            toggleBtn.onclick = () => {
-                const projectList = document.getElementById('project-list');
-                if (projectList) {
-                    projectsSection.classList.toggle('collapsed');
-                    toggleBtn.textContent = projectsSection.classList.contains('collapsed') ? '► Projects' : '▼ Projects';
-                }
-            };
-        }
-        projectsSection.appendChild(toggleBtn);
-        // New Project button
-        let newBtn = document.getElementById('new-project-btn');
-        if (!newBtn) {
-            newBtn = document.createElement('button');
-            newBtn.id = 'new-project-btn';
-            newBtn.className = 'new-chat-btn';
-            newBtn.textContent = '+ New Project';
-            newBtn.onclick = () => { this.addingProject = true; this.loadProjects(); };
-        }
-        projectsSection.appendChild(newBtn);
-        // New project input field (styled like search input)
-        let inputRow = document.getElementById('new-project-input-row');
-        if (this.addingProject) {
-            if (!inputRow) {
-                inputRow = document.createElement('div');
-                inputRow.id = 'new-project-input-row';
-                inputRow.style.padding = '8px 20px 0 20px';
-                const input = document.createElement('input');
-                input.type = 'text';
-                input.placeholder = 'Project name...';
-                input.className = 'project-input';
-                input.onkeydown = (e) => {
-                    if (e.key === 'Enter') this.createProject(input.value);
-                    if (e.key === 'Escape') this.addingProject = false, this.loadProjects();
-                };
-                inputRow.appendChild(input);
-                projectsSection.appendChild(inputRow);
-                input.focus();
-            }
-        } else if (inputRow) {
-            inputRow.remove();
-        }
-        // Project list
-        let projectList = document.getElementById('project-list');
-        if (!projectList) {
-            projectList = document.createElement('div');
-            projectList.id = 'project-list';
-        }
-        if (projectsSection.classList.contains('collapsed')) {
-            projectList.innerHTML = '';
+        const container = document.getElementById('project-list');
+        if (!container) {
+            console.error('Project list container not found');
             return;
         }
-        projectList.innerHTML = '';
-        // All Projects option
+        
+        container.innerHTML = '';
+
+        // Add "All Projects" option
         const allItem = document.createElement('div');
-        allItem.className = 'conversation-item';
-        allItem.textContent = 'All Projects';
+        allItem.className = 'project-item';
         allItem.onclick = () => this.selectProject(null);
         if (!this.currentProject) {
             allItem.classList.add('active');
         }
-        projectList.appendChild(allItem);
-        // List all projects
+
+        allItem.innerHTML = `
+            <div class="project-main">
+                <div class="project-icon">
+                    <i class="fas fa-folder"></i>
+                </div>
+                <div class="project-info">
+                    <div class="project-name">All Projects</div>
+                    <div class="project-count">View all conversations</div>
+                </div>
+            </div>
+        `;
+        container.appendChild(allItem);
+
+        // Add individual projects
         projects.forEach(project => {
             const item = document.createElement('div');
-            item.className = 'conversation-item';
-            item.style.display = 'flex';
-            item.style.alignItems = 'center';
+            item.className = 'project-item';
+            item.onclick = () => this.selectProject(project);
+            
             if (this.currentProject && this.currentProject.id === project.id) {
                 item.classList.add('active');
             }
-            // Project name or input for renaming
-            if (this.renamingProject && this.renamingProject.id === project.id) {
-                const input = document.createElement('input');
-                input.type = 'text';
-                input.value = project.name;
-                input.className = 'project-input';
-                input.style.flex = '1';
-                input.onkeydown = (e) => {
-                    if (e.key === 'Enter') this.renameProject(project, input.value);
-                    if (e.key === 'Escape') this.renamingProject = null, this.loadProjects();
-                };
-                item.appendChild(input);
-                input.focus();
-            } else {
-                const nameSpan = document.createElement('span');
-                nameSpan.textContent = project.name;
-                nameSpan.className = 'project-name';
-                nameSpan.onclick = () => this.selectProject(project);
-                item.appendChild(nameSpan);
-            }
-            // Inline edit/delete icons
-            const iconRow = document.createElement('span');
-            iconRow.style.display = 'flex';
-            iconRow.style.gap = '4px';
-            iconRow.style.alignItems = 'center';
-            // Rename (pencil) icon
-            const renameBtn = document.createElement('button');
-            renameBtn.className = 'input-btn';
-            renameBtn.style.width = '24px';
-            renameBtn.style.height = '24px';
-            renameBtn.title = 'Rename Project';
-            renameBtn.innerHTML = '<i class="fas fa-pencil-alt"></i>';
-            renameBtn.onclick = (e) => { e.stopPropagation(); this.renamingProject = project; this.loadProjects(); };
-            iconRow.appendChild(renameBtn);
-            // Delete (trash) icon
-            const deleteBtn = document.createElement('button');
-            deleteBtn.className = 'input-btn';
-            deleteBtn.style.width = '24px';
-            deleteBtn.style.height = '24px';
-            deleteBtn.title = 'Delete Project';
-            deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
-            deleteBtn.onclick = (e) => { e.stopPropagation(); this.deleteProject(project); };
-            iconRow.appendChild(deleteBtn);
-            item.appendChild(iconRow);
-            projectList.appendChild(item);
+
+            // Count conversations for this project (you may need to add this to backend)
+            const conversationCount = project.conversation_count || 0;
+
+            item.innerHTML = `
+                <div class="project-main">
+                    <div class="project-icon">
+                        <i class="fas fa-folder-open"></i>
+                    </div>
+                    <div class="project-info">
+                        <div class="project-name">${project.name}</div>
+                        <div class="project-count">${conversationCount} conversations</div>
+                    </div>
+                </div>
+                <div class="project-actions">
+                    <button class="project-action-btn" onclick="event.stopPropagation(); window.app.editProject(${project.id}, '${project.name.replace(/'/g, '\\\'')}')" title="Edit">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="project-action-btn" onclick="event.stopPropagation(); window.app.deleteProject(${project.id})" title="Delete">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `;
+            
+            container.appendChild(item);
         });
-        projectsSection.appendChild(projectList);
     }
 
     showNewProjectPrompt() { /* no-op, replaced by inline input */ }
+
+    // Methods called from the new HTML structure
+    startNewConversation() {
+        this.currentConversationId = null;
+        document.getElementById('chat-messages').innerHTML = `
+            <div class="empty-state" id="empty-state">
+                <div class="empty-state-icon">
+                    <i class="fas fa-comments"></i>
+                </div>
+                <h2 class="empty-state-title">New Conversation</h2>
+                <p class="empty-state-description">Start a conversation or search your knowledge base.</p>
+            </div>
+        `;
+    }
+
+    createNewProject(name) {
+        if (!name.trim()) return;
+        this.createProject(name.trim());
+    }
+
+    editConversationTitle(conversationId, currentTitle) {
+        const newTitle = prompt('Edit conversation title:', currentTitle);
+        if (newTitle && newTitle !== currentTitle) {
+            this.updateConversationTitle(conversationId, newTitle);
+        }
+    }
+
+    async updateConversationTitle(conversationId, newTitle) {
+        try {
+            const response = await fetch(`/conversations/${conversationId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    title: newTitle
+                })
+            });
+
+            if (response.ok) {
+                this.loadConversations();
+            } else {
+                console.error('Failed to update conversation title');
+            }
+        } catch (error) {
+            console.error('Error updating conversation title:', error);
+        }
+    }
+
+    deleteConversation(conversationId) {
+        if (confirm('Are you sure you want to delete this conversation?')) {
+            this.deleteConversationById(conversationId);
+        }
+    }
+
+    async deleteConversationById(conversationId) {
+        try {
+            const response = await fetch(`/conversations/${conversationId}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                if (this.currentConversationId === conversationId) {
+                    this.startNewConversation();
+                }
+                this.loadConversations();
+            } else {
+                console.error('Failed to delete conversation');
+            }
+        } catch (error) {
+            console.error('Error deleting conversation:', error);
+        }
+    }
+
+    editProject(projectId, currentName) {
+        const newName = prompt('Edit project name:', currentName);
+        if (newName && newName !== currentName) {
+            this.renameProject({ id: projectId }, newName);
+        }
+    }
+
+    deleteProject(projectId) {
+        if (confirm('Are you sure you want to delete this project?')) {
+            this.deleteProjectById(projectId);
+        }
+    }
+
+    async deleteProjectById(projectId) {
+        try {
+            const response = await fetch(`/projects/${projectId}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                if (this.currentProject && this.currentProject.id === projectId) {
+                    this.currentProject = null;
+                }
+                this.loadProjects();
+                this.loadConversations();
+            } else {
+                console.error('Failed to delete project');
+            }
+        } catch (error) {
+            console.error('Error deleting project:', error);
+        }
+    }
 
     async createProject(name) {
         if (!name) return;
@@ -406,12 +442,23 @@ class KnowledgeBaseApp {
             console.log(`DEBUG: Generated tags HTML for "${conv.title}":`, tags);
             
             item.innerHTML = `
-                <div class="conversation-title">${conv.title}</div>
-                <div class="conversation-meta">
-                    <span>${conv.llm_model}</span>
-                    <span>${this.formatDate(conv.updated_at)}</span>
+                <div class="conversation-content">
+                    <div class="conversation-title">${conv.title}</div>
+                    <div class="conversation-meta">
+                        <span>${conv.llm_model}</span>
+                        <span>•</span>
+                        <span>${this.formatDate(conv.updated_at)}</span>
+                    </div>
+                    <div class="conversation-tags">${tags}</div>
                 </div>
-                <div class="conversation-tags">${tags}</div>
+                <div class="conversation-actions">
+                    <button class="conversation-action-btn" onclick="event.stopPropagation(); window.app.editConversationTitle(${conv.id}, '${conv.title.replace(/'/g, '\\\'')}')" title="Edit">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="conversation-action-btn" onclick="event.stopPropagation(); window.app.deleteConversation(${conv.id})" title="Delete">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
             `;
             
             container.appendChild(item);
@@ -434,7 +481,7 @@ class KnowledgeBaseApp {
             this.renderMessages(data.messages);
             this.selectedModel = data.conversation.llm_model;
             document.getElementById('llm-model').value = this.selectedModel;
-            this.showModelInstructions(); // Show instructions for the conversation's model
+            // No longer showing model instructions automatically
             
         } catch (error) {
             console.error('Failed to load conversation:', error);
@@ -717,7 +764,7 @@ class KnowledgeBaseApp {
 
     updateModel() {
         this.selectedModel = document.getElementById('llm-model').value;
-        this.showModelInstructions();
+        // No longer showing model instructions automatically
     }
 
     showModelInstructions() {
