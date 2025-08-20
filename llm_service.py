@@ -353,13 +353,35 @@ class LLMService:
             if response.status_code != 200:
                 raise Exception(f"Stability API returned {response.status_code}: {response.text}")
             
-            # For successful image generation, return a description of what was created
+            # Save the image data and return a response with image info
+            import base64
+            import os
+            from datetime import datetime
+            
+            # Create images directory if it doesn't exist
+            images_dir = os.path.join(os.path.dirname(__file__), 'static', 'generated_images')
+            os.makedirs(images_dir, exist_ok=True)
+            
+            # Generate unique filename
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"stability_{model_type}_{timestamp}.png"
+            file_path = os.path.join(images_dir, filename)
+            
+            # Save the image
+            with open(file_path, 'wb') as f:
+                f.write(response.content)
+            
+            # Create relative path for web access
+            web_path = f"/static/generated_images/{filename}"
+            
+            # Return response with image
             text_response = f"✅ **Image Generated Successfully**\n\n"
             text_response += f"**Model:** Stability AI {model_type.title()}\n"
             text_response += f"**Prompt:** {prompt}\n"
             text_response += f"**Format:** PNG image\n"
             text_response += f"**Status:** Image generated and ready\n\n"
-            text_response += "*Note: This is an image generation model. The actual image would be displayed in a full implementation.*"
+            text_response += f"![Generated Image]({web_path})\n\n"
+            text_response += f"**Image saved as:** {filename}"
             
             # Estimate tokens and cost
             tokens = len(prompt.split()) + 50  # Prompt tokens + generation overhead

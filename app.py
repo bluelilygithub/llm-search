@@ -914,6 +914,12 @@ def extract_url_content():
 def uploaded_file(filename):
     return send_from_directory(UPLOAD_FOLDER, filename)
 
+@app.route('/static/generated_images/<path:filename>')
+def generated_image(filename):
+    """Serve generated images from Stability AI"""
+    images_dir = os.path.join(os.path.dirname(__file__), 'static', 'generated_images')
+    return send_from_directory(images_dir, filename)
+
 @app.route('/llm-usage-stats', methods=['GET'])
 def llm_usage_stats():
     from models import LLMUsageLog
