@@ -73,6 +73,45 @@ class KnowledgeBaseApp {
         }, 5000);
     }
 
+    showMessage(message, type = 'info') {
+        const notification = document.createElement('div');
+        let className, icon;
+        
+        switch(type) {
+            case 'success':
+                className = 'success-notification';
+                icon = 'fas fa-check-circle';
+                break;
+            case 'warning':
+                className = 'warning-notification';
+                icon = 'fas fa-exclamation-triangle';
+                break;
+            case 'info':
+            default:
+                className = 'info-notification';
+                icon = 'fas fa-info-circle';
+                break;
+        }
+        
+        notification.className = className;
+        notification.innerHTML = `
+            <div class="error-content">
+                <i class="${icon}"></i>
+                <span>${message}</span>
+                <button class="close-error" onclick="this.parentElement.parentElement.remove()">×</button>
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Auto-remove after 4 seconds
+        setTimeout(() => {
+            if (notification.parentElement) {
+                notification.remove();
+            }
+        }, 4000);
+    }
+
     async logErrorToServer(type, error, context) {
         try {
             await fetch('/api/log-error', {
@@ -1391,30 +1430,66 @@ KnowledgeBaseApp.prototype.handleContextUpload = async function(event) {
         return;
     }
     if (!files.length) return;
-    const file = files[0]; // Only one context doc at a time
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('conversation_id', this.currentConversationId);
-    try {
-        const response = await fetch('/upload-context', {
-            method: 'POST',
-            body: formData
-        });
-        const data = await response.json();
-        if (data.success) {
-            this.showContextUploadMessage(data.filename, data.preview, data.file_type, data.word_count, data.task_type);
-            
-            // Refresh context panel if it's open
-            if (this.contextPanelOpen) {
-                await this.loadContextData();
-            }
-        } else {
-            this.showError(data.error || 'Context upload failed.');
-        }
-    } catch (error) {
-        this.showError('Context upload failed.');
-        console.error('Context upload error:', error);
+    
+    // Show uploading message for multiple files
+    if (files.length > 1) {
+        this.showMessage(`Uploading ${files.length} files...`, 'info');
     }
+    
+    let successCount = 0;
+    let errorCount = 0;
+    
+    // Process each file individually
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('conversation_id', this.currentConversationId);
+        
+        try {
+            const response = await fetch('/upload-context', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+                this.showContextUploadMessage(data.filename, data.preview, data.file_type, data.word_count, data.task_type);
+                successCount++;
+            } else {
+                this.showError(`Failed to upload ${file.name}: ${data.error || 'Upload failed'}`);
+                errorCount++;
+            }
+        } catch (error) {
+            console.error(`Context upload error for ${file.name}:`, error);
+            this.showError(`Failed to upload ${file.name}: Network error`);
+            errorCount++;
+        }
+        
+        // Small delay between uploads to avoid overwhelming the server
+        if (i < files.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 200));
+        }
+    }
+    
+    // Show summary message for multiple files
+    if (files.length > 1) {
+        if (successCount > 0 && errorCount === 0) {
+            this.showMessage(`Successfully uploaded all ${successCount} files!`, 'success');
+        } else if (successCount > 0 && errorCount > 0) {
+            this.showMessage(`Uploaded ${successCount} files, ${errorCount} failed`, 'warning');
+        } else if (errorCount > 0) {
+            this.showError(`Failed to upload all ${errorCount} files`);
+        }
+    }
+    
+    // Refresh context panel if it's open
+    if (this.contextPanelOpen) {
+        await this.loadContextData();
+    }
+    
+    // Clear the file input for next upload
+    event.target.value = '';
 };
 
 KnowledgeBaseApp.prototype.showContextUploadMessage = function(filename, preview, fileType, wordCount, taskType) {

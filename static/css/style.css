@@ -905,6 +905,42 @@ body {
     color: #16a34a;
 }
 
+/* Warning notification */
+.warning-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10000;
+    max-width: 400px;
+    background-color: #fef3c7;
+    border: 1px solid #fcd34d;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    animation: slideInRight 0.3s ease-out;
+}
+
+.warning-notification .error-content {
+    color: #d97706;
+}
+
+/* Info notification */
+.info-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10000;
+    max-width: 400px;
+    background-color: #dbeafe;
+    border: 1px solid #93c5fd;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    animation: slideInRight 0.3s ease-out;
+}
+
+.info-notification .error-content {
+    color: #2563eb;
+}
+
 /* Logout button styling */
 .logout-btn {
     background-color: #dc3545 !important;
