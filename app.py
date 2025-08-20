@@ -940,26 +940,34 @@ def stability_edit_image():
         
         app.logger.info(f"Stability image edit request: model={model}, prompt_length={len(prompt)}")
         
-        # For now, return a message indicating the feature needs backend implementation
-        response_message = f"""I understand you want to edit the uploaded image: "{prompt}"
-
-**Current Status:** This requires backend implementation to integrate with Stability AI's image editing APIs.
-
-**What you uploaded:** {image_file.filename} ({image_file.content_type})
-
-**Next Steps for Implementation:**
-1. Add Stability AI image editing endpoints in `llm_service.py`
-2. Implement specific editing operations (background removal, inpainting, etc.)
-3. Handle image upload to Stability AI platform
-4. Process the edited result and save to Cloudinary
-
-**For now:** You can still generate new images with text prompts using Stability AI models."""
+        # Use the LLM service to edit the image
+        from llm_service import LLMService
+        llm_service = LLMService()
+        
+        # Process the image editing request
+        response_message, tokens, cost = llm_service.edit_image(image_file, model, prompt)
+        
+        # Log usage for analytics
+        try:
+            from models import LLMUsageLog
+            usage_log = LLMUsageLog(
+                model=model,
+                tokens=tokens,
+                estimated_cost=cost,
+                timestamp=datetime.utcnow()
+            )
+            db.session.add(usage_log)
+            db.session.commit()
+        except Exception as log_error:
+            app.logger.warning(f"Failed to log usage: {log_error}")
         
         return jsonify({
             'response': response_message,
             'model': model,
             'timestamp': datetime.utcnow().isoformat(),
-            'editing_request': True
+            'editing_request': True,
+            'tokens': tokens,
+            'cost': cost
         })
         
     except Exception as e:

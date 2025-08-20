@@ -721,7 +721,7 @@ class KnowledgeBaseApp {
     }
 
     showModelInstructions() {
-        // Remove any existing model instructions
+        // Remove any existing model instructions (cleanup only)
         const existingInstructions = document.getElementById('model-instructions');
         if (existingInstructions) {
             existingInstructions.remove();
@@ -738,9 +738,8 @@ class KnowledgeBaseApp {
         // Show/hide image upload button based on model type
         this.toggleImageUploadForStability(stabilityModels.includes(this.selectedModel));
 
-        if (stabilityModels.includes(this.selectedModel)) {
-            this.showStabilityInstructions();
-        }
+        // Instructions will only be shown when an image is uploaded, not on model selection
+        // No longer automatically showing instructions here
     }
 
     toggleImageUploadForStability(isStabilityModel) {
@@ -862,6 +861,9 @@ class KnowledgeBaseApp {
         
         // Store the image file for potential use
         this.currentStabilityImage = imageFile;
+        
+        // Now show the comprehensive instructions since an image has been uploaded
+        this.showStabilityInstructions();
     }
 
     formatFileSize(bytes) {

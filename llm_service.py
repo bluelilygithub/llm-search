@@ -463,6 +463,521 @@ class LLMService:
         except Exception as e:
             raise Exception(f"Audio generation error: {str(e)}")
     
+    def edit_image(self, image_file, model, prompt):
+        """Edit an uploaded image using Stability AI image editing APIs"""
+        if not self.stability_available:
+            raise Exception("Stability AI API key not configured")
+        
+        try:
+            # Determine the editing operation based on the prompt
+            editing_operation = self._detect_editing_operation(prompt)
+            
+            if editing_operation == "background":
+                return self._edit_background(image_file, prompt, model)
+            elif editing_operation == "erase":
+                return self._erase_objects(image_file, prompt, model)
+            elif editing_operation == "inpaint":
+                return self._inpaint_image(image_file, prompt, model)
+            elif editing_operation == "outpaint":
+                return self._outpaint_image(image_file, prompt, model)
+            elif editing_operation == "search_replace":
+                return self._search_and_replace(image_file, prompt, model)
+            elif editing_operation == "search_recolor":
+                return self._search_and_recolor(image_file, prompt, model)
+            else:
+                # Default to general editing
+                return self._general_image_edit(image_file, prompt, model)
+                
+        except Exception as e:
+            raise Exception(f"Image editing error: {str(e)}")
+    
+    def _detect_editing_operation(self, prompt):
+        """Detect what type of editing operation is requested"""
+        prompt_lower = prompt.lower()
+        
+        # Background operations
+        if any(word in prompt_lower for word in ["background", "backdrop", "bg"]):
+            return "background"
+        
+        # Erasing operations
+        elif any(word in prompt_lower for word in ["erase", "remove", "delete", "eliminate"]):
+            return "erase"
+        
+        # Extending operations
+        elif any(word in prompt_lower for word in ["extend", "expand", "outpaint", "continue"]):
+            return "outpaint"
+        
+        # Recoloring operations
+        elif any(word in prompt_lower for word in ["recolor", "change color", "color to"]):
+            return "search_recolor"
+        
+        # Search and replace operations
+        elif any(word in prompt_lower for word in ["replace", "change to", "turn into"]):
+            return "search_replace"
+        
+        # Inpainting operations
+        elif any(word in prompt_lower for word in ["fill", "inpaint", "complete", "fix"]):
+            return "inpaint"
+        
+        else:
+            return "general"
+    
+    def _edit_background(self, image_file, prompt, model):
+        """Handle background removal/replacement operations"""
+        try:
+            # Check if it's background removal or replacement
+            if any(word in prompt.lower() for word in ["remove background", "no background", "transparent"]):
+                endpoint = "https://api.stability.ai/v2beta/stable-image/edit/remove-background"
+                return self._remove_background(image_file, endpoint, model)
+            else:
+                # Background replacement/modification
+                endpoint = "https://api.stability.ai/v2beta/stable-image/edit/search-and-replace"
+                return self._replace_background_api(image_file, prompt, endpoint, model)
+                
+        except Exception as e:
+            raise Exception(f"Background editing error: {str(e)}")
+    
+    def _remove_background(self, image_file, endpoint, model):
+        """Remove background from image"""
+        try:
+            # Reset file pointer to beginning
+            image_file.seek(0)
+            
+            files = {
+                'image': (image_file.filename, image_file.read(), image_file.content_type)
+            }
+            
+            response = requests.post(
+                endpoint,
+                headers={
+                    "Authorization": f"Bearer {self.stability_api_key}",
+                    "Accept": "image/*"
+                },
+                files=files,
+                timeout=60
+            )
+            
+            if response.status_code != 200:
+                raise Exception(f"Background removal failed: {response.status_code} - {response.text}")
+            
+            # Upload result to Cloudinary
+            web_path, filename = self._upload_edited_image(response.content, "bg_removed", model)
+            
+            # Return response with edited image
+            text_response = f"✅ **Background Removed Successfully**\n\n"
+            text_response += f"**Model:** Stability AI {model}\n"
+            text_response += f"**Operation:** Background Removal\n"
+            text_response += f"**Status:** Image processed and ready\n\n"
+            text_response += f"![Edited Image]({web_path})\n\n"
+            text_response += f"**Saved as:** {filename}"
+            
+            tokens = 50  # Fixed for background removal
+            cost = 0.04  # Cost for background removal
+            
+            return text_response, tokens, cost
+            
+        except Exception as e:
+            raise Exception(f"Background removal error: {str(e)}")
+    
+    def _replace_background_api(self, image_file, prompt, endpoint, model):
+        """Replace/modify background using search and replace"""
+        try:
+            # Reset file pointer to beginning
+            image_file.seek(0)
+            
+            files = {
+                'image': (image_file.filename, image_file.read(), image_file.content_type),
+                'prompt': (None, prompt),
+                'search_prompt': (None, 'background'),
+                'output_format': (None, 'png')
+            }
+            
+            response = requests.post(
+                endpoint,
+                headers={
+                    "Authorization": f"Bearer {self.stability_api_key}",
+                    "Accept": "image/*"
+                },
+                files=files,
+                timeout=60
+            )
+            
+            if response.status_code != 200:
+                raise Exception(f"Background replacement failed: {response.status_code} - {response.text}")
+            
+            # Upload result to Cloudinary
+            web_path, filename = self._upload_edited_image(response.content, "bg_replaced", model)
+            
+            text_response = f"✅ **Background Modified Successfully**\n\n"
+            text_response += f"**Model:** Stability AI {model}\n"
+            text_response += f"**Operation:** Background Replacement\n"
+            text_response += f"**Prompt:** {prompt}\n"
+            text_response += f"**Status:** Image processed and ready\n\n"
+            text_response += f"![Edited Image]({web_path})\n\n"
+            text_response += f"**Saved as:** {filename}"
+            
+            tokens = len(prompt.split()) + 30
+            cost = 0.05  # Cost for background replacement
+            
+            return text_response, tokens, cost
+            
+        except Exception as e:
+            raise Exception(f"Background replacement error: {str(e)}")
+    
+    def _erase_objects(self, image_file, prompt, model):
+        """Erase objects from image using inpainting"""
+        try:
+            # Use erase endpoint if available, otherwise fall back to inpainting
+            endpoint = "https://api.stability.ai/v2beta/stable-image/edit/erase"
+            
+            # Reset file pointer to beginning
+            image_file.seek(0)
+            
+            files = {
+                'image': (image_file.filename, image_file.read(), image_file.content_type),
+                'prompt': (None, prompt),
+                'output_format': (None, 'png')
+            }
+            
+            response = requests.post(
+                endpoint,
+                headers={
+                    "Authorization": f"Bearer {self.stability_api_key}",
+                    "Accept": "image/*"
+                },
+                files=files,
+                timeout=60
+            )
+            
+            if response.status_code != 200:
+                # Fallback to search and replace with empty replacement
+                return self._search_and_replace(image_file, f"remove {prompt}", model)
+            
+            # Upload result to Cloudinary
+            web_path, filename = self._upload_edited_image(response.content, "erased", model)
+            
+            text_response = f"✅ **Objects Erased Successfully**\n\n"
+            text_response += f"**Model:** Stability AI {model}\n"
+            text_response += f"**Operation:** Object Removal\n"
+            text_response += f"**Target:** {prompt}\n"
+            text_response += f"**Status:** Image processed and ready\n\n"
+            text_response += f"![Edited Image]({web_path})\n\n"
+            text_response += f"**Saved as:** {filename}"
+            
+            tokens = len(prompt.split()) + 25
+            cost = 0.04
+            
+            return text_response, tokens, cost
+            
+        except Exception as e:
+            raise Exception(f"Object erasing error: {str(e)}")
+    
+    def _search_and_replace(self, image_file, prompt, model):
+        """Search and replace objects in image"""
+        try:
+            endpoint = "https://api.stability.ai/v2beta/stable-image/edit/search-and-replace"
+            
+            # Extract search and replace terms from prompt
+            search_term, replace_term = self._parse_search_replace_prompt(prompt)
+            
+            # Reset file pointer to beginning
+            image_file.seek(0)
+            
+            files = {
+                'image': (image_file.filename, image_file.read(), image_file.content_type),
+                'prompt': (None, replace_term),
+                'search_prompt': (None, search_term),
+                'output_format': (None, 'png')
+            }
+            
+            response = requests.post(
+                endpoint,
+                headers={
+                    "Authorization": f"Bearer {self.stability_api_key}",
+                    "Accept": "image/*"
+                },
+                files=files,
+                timeout=60
+            )
+            
+            if response.status_code != 200:
+                raise Exception(f"Search and replace failed: {response.status_code} - {response.text}")
+            
+            # Upload result to Cloudinary
+            web_path, filename = self._upload_edited_image(response.content, "replaced", model)
+            
+            text_response = f"✅ **Object Replaced Successfully**\n\n"
+            text_response += f"**Model:** Stability AI {model}\n"
+            text_response += f"**Operation:** Search & Replace\n"
+            text_response += f"**Search:** {search_term}\n"
+            text_response += f"**Replace:** {replace_term}\n"
+            text_response += f"**Status:** Image processed and ready\n\n"
+            text_response += f"![Edited Image]({web_path})\n\n"
+            text_response += f"**Saved as:** {filename}"
+            
+            tokens = len(prompt.split()) + 30
+            cost = 0.05
+            
+            return text_response, tokens, cost
+            
+        except Exception as e:
+            raise Exception(f"Search and replace error: {str(e)}")
+    
+    def _search_and_recolor(self, image_file, prompt, model):
+        """Change colors of specific objects"""
+        try:
+            endpoint = "https://api.stability.ai/v2beta/stable-image/edit/search-and-recolor"
+            
+            # Extract object and color from prompt
+            search_term, color = self._parse_recolor_prompt(prompt)
+            
+            # Reset file pointer to beginning
+            image_file.seek(0)
+            
+            files = {
+                'image': (image_file.filename, image_file.read(), image_file.content_type),
+                'prompt': (None, color),
+                'select_prompt': (None, search_term),
+                'output_format': (None, 'png')
+            }
+            
+            response = requests.post(
+                endpoint,
+                headers={
+                    "Authorization": f"Bearer {self.stability_api_key}",
+                    "Accept": "image/*"
+                },
+                files=files,
+                timeout=60
+            )
+            
+            if response.status_code != 200:
+                raise Exception(f"Recoloring failed: {response.status_code} - {response.text}")
+            
+            # Upload result to Cloudinary
+            web_path, filename = self._upload_edited_image(response.content, "recolored", model)
+            
+            text_response = f"✅ **Object Recolored Successfully**\n\n"
+            text_response += f"**Model:** Stability AI {model}\n"
+            text_response += f"**Operation:** Search & Recolor\n"
+            text_response += f"**Object:** {search_term}\n"
+            text_response += f"**New Color:** {color}\n"
+            text_response += f"**Status:** Image processed and ready\n\n"
+            text_response += f"![Edited Image]({web_path})\n\n"
+            text_response += f"**Saved as:** {filename}"
+            
+            tokens = len(prompt.split()) + 25
+            cost = 0.04
+            
+            return text_response, tokens, cost
+            
+        except Exception as e:
+            raise Exception(f"Recoloring error: {str(e)}")
+    
+    def _outpaint_image(self, image_file, prompt, model):
+        """Extend image boundaries using outpainting"""
+        try:
+            endpoint = "https://api.stability.ai/v2beta/stable-image/edit/outpaint"
+            
+            # Reset file pointer to beginning
+            image_file.seek(0)
+            
+            files = {
+                'image': (image_file.filename, image_file.read(), image_file.content_type),
+                'prompt': (None, prompt),
+                'left': (None, '0'),
+                'right': (None, '512'),
+                'up': (None, '0'),  
+                'down': (None, '0'),
+                'output_format': (None, 'png')
+            }
+            
+            response = requests.post(
+                endpoint,
+                headers={
+                    "Authorization": f"Bearer {self.stability_api_key}",
+                    "Accept": "image/*"
+                },
+                files=files,
+                timeout=60
+            )
+            
+            if response.status_code != 200:
+                raise Exception(f"Outpainting failed: {response.status_code} - {response.text}")
+            
+            # Upload result to Cloudinary
+            web_path, filename = self._upload_edited_image(response.content, "outpainted", model)
+            
+            text_response = f"✅ **Image Extended Successfully**\n\n"
+            text_response += f"**Model:** Stability AI {model}\n"
+            text_response += f"**Operation:** Outpainting\n"
+            text_response += f"**Prompt:** {prompt}\n"
+            text_response += f"**Extension:** Right side expanded\n"
+            text_response += f"**Status:** Image processed and ready\n\n"
+            text_response += f"![Edited Image]({web_path})\n\n"
+            text_response += f"**Saved as:** {filename}"
+            
+            tokens = len(prompt.split()) + 35
+            cost = 0.06
+            
+            return text_response, tokens, cost
+            
+        except Exception as e:
+            raise Exception(f"Outpainting error: {str(e)}")
+    
+    def _inpaint_image(self, image_file, prompt, model):
+        """Fill in missing areas using inpainting"""
+        try:
+            endpoint = "https://api.stability.ai/v2beta/stable-image/edit/inpaint"
+            
+            # Reset file pointer to beginning
+            image_file.seek(0)
+            
+            files = {
+                'image': (image_file.filename, image_file.read(), image_file.content_type),
+                'prompt': (None, prompt),
+                'output_format': (None, 'png')
+            }
+            
+            response = requests.post(
+                endpoint,
+                headers={
+                    "Authorization": f"Bearer {self.stability_api_key}",
+                    "Accept": "image/*"
+                },
+                files=files,
+                timeout=60
+            )
+            
+            if response.status_code != 200:
+                raise Exception(f"Inpainting failed: {response.status_code} - {response.text}")
+            
+            # Upload result to Cloudinary
+            web_path, filename = self._upload_edited_image(response.content, "inpainted", model)
+            
+            text_response = f"✅ **Image Inpainted Successfully**\n\n"
+            text_response += f"**Model:** Stability AI {model}\n"
+            text_response += f"**Operation:** Inpainting\n"
+            text_response += f"**Prompt:** {prompt}\n"
+            text_response += f"**Status:** Image processed and ready\n\n"
+            text_response += f"![Edited Image]({web_path})\n\n"
+            text_response += f"**Saved as:** {filename}"
+            
+            tokens = len(prompt.split()) + 30
+            cost = 0.05
+            
+            return text_response, tokens, cost
+            
+        except Exception as e:
+            raise Exception(f"Inpainting error: {str(e)}")
+    
+    def _general_image_edit(self, image_file, prompt, model):
+        """General image editing using search and replace as fallback"""
+        try:
+            # Use search and replace with the full prompt
+            return self._search_and_replace(image_file, prompt, model)
+            
+        except Exception as e:
+            raise Exception(f"General image editing error: {str(e)}")
+    
+    def _upload_edited_image(self, image_data, operation_type, model):
+        """Upload edited image to Cloudinary or save locally"""
+        import base64
+        import os
+        from datetime import datetime
+        
+        # Generate unique filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"stability_{operation_type}_{timestamp}.png"
+        
+        try:
+            import cloudinary
+            import cloudinary.uploader
+            from io import BytesIO
+            
+            # Configure Cloudinary
+            cloudinary.config(
+                cloud_name=os.getenv('CLOUDINARY_CLOUD_NAME'),
+                api_key=os.getenv('CLOUDINARY_API_KEY'),
+                api_secret=os.getenv('CLOUDINARY_API_SECRET'),
+                secure=True
+            )
+            
+            # Upload to Cloudinary from binary data
+            image_buffer = BytesIO(image_data)
+            
+            upload_result = cloudinary.uploader.upload(
+                image_buffer,
+                public_id=f"ai-edited/{filename.replace('.png', '')}",
+                folder="ai-edited",
+                resource_type="image"
+            )
+            
+            return upload_result['secure_url'], filename
+            
+        except Exception as cloudinary_error:
+            # Fallback to local storage
+            self.logger.warning(f"Cloudinary upload failed: {cloudinary_error}. Falling back to local storage.")
+            
+            images_dir = os.path.join(os.path.dirname(__file__), 'static', 'generated_images')
+            os.makedirs(images_dir, exist_ok=True)
+            
+            file_path = os.path.join(images_dir, filename)
+            
+            with open(file_path, 'wb') as f:
+                f.write(image_data)
+            
+            web_path = f"/static/generated_images/{filename}"
+            return web_path, filename
+    
+    def _parse_search_replace_prompt(self, prompt):
+        """Parse search and replace terms from prompt"""
+        prompt_lower = prompt.lower()
+        
+        # Common patterns for search and replace
+        if "replace" in prompt_lower and "with" in prompt_lower:
+            parts = prompt.split(" with ")
+            if len(parts) == 2:
+                search_term = parts[0].replace("replace ", "").strip()
+                replace_term = parts[1].strip()
+                return search_term, replace_term
+        
+        elif "change" in prompt_lower and "to" in prompt_lower:
+            parts = prompt.split(" to ")
+            if len(parts) == 2:
+                search_term = parts[0].replace("change ", "").strip()
+                replace_term = parts[1].strip()
+                return search_term, replace_term
+        
+        # Default fallback
+        return "object", prompt
+    
+    def _parse_recolor_prompt(self, prompt):
+        """Parse object and color from recoloring prompt"""
+        prompt_lower = prompt.lower()
+        
+        # Extract color words
+        colors = ["red", "blue", "green", "yellow", "orange", "purple", "pink", "brown", "black", "white", "gray", "grey"]
+        found_color = "blue"  # default
+        
+        for color in colors:
+            if color in prompt_lower:
+                found_color = color
+                break
+        
+        # Extract object (everything before color-related words)
+        color_words = ["color", "to", found_color]
+        object_part = prompt_lower
+        for word in color_words:
+            if word in object_part:
+                object_part = object_part.split(word)[0]
+        
+        search_term = object_part.replace("change", "").replace("recolor", "").strip()
+        if not search_term:
+            search_term = "object"
+        
+        return search_term, found_color
+    
     def get_model_limits(self, model):
         """Get practical token limits for different models"""
         limits = {
