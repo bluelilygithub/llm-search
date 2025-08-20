@@ -1100,13 +1100,11 @@ class KnowledgeBaseApp {
             return;
         }
         
-        // If query is less than 3 characters, use simple client-side filtering
-        // This handles tag searches better since tags are usually short
-        if (query.length < 3) {
-            console.log(`DEBUG: Short query (${query.length} chars), using client-side filtering`);
-            this.filterConversationsClientSide(query.toLowerCase());
-            return;
-        }
+        // Use client-side filtering for all tag searches
+        // This preserves the tag display and highlighting
+        console.log(`DEBUG: Using client-side filtering for query: "${query}"`);
+        this.filterConversationsClientSide(query.toLowerCase());
+        return;
         
         try {
             // Build search URL with project awareness
