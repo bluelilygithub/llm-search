@@ -1747,5 +1747,162 @@ def get_all_tags():
 
 # ==================== END TAG API ====================
 
+# ==================== MODEL SETTINGS API ====================
+
+@app.route('/api/model-settings', methods=['GET'])
+def get_model_settings():
+    """Get current model settings"""
+    try:
+        # Check if user is authenticated
+        from auth import current_user_id
+        user_id = current_user_id()
+        if not user_id:
+            return jsonify({'error': 'Authentication required'}), 401
+        
+        # For now, return default settings stored in session or file
+        # You can enhance this to store in database per user
+        settings_file = os.path.join(app.instance_path, 'model_settings.json')
+        
+        if os.path.exists(settings_file):
+            import json
+            with open(settings_file, 'r') as f:
+                settings = json.load(f)
+        else:
+            # Default settings - most models enabled except GPT-5
+            settings = {
+                'gpt-3.5-turbo': {'enabled': True, 'status': 'unknown'},
+                'gpt-4': {'enabled': True, 'status': 'unknown'},
+                'gpt-4-turbo': {'enabled': True, 'status': 'unknown'},
+                'gpt-4o': {'enabled': True, 'status': 'unknown'},
+                'gpt-4o-mini': {'enabled': True, 'status': 'unknown'},
+                'gpt-5': {'enabled': False, 'status': 'unknown'},  # Disabled by default
+                'o1-preview': {'enabled': True, 'status': 'unknown'},
+                'o1-mini': {'enabled': True, 'status': 'unknown'},
+                'claude-3.5-sonnet': {'enabled': True, 'status': 'unknown'},
+                'claude-3-opus': {'enabled': True, 'status': 'unknown'},
+                'claude-3-sonnet': {'enabled': True, 'status': 'unknown'},
+                'claude-3-haiku': {'enabled': True, 'status': 'unknown'},
+                'gemini-pro': {'enabled': True, 'status': 'unknown'},
+                'gemini-flash': {'enabled': True, 'status': 'unknown'},
+                'llama2-70b': {'enabled': True, 'status': 'unknown'},
+                'mixtral-8x7b': {'enabled': True, 'status': 'unknown'},
+                'codellama-34b': {'enabled': True, 'status': 'unknown'},
+                'stable-image-ultra': {'enabled': True, 'status': 'unknown'},
+                'stable-image-core': {'enabled': True, 'status': 'unknown'},
+                'stable-image-sd3': {'enabled': True, 'status': 'unknown'},
+                'stable-audio-2': {'enabled': True, 'status': 'unknown'}
+            }
+        
+        return jsonify(settings)
+    
+    except Exception as e:
+        app.logger.error(f"Error getting model settings: {str(e)}")
+        return jsonify({'error': 'Failed to get model settings'}), 500
+
+@app.route('/api/model-settings', methods=['POST'])
+def save_model_settings():
+    """Save model settings"""
+    try:
+        # Check if user is authenticated
+        from auth import current_user_id
+        user_id = current_user_id()
+        if not user_id:
+            return jsonify({'error': 'Authentication required'}), 401
+        
+        settings = request.get_json()
+        if not settings:
+            return jsonify({'error': 'No settings provided'}), 400
+        
+        # Ensure instance path exists
+        os.makedirs(app.instance_path, exist_ok=True)
+        
+        # Save settings to file (you can enhance this to use database)
+        settings_file = os.path.join(app.instance_path, 'model_settings.json')
+        import json
+        with open(settings_file, 'w') as f:
+            json.dump(settings, f, indent=2)
+        
+        app.logger.info(f"Model settings saved for user {user_id}")
+        return jsonify({'success': True, 'message': 'Settings saved successfully'})
+    
+    except Exception as e:
+        app.logger.error(f"Error saving model settings: {str(e)}")
+        return jsonify({'error': 'Failed to save model settings'}), 500
+
+@app.route('/api/check-model-access', methods=['POST'])
+def check_model_access():
+    """Check if a specific model is accessible"""
+    try:
+        # Check if user is authenticated
+        from auth import current_user_id
+        user_id = current_user_id()
+        if not user_id:
+            return jsonify({'error': 'Authentication required'}), 401
+        
+        data = request.get_json()
+        model = data.get('model')
+        if not model:
+            return jsonify({'error': 'Model not specified'}), 400
+        
+        # Import LLM service to check model access
+        from llm_service import LLMService
+        llm_service = LLMService()
+        
+        # Check if model is accessible by attempting to get info or make a test call
+        has_access = False
+        try:
+            # Try to check model access - this is model-specific logic
+            if model.startswith('gpt-') or model.startswith('o1-'):
+                # OpenAI models - check if API key is configured
+                openai_key = app.config.get('OPENAI_API_KEY')
+                has_access = bool(openai_key and openai_key.strip())
+                
+            elif model.startswith('claude-'):
+                # Anthropic models - check if API key is configured
+                anthropic_key = app.config.get('ANTHROPIC_API_KEY')
+                has_access = bool(anthropic_key and anthropic_key.strip())
+                
+            elif model.startswith('gemini-'):
+                # Google models - check if API key is configured
+                google_key = app.config.get('GOOGLE_API_KEY')
+                has_access = bool(google_key and google_key.strip())
+                
+            elif model in ['llama2-70b', 'mixtral-8x7b', 'codellama-34b']:
+                # Hugging Face models - check if API key is configured
+                hf_key = app.config.get('HUGGINGFACE_API_KEY')
+                has_access = bool(hf_key and hf_key.strip())
+                
+            elif model.startswith('stable-'):
+                # Stability AI models - check if API key is configured
+                stability_key = app.config.get('STABILITY_API_KEY')
+                has_access = bool(stability_key and stability_key.strip())
+                
+            else:
+                # Unknown model
+                has_access = False
+                
+            # For GPT-5 specifically, you might want additional checks
+            if model == 'gpt-5':
+                # GPT-5 might have special access requirements
+                # For now, assume it's not available unless specifically enabled
+                has_access = False
+                
+        except Exception as model_error:
+            app.logger.error(f"Error checking model {model} access: {str(model_error)}")
+            has_access = False
+        
+        app.logger.info(f"Model {model} access check: {has_access}")
+        return jsonify({
+            'success': True,
+            'model': model,
+            'hasAccess': has_access
+        })
+    
+    except Exception as e:
+        app.logger.error(f"Error checking model access: {str(e)}")
+        return jsonify({'error': 'Failed to check model access'}), 500
+
+# ==================== END MODEL SETTINGS API ====================
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

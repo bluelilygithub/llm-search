@@ -1235,33 +1235,65 @@
         }
 
         async function checkAllModelsAccess() {
-            const allModels = Object.keys(availableModels).flatMap(provider => 
-                availableModels[provider].map(model => model.value)
-            );
+            const checkBtn = document.querySelector('.btn-secondary');
+            const originalText = checkBtn.innerHTML;
             
-            const promises = allModels.map(modelValue => checkModelAccess(modelValue));
-            await Promise.all(promises);
+            try {
+                // Show loading state
+                checkBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
+                checkBtn.disabled = true;
+                
+                const allModels = Object.keys(availableModels).flatMap(provider => 
+                    availableModels[provider].map(model => model.value)
+                );
+                
+                const promises = allModels.map(modelValue => checkModelAccess(modelValue));
+                await Promise.all(promises);
+                
+                alert('Model access check completed for all models!');
+                
+            } catch (error) {
+                console.error('Failed to check all models access:', error);
+                alert('Failed to check model access: Network error');
+            } finally {
+                // Restore button state
+                checkBtn.innerHTML = originalText;
+                checkBtn.disabled = false;
+            }
         }
 
         async function saveModelSettings() {
+            const saveBtn = document.querySelector('.btn-primary');
+            const originalText = saveBtn.innerHTML;
+            
             try {
+                // Show loading state
+                saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+                saveBtn.disabled = true;
+                
                 const response = await fetch('/api/model-settings', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(modelSettings)
                 });
                 
+                const result = await response.json();
+                
                 if (response.ok) {
                     // Update the model dropdown based on enabled models
                     updateModelDropdown();
                     alert('Model settings saved successfully!');
                 } else {
-                    alert('Failed to save model settings');
+                    alert(`Failed to save model settings: ${result.error || 'Unknown error'}`);
                 }
                 
             } catch (error) {
                 console.error('Failed to save model settings:', error);
-                alert('Failed to save model settings');
+                alert('Failed to save model settings: Network error');
+            } finally {
+                // Restore button state
+                saveBtn.innerHTML = originalText;
+                saveBtn.disabled = false;
             }
         }
 

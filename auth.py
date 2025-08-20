@@ -390,3 +390,9 @@ auth = SimpleAuth()
 def require_auth(f):
     """Convenience decorator for requiring authentication"""
     return auth.login_required(f)
+
+def current_user_id():
+    """Get the current user ID if authenticated"""
+    if auth.is_authenticated():
+        return session.get('user_id', 'admin')  # Default to 'admin' for simple auth
+    return None
