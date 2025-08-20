@@ -1151,9 +1151,15 @@ class KnowledgeBaseApp {
         
         container.innerHTML = conversations.map(conv => {
             const isActive = this.currentConversationId === conv.id;
+            
+            // Highlight matching tags and build tags display
             const tags = conv.tags.length > 0 ? 
                 `<div class="conversation-tags">
-                    ${conv.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+                    ${conv.tags.map(tag => {
+                        const isMatch = tag.toLowerCase().includes(query.toLowerCase());
+                        const highlightedTag = isMatch ? tag.replace(new RegExp(`(${query})`, 'gi'), '<mark>$1</mark>') : tag;
+                        return `<span class="tag${isMatch ? ' tag-match' : ''}">${highlightedTag}</span>`;
+                    }).join('')}
                 </div>` : '';
             
             // Show snippets with highlighted query terms

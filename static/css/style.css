@@ -226,6 +226,20 @@ body {
     font-size: 10px;
 }
 
+.tag.tag-match {
+    background-color: #16a34a;
+    color: white;
+    font-weight: 600;
+    border: 1px solid #15803d;
+}
+
+.tag mark {
+    background-color: #fbbf24;
+    color: #1a1a1a;
+    padding: 1px 2px;
+    border-radius: 2px;
+}
+
 /* Main Content Styles */
 .main-content {
     flex: 1;
