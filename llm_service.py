@@ -312,7 +312,7 @@ class LLMService:
                 return self._generate_image(endpoint, user_message, "sd3")
             
             elif model == 'stable-audio-2':
-                endpoint = "https://api.stability.ai/v2beta/stable-audio/generate/audio"
+                endpoint = "https://api.stability.ai/v2beta/audio/stable-audio-2/text-to-audio"
                 return self._generate_audio(endpoint, user_message)
             
             else:
@@ -342,7 +342,10 @@ class LLMService:
             
             response = requests.post(
                 endpoint,
-                headers={"Authorization": f"Bearer {self.stability_api_key}"},
+                headers={
+                    "Authorization": f"Bearer {self.stability_api_key}",
+                    "Accept": "image/*"
+                },
                 files=files,
                 timeout=60
             )
@@ -374,7 +377,8 @@ class LLMService:
                 endpoint,
                 headers={
                     "Authorization": f"Bearer {self.stability_api_key}",
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
+                    "Accept": "audio/*"
                 },
                 json={
                     "prompt": prompt,
