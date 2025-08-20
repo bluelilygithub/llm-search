@@ -1314,10 +1314,10 @@ def search_conversations():
         )
         
         # Add tag search using JSON contains operator
-        from sqlalchemy import func, text
+        from sqlalchemy import func, Text
         
         # Check if any tag contains the query (case-insensitive)
-        tag_matches = func.lower(func.cast(Conversation.tags, text)).like(f'%{query.lower()}%')
+        tag_matches = func.lower(func.cast(Conversation.tags, Text)).like(f'%{query.lower()}%')
         
         search_filter = or_(
             Conversation.title.ilike(f'%{query}%'),
