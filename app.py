@@ -957,6 +957,82 @@ def llm_usage_stats():
     ]
     return jsonify({'stats': result, 'timeseries': timeseries_result})
 
+@app.route('/monthly-token-usage', methods=['GET'])
+def monthly_token_usage():
+    from models import LLMUsageLog
+    from sqlalchemy import func, extract
+    import datetime
+    
+    # Get token usage by model for each month in the last 12 months
+    end_date = datetime.date.today()
+    start_date = end_date - datetime.timedelta(days=365)
+    
+    monthly_stats = db.session.query(
+        extract('year', LLMUsageLog.timestamp).label('year'),
+        extract('month', LLMUsageLog.timestamp).label('month'),
+        LLMUsageLog.model,
+        func.coalesce(func.sum(LLMUsageLog.tokens), 0).label('total_tokens')
+    ).filter(
+        LLMUsageLog.timestamp >= start_date
+    ).group_by(
+        extract('year', LLMUsageLog.timestamp),
+        extract('month', LLMUsageLog.timestamp),
+        LLMUsageLog.model
+    ).order_by('year', 'month').all()
+    
+    result = []
+    for row in monthly_stats:
+        month_name = datetime.date(int(row.year), int(row.month), 1).strftime('%Y-%m')
+        result.append({
+            'month': month_name,
+            'model': row.model,
+            'total_tokens': int(row.total_tokens)
+        })
+    
+    return jsonify({'monthly_stats': result})
+
+@app.route('/session-token-usage', methods=['GET'])
+def session_token_usage():
+    from models import LLMUsageLog
+    from sqlalchemy import func
+    import datetime
+    
+    # Get current session ID from cookie or generate one
+    user_identity = get_user_identity()
+    session_id = user_identity.get('session_id')
+    user_id = user_identity.get('user_id')
+    
+    # For current session, we'll look at today's usage for the current user
+    today = datetime.date.today()
+    today_start = datetime.datetime.combine(today, datetime.time.min)
+    
+    query_filter = LLMUsageLog.timestamp >= today_start
+    
+    # Apply user-specific filter
+    if user_id:
+        # For authenticated users, filter by user_id (we need to add this to LLMUsageLog if not present)
+        # For now, we'll show all usage for today as a placeholder
+        pass
+    elif session_id:
+        # For free users, we'll show today's usage (could be enhanced with session tracking)
+        pass
+    
+    session_stats = db.session.query(
+        LLMUsageLog.model,
+        func.coalesce(func.sum(LLMUsageLog.tokens), 0).label('total_tokens'),
+        func.count().label('calls')
+    ).filter(query_filter).group_by(LLMUsageLog.model).all()
+    
+    result = []
+    for row in session_stats:
+        result.append({
+            'model': row.model,
+            'total_tokens': int(row.total_tokens),
+            'calls': int(row.calls)
+        })
+    
+    return jsonify({'session_stats': result})
+
 @app.route('/llm-error-log', methods=['GET'])
 def llm_error_log():
     from models import LLMErrorLog

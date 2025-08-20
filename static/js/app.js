@@ -1464,6 +1464,13 @@ KnowledgeBaseApp.prototype.openSettingsModal = async function() {
                 });
             }
         }
+        
+        // Render Monthly Token Usage Chart
+        await this.renderMonthlyTokenChart();
+        
+        // Render Session Token Usage Chart
+        await this.renderSessionTokenChart();
+        
         // Error log
         try {
             const errResp = await fetch('/llm-error-log');
@@ -1486,6 +1493,132 @@ KnowledgeBaseApp.prototype.openSettingsModal = async function() {
         document.getElementById('llm-usage-table').innerHTML = '<p>Error loading usage stats.</p>';
     }
 };
+
+KnowledgeBaseApp.prototype.renderMonthlyTokenChart = async function() {
+    try {
+        const response = await fetch('/monthly-token-usage');
+        const data = await response.json();
+        
+        if (data.monthly_stats && data.monthly_stats.length > 0) {
+            // Organize data by month and model
+            const months = [...new Set(data.monthly_stats.map(r => r.month))].sort();
+            const models = [...new Set(data.monthly_stats.map(r => r.model))];
+            
+            const datasets = models.map((model, i) => {
+                const colors = ['#36a2eb', '#ff6384', '#4bc0c0', '#9966ff', '#ff9f40', '#ffcd56', '#c9cbcf'];
+                const color = colors[i % colors.length];
+                return {
+                    label: model,
+                    data: months.map(month => {
+                        const record = data.monthly_stats.find(r => r.model === model && r.month === month);
+                        return record ? record.total_tokens : 0;
+                    }),
+                    backgroundColor: color + '80', // Add transparency
+                    borderColor: color,
+                    borderWidth: 2,
+                    tension: 0.2
+                };
+            });
+            
+            const ctx = document.getElementById('monthly-tokens-chart').getContext('2d');
+            if (window.monthlyTokensChart) window.monthlyTokensChart.destroy();
+            window.monthlyTokensChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: months,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { 
+                            display: true,
+                            position: 'top'
+                        },
+                        title: { 
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Tokens'
+                            }
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    }
+                }
+            });
+        } else {
+            document.getElementById('monthly-tokens-chart').style.display = 'none';
+        }
+    } catch (error) {
+        console.error('Error rendering monthly token chart:', error);
+    }
+};
+
+KnowledgeBaseApp.prototype.renderSessionTokenChart = async function() {
+    try {
+        const response = await fetch('/session-token-usage');
+        const data = await response.json();
+        
+        if (data.session_stats && data.session_stats.length > 0) {
+            const models = data.session_stats.map(r => r.model);
+            const tokens = data.session_stats.map(r => r.total_tokens);
+            const colors = ['#36a2eb', '#ff6384', '#4bc0c0', '#9966ff', '#ff9f40', '#ffcd56', '#c9cbcf'];
+            
+            const ctx = document.getElementById('session-tokens-chart').getContext('2d');
+            if (window.sessionTokensChart) window.sessionTokensChart.destroy();
+            window.sessionTokensChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: models,
+                    datasets: [{
+                        data: tokens,
+                        backgroundColor: models.map((_, i) => colors[i % colors.length] + '80'),
+                        borderColor: models.map((_, i) => colors[i % colors.length]),
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'right'
+                        },
+                        title: {
+                            display: false
+                        }
+                    },
+                    cutout: '50%'
+                }
+            });
+        } else {
+            // Show placeholder text when no data
+            const canvas = document.getElementById('session-tokens-chart');
+            const parent = canvas.parentElement;
+            if (!parent.querySelector('.no-data-message')) {
+                const message = document.createElement('div');
+                message.className = 'no-data-message';
+                message.style.cssText = 'text-align: center; color: #666; padding: 50px; font-style: italic;';
+                message.textContent = 'No token usage data for current session';
+                parent.appendChild(message);
+                canvas.style.display = 'none';
+            }
+        }
+    } catch (error) {
+        console.error('Error rendering session token chart:', error);
+    }
+};
+
 KnowledgeBaseApp.prototype.closeSettingsModal = function() {
     document.getElementById('settings-modal').style.display = 'none';
 };

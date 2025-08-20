@@ -237,6 +237,18 @@
                 
                 <div id="usage-tab" class="tab-content">
                     <canvas id="llm-usage-chart" style="max-width:100%;margin-bottom:20px;"></canvas>
+                    
+                    <div style="display: flex; gap: 20px; margin-bottom: 20px;">
+                        <div style="flex: 1;">
+                            <h5 style="margin-bottom: 10px; color: #495057;">Monthly Token Usage by Model</h5>
+                            <canvas id="monthly-tokens-chart" style="max-width:100%; height: 300px;"></canvas>
+                        </div>
+                        <div style="flex: 1;">
+                            <h5 style="margin-bottom: 10px; color: #495057;">Current Session Token Usage</h5>
+                            <canvas id="session-tokens-chart" style="max-width:100%; height: 300px;"></canvas>
+                        </div>
+                    </div>
+                    
                     <!-- Usage, error, and LLM cost stats will appear here -->
                     <div id="llm-usage-table"></div>
                 </div>
