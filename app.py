@@ -543,12 +543,37 @@ def upload_context():
         # Apply task-specific processing
         processed_content = process_document_by_task(content, filename, task_type)
         
-        # File logging removed for security
-        # Content logging removed for security
+        # Create context item using new context management system
+        try:
+            context_item = ContextService.create_context_item(
+                name=filename,
+                content_type='document',
+                content_text=processed_content,
+                description=f"Uploaded document - {task_type}",
+                original_filename=filename,
+                file_size=len(content) if content else 0,
+                extra_data={
+                    'task_type': task_type,
+                    'original_content': content[:1000] if content else None  # Store first 1000 chars of original
+                }
+            )
+            
+            # Automatically add context item to current conversation
+            ContextService.add_context_to_conversation(
+                conversation_id=conversation_id,
+                context_item_id=str(context_item.id),
+                relevance_score=1.0
+            )
+            
+            app.logger.info(f"Created context item {context_item.id} for conversation {conversation_id}")
+            
+        except Exception as context_error:
+            app.logger.error(f"Failed to create context item: {context_error}")
+            # Continue with old system as fallback
         
+        # Keep old system for backward compatibility
         import json
         docs = conversation.context_documents
-        # Context logging removed for security
         
         if not docs:
             docs = []
@@ -568,7 +593,6 @@ def upload_context():
         })
         
         conversation.context_documents = docs
-        # Context update logging removed for security
         db.session.commit()
         
         # Get file type for icon

@@ -1314,6 +1314,11 @@ KnowledgeBaseApp.prototype.handleContextUpload = async function(event) {
         const data = await response.json();
         if (data.success) {
             this.showContextUploadMessage(data.filename, data.preview, data.file_type, data.word_count, data.task_type);
+            
+            // Refresh context panel if it's open
+            if (this.contextPanelOpen) {
+                await this.loadContextData();
+            }
         } else {
             this.showError(data.error || 'Context upload failed.');
         }
