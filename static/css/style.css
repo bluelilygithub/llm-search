@@ -2049,3 +2049,105 @@ body {
         font-size: 14px;
     }
 }
+
+/* ==================== STABILITY IMAGE UPLOAD STYLES ==================== */
+
+.stability-upload {
+    background: linear-gradient(135deg, #ff6b6b 0%, #4ecdc4 100%) !important;
+    color: white !important;
+    border: none !important;
+    transition: all 0.3s ease;
+}
+
+.stability-upload:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
+}
+
+.stability-image-upload .message-content {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 12px;
+    padding: 16px;
+}
+
+.stability-image-container {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.stability-uploaded-image {
+    max-width: 200px;
+    max-height: 150px;
+    border-radius: 8px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    object-fit: cover;
+}
+
+.image-editing-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.image-editing-info i {
+    font-size: 20px;
+    margin-right: 8px;
+    color: #fff;
+}
+
+.image-editing-info strong {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.image-details {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.editing-instructions {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 12px;
+    border-radius: 8px;
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.editing-examples {
+    margin-top: 8px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.editing-examples::before {
+    content: "Examples:";
+    display: block;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: #fff;
+}
+
+/* Responsive design for image upload */
+@media (max-width: 768px) {
+    .stability-image-container {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .stability-uploaded-image {
+        max-width: 100%;
+        align-self: center;
+    }
+    
+    .editing-examples {
+        font-size: 12px;
+    }
+}

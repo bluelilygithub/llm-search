@@ -669,9 +669,131 @@ class KnowledgeBaseApp {
             'stable-audio-2'
         ];
 
+        // Show/hide image upload button based on model type
+        this.toggleImageUploadForStability(stabilityModels.includes(this.selectedModel));
+
         if (stabilityModels.includes(this.selectedModel)) {
             this.showStabilityInstructions();
         }
+    }
+
+    toggleImageUploadForStability(isStabilityModel) {
+        const imageUploadBtn = document.getElementById('image-upload-btn');
+        const regularFileBtn = document.querySelector('button[onclick="triggerFileUpload()"]');
+        
+        if (isStabilityModel) {
+            // Show image upload button for Stability models
+            if (!imageUploadBtn) {
+                const newImageBtn = document.createElement('button');
+                newImageBtn.id = 'image-upload-btn';
+                newImageBtn.className = 'input-btn-inline stability-upload';
+                newImageBtn.onclick = () => this.triggerImageUpload();
+                newImageBtn.title = 'Upload Image for Editing';
+                newImageBtn.innerHTML = '<i class="fas fa-image"></i>';
+                
+                // Insert after the regular file upload button
+                const inputControlsLeft = document.querySelector('.input-controls-left');
+                inputControlsLeft.appendChild(newImageBtn);
+            }
+            imageUploadBtn.style.display = 'block';
+            
+            // Hide regular file upload to avoid confusion
+            if (regularFileBtn) {
+                regularFileBtn.style.display = 'none';
+            }
+        } else {
+            // Hide image upload button for non-Stability models
+            if (imageUploadBtn) {
+                imageUploadBtn.style.display = 'none';
+            }
+            
+            // Show regular file upload button
+            if (regularFileBtn) {
+                regularFileBtn.style.display = 'block';
+            }
+        }
+    }
+
+    triggerImageUpload() {
+        // Create a dedicated image file input for Stability
+        let imageInput = document.getElementById('stability-image-input');
+        if (!imageInput) {
+            imageInput = document.createElement('input');
+            imageInput.type = 'file';
+            imageInput.id = 'stability-image-input';
+            imageInput.accept = 'image/*';
+            imageInput.style.display = 'none';
+            imageInput.onchange = (event) => this.handleStabilityImageUpload(event);
+            document.body.appendChild(imageInput);
+        }
+        imageInput.click();
+    }
+
+    async handleStabilityImageUpload(event) {
+        const files = Array.from(event.target.files);
+        if (!files.length) return;
+
+        const file = files[0];
+        
+        // Validate it's an image
+        if (!file.type.startsWith('image/')) {
+            this.showError('Please select an image file (JPG, PNG, GIF, etc.)');
+            return;
+        }
+
+        // Show the uploaded image in chat and prepare for editing options
+        await this.showImageForEditing(file);
+        
+        // Clear the file input for next upload
+        event.target.value = '';
+    }
+
+    async showImageForEditing(imageFile) {
+        const container = document.getElementById('chat-messages');
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message user new stability-image-upload';
+        
+        // Create image preview
+        const imageUrl = URL.createObjectURL(imageFile);
+        
+        messageDiv.innerHTML = `
+            <div class="message-content">
+                <div class="stability-image-container">
+                    <img src="${imageUrl}" alt="Uploaded for editing" class="stability-uploaded-image">
+                    <div class="image-editing-info">
+                        <i class="fas fa-image"></i>
+                        <strong>Image uploaded for Stability AI editing</strong>
+                        <div class="image-details">
+                            <span>${imageFile.name}</span>
+                            <span>(${this.formatFileSize(imageFile.size)})</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="editing-instructions">
+                    Now describe what you want to do with this image:
+                    <div class="editing-examples">
+                        • "Remove the background"
+                        • "Erase the person on the left"  
+                        • "Change the sky to sunset colors"
+                        • "Extend this image to the right"
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        container.appendChild(messageDiv);
+        this.scrollToBottom();
+        
+        // Store the image file for potential use
+        this.currentStabilityImage = imageFile;
+    }
+
+    formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     }
 
     showStabilityInstructions() {
@@ -699,6 +821,11 @@ class KnowledgeBaseApp {
                         <span class="option">Replace Background</span> - Add new background with lighting
                     </div>
                     <div class="usage-guidelines">
+                        <strong>Two Ways to Use:</strong>
+                        <ul>
+                            <li><strong>Generate:</strong> Type a text prompt to create new images</li>
+                            <li><strong>Edit:</strong> Use the <i class="fas fa-image"></i> button to upload an existing image for editing</li>
+                        </ul>
                         <strong>Guidelines:</strong>
                         <ul>
                             <li>Be descriptive and specific in your prompts</li>
