@@ -353,26 +353,56 @@ class LLMService:
             if response.status_code != 200:
                 raise Exception(f"Stability API returned {response.status_code}: {response.text}")
             
-            # Save the image data and return a response with image info
+            # Upload image to Cloudinary instead of local storage
             import base64
             import os
             from datetime import datetime
+            import cloudinary
+            import cloudinary.uploader
             
-            # Create images directory if it doesn't exist
-            images_dir = os.path.join(os.path.dirname(__file__), 'static', 'generated_images')
-            os.makedirs(images_dir, exist_ok=True)
+            # Configure Cloudinary (if not already configured)
+            cloudinary.config(
+                cloud_name=os.getenv('CLOUDINARY_CLOUD_NAME'),
+                api_key=os.getenv('CLOUDINARY_API_KEY'),
+                api_secret=os.getenv('CLOUDINARY_API_SECRET'),
+                secure=True
+            )
             
             # Generate unique filename
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"stability_{model_type}_{timestamp}.png"
-            file_path = os.path.join(images_dir, filename)
+            filename = f"stability_{model_type}_{timestamp}"
             
-            # Save the image
-            with open(file_path, 'wb') as f:
-                f.write(response.content)
-            
-            # Create relative path for web access
-            web_path = f"/static/generated_images/{filename}"
+            try:
+                # Upload image to Cloudinary from binary data
+                upload_result = cloudinary.uploader.upload(
+                    response.content,
+                    public_id=filename,
+                    folder="ai-generated",
+                    resource_type="image",
+                    format="png"
+                )
+                
+                # Get the secure URL from Cloudinary
+                web_path = upload_result['secure_url']
+                filename_with_ext = f"{filename}.png"
+                
+            except Exception as cloudinary_error:
+                # Fallback to local storage if Cloudinary fails
+                self.logger.warning(f"Cloudinary upload failed: {cloudinary_error}. Falling back to local storage.")
+                
+                # Create images directory if it doesn't exist
+                images_dir = os.path.join(os.path.dirname(__file__), 'static', 'generated_images')
+                os.makedirs(images_dir, exist_ok=True)
+                
+                filename_with_ext = f"{filename}.png"
+                file_path = os.path.join(images_dir, filename_with_ext)
+                
+                # Save the image locally
+                with open(file_path, 'wb') as f:
+                    f.write(response.content)
+                
+                # Create relative path for web access
+                web_path = f"/static/generated_images/{filename_with_ext}"
             
             # Return response with image
             text_response = f"✅ **Image Generated Successfully**\n\n"
@@ -381,7 +411,7 @@ class LLMService:
             text_response += f"**Format:** PNG image\n"
             text_response += f"**Status:** Image generated and ready\n\n"
             text_response += f"![Generated Image]({web_path})\n\n"
-            text_response += f"**Image saved as:** {filename}"
+            text_response += f"**Image saved as:** {filename_with_ext}"
             
             # Estimate tokens and cost
             tokens = len(prompt.split()) + 50  # Prompt tokens + generation overhead

@@ -14,3 +14,4 @@ PyPDF2
 python-docx
 beautifulsoup4
 Flask-Limiter
+cloudinary==1.40.0
