@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request, render_template, send_from_directory, redirect, url_for
+from flask import Flask, jsonify, request, render_template, send_from_directory, redirect, url_for, session
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -8,6 +8,7 @@ from datetime import datetime
 import os
 import re
 import html
+import hashlib
 from werkzeug.utils import secure_filename
 
 from PyPDF2 import PdfReader
@@ -60,13 +61,16 @@ llm_service = LLMService()
 # User identification helper functions
 def get_user_identity():
     """Get user identity for conversation ownership"""
-    if auth.get_current_user():
-        # Authenticated user
-        user = auth.get_current_user()
+    if auth.is_authenticated():
+        # Authenticated user - use a simple identifier based on session
+        # Since this is a simple auth system, we'll use a hash of the session
+        from auth import FreeAccessManager
+        session_hash = hashlib.sha256(str(session).encode()).hexdigest()[:16]
+        
         return {
-            'user_id': user.get('username') or user.get('email') or str(user.get('id', '')),
+            'user_id': f"auth_{session_hash}",
             'session_id': None,
-            'ip_address': request.remote_addr,
+            'ip_address': FreeAccessManager.get_client_ip(),
             'is_authenticated': True
         }
     else:
@@ -76,10 +80,11 @@ def get_user_identity():
             # Generate a session ID if none exists (will be set as cookie in response)
             session_id = str(uuid.uuid4())
         
+        from auth import FreeAccessManager
         return {
             'user_id': None,
             'session_id': session_id,
-            'ip_address': request.remote_addr,
+            'ip_address': FreeAccessManager.get_client_ip(),
             'is_authenticated': False
         }
 

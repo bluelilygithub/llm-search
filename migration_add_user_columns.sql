@@ -1,16 +1,43 @@
 -- Migration script to add user identification columns to conversations table
 -- Run this SQL on your PostgreSQL database
 
--- Add the new columns to the conversations table
-ALTER TABLE conversations 
-ADD COLUMN user_id VARCHAR(100),
-ADD COLUMN session_id VARCHAR(100),
-ADD COLUMN ip_address VARCHAR(45);
+-- Add the new columns to the conversations table (ignore if they exist)
+DO $$ 
+BEGIN
+    BEGIN
+        ALTER TABLE conversations ADD COLUMN user_id VARCHAR(100);
+    EXCEPTION
+        WHEN duplicate_column THEN NULL;
+    END;
+    
+    BEGIN
+        ALTER TABLE conversations ADD COLUMN session_id VARCHAR(100);
+    EXCEPTION
+        WHEN duplicate_column THEN NULL;
+    END;
+    
+    BEGIN
+        ALTER TABLE conversations ADD COLUMN ip_address VARCHAR(45);
+    EXCEPTION
+        WHEN duplicate_column THEN NULL;
+    END;
+END $$;
 
--- Create indexes for better query performance
-CREATE INDEX idx_conversations_user_id ON conversations(user_id);
-CREATE INDEX idx_conversations_session_id ON conversations(session_id);
-CREATE INDEX idx_conversations_ip_address ON conversations(ip_address);
+-- Create indexes for better query performance (ignore if they exist)
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_conversations_user_id') THEN
+        CREATE INDEX idx_conversations_user_id ON conversations(user_id);
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_conversations_session_id') THEN
+        CREATE INDEX idx_conversations_session_id ON conversations(session_id);
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_conversations_ip_address') THEN
+        CREATE INDEX idx_conversations_ip_address ON conversations(ip_address);
+    END IF;
+END $$;
 
 -- Optional: Update existing conversations with a placeholder
 -- You may want to review this based on your specific needs
