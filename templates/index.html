@@ -20,17 +20,22 @@
                 <button class="new-chat-btn" id="new-chat-btn">
                     <i class="fas fa-plus"></i> New Chat
                 </button>
-                <div id="projects-section" class="projects-section">
-                    <button class="new-chat-btn" id="toggle-projects-btn">
-                        ▼ Projects
-                    </button>
-                    <button class="new-chat-btn" id="new-project-btn">
-                        + New Project
-                    </button>
-                    <div id="new-project-input-row" style="display:none;">
-                        <input type="text" class="project-input" id="new-project-input" placeholder="Project name..." onkeydown="window.app.handleNewProjectInput(event)">
-                    </div>
-                    <div id="project-list"></div>
+            </div>
+            
+            <div class="projects-section">
+                <button class="projects-toggle" id="toggle-projects-btn" onclick="window.app.toggleProjects()">
+                    <i class="fas fa-chevron-down" id="projects-chevron"></i>
+                    <span>Projects</span>
+                </button>
+                <button class="new-project-btn" id="new-project-btn" onclick="window.app.showNewProjectInput()">
+                    <i class="fas fa-plus"></i>
+                    <span>New Project</span>
+                </button>
+                <div id="new-project-input-row" class="new-project-input" style="display:none;">
+                    <input type="text" class="project-input" id="new-project-input" placeholder="Project name..." onkeydown="window.app.handleNewProjectInput(event)">
+                </div>
+                <div id="project-list" class="project-list">
+                    <!-- Projects will be loaded here -->
                 </div>
             </div>
             
