@@ -57,6 +57,46 @@ auth.init_app(app)
 
 llm_service = LLMService()
 
+# User identification helper functions
+def get_user_identity():
+    """Get user identity for conversation ownership"""
+    if auth.get_current_user():
+        # Authenticated user
+        user = auth.get_current_user()
+        return {
+            'user_id': user.get('username') or user.get('email') or str(user.get('id', '')),
+            'session_id': None,
+            'ip_address': request.remote_addr,
+            'is_authenticated': True
+        }
+    else:
+        # Free/anonymous user - use session-based identification
+        session_id = request.cookies.get('session_id')
+        if not session_id:
+            # Generate a session ID if none exists (will be set as cookie in response)
+            session_id = str(uuid.uuid4())
+        
+        return {
+            'user_id': None,
+            'session_id': session_id,
+            'ip_address': request.remote_addr,
+            'is_authenticated': False
+        }
+
+def filter_conversations_by_user(query):
+    """Filter conversations by current user identity"""
+    identity = get_user_identity()
+    
+    if identity['is_authenticated']:
+        # Authenticated user: only show their conversations
+        return query.filter(Conversation.user_id == identity['user_id'])
+    else:
+        # Free user: show conversations for their session_id or IP
+        return query.filter(
+            (Conversation.session_id == identity['session_id']) |
+            (Conversation.ip_address == identity['ip_address'])
+        )
+
 UPLOAD_FOLDER = os.path.join(os.getcwd(), 'uploads')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
@@ -151,14 +191,22 @@ def rename_project(project_id):
     })
 
 @app.route('/conversations', methods=['GET'])
-@auth.login_required
 def get_conversations():
+    """Get conversations filtered by current user (authenticated or free user)"""
     project_id = request.args.get('project_id')
-    query = Conversation.query
+    
+    # Start with base query filtered by user
+    query = filter_conversations_by_user(Conversation.query)
+    
+    # Add project filter if specified
     if project_id:
         query = query.filter_by(project_id=project_id)
+    
     conversations = query.order_by(Conversation.updated_at.desc()).all()
-    return jsonify([
+    
+    # Set session cookie for free users if needed
+    identity = get_user_identity()
+    response_data = [
         {
             'id': str(conv.id),
             'project_id': str(conv.project_id) if conv.project_id else None,
@@ -170,30 +218,55 @@ def get_conversations():
             'message_count': len(conv.messages)
         }
         for conv in conversations
-    ])
+    ]
+    
+    response = jsonify(response_data)
+    
+    # Set session cookie for free users
+    if not identity['is_authenticated'] and not request.cookies.get('session_id'):
+        response.set_cookie('session_id', identity['session_id'], max_age=30*24*60*60)  # 30 days
+    
+    return response
 
 # Update create_conversation to accept project_id
 @app.route('/conversations', methods=['POST'])
 def create_conversation():
+    """Create a new conversation with proper user ownership"""
     data = request.get_json()
     if not data or not data.get('title') or not data.get('llm_model'):
         return jsonify({'error': 'Title and llm_model are required'}), 400
+    
+    # Get user identity for ownership
+    identity = get_user_identity()
+    
     from models import Conversation
     conversation = Conversation(
         title=data['title'],
         llm_model=data['llm_model'],
         tags=data.get('tags', []),
-        project_id=data.get('project_id')
+        project_id=data.get('project_id'),
+        user_id=identity['user_id'],
+        session_id=identity['session_id'],
+        ip_address=identity['ip_address']
     )
     db.session.add(conversation)
     db.session.commit()
-    return jsonify({
+    
+    response_data = {
         'id': str(conversation.id),
         'title': conversation.title,
         'llm_model': conversation.llm_model,
         'created_at': conversation.created_at.isoformat(),
         'tags': conversation.tags
-    }), 201
+    }
+    
+    response = jsonify(response_data)
+    
+    # Set session cookie for free users
+    if not identity['is_authenticated'] and not request.cookies.get('session_id'):
+        response.set_cookie('session_id', identity['session_id'], max_age=30*24*60*60)  # 30 days
+    
+    return response, 201
 
 @app.route('/conversations/<conversation_id>/messages', methods=['GET'])
 def get_messages(conversation_id):
@@ -1320,8 +1393,8 @@ def search_conversations():
             message_exists
         )
         
-        # Build base query with project filter if specified
-        base_query = db.session.query(Conversation).filter(search_filter)
+        # Build base query with user filtering and search filter
+        base_query = filter_conversations_by_user(db.session.query(Conversation)).filter(search_filter)
         
         if project_id:
             try:

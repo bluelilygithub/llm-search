@@ -22,6 +22,10 @@ class Conversation(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     tags = db.Column(db.JSON, default=list)
     context_documents = db.Column(db.JSON, default=list)  # New: stores uploaded context docs as list of dicts
+    # User identification fields
+    user_id = db.Column(db.String(100), nullable=True)  # For authenticated users
+    session_id = db.Column(db.String(100), nullable=True)  # For free/anonymous users
+    ip_address = db.Column(db.String(45), nullable=True)  # Additional tracking for free users
     messages = db.relationship('Message', backref='conversation', lazy=True, cascade='all, delete-orphan')
 
 class Message(db.Model):
