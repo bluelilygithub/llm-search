@@ -61,16 +61,18 @@ llm_service = LLMService()
 # User identification helper functions
 def get_user_identity():
     """Get user identity for conversation ownership"""
+    from auth import FreeAccessManager
+    
     if auth.is_authenticated():
-        # Authenticated user - use a simple identifier based on session
-        # Since this is a simple auth system, we'll use a hash of the session
-        from auth import FreeAccessManager
-        session_hash = hashlib.sha256(str(session).encode()).hexdigest()[:16]
+        # Authenticated user - use a consistent identifier based on IP + auth status
+        # This ensures authenticated users can see their conversations across sessions
+        ip = FreeAccessManager.get_client_ip()
+        user_id = f"auth_{hashlib.sha256(ip.encode()).hexdigest()[:16]}"
         
         return {
-            'user_id': f"auth_{session_hash}",
+            'user_id': user_id,
             'session_id': None,
-            'ip_address': FreeAccessManager.get_client_ip(),
+            'ip_address': ip,
             'is_authenticated': True
         }
     else:
@@ -80,7 +82,6 @@ def get_user_identity():
             # Generate a session ID if none exists (will be set as cookie in response)
             session_id = str(uuid.uuid4())
         
-        from auth import FreeAccessManager
         return {
             'user_id': None,
             'session_id': session_id,
@@ -93,13 +94,18 @@ def filter_conversations_by_user(query):
     identity = get_user_identity()
     
     if identity['is_authenticated']:
-        # Authenticated user: only show their conversations
+        # Authenticated user: only show conversations with their specific user_id
         return query.filter(Conversation.user_id == identity['user_id'])
     else:
-        # Free user: show conversations for their session_id or IP
+        # Free user: only show conversations that:
+        # 1. Have the same session_id (primary match)
+        # 2. OR have same IP but NO user_id (legacy free conversations)
         return query.filter(
             (Conversation.session_id == identity['session_id']) |
-            (Conversation.ip_address == identity['ip_address'])
+            (
+                (Conversation.ip_address == identity['ip_address']) & 
+                (Conversation.user_id.is_(None))
+            )
         )
 
 UPLOAD_FOLDER = os.path.join(os.getcwd(), 'uploads')
