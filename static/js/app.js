@@ -1384,3 +1384,312 @@ KnowledgeBaseApp.prototype.showUrlUploadMessage = function(url, title, preview, 
     container.appendChild(messageDiv);
     this.scrollToBottom();
 };
+
+// ==================== CONTEXT MANAGEMENT FUNCTIONS ====================
+
+// Context panel state
+KnowledgeBaseApp.prototype.contextPanelOpen = false;
+KnowledgeBaseApp.prototype.contextItems = [];
+KnowledgeBaseApp.prototype.conversationContext = [];
+KnowledgeBaseApp.prototype.contextStats = { total_items: 0, total_tokens: 0 };
+
+// Toggle context panel visibility
+function toggleContextPanel() {
+    const panel = document.getElementById('context-panel');
+    const toggleBtn = document.getElementById('context-toggle-btn');
+    
+    if (window.app.contextPanelOpen) {
+        panel.style.display = 'none';
+        toggleBtn.classList.remove('active');
+        window.app.contextPanelOpen = false;
+    } else {
+        panel.style.display = 'flex';
+        toggleBtn.classList.add('active');
+        window.app.contextPanelOpen = true;
+        window.app.loadContextData();
+    }
+}
+
+// Load all context data
+KnowledgeBaseApp.prototype.loadContextData = async function() {
+    try {
+        // Load user context items
+        await this.loadContextItems();
+        
+        // Load context stats
+        await this.loadContextStats();
+        
+        // Load conversation context if we have a current conversation
+        if (this.currentConversationId) {
+            await this.loadConversationContext();
+        }
+        
+    } catch (error) {
+        console.error('Error loading context data:', error);
+        this.showErrorNotification('Failed to load context data');
+    }
+};
+
+// Load user context items
+KnowledgeBaseApp.prototype.loadContextItems = async function() {
+    try {
+        const response = await fetch('/api/context');
+        const data = await response.json();
+        
+        if (data.success) {
+            this.contextItems = data.items;
+            this.renderContextItems();
+        } else {
+            throw new Error(data.error || 'Failed to load context items');
+        }
+    } catch (error) {
+        console.error('Error loading context items:', error);
+        document.getElementById('context-items-list').innerHTML = 
+            '<div class="empty-context">Failed to load context items</div>';
+    }
+};
+
+// Load context statistics
+KnowledgeBaseApp.prototype.loadContextStats = async function() {
+    try {
+        const response = await fetch('/api/context/stats');
+        const data = await response.json();
+        
+        if (data.success) {
+            this.contextStats = data.stats;
+            this.renderContextStats();
+        }
+    } catch (error) {
+        console.error('Error loading context stats:', error);
+    }
+};
+
+// Load conversation context
+KnowledgeBaseApp.prototype.loadConversationContext = async function() {
+    if (!this.currentConversationId) return;
+    
+    try {
+        const response = await fetch(`/api/conversation/${this.currentConversationId}/context`);
+        const data = await response.json();
+        
+        if (data.success) {
+            this.conversationContext = data.context;
+            this.renderConversationContext();
+            
+            // Show conversation context section
+            const section = document.getElementById('context-conversation-section');
+            section.style.display = data.context.length > 0 ? 'block' : 'none';
+        }
+    } catch (error) {
+        console.error('Error loading conversation context:', error);
+    }
+};
+
+// Render context items list
+KnowledgeBaseApp.prototype.renderContextItems = function() {
+    const container = document.getElementById('context-items-list');
+    
+    if (this.contextItems.length === 0) {
+        container.innerHTML = '<div class="empty-context">No context items found. Add some context to get started!</div>';
+        return;
+    }
+    
+    const contextInConversation = new Set(this.conversationContext.map(c => c.item_id));
+    
+    container.innerHTML = this.contextItems.map(item => `
+        <div class="context-item-card ${contextInConversation.has(item.id) ? 'in-conversation' : ''}"
+             onclick="window.app.showContextItemDetails('${item.id}')">
+            <div class="context-item-header">
+                <div class="context-item-name">${item.name}</div>
+                <div class="context-item-type">${item.content_type}</div>
+            </div>
+            ${item.description ? `<div class="context-item-description">${item.description}</div>` : ''}
+            <div class="context-item-meta">
+                <div class="context-item-tokens">${item.token_count} tokens</div>
+                <div class="context-item-actions">
+                    ${contextInConversation.has(item.id) 
+                        ? `<button class="context-item-action remove" onclick="event.stopPropagation(); window.app.removeContextFromConversation('${item.id}')" title="Remove from conversation">
+                             <i class="fas fa-minus-circle"></i>
+                           </button>`
+                        : `<button class="context-item-action add" onclick="event.stopPropagation(); window.app.addContextToConversation('${item.id}')" title="Add to conversation">
+                             <i class="fas fa-plus-circle"></i>
+                           </button>`
+                    }
+                    <button class="context-item-action" onclick="event.stopPropagation(); window.app.editContextItem('${item.id}')" title="Edit">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    `).join('');
+};
+
+// Render conversation context
+KnowledgeBaseApp.prototype.renderConversationContext = function() {
+    const container = document.getElementById('conversation-context-list');
+    
+    if (this.conversationContext.length === 0) {
+        container.innerHTML = '<div class="empty-context">No context items added to this conversation yet.</div>';
+        return;
+    }
+    
+    container.innerHTML = this.conversationContext.map(context => `
+        <div class="context-item-card in-conversation">
+            <div class="context-item-header">
+                <div class="context-item-name">${context.name}</div>
+                <div class="context-item-type">${context.content_type}</div>
+            </div>
+            ${context.description ? `<div class="context-item-description">${context.description}</div>` : ''}
+            <div class="context-item-meta">
+                <div class="context-item-tokens">${context.token_count} tokens</div>
+                <div class="context-item-actions">
+                    <button class="context-item-action remove" onclick="window.app.removeContextFromConversation('${context.item_id}')" title="Remove from conversation">
+                        <i class="fas fa-minus-circle"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    `).join('');
+};
+
+// Render context stats
+KnowledgeBaseApp.prototype.renderContextStats = function() {
+    document.getElementById('total-context-items').textContent = this.contextStats.total_items || 0;
+    document.getElementById('total-context-tokens').textContent = this.contextStats.total_tokens || 0;
+};
+
+// Add context item to conversation
+KnowledgeBaseApp.prototype.addContextToConversation = async function(contextItemId) {
+    if (!this.currentConversationId) {
+        this.showErrorNotification('Please start a conversation first');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/conversation/${this.currentConversationId}/context/${contextItemId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ relevance_score: 1.0 })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Reload context data to update UI
+            await this.loadConversationContext();
+            this.renderContextItems(); // Re-render to update button states
+            
+            this.showSuccessNotification('Context added to conversation');
+        } else {
+            throw new Error(data.error || 'Failed to add context');
+        }
+    } catch (error) {
+        console.error('Error adding context to conversation:', error);
+        this.showErrorNotification('Failed to add context to conversation');
+    }
+};
+
+// Remove context item from conversation
+KnowledgeBaseApp.prototype.removeContextFromConversation = async function(contextItemId) {
+    if (!this.currentConversationId) return;
+    
+    try {
+        const response = await fetch(`/api/conversation/${this.currentConversationId}/context/${contextItemId}`, {
+            method: 'DELETE'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Reload context data to update UI
+            await this.loadConversationContext();
+            this.renderContextItems(); // Re-render to update button states
+            
+            this.showSuccessNotification('Context removed from conversation');
+        } else {
+            throw new Error(data.error || 'Failed to remove context');
+        }
+    } catch (error) {
+        console.error('Error removing context from conversation:', error);
+        this.showErrorNotification('Failed to remove context from conversation');
+    }
+};
+
+// Show context item details (placeholder)
+KnowledgeBaseApp.prototype.showContextItemDetails = function(contextItemId) {
+    console.log('Show details for context item:', contextItemId);
+    // This will be implemented in later increments
+};
+
+// Edit context item (placeholder)
+KnowledgeBaseApp.prototype.editContextItem = function(contextItemId) {
+    console.log('Edit context item:', contextItemId);
+    // This will be implemented in later increments
+};
+
+// Search context items
+function searchContextItems() {
+    const searchTerm = document.getElementById('context-search').value.toLowerCase();
+    const items = document.querySelectorAll('.context-item-card');
+    
+    items.forEach(item => {
+        const name = item.querySelector('.context-item-name').textContent.toLowerCase();
+        const description = item.querySelector('.context-item-description')?.textContent.toLowerCase() || '';
+        
+        if (name.includes(searchTerm) || description.includes(searchTerm)) {
+            item.style.display = 'block';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+
+// Refresh context panel
+function refreshContextPanel() {
+    if (window.app.contextPanelOpen) {
+        window.app.loadContextData();
+    }
+}
+
+// Add new context (placeholder)
+function addNewContext() {
+    console.log('Add new context - will be implemented in later increments');
+    // This will be implemented in later increments
+}
+
+// Override loadConversation to update context panel
+const originalLoadConversation = KnowledgeBaseApp.prototype.loadConversation;
+KnowledgeBaseApp.prototype.loadConversation = function(conversationId) {
+    originalLoadConversation.call(this, conversationId);
+    
+    // Update conversation context if panel is open
+    if (this.contextPanelOpen) {
+        setTimeout(() => {
+            this.loadConversationContext();
+        }, 100);
+    }
+};
+
+// Show success notification
+KnowledgeBaseApp.prototype.showSuccessNotification = function(message) {
+    const notification = document.createElement('div');
+    notification.className = 'success-notification';
+    notification.innerHTML = `
+        <div class="error-content">
+            <i class="fas fa-check-circle"></i>
+            <span>${message}</span>
+            <button class="close-error" onclick="this.parentElement.parentElement.remove()">×</button>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Auto-remove after 3 seconds
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.remove();
+        }
+    }, 3000);
+};

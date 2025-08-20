@@ -82,6 +82,9 @@
                 </div>
                 
                 <div class="conversation-actions">
+                    <button class="action-btn" onclick="toggleContextPanel()" title="Context Panel" id="context-toggle-btn">
+                        <i class="fas fa-layer-group"></i>
+                    </button>
                     <button class="action-btn" onclick="searchKnowledgeBase()" title="Search Knowledge Base">
                         <i class="fas fa-database"></i>
                     </button>
@@ -98,6 +101,51 @@
                 <div class="welcome-message">
                     <h3>Welcome to your AI Knowledge Base</h3>
                     <p>Start a conversation or search your previous chats to find relevant information.</p>
+                </div>
+            </div>
+
+            <!-- Context Panel -->
+            <div class="context-panel" id="context-panel" style="display: none;">
+                <div class="context-header">
+                    <h4><i class="fas fa-layer-group"></i> Active Context</h4>
+                    <div class="context-actions">
+                        <button class="context-btn" onclick="addNewContext()" title="Add Context">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                        <button class="context-btn" onclick="refreshContextPanel()" title="Refresh">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button class="context-btn" onclick="toggleContextPanel()" title="Close Panel">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="context-content">
+                    <div class="context-stats" id="context-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">Total Items:</span>
+                            <span class="stat-value" id="total-context-items">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Total Tokens:</span>
+                            <span class="stat-value" id="total-context-tokens">0</span>
+                        </div>
+                    </div>
+                    <div class="context-conversation-section" id="context-conversation-section" style="display: none;">
+                        <h5>Context for This Conversation</h5>
+                        <div class="conversation-context-list" id="conversation-context-list">
+                            <div class="empty-context">No context items added to this conversation yet.</div>
+                        </div>
+                    </div>
+                    <div class="context-items-section">
+                        <h5>Available Context Items</h5>
+                        <div class="context-search-container">
+                            <input type="text" id="context-search" placeholder="Search context items..." onkeyup="searchContextItems()">
+                        </div>
+                        <div class="context-items-list" id="context-items-list">
+                            <div class="loading-context">Loading context items...</div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
