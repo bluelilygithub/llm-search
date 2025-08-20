@@ -360,26 +360,28 @@ class LLMService:
             import cloudinary
             import cloudinary.uploader
             
-            # Configure Cloudinary (if not already configured)
-            cloudinary.config(
-                cloud_name=os.getenv('CLOUDINARY_CLOUD_NAME'),
-                api_key=os.getenv('CLOUDINARY_API_KEY'),
-                api_secret=os.getenv('CLOUDINARY_API_SECRET'),
-                secure=True
-            )
-            
             # Generate unique filename
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             filename = f"stability_{model_type}_{timestamp}"
             
             try:
-                # Upload image to Cloudinary from binary data
+                # Configure Cloudinary right before upload
+                cloudinary.config(
+                    cloud_name=os.getenv('CLOUDINARY_CLOUD_NAME'),
+                    api_key=os.getenv('CLOUDINARY_API_KEY'),
+                    api_secret=os.getenv('CLOUDINARY_API_SECRET'),
+                    secure=True
+                )
+                
+                # Upload image to Cloudinary from binary data using BytesIO
+                from io import BytesIO
+                image_buffer = BytesIO(response.content)
+                
                 upload_result = cloudinary.uploader.upload(
-                    response.content,
+                    image_buffer,
                     public_id=filename,
                     folder="ai-generated",
-                    resource_type="image",
-                    format="png"
+                    resource_type="image"
                 )
                 
                 # Get the secure URL from Cloudinary
