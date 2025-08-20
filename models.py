@@ -135,7 +135,7 @@ class ContextItem(db.Model):
     last_used_at = db.Column(db.DateTime)
     usage_count = db.Column(db.Integer, default=0)
     is_active = db.Column(db.Boolean, default=True)
-    metadata = db.Column(db.JSON)  # Store additional metadata as JSON
+    extra_data = db.Column(db.JSON)  # Store additional metadata as JSON
 
 class ContextSession(db.Model):
     __tablename__ = 'context_sessions'
