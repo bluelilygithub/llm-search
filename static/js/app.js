@@ -391,15 +391,18 @@ class KnowledgeBaseApp {
     }
 
     renderConversations(conversations) {
+        console.log('DEBUG: renderConversations called with:', conversations);
         const container = document.getElementById('conversations-list');
         container.innerHTML = '';
 
         conversations.forEach(conv => {
+            console.log(`DEBUG: Rendering conversation "${conv.title}" with tags:`, conv.tags);
             const item = document.createElement('div');
             item.className = 'conversation-item';
             item.onclick = () => this.loadConversation(conv.id);
             
             const tags = (conv.tags || []).map(tag => `<span class="tag">${tag}</span>`).join('');
+            console.log(`DEBUG: Generated tags HTML for "${conv.title}":`, tags);
             
             item.innerHTML = `
                 <div class="conversation-title">${conv.title}</div>
@@ -816,6 +819,7 @@ class KnowledgeBaseApp {
     async saveTags() {
         const tagInput = document.getElementById('tag-input').value;
         const tags = tagInput.split(',').map(tag => tag.trim()).filter(tag => tag);
+        console.log(`DEBUG: Saving tags:`, tags, `for conversation:`, this.currentConversationId);
         
         if (tags.length === 0) {
             this.showError('Please enter at least one tag');
@@ -832,11 +836,14 @@ class KnowledgeBaseApp {
             });
             
             if (response.ok) {
+                const result = await response.json();
+                console.log(`DEBUG: Tags saved successfully:`, result);
                 this.showMessage(`Added ${tags.length} tag(s) successfully`, 'success');
                 this.closeTagModal();
                 this.loadConversations(); // Refresh to show new tags
             } else {
                 const errorData = await response.json();
+                console.error(`DEBUG: Failed to save tags:`, errorData);
                 throw new Error(errorData.error || 'Failed to save tags');
             }
         } catch (error) {
@@ -1083,8 +1090,10 @@ class KnowledgeBaseApp {
     // Search conversations
     async searchConversations() {
         const query = document.getElementById('conversation-search').value.trim();
+        console.log(`DEBUG: searchConversations called with query: "${query}"`);
         
         if (!query) {
+            console.log('DEBUG: Empty query, reloading conversations');
             // If empty query, reload normal conversations and clear highlights
             this.loadConversations();
             this.clearSearchHighlights();
@@ -1094,6 +1103,7 @@ class KnowledgeBaseApp {
         // If query is less than 3 characters, use simple client-side filtering
         // This handles tag searches better since tags are usually short
         if (query.length < 3) {
+            console.log(`DEBUG: Short query (${query.length} chars), using client-side filtering`);
             this.filterConversationsClientSide(query.toLowerCase());
             return;
         }
@@ -1133,8 +1143,10 @@ class KnowledgeBaseApp {
             const tags = (tagsContainer?.textContent || '').toLowerCase();
             
             console.log(`Conversation: "${title}", Tags: "${tags}"`);
+            console.log(`Title match: ${title.includes(query)}, Tags match: ${tags.includes(query)}`);
             
             if (title.includes(query) || tags.includes(query)) {
+                console.log(`MATCH FOUND: Showing conversation "${title}"`);
                 item.style.display = 'block';
                 
                 // Highlight matching tags
