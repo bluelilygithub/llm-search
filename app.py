@@ -1399,5 +1399,131 @@ def search_conversations():
 
 # ==================== END SEARCH API ====================
 
+# ==================== TAG API ====================
+
+@app.route('/api/conversations/<conversation_id>/tags', methods=['GET'])
+def get_conversation_tags(conversation_id):
+    """Get tags for a specific conversation"""
+    try:
+        conversation = db.session.get(Conversation, conversation_id)
+        if not conversation:
+            return jsonify({'error': 'Conversation not found'}), 404
+        
+        return jsonify({
+            'success': True,
+            'conversation_id': conversation_id,
+            'tags': conversation.tags or []
+        })
+    
+    except Exception as e:
+        app.logger.error(f"Error getting conversation tags: {str(e)}")
+        return jsonify({'success': False, 'error': 'Failed to get tags'}), 500
+
+@app.route('/api/conversations/<conversation_id>/tags', methods=['POST'])
+def add_conversation_tags(conversation_id):
+    """Add tags to a conversation"""
+    try:
+        data = request.get_json()
+        if not data or 'tags' not in data:
+            return jsonify({'error': 'Tags are required'}), 400
+        
+        new_tags = data['tags']
+        if not isinstance(new_tags, list):
+            return jsonify({'error': 'Tags must be a list'}), 400
+        
+        # Clean and validate tags
+        cleaned_tags = []
+        for tag in new_tags:
+            if isinstance(tag, str) and tag.strip():
+                # Convert to lowercase and remove special characters for consistency
+                clean_tag = ''.join(c for c in tag.strip() if c.isalnum() or c in '-_').lower()
+                if clean_tag and len(clean_tag) <= 50:
+                    cleaned_tags.append(clean_tag)
+        
+        if not cleaned_tags:
+            return jsonify({'error': 'No valid tags provided'}), 400
+        
+        conversation = db.session.get(Conversation, conversation_id)
+        if not conversation:
+            return jsonify({'error': 'Conversation not found'}), 404
+        
+        # Merge with existing tags
+        existing_tags = conversation.tags or []
+        all_tags = list(set(existing_tags + cleaned_tags))  # Remove duplicates
+        
+        conversation.tags = all_tags
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'conversation_id': conversation_id,
+            'tags': all_tags,
+            'added_tags': cleaned_tags
+        })
+    
+    except Exception as e:
+        app.logger.error(f"Error adding conversation tags: {str(e)}")
+        return jsonify({'success': False, 'error': 'Failed to add tags'}), 500
+
+@app.route('/api/conversations/<conversation_id>/tags', methods=['DELETE'])
+def remove_conversation_tag(conversation_id):
+    """Remove a single tag from a conversation"""
+    try:
+        data = request.get_json()
+        if not data or 'tag' not in data:
+            return jsonify({'error': 'Tag is required'}), 400
+        
+        tag_to_remove = data['tag'].strip().lower()
+        
+        conversation = db.session.get(Conversation, conversation_id)
+        if not conversation:
+            return jsonify({'error': 'Conversation not found'}), 404
+        
+        existing_tags = conversation.tags or []
+        if tag_to_remove in existing_tags:
+            existing_tags.remove(tag_to_remove)
+            conversation.tags = existing_tags
+            db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'conversation_id': conversation_id,
+            'tags': existing_tags,
+            'removed_tag': tag_to_remove
+        })
+    
+    except Exception as e:
+        app.logger.error(f"Error removing conversation tag: {str(e)}")
+        return jsonify({'success': False, 'error': 'Failed to remove tag'}), 500
+
+@app.route('/api/tags', methods=['GET'])
+def get_all_tags():
+    """Get all unique tags from all conversations"""
+    try:
+        # Query all conversations and collect unique tags
+        conversations = db.session.query(Conversation).filter(
+            Conversation.tags.isnot(None)
+        ).all()
+        
+        all_tags = set()
+        for conv in conversations:
+            if conv.tags and isinstance(conv.tags, list):
+                all_tags.update(conv.tags)
+        
+        # Sort tags alphabetically
+        sorted_tags = sorted(list(all_tags))
+        
+        return jsonify({
+            'success': True,
+            'tags': sorted_tags,
+            'total_tags': len(sorted_tags)
+        })
+    
+    except Exception as e:
+        app.logger.error(f"Error getting all tags: {str(e)}")
+        return jsonify({'success': False, 'error': 'Failed to get tags'}), 500
+
+# ==================== END TAG API ====================
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

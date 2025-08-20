@@ -85,13 +85,10 @@
                     <button class="action-btn" onclick="toggleContextPanel()" title="Context Panel" id="context-toggle-btn">
                         <i class="fas fa-layer-group"></i>
                     </button>
-                    <button class="action-btn" onclick="searchKnowledgeBase()" title="Search Knowledge Base">
-                        <i class="fas fa-database"></i>
-                    </button>
                     <button class="action-btn" onclick="exportConversation()" title="Export to Markdown">
                         <i class="fas fa-download"></i>
                     </button>
-                    <button class="action-btn" onclick="tagConversation()" title="Add Tags">
+                    <button class="action-btn" onclick="tagConversation()" title="Organize with Tags">
                         <i class="fas fa-tags"></i>
                     </button>
                 </div>
@@ -182,33 +179,46 @@
     </div>
 
     <!-- Modals -->
-    <div id="search-modal" class="modal" style="display: none;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Search Knowledge Base</h3>
-                <span class="close" onclick="closeSearchModal()">&times;</span>
-            </div>
-            <div class="modal-body">
-                <input type="text" id="kb-search-input" placeholder="Search your conversations..." onkeyup="performKnowledgeBaseSearch()">
-                <div id="search-results-container">
-                    <!-- Search results will appear here -->
-                </div>
-            </div>
-        </div>
-    </div>
 
     <div id="tag-modal" class="modal" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Add Tags</h3>
+                <h3><i class="fas fa-tags"></i> Organize Conversation</h3>
                 <span class="close" onclick="closeTagModal()">&times;</span>
             </div>
             <div class="modal-body">
-                <input type="text" id="tag-input" placeholder="Add tags (comma separated)..." onkeydown="handleTagInput(event)">
-                <div class="existing-tags" id="existing-tags">
-                    <!-- Existing tags will appear here -->
+                <div class="tag-explanation">
+                    <p><strong>What are tags?</strong> Tags help you organize and find conversations by topic.</p>
+                    <p><strong>Examples:</strong> <code>python</code>, <code>work-project</code>, <code>tutorial</code>, <code>research</code></p>
+                    <p><strong>Benefits:</strong> Search conversations by tag, group related discussions, quick filtering</p>
                 </div>
-                <button onclick="saveTags()">Save Tags</button>
+                
+                <div class="tag-input-section">
+                    <label for="tag-input"><strong>Add tags to this conversation:</strong></label>
+                    <input type="text" id="tag-input" placeholder="Type tags separated by commas (e.g., python, tutorial, debugging)" onkeydown="handleTagInput(event)">
+                    <div class="tag-input-help">
+                        <small><i class="fas fa-lightbulb"></i> Tip: Use short, descriptive words. Tags are searchable in the conversation list.</small>
+                    </div>
+                </div>
+                
+                <div class="current-conversation-tags">
+                    <label><strong>Current tags for this conversation:</strong></label>
+                    <div class="conversation-current-tags" id="conversation-current-tags">
+                        <span class="no-tags">No tags yet</span>
+                    </div>
+                </div>
+                
+                <div class="suggested-tags-section">
+                    <label><strong>Quick add (click to add):</strong></label>
+                    <div class="existing-tags" id="existing-tags">
+                        <!-- Existing tags from other conversations will appear here -->
+                    </div>
+                </div>
+                
+                <div class="tag-modal-actions">
+                    <button class="btn-primary" onclick="saveTags()"><i class="fas fa-save"></i> Save Tags</button>
+                    <button class="btn-secondary" onclick="closeTagModal()">Cancel</button>
+                </div>
             </div>
         </div>
     </div>

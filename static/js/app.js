@@ -705,13 +705,106 @@ class KnowledgeBaseApp {
     }
 
     // Tagging functionality
-    tagConversation() {
+    async tagConversation() {
         if (!this.currentConversationId) {
             this.showError('Please select a conversation to tag');
             return;
         }
+        
+        // Load current conversation tags and existing tags
+        await this.loadTagsForModal();
         document.getElementById('tag-modal').style.display = 'flex';
         document.getElementById('tag-input').focus();
+    }
+
+    async loadTagsForModal() {
+        try {
+            // Load current conversation tags
+            const currentResponse = await fetch(`/api/conversations/${this.currentConversationId}/tags`);
+            const currentTags = await currentResponse.json();
+            this.displayCurrentTags(currentTags.tags || []);
+            
+            // Load all existing tags for suggestions
+            const allResponse = await fetch('/api/tags');
+            const allTagsData = await allResponse.json();
+            this.displaySuggestedTags(allTagsData.tags || []);
+        } catch (error) {
+            console.error('Failed to load tags:', error);
+            this.displayCurrentTags([]);
+            this.displaySuggestedTags([]);
+        }
+    }
+
+    displayCurrentTags(tags) {
+        const container = document.getElementById('conversation-current-tags');
+        if (tags.length === 0) {
+            container.innerHTML = '<span class="no-tags">No tags yet</span>';
+        } else {
+            container.innerHTML = tags.map(tag => 
+                `<span class="tag">${tag} <span class="remove-tag" onclick="window.app.removeTagFromCurrent('${tag}')">&times;</span></span>`
+            ).join('');
+        }
+    }
+
+    displaySuggestedTags(tags) {
+        const container = document.getElementById('existing-tags');
+        if (tags.length === 0) {
+            container.innerHTML = '<span style="color: #999; font-style: italic;">No tags from other conversations yet</span>';
+        } else {
+            // Show unique tags only
+            const uniqueTags = [...new Set(tags)];
+            container.innerHTML = uniqueTags.slice(0, 20).map(tag => 
+                `<span class="tag" onclick="window.app.addTagFromSuggested('${tag}')">${tag}</span>`
+            ).join('');
+        }
+    }
+
+    addTagFromSuggested(tag) {
+        const input = document.getElementById('tag-input');
+        const currentValue = input.value.trim();
+        
+        // Check if tag already exists in input
+        const currentTags = currentValue.split(',').map(t => t.trim()).filter(t => t);
+        if (!currentTags.includes(tag)) {
+            if (currentValue) {
+                input.value = currentValue + ', ' + tag;
+            } else {
+                input.value = tag;
+            }
+        }
+        
+        // Visual feedback
+        const suggestionElement = event.target;
+        suggestionElement.classList.add('selected');
+        setTimeout(() => suggestionElement.classList.remove('selected'), 500);
+    }
+
+    removeTagFromCurrent(tag) {
+        // Remove tag immediately from current conversation
+        this.removeSingleTag(tag);
+    }
+
+    async removeSingleTag(tag) {
+        try {
+            const response = await fetch(`/api/conversations/${this.currentConversationId}/tags`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ tag: tag })
+            });
+            
+            if (response.ok) {
+                this.showMessage('Tag removed successfully', 'success');
+                await this.loadTagsForModal(); // Refresh the modal
+                this.loadConversations(); // Refresh conversation list
+            } else {
+                throw new Error('Failed to remove tag');
+            }
+        } catch (error) {
+            console.error('Error removing tag:', error);
+            this.showError('Failed to remove tag');
+        }
     }
 
     handleTagInput(event) {
@@ -724,11 +817,32 @@ class KnowledgeBaseApp {
         const tagInput = document.getElementById('tag-input').value;
         const tags = tagInput.split(',').map(tag => tag.trim()).filter(tag => tag);
         
-        // Save tags to conversation (API call needed)
-        console.log('Saving tags:', tags);
+        if (tags.length === 0) {
+            this.showError('Please enter at least one tag');
+            return;
+        }
         
-        this.closeTagModal();
-        this.loadConversations(); // Refresh to show new tags
+        try {
+            const response = await fetch(`/api/conversations/${this.currentConversationId}/tags`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ tags: tags })
+            });
+            
+            if (response.ok) {
+                this.showMessage(`Added ${tags.length} tag(s) successfully`, 'success');
+                this.closeTagModal();
+                this.loadConversations(); // Refresh to show new tags
+            } else {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to save tags');
+            }
+        } catch (error) {
+            console.error('Error saving tags:', error);
+            this.showError('Failed to save tags: ' + error.message);
+        }
     }
 
     closeTagModal() {

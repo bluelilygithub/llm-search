@@ -1220,6 +1220,179 @@ body {
     color: white;
 }
 
+/* Tag modal styles */
+.tag-explanation {
+    background: #f8f9fa;
+    padding: 16px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border-left: 4px solid #2563eb;
+}
+
+.tag-explanation p {
+    margin: 8px 0;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.tag-explanation code {
+    background: #e3f2fd;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Monaco', 'Menlo', monospace;
+    font-size: 12px;
+}
+
+.tag-input-section {
+    margin-bottom: 20px;
+}
+
+.tag-input-section label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #1a1a1a;
+}
+
+.tag-input-help {
+    margin-top: 8px;
+}
+
+.tag-input-help small {
+    color: #666;
+    font-size: 12px;
+}
+
+.tag-input-help i {
+    color: #f59e0b;
+    margin-right: 4px;
+}
+
+.current-conversation-tags {
+    margin-bottom: 20px;
+}
+
+.current-conversation-tags label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #1a1a1a;
+}
+
+.conversation-current-tags {
+    min-height: 32px;
+    padding: 8px;
+    background: #f8f9fa;
+    border: 1px solid #e5e5e5;
+    border-radius: 6px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+}
+
+.conversation-current-tags .no-tags {
+    color: #999;
+    font-style: italic;
+    font-size: 13px;
+}
+
+.conversation-current-tags .tag {
+    background: #2563eb;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.conversation-current-tags .tag .remove-tag {
+    cursor: pointer;
+    font-weight: bold;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+}
+
+.conversation-current-tags .tag .remove-tag:hover {
+    opacity: 1;
+}
+
+.suggested-tags-section {
+    margin-bottom: 20px;
+}
+
+.suggested-tags-section label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #1a1a1a;
+}
+
+.existing-tags .tag {
+    background: #f0f0f0;
+    color: #333;
+    padding: 6px 12px;
+    border-radius: 16px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.existing-tags .tag:hover {
+    background: #e0e0e0;
+}
+
+.existing-tags .tag.selected {
+    background: #2563eb;
+    color: white;
+}
+
+.tag-modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    padding-top: 16px;
+    border-top: 1px solid #e5e5e5;
+}
+
+.btn-primary {
+    background: #2563eb;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.2s;
+}
+
+.btn-primary:hover {
+    background: #1d4ed8;
+}
+
+.btn-secondary {
+    background: #f8f9fa;
+    color: #666;
+    border: 1px solid #d9d9d9;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+    background: #e8e8e8;
+    border-color: #b3b3b3;
+}
+
 /* Admin interface styles */
 .settings-tabs {
     display: flex;
