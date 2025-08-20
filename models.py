@@ -115,3 +115,87 @@ class IPUsageSummary(db.Model):
         db.UniqueConstraint('ip_address', 'date', name='unique_ip_date'),
         db.Index('idx_ip_date', 'ip_address', 'date'),
     )
+
+# Context Management Models
+class ContextItem(db.Model):
+    __tablename__ = 'context_items'
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = db.Column(db.String(255), nullable=False, index=True)
+    name = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text)
+    content_type = db.Column(db.String(50), nullable=False)  # 'document', 'url', 'text', 'conversation'
+    content_text = db.Column(db.Text)
+    content_summary = db.Column(db.Text)
+    file_path = db.Column(db.String(500))
+    original_filename = db.Column(db.String(255))
+    file_size = db.Column(db.Integer)
+    token_count = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow)
+    last_used_at = db.Column(db.DateTime)
+    usage_count = db.Column(db.Integer, default=0)
+    is_active = db.Column(db.Boolean, default=True)
+    metadata = db.Column(db.JSON)  # Store additional metadata as JSON
+
+class ContextSession(db.Model):
+    __tablename__ = 'context_sessions'
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    conversation_id = db.Column(UUID(as_uuid=True), db.ForeignKey('conversations.id', ondelete='CASCADE'))
+    context_item_id = db.Column(UUID(as_uuid=True), db.ForeignKey('context_items.id', ondelete='CASCADE'))
+    added_at = db.Column(db.DateTime, default=datetime.utcnow)
+    added_by = db.Column(db.String(50), default='user')  # 'user', 'system', 'suggestion'
+    is_active = db.Column(db.Boolean, default=True)
+    relevance_score = db.Column(db.Numeric(3, 2), default=1.0)  # 0.0 to 1.0
+    tokens_used = db.Column(db.Integer, default=0)
+    last_accessed_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    conversation = db.relationship('Conversation', backref='context_sessions')
+    context_item = db.relationship('ContextItem', backref='sessions')
+
+class ContextUsageLog(db.Model):
+    __tablename__ = 'context_usage_logs'
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    conversation_id = db.Column(UUID(as_uuid=True), db.ForeignKey('conversations.id', ondelete='CASCADE'))
+    message_id = db.Column(UUID(as_uuid=True), db.ForeignKey('messages.id', ondelete='CASCADE'))
+    context_item_id = db.Column(UUID(as_uuid=True), db.ForeignKey('context_items.id', ondelete='CASCADE'))
+    usage_type = db.Column(db.String(50), nullable=False)  # 'input', 'reference', 'citation'
+    influence_score = db.Column(db.Numeric(3, 2), default=0.0)  # How much this context influenced response
+    tokens_consumed = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    conversation = db.relationship('Conversation', backref='context_usage_logs')
+    message = db.relationship('Message', backref='context_usage_logs')
+    context_item = db.relationship('ContextItem', backref='usage_logs')
+
+class ContextTemplate(db.Model):
+    __tablename__ = 'context_templates'
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = db.Column(db.String(255), nullable=False)
+    name = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text)
+    context_items = db.Column(db.JSON, nullable=False)  # Array of context_item_ids
+    is_public = db.Column(db.Boolean, default=False)
+    usage_count = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class ContextAnalytics(db.Model):
+    __tablename__ = 'context_analytics'
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = db.Column(db.String(255), nullable=False)
+    date = db.Column(db.Date, nullable=False)
+    total_items = db.Column(db.Integer, default=0)
+    items_used = db.Column(db.Integer, default=0)
+    total_tokens_consumed = db.Column(db.Integer, default=0)
+    most_used_item_id = db.Column(UUID(as_uuid=True), db.ForeignKey('context_items.id', ondelete='SET NULL'))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    most_used_item = db.relationship('ContextItem', backref='analytics_records')
+    
+    # Unique constraint
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'date', name='unique_user_date'),
+    )
