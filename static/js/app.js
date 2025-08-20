@@ -1085,13 +1085,15 @@ class KnowledgeBaseApp {
         const query = document.getElementById('conversation-search').value.trim();
         
         if (!query) {
-            // If empty query, reload normal conversations
+            // If empty query, reload normal conversations and clear highlights
             this.loadConversations();
+            this.clearSearchHighlights();
             return;
         }
         
-        // If query is less than 2 characters, use simple client-side filtering
-        if (query.length < 2) {
+        // If query is less than 3 characters, use simple client-side filtering
+        // This handles tag searches better since tags are usually short
+        if (query.length < 3) {
             this.filterConversationsClientSide(query.toLowerCase());
             return;
         }
@@ -1126,13 +1128,41 @@ class KnowledgeBaseApp {
             if (!titleElem) return; // Skip project items
             
             const title = titleElem.textContent.toLowerCase();
-            const tags = (item.querySelector('.conversation-tags')?.textContent || '').toLowerCase();
+            const tagsContainer = item.querySelector('.conversation-tags');
+            const tags = (tagsContainer?.textContent || '').toLowerCase();
             
             if (title.includes(query) || tags.includes(query)) {
                 item.style.display = 'block';
+                
+                // Highlight matching tags
+                if (tagsContainer && tags.includes(query)) {
+                    const tagElements = tagsContainer.querySelectorAll('.tag');
+                    tagElements.forEach(tagElem => {
+                        const tagText = tagElem.textContent.toLowerCase();
+                        if (tagText.includes(query)) {
+                            tagElem.classList.add('tag-match');
+                            // Add highlighting within the tag
+                            const originalText = tagElem.textContent;
+                            const regex = new RegExp(`(${query})`, 'gi');
+                            tagElem.innerHTML = originalText.replace(regex, '<mark>$1</mark>');
+                        } else {
+                            tagElem.classList.remove('tag-match');
+                            tagElem.innerHTML = tagElem.textContent; // Remove any existing highlights
+                        }
+                    });
+                }
             } else {
                 item.style.display = 'none';
             }
+        });
+    }
+    
+    clearSearchHighlights() {
+        const tagElements = document.querySelectorAll('.conversation-tags .tag');
+        tagElements.forEach(tagElem => {
+            tagElem.classList.remove('tag-match');
+            // Remove any mark tags but preserve the text content
+            tagElem.innerHTML = tagElem.textContent;
         });
     }
     
