@@ -162,104 +162,140 @@ class KnowledgeBaseApp {
     }
 
     renderProjects(projects) {
-        // The HTML structure is already in place, just populate the project list
-        const projectList = document.getElementById('project-list');
-        if (!projectList) return;
-        
-        // Generate project colors
-        const projectColors = [
-            '#3b82f6', '#ef4444', '#10b981', '#f59e0b', 
-            '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'
-        ];
-        
-        const projectsSection = document.getElementById('projects-section');
-        if (projectsSection && projectsSection.classList.contains('collapsed')) {
+        const sidebar = document.querySelector('.sidebar');
+        // Projects section wrapper
+        let projectsSection = document.getElementById('projects-section');
+        if (!projectsSection) {
+            projectsSection = document.createElement('div');
+            projectsSection.id = 'projects-section';
+            projectsSection.className = 'projects-section';
+            sidebar.insertBefore(projectsSection, sidebar.children[1]);
+        }
+        projectsSection.innerHTML = '';
+        // Projects toggle button
+        let toggleBtn = document.getElementById('toggle-projects-btn');
+        if (!toggleBtn) {
+            toggleBtn = document.createElement('button');
+            toggleBtn.id = 'toggle-projects-btn';
+            toggleBtn.className = 'new-chat-btn';
+            toggleBtn.textContent = '▼ Projects';
+            toggleBtn.onclick = () => {
+                const projectList = document.getElementById('project-list');
+                if (projectList) {
+                    projectsSection.classList.toggle('collapsed');
+                    toggleBtn.textContent = projectsSection.classList.contains('collapsed') ? '► Projects' : '▼ Projects';
+                }
+            };
+        }
+        projectsSection.appendChild(toggleBtn);
+        // New Project button
+        let newBtn = document.getElementById('new-project-btn');
+        if (!newBtn) {
+            newBtn = document.createElement('button');
+            newBtn.id = 'new-project-btn';
+            newBtn.className = 'new-chat-btn';
+            newBtn.textContent = '+ New Project';
+            newBtn.onclick = () => { this.addingProject = true; this.loadProjects(); };
+        }
+        projectsSection.appendChild(newBtn);
+        // New project input field (styled like search input)
+        let inputRow = document.getElementById('new-project-input-row');
+        if (this.addingProject) {
+            if (!inputRow) {
+                inputRow = document.createElement('div');
+                inputRow.id = 'new-project-input-row';
+                inputRow.style.padding = '8px 20px 0 20px';
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.placeholder = 'Project name...';
+                input.className = 'project-input';
+                input.onkeydown = (e) => {
+                    if (e.key === 'Enter') this.createProject(input.value);
+                    if (e.key === 'Escape') this.addingProject = false, this.loadProjects();
+                };
+                inputRow.appendChild(input);
+                projectsSection.appendChild(inputRow);
+                input.focus();
+            }
+        } else if (inputRow) {
+            inputRow.remove();
+        }
+        // Project list
+        let projectList = document.getElementById('project-list');
+        if (!projectList) {
+            projectList = document.createElement('div');
+            projectList.id = 'project-list';
+        }
+        if (projectsSection.classList.contains('collapsed')) {
+            projectList.innerHTML = '';
             return;
         }
-        
         projectList.innerHTML = '';
-        
-        // Handle new project input
-        const newProjectInput = document.getElementById('new-project-input-row');
-        if (this.addingProject && !newProjectInput) {
-            const inputRow = document.createElement('div');
-            inputRow.id = 'new-project-input-row';
-            inputRow.className = 'new-project-input';
-            inputRow.style.display = 'block';
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.placeholder = 'Project name...';
-            input.className = 'project-input';
-            input.onkeydown = (e) => {
-                if (e.key === 'Enter') this.createProject(input.value);
-                if (e.key === 'Escape') this.addingProject = false, this.loadProjects();
-            };
-            inputRow.appendChild(input);
-            projectList.parentNode.insertBefore(inputRow, projectList);
-            input.focus();
-        } else if (!this.addingProject && newProjectInput) {
-            newProjectInput.remove();
+        // All Projects option
+        const allItem = document.createElement('div');
+        allItem.className = 'conversation-item';
+        allItem.textContent = 'All Projects';
+        allItem.onclick = () => this.selectProject(null);
+        if (!this.currentProject) {
+            allItem.classList.add('active');
         }
-        
-        // List all projects with new design
-        projects.forEach((project, index) => {
+        projectList.appendChild(allItem);
+        // List all projects
+        projects.forEach(project => {
             const item = document.createElement('div');
-            item.className = 'project-item';
+            item.className = 'conversation-item';
+            item.style.display = 'flex';
+            item.style.alignItems = 'center';
             if (this.currentProject && this.currentProject.id === project.id) {
                 item.classList.add('active');
             }
-            
-            // Project dot with color
-            const dot = document.createElement('div');
-            dot.className = 'project-dot';
-            dot.style.backgroundColor = projectColors[index % projectColors.length];
-            
             // Project name or input for renaming
             if (this.renamingProject && this.renamingProject.id === project.id) {
                 const input = document.createElement('input');
                 input.type = 'text';
                 input.value = project.name;
                 input.className = 'project-input';
+                input.style.flex = '1';
                 input.onkeydown = (e) => {
                     if (e.key === 'Enter') this.renameProject(project, input.value);
                     if (e.key === 'Escape') this.renamingProject = null, this.loadProjects();
                 };
-                item.appendChild(dot);
                 item.appendChild(input);
                 input.focus();
             } else {
-                const nameSpan = document.createElement('div');
+                const nameSpan = document.createElement('span');
                 nameSpan.textContent = project.name;
                 nameSpan.className = 'project-name';
-                
-                // Action buttons
-                const actions = document.createElement('div');
-                actions.className = 'project-actions';
-                
-                const editBtn = document.createElement('button');
-                editBtn.className = 'project-action';
-                editBtn.title = 'Edit Project';
-                editBtn.innerHTML = '<i class="fas fa-edit"></i>';
-                editBtn.onclick = (e) => { e.stopPropagation(); this.renamingProject = project; this.loadProjects(); };
-                
-                const deleteBtn = document.createElement('button');
-                deleteBtn.className = 'project-action';
-                deleteBtn.title = 'Delete Project';
-                deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
-                deleteBtn.onclick = (e) => { e.stopPropagation(); this.deleteProject(project); };
-                
-                actions.appendChild(editBtn);
-                actions.appendChild(deleteBtn);
-                
-                item.appendChild(dot);
+                nameSpan.onclick = () => this.selectProject(project);
                 item.appendChild(nameSpan);
-                item.appendChild(actions);
-                
-                item.onclick = () => this.selectProject(project);
             }
-            
+            // Inline edit/delete icons
+            const iconRow = document.createElement('span');
+            iconRow.style.display = 'flex';
+            iconRow.style.gap = '4px';
+            iconRow.style.alignItems = 'center';
+            // Rename (pencil) icon
+            const renameBtn = document.createElement('button');
+            renameBtn.className = 'input-btn';
+            renameBtn.style.width = '24px';
+            renameBtn.style.height = '24px';
+            renameBtn.title = 'Rename Project';
+            renameBtn.innerHTML = '<i class="fas fa-pencil-alt"></i>';
+            renameBtn.onclick = (e) => { e.stopPropagation(); this.renamingProject = project; this.loadProjects(); };
+            iconRow.appendChild(renameBtn);
+            // Delete (trash) icon
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'input-btn';
+            deleteBtn.style.width = '24px';
+            deleteBtn.style.height = '24px';
+            deleteBtn.title = 'Delete Project';
+            deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+            deleteBtn.onclick = (e) => { e.stopPropagation(); this.deleteProject(project); };
+            iconRow.appendChild(deleteBtn);
+            item.appendChild(iconRow);
             projectList.appendChild(item);
         });
+        projectsSection.appendChild(projectList);
     }
 
     showNewProjectPrompt() { /* no-op, replaced by inline input */ }
@@ -1321,19 +1357,10 @@ KnowledgeBaseApp.prototype.showNewProjectInput = function() {
 
 KnowledgeBaseApp.prototype.toggleProjects = function() {
     const section = document.getElementById('projects-section');
-    const chevron = document.getElementById('projects-chevron');
-    const projectList = document.getElementById('project-list');
-    
-    if (!section || !chevron || !projectList) return;
-    
-    section.classList.toggle('collapsed');
-    
-    if (section.classList.contains('collapsed')) {
-        chevron.className = 'fas fa-chevron-right';
-        projectList.style.display = 'none';
-    } else {
-        chevron.className = 'fas fa-chevron-down';
-        projectList.style.display = 'flex';
+    const toggleBtn = document.getElementById('toggle-projects-btn');
+    if (section && toggleBtn) {
+        section.classList.toggle('collapsed');
+        toggleBtn.textContent = section.classList.contains('collapsed') ? '► Projects' : '▼ Projects';
     }
 };
 
