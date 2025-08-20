@@ -48,6 +48,7 @@ limiter.init_app(app)
 
 # Import models after db initialization
 from models import Conversation, Message, Attachment, Project
+from context_service import ContextService
 from llm_service import LLMService
 
 # Initialize authentication
@@ -965,6 +966,265 @@ def get_current_ip():
             'created_at': whitelist_entry.created_at.isoformat() if whitelist_entry else None
         } if whitelist_entry else None
     })
+
+# ==================== CONTEXT MANAGEMENT API ENDPOINTS ====================
+
+@app.route('/api/context', methods=['GET'])
+def get_context_items():
+    """Get all context items for current user"""
+    try:
+        include_inactive = request.args.get('include_inactive', 'false').lower() == 'true'
+        items = ContextService.get_user_context_items(include_inactive=include_inactive)
+        
+        return jsonify({
+            'success': True,
+            'items': [
+                {
+                    'id': str(item.id),
+                    'name': item.name,
+                    'description': item.description,
+                    'content_type': item.content_type,
+                    'token_count': item.token_count,
+                    'usage_count': item.usage_count,
+                    'created_at': item.created_at.isoformat(),
+                    'last_used_at': item.last_used_at.isoformat() if item.last_used_at else None,
+                    'is_active': item.is_active,
+                    'file_size': item.file_size,
+                    'original_filename': item.original_filename
+                }
+                for item in items
+            ]
+        })
+    except Exception as e:
+        app.logger.error(f"Error fetching context items: {str(e)}")
+        return jsonify({'success': False, 'error': 'Failed to fetch context items'}), 500
+
+@app.route('/api/context', methods=['POST'])
+def create_context_item():
+    """Create a new context item"""
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        if not data or not data.get('name') or not data.get('content_type'):
+            return jsonify({'success': False, 'error': 'Name and content_type are required'}), 400
+        
+        # Create context item
+        context_item = ContextService.create_context_item(
+            name=data['name'],
+            content_type=data['content_type'],
+            content_text=data.get('content_text'),
+            description=data.get('description'),
+            original_filename=data.get('original_filename'),
+            file_path=data.get('file_path'),
+            file_size=data.get('file_size'),
+            extra_data=data.get('extra_data')
+        )
+        
+        return jsonify({
+            'success': True,
+            'item': {
+                'id': str(context_item.id),
+                'name': context_item.name,
+                'description': context_item.description,
+                'content_type': context_item.content_type,
+                'token_count': context_item.token_count,
+                'created_at': context_item.created_at.isoformat()
+            }
+        })
+    
+    except Exception as e:
+        app.logger.error(f"Error creating context item: {str(e)}")
+        return jsonify({'success': False, 'error': 'Failed to create context item'}), 500
+
+@app.route('/api/context/<item_id>', methods=['GET'])
+def get_context_item(item_id):
+    """Get specific context item by ID"""
+    try:
+        item = ContextService.get_context_item(item_id)
+        if not item:
+            return jsonify({'success': False, 'error': 'Context item not found'}), 404
+        
+        return jsonify({
+            'success': True,
+            'item': {
+                'id': str(item.id),
+                'name': item.name,
+                'description': item.description,
+                'content_type': item.content_type,
+                'content_text': item.content_text,
+                'content_summary': item.content_summary,
+                'token_count': item.token_count,
+                'usage_count': item.usage_count,
+                'created_at': item.created_at.isoformat(),
+                'updated_at': item.updated_at.isoformat(),
+                'last_used_at': item.last_used_at.isoformat() if item.last_used_at else None,
+                'is_active': item.is_active,
+                'original_filename': item.original_filename,
+                'file_path': item.file_path,
+                'file_size': item.file_size,
+                'extra_data': item.extra_data
+            }
+        })
+    
+    except Exception as e:
+        app.logger.error(f"Error fetching context item {item_id}: {str(e)}")
+        return jsonify({'success': False, 'error': 'Failed to fetch context item'}), 500
+
+@app.route('/api/context/<item_id>', methods=['PUT'])
+def update_context_item(item_id):
+    """Update existing context item"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+        
+        updated_item = ContextService.update_context_item(
+            item_id=item_id,
+            name=data.get('name'),
+            description=data.get('description'),
+            content_text=data.get('content_text'),
+            extra_data=data.get('extra_data')
+        )
+        
+        if not updated_item:
+            return jsonify({'success': False, 'error': 'Context item not found'}), 404
+        
+        return jsonify({
+            'success': True,
+            'item': {
+                'id': str(updated_item.id),
+                'name': updated_item.name,
+                'description': updated_item.description,
+                'content_type': updated_item.content_type,
+                'token_count': updated_item.token_count,
+                'updated_at': updated_item.updated_at.isoformat()
+            }
+        })
+    
+    except Exception as e:
+        app.logger.error(f"Error updating context item {item_id}: {str(e)}")
+        return jsonify({'success': False, 'error': 'Failed to update context item'}), 500
+
+@app.route('/api/context/<item_id>', methods=['DELETE'])
+def delete_context_item(item_id):
+    """Soft delete context item"""
+    try:
+        success = ContextService.delete_context_item(item_id)
+        if not success:
+            return jsonify({'success': False, 'error': 'Context item not found'}), 404
+        
+        return jsonify({'success': True, 'message': 'Context item deleted'})
+    
+    except Exception as e:
+        app.logger.error(f"Error deleting context item {item_id}: {str(e)}")
+        return jsonify({'success': False, 'error': 'Failed to delete context item'}), 500
+
+@app.route('/api/context/suggestions', methods=['GET'])
+def get_context_suggestions():
+    """Get context suggestions based on query text"""
+    try:
+        query_text = request.args.get('query', '')
+        conversation_id = request.args.get('conversation_id')
+        limit = int(request.args.get('limit', 5))
+        
+        if not query_text:
+            return jsonify({'success': False, 'error': 'Query text is required'}), 400
+        
+        suggestions = ContextService.get_context_suggestions(
+            query_text=query_text,
+            conversation_id=conversation_id,
+            limit=limit
+        )
+        
+        return jsonify({
+            'success': True,
+            'suggestions': suggestions
+        })
+    
+    except Exception as e:
+        app.logger.error(f"Error getting context suggestions: {str(e)}")
+        return jsonify({'success': False, 'error': 'Failed to get suggestions'}), 500
+
+@app.route('/api/conversation/<conversation_id>/context', methods=['GET'])
+def get_conversation_context(conversation_id):
+    """Get all active context for a conversation"""
+    try:
+        context = ContextService.get_conversation_context(conversation_id)
+        return jsonify({
+            'success': True,
+            'context': context
+        })
+    
+    except Exception as e:
+        app.logger.error(f"Error fetching conversation context: {str(e)}")
+        return jsonify({'success': False, 'error': 'Failed to fetch conversation context'}), 500
+
+@app.route('/api/conversation/<conversation_id>/context/<context_item_id>', methods=['POST'])
+def add_context_to_conversation(conversation_id, context_item_id):
+    """Add context item to conversation"""
+    try:
+        data = request.get_json() or {}
+        relevance_score = float(data.get('relevance_score', 1.0))
+        
+        context_session = ContextService.add_context_to_conversation(
+            conversation_id=conversation_id,
+            context_item_id=context_item_id,
+            relevance_score=relevance_score
+        )
+        
+        if not context_session:
+            return jsonify({'success': False, 'error': 'Context item not found or access denied'}), 404
+        
+        return jsonify({
+            'success': True,
+            'session': {
+                'id': str(context_session.id),
+                'conversation_id': str(context_session.conversation_id),
+                'context_item_id': str(context_session.context_item_id),
+                'relevance_score': float(context_session.relevance_score),
+                'added_at': context_session.added_at.isoformat(),
+                'is_active': context_session.is_active
+            }
+        })
+    
+    except Exception as e:
+        app.logger.error(f"Error adding context to conversation: {str(e)}")
+        return jsonify({'success': False, 'error': 'Failed to add context to conversation'}), 500
+
+@app.route('/api/conversation/<conversation_id>/context/<context_item_id>', methods=['DELETE'])
+def remove_context_from_conversation(conversation_id, context_item_id):
+    """Remove context item from conversation"""
+    try:
+        success = ContextService.remove_context_from_conversation(
+            conversation_id=conversation_id,
+            context_item_id=context_item_id
+        )
+        
+        if not success:
+            return jsonify({'success': False, 'error': 'Context not found in conversation'}), 404
+        
+        return jsonify({'success': True, 'message': 'Context removed from conversation'})
+    
+    except Exception as e:
+        app.logger.error(f"Error removing context from conversation: {str(e)}")
+        return jsonify({'success': False, 'error': 'Failed to remove context from conversation'}), 500
+
+@app.route('/api/context/stats', methods=['GET'])
+def get_context_stats():
+    """Get user context statistics"""
+    try:
+        stats = ContextService.get_user_stats()
+        return jsonify({
+            'success': True,
+            'stats': stats
+        })
+    
+    except Exception as e:
+        app.logger.error(f"Error fetching context stats: {str(e)}")
+        return jsonify({'success': False, 'error': 'Failed to fetch context stats'}), 500
+
+# ==================== END CONTEXT MANAGEMENT API ====================
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
