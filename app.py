@@ -362,25 +362,8 @@ Please use this context information appropriately when responding to user questi
         )
         db.session.add(usage_log)
         
-        # Log context usage if conversation exists and context was used
-        if conversation_id:
-            try:
-                active_context = ContextService.get_conversation_context(str(conversation_id))
-                if active_context:
-                    # Create a message ID for logging (since we don't save the user message yet)
-                    temp_message_id = str(uuid.uuid4())
-                    
-                    for ctx in active_context:
-                        ContextService.log_context_usage(
-                            conversation_id=str(conversation_id),
-                            message_id=temp_message_id,
-                            context_item_id=ctx['item_id'],
-                            usage_type='input',
-                            influence_score=1.0,  # Could be refined later
-                            tokens_consumed=ctx['token_count']
-                        )
-            except Exception as log_error:
-                app.logger.error(f"Failed to log context usage: {log_error}")
+        # Note: Context usage logging will be handled when messages are saved
+        # to avoid foreign key constraints with non-existent message IDs
         
         db.session.commit()
         
