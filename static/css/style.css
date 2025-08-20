@@ -1916,3 +1916,136 @@ body {
         justify-content: flex-end;
     }
 }
+
+/* ==================== MODEL INSTRUCTIONS STYLES ==================== */
+
+.model-instructions {
+    margin: 16px;
+    padding: 16px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 12px;
+    color: white;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    animation: slideInUp 0.3s ease-out;
+    transition: opacity 0.5s ease-out;
+}
+
+.model-instructions.fade-out {
+    opacity: 0;
+}
+
+.instructions-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    font-size: 16px;
+}
+
+.instructions-header i {
+    font-size: 18px;
+    color: #fff;
+}
+
+.instructions-content h4 {
+    margin: 12px 0 8px 0;
+    color: #f0f8ff;
+    font-weight: 600;
+}
+
+.editing-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.editing-options .option {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.usage-guidelines {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 12px;
+    border-radius: 8px;
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.usage-guidelines ul {
+    margin: 8px 0 0 16px;
+    line-height: 1.5;
+}
+
+.usage-guidelines li {
+    font-size: 13px;
+    margin-bottom: 4px;
+    color: #f0f8ff;
+}
+
+.example-prompts {
+    margin-top: 12px;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 12px;
+    border-radius: 8px;
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.example-prompts .example {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 6px 10px;
+    border-radius: 6px;
+    margin: 6px 0;
+    font-size: 12px;
+    font-style: italic;
+    color: #e6f3ff;
+    border-left: 3px solid rgba(255, 255, 255, 0.4);
+}
+
+/* Stability AI specific styling */
+.stability-instructions {
+    background: linear-gradient(135deg, #ff6b6b 0%, #4ecdc4 100%);
+}
+
+.stability-instructions .instructions-header i {
+    color: #fff;
+}
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive design for model instructions */
+@media (max-width: 768px) {
+    .model-instructions {
+        margin: 12px;
+        padding: 12px;
+    }
+    
+    .editing-options {
+        gap: 6px;
+    }
+    
+    .editing-options .option {
+        padding: 3px 8px;
+        font-size: 11px;
+    }
+    
+    .instructions-header {
+        font-size: 14px;
+    }
+}

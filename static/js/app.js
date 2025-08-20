@@ -19,6 +19,7 @@ class KnowledgeBaseApp {
         this.loadConversations();
         this.setupEventListeners();
         this.autoResizeTextarea();
+        this.showModelInstructions(); // Show instructions for initially selected model
     }
 
     setupGlobalErrorHandling() {
@@ -433,6 +434,7 @@ class KnowledgeBaseApp {
             this.renderMessages(data.messages);
             this.selectedModel = data.conversation.llm_model;
             document.getElementById('llm-model').value = this.selectedModel;
+            this.showModelInstructions(); // Show instructions for the conversation's model
             
         } catch (error) {
             console.error('Failed to load conversation:', error);
@@ -649,6 +651,105 @@ class KnowledgeBaseApp {
 
     updateModel() {
         this.selectedModel = document.getElementById('llm-model').value;
+        this.showModelInstructions();
+    }
+
+    showModelInstructions() {
+        // Remove any existing model instructions
+        const existingInstructions = document.getElementById('model-instructions');
+        if (existingInstructions) {
+            existingInstructions.remove();
+        }
+
+        // Check if selected model is a Stability AI model
+        const stabilityModels = [
+            'stable-image-ultra',
+            'stable-image-core', 
+            'stable-image-sd3',
+            'stable-audio-2'
+        ];
+
+        if (stabilityModels.includes(this.selectedModel)) {
+            this.showStabilityInstructions();
+        }
+    }
+
+    showStabilityInstructions() {
+        const instructions = document.createElement('div');
+        instructions.id = 'model-instructions';
+        instructions.className = 'model-instructions stability-instructions';
+        
+        let content = '';
+        
+        if (this.selectedModel.includes('stable-image')) {
+            content = `
+                <div class="instructions-header">
+                    <i class="fas fa-image"></i>
+                    <strong>Stability AI Image Generation</strong>
+                </div>
+                <div class="instructions-content">
+                    <h4>Available Editing Options:</h4>
+                    <div class="editing-options">
+                        <span class="option">Erase</span> - Remove unwanted objects
+                        <span class="option">Inpaint</span> - Fill missing areas
+                        <span class="option">Outpaint</span> - Extend image boundaries
+                        <span class="option">Search & Replace</span> - Replace specific objects
+                        <span class="option">Search & Recolor</span> - Change object colors
+                        <span class="option">Remove Background</span> - Extract main subject
+                        <span class="option">Replace Background</span> - Add new background with lighting
+                    </div>
+                    <div class="usage-guidelines">
+                        <strong>Guidelines:</strong>
+                        <ul>
+                            <li>Be descriptive and specific in your prompts</li>
+                            <li>Mention art style, lighting, composition</li>
+                            <li>Avoid generating harmful, illegal, or inappropriate content</li>
+                            <li>No copyrighted characters or trademarked content</li>
+                            <li>Maximum image size: 1024x1024 pixels</li>
+                        </ul>
+                    </div>
+                </div>
+            `;
+        } else if (this.selectedModel === 'stable-audio-2') {
+            content = `
+                <div class="instructions-header">
+                    <i class="fas fa-music"></i>
+                    <strong>Stability AI Audio Generation</strong>
+                </div>
+                <div class="instructions-content">
+                    <div class="usage-guidelines">
+                        <strong>Audio Generation Guidelines:</strong>
+                        <ul>
+                            <li>Describe the type of audio you want (music, sound effects, etc.)</li>
+                            <li>Specify genre, mood, instruments, tempo</li>
+                            <li>Maximum duration: 45 seconds</li>
+                            <li>No copyrighted music recreation</li>
+                            <li>Avoid generating inappropriate or offensive content</li>
+                        </ul>
+                    </div>
+                    <div class="example-prompts">
+                        <strong>Example prompts:</strong>
+                        <div class="example">"Relaxing ambient music with soft piano and nature sounds"</div>
+                        <div class="example">"Upbeat electronic dance track with synthesizers"</div>
+                        <div class="example">"Sound effect of rain on a window"</div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        instructions.innerHTML = content;
+        
+        // Insert instructions above the chat input
+        const inputContainer = document.querySelector('.chat-input-container');
+        inputContainer.parentNode.insertBefore(instructions, inputContainer);
+        
+        // Auto-hide after 10 seconds
+        setTimeout(() => {
+            if (instructions.parentElement) {
+                instructions.classList.add('fade-out');
+                setTimeout(() => instructions.remove(), 500);
+            }
+        }, 10000);
     }
 
     // Search functionality
