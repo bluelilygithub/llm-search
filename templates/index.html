@@ -17,12 +17,6 @@
                 <button class="new-chat-btn" id="new-chat-btn">
                     <i class="fas fa-plus"></i> New Chat
                 </button>
-                <button class="new-chat-btn" id="settings-btn">
-                    <i class="fas fa-cog"></i> Settings
-                </button>
-                <button class="new-chat-btn logout-btn" id="logout-btn" onclick="logout()" style="display:none;">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </button>
                 <div id="projects-section" class="projects-section">
                     <button class="new-chat-btn" id="toggle-projects-btn">
                         ▼ Projects
@@ -90,6 +84,12 @@
                     </button>
                     <button class="action-btn" onclick="tagConversation()" title="Organize with Tags">
                         <i class="fas fa-tags"></i>
+                    </button>
+                    <button class="action-btn" onclick="window.app.openSettingsModal()" title="Settings" id="settings-btn">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                    <button class="action-btn logout-btn" onclick="logout()" title="Logout" id="logout-btn" style="display:none;">
+                        <i class="fas fa-sign-out-alt"></i>
                     </button>
                 </div>
             </div>

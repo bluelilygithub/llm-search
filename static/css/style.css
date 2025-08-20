@@ -959,9 +959,22 @@ body {
 .logout-btn {
     background-color: #dc3545 !important;
     border-color: #dc3545 !important;
+    color: white !important;
 }
 
 .logout-btn:hover {
+    background-color: #c82333 !important;
+    border-color: #bd2130 !important;
+    color: white !important;
+}
+
+/* Sidebar logout button (if still used elsewhere) */
+.sidebar .logout-btn {
+    background-color: #dc3545 !important;
+    border-color: #dc3545 !important;
+}
+
+.sidebar .logout-btn:hover {
     background-color: #c82333 !important;
     border-color: #bd2130 !important;
 }
