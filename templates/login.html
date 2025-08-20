@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - AI Knowledge Base</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -12,8 +16,8 @@
         }
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: #f5f7fa;
             height: 100vh;
             display: flex;
             align-items: center;
@@ -22,84 +26,226 @@
         
         .login-container {
             background: white;
-            padding: 40px;
-            border-radius: 12px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
-            width: 400px;
+            padding: 48px 40px;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            width: 480px;
             max-width: 90vw;
+            text-align: center;
         }
         
-        .login-header {
-            text-align: center;
-            margin-bottom: 30px;
+        .logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 24px;
+            display: block;
         }
         
         .login-header h1 {
-            color: #333;
-            font-size: 28px;
+            color: #2d3748;
+            font-size: 32px;
             font-weight: 600;
             margin-bottom: 8px;
+            letter-spacing: -0.5px;
         }
         
         .login-header p {
-            color: #666;
+            color: #718096;
             font-size: 16px;
+            margin-bottom: 32px;
+            font-weight: 400;
+        }
+        
+        .free-access-banner {
+            background: #e6fffa;
+            border: 1px solid #81e6d9;
+            border-left: 4px solid #38b2ac;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 32px;
+            display: flex;
+            align-items: center;
+            text-align: left;
+        }
+        
+        .free-access-icon {
+            color: #38b2ac;
+            font-size: 20px;
+            margin-right: 12px;
+        }
+        
+        .free-access-content {
+            flex: 1;
+        }
+        
+        .free-access-title {
+            color: #2d3748;
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 2px;
+        }
+        
+        .free-access-text {
+            color: #4a5568;
+            font-size: 13px;
+            font-weight: 400;
         }
         
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 24px;
+            text-align: left;
         }
         
-        label {
-            display: block;
-            margin-bottom: 8px;
-            color: #333;
-            font-weight: 500;
+        .password-container {
+            position: relative;
         }
         
         input[type="password"] {
             width: 100%;
-            padding: 12px 16px;
-            border: 2px solid #e1e5e9;
+            padding: 16px 50px 16px 16px;
+            border: 1px solid #e2e8f0;
             border-radius: 8px;
             font-size: 16px;
-            transition: border-color 0.2s;
+            font-family: 'Montserrat', sans-serif;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            background: #fafafa;
         }
         
         input[type="password"]:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: #3182ce;
+            box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
+            background: white;
+        }
+        
+        input[type="password"]::placeholder {
+            color: #a0aec0;
+            font-weight: 400;
+        }
+        
+        .password-toggle {
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #a0aec0;
+            cursor: pointer;
+            font-size: 18px;
+            transition: color 0.2s;
+        }
+        
+        .password-toggle:hover {
+            color: #4a5568;
         }
         
         .login-btn {
             width: 100%;
-            background: #667eea;
-            color: white;
+            padding: 16px 24px;
             border: none;
-            padding: 12px 24px;
             border-radius: 8px;
             font-size: 16px;
             font-weight: 600;
+            font-family: 'Montserrat', sans-serif;
             cursor: pointer;
-            transition: background-color 0.2s;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 12px;
         }
         
-        .login-btn:hover {
-            background: #5a67d8;
+        .login-btn.primary {
+            background: #d69e2e;
+            color: white;
+        }
+        
+        .login-btn.primary:hover {
+            background: #b7791f;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(214, 158, 46, 0.3);
+        }
+        
+        .login-btn.secondary {
+            background: #38a169;
+            color: white;
+        }
+        
+        .login-btn.secondary:hover {
+            background: #2f855a;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(56, 161, 105, 0.3);
         }
         
         .login-btn:disabled {
             background: #a0aec0;
             cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .divider {
+            text-align: center;
+            margin: 20px 0;
+            color: #a0aec0;
+            font-size: 14px;
+            font-weight: 500;
+            position: relative;
+        }
+        
+        .divider::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: #e2e8f0;
+            z-index: 1;
+        }
+        
+        .divider span {
+            background: white;
+            padding: 0 16px;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .footer-links {
+            margin-top: 32px;
+            text-align: center;
+        }
+        
+        .footer-link {
+            color: #d69e2e;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            display: block;
+            margin-bottom: 8px;
+            transition: color 0.2s;
+        }
+        
+        .footer-link:hover {
+            color: #b7791f;
+            text-decoration: underline;
+        }
+        
+        .signup-text {
+            color: #718096;
+            font-size: 14px;
+            margin-bottom: 4px;
         }
         
         .error-message {
             background: #fed7d7;
             color: #c53030;
-            padding: 12px;
+            padding: 12px 16px;
             border-radius: 8px;
             margin-top: 16px;
             display: none;
+            font-size: 14px;
+            text-align: left;
         }
         
         .loading {
@@ -107,44 +253,88 @@
             text-align: center;
             color: #666;
             margin-top: 16px;
+            font-size: 14px;
+        }
+        
+        .loading i {
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body>
     <div class="login-container">
+        <img src="static/images/logo.png" alt="AI Knowledge Base" class="logo">
+        
         <div class="login-header">
-            <h1>🤖 AI Knowledge Base</h1>
+            <h1>AI Knowledge Base</h1>
             <p>Please enter your password to continue</p>
-            <div class="free-access-info" style="margin-top: 16px; padding: 12px; background: #e7f5ff; border-radius: 8px; font-size: 14px;">
-                <strong>🎁 Free Access Available!</strong><br>
-                <span id="free-access-text">Get 10 free queries per day without login</span>
+        </div>
+        
+        <div class="free-access-banner">
+            <div class="free-access-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="free-access-content">
+                <div class="free-access-title">🔥 Free Access Available!</div>
+                <div class="free-access-text" id="free-access-text">9/10 free queries remaining today</div>
             </div>
         </div>
         
         <form id="loginForm">
             <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" name="password" required>
+                <div class="password-container">
+                    <input type="password" id="password" name="password" placeholder="Enter your password" required>
+                    <i class="fas fa-eye password-toggle" id="passwordToggle" onclick="togglePassword()"></i>
+                </div>
             </div>
             
-            <button type="submit" class="login-btn" id="loginBtn">
+            <button type="submit" class="login-btn primary" id="loginBtn">
+                <i class="fas fa-lock"></i>
                 Sign In for Unlimited Access
             </button>
             
-            <div style="text-align: center; margin: 16px 0; color: #666; font-size: 14px;">
-                OR
+            <div class="divider">
+                <span>OR</span>
             </div>
             
-            <button type="button" class="login-btn" id="freeAccessBtn" style="background: #28a745; border-color: #28a745;" onclick="useFreeAccess()">
+            <button type="button" class="login-btn secondary" id="freeAccessBtn" onclick="useFreeAccess()">
+                <i class="fas fa-bolt"></i>
                 Continue with Free Access
             </button>
             
             <div class="error-message" id="errorMessage"></div>
-            <div class="loading" id="loading">Signing in...</div>
+            <div class="loading" id="loading">
+                <i class="fas fa-spinner"></i> Signing in...
+            </div>
         </form>
+        
+        <div class="footer-links">
+            <a href="#" class="footer-link">Forgot your password?</a>
+            <div class="signup-text">Don't have an account? <a href="#" class="footer-link" style="display: inline; margin: 0;">Sign up for free</a></div>
+        </div>
     </div>
 
     <script>
+        function togglePassword() {
+            const passwordInput = document.getElementById('password');
+            const toggleIcon = document.getElementById('passwordToggle');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleIcon.classList.remove('fa-eye');
+                toggleIcon.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                toggleIcon.classList.remove('fa-eye-slash');
+                toggleIcon.classList.add('fa-eye');
+            }
+        }
+        
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -202,9 +392,9 @@
                     if (remaining > 0) {
                         freeAccessText.textContent = `${remaining}/${total} free queries remaining today`;
                     } else {
-                        freeAccessText.textContent = 'Free queries exhausted for today. Login for unlimited access.';
+                        freeAccessText.textContent = 'Free queries exhausted for today';
                         document.getElementById('freeAccessBtn').disabled = true;
-                        document.getElementById('freeAccessBtn').textContent = 'Free Access Exhausted';
+                        document.getElementById('freeAccessBtn').innerHTML = '<i class="fas fa-times-circle"></i> Free Access Exhausted';
                     }
                 }
             } catch (error) {
