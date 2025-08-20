@@ -54,7 +54,7 @@ class LLMService:
         else:
             self.hf_available = False
         
-    def get_response(self, model, messages, max_tokens=4000, temperature=0.7):
+    def get_response(self, model, messages, max_tokens=4000, temperature=0.7, is_authenticated=False):
         """Get response from specified LLM model. Returns (response_text, tokens, estimated_cost)"""
         # Map legacy Gemini model names to current names
         GEMINI_MODEL_MAP = {
@@ -66,7 +66,7 @@ class LLMService:
         if model in GEMINI_MODEL_MAP:
             model = GEMINI_MODEL_MAP[model]
         if model.startswith('gpt') or model.startswith('o1'):
-            return self._get_openai_response(model, messages, max_tokens, temperature)
+            return self._get_openai_response(model, messages, max_tokens, temperature, is_authenticated)
         elif model.startswith('claude'):
             return self._get_anthropic_response(model, messages, max_tokens, temperature)
         elif model.startswith('models/gemini'):
@@ -76,7 +76,7 @@ class LLMService:
         else:
             raise ValueError(f"Model {model} not available")
     
-    def _get_openai_response(self, model, messages, max_tokens, temperature):
+    def _get_openai_response(self, model, messages, max_tokens, temperature, is_authenticated=False):
         """Get response from OpenAI models using v1.x client"""
         if not self.openai_available or not self.openai_client:
             raise Exception("OpenAI API key not configured")
@@ -86,12 +86,15 @@ class LLMService:
             total_chars = sum(len(str(msg.get('content', ''))) for msg in messages)
             estimated_tokens = total_chars // 3  # Rough estimate: 3 chars per token
             
-            self.logger.info(f"OpenAI request: model={model}, estimated_tokens={estimated_tokens}, max_tokens={max_tokens}")
+            self.logger.info(f"OpenAI request: model={model}, estimated_tokens={estimated_tokens}, max_tokens={max_tokens}, authenticated={is_authenticated}")
             
-            # Check if we're likely to exceed limits
-            model_limits = self.get_model_limits(model)
-            if estimated_tokens + max_tokens > model_limits['context_window']:
-                raise Exception(f"Request too large for {model}. Estimated {estimated_tokens} tokens, max allowed {model_limits['context_window']}. Try using Gemini Pro or Claude for large documents.")
+            # Check if we're likely to exceed limits (only for free users)
+            if not is_authenticated:
+                model_limits = self.get_model_limits(model)
+                if estimated_tokens + max_tokens > model_limits['context_window']:
+                    raise Exception(f"Request too large for {model}. Estimated {estimated_tokens} tokens, max allowed {model_limits['context_window']}. Try using Gemini Pro or Claude for large documents.")
+            else:
+                self.logger.info("Skipping token limits for authenticated user")
             
             # O1 models have different API requirements
             if model.startswith('o1'):

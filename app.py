@@ -347,9 +347,12 @@ Please use this context information appropriately when responding to user questi
         # Add current user message
         messages.append({'role': 'user', 'content': user_message})
         
-        app.logger.info(f"Calling LLM service for model: {model}")
+        # Check if user is authenticated (not free tier)
+        is_authenticated = getattr(request, 'access_type', None) != 'free_tier'
+        
+        app.logger.info(f"Calling LLM service for model: {model}, authenticated: {is_authenticated}")
         # Get AI response and usage info
-        ai_response, tokens, estimated_cost = llm_service.get_response(model, messages)
+        ai_response, tokens, estimated_cost = llm_service.get_response(model, messages, is_authenticated=is_authenticated)
         app.logger.info(f"Got response from {model}: {tokens} tokens, cost: ${estimated_cost:.4f}")
         
         # Log usage
