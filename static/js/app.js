@@ -575,36 +575,102 @@ class KnowledgeBaseApp {
 
     async getAIResponse(userMessage) {
         try {
-            const response = await fetch('/chat', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    message: userMessage,
-                    model: this.selectedModel,
-                    conversation_id: this.currentConversationId
-                })
-            });
+            // Check if we have a Stability AI model and an uploaded image
+            const stabilityModels = [
+                'stable-image-ultra',
+                'stable-image-core', 
+                'stable-image-sd3',
+                'stable-audio-2'
+            ];
+            
+            const isStabilityModel = stabilityModels.includes(this.selectedModel);
+            const hasUploadedImage = this.currentStabilityImage && isStabilityModel && this.selectedModel.includes('stable-image');
+            
+            if (hasUploadedImage) {
+                // For image editing with uploaded image, use FormData
+                return await this.handleStabilityImageEditing(userMessage);
+            } else {
+                // Regular chat API call
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: userMessage,
+                        model: this.selectedModel,
+                        conversation_id: this.currentConversationId
+                    })
+                });
 
-            const data = await response.json();
-            
-            // Check for API errors (backend returns 500 with error details)
-            if (!response.ok || data.error) {
-                throw new Error(data.error || `HTTP error! status: ${response.status}`);
+                const data = await response.json();
+                
+                // Check for API errors (backend returns 500 with error details)
+                if (!response.ok || data.error) {
+                    throw new Error(data.error || `HTTP error! status: ${response.status}`);
+                }
+                
+                // Update free access indicator if present
+                if (data.free_access) {
+                    this.updateUsageIndicator(data.free_access);
+                }
+                
+                return data.response;
             }
-            
-            // Update free access indicator if present
-            if (data.free_access) {
-                this.updateUsageIndicator(data.free_access);
-            }
-            
-            return data.response;
             
         } catch (error) {
             console.error('LLM API error:', error);
             throw error; // Preserve the original error message
         }
+    }
+
+    async handleStabilityImageEditing(userMessage) {
+        // Create FormData to send both image and editing instructions
+        const formData = new FormData();
+        formData.append('image', this.currentStabilityImage);
+        formData.append('prompt', userMessage);
+        formData.append('model', this.selectedModel);
+        formData.append('conversation_id', this.currentConversationId || '');
+        
+        try {
+            const response = await fetch('/stability-edit-image', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok || data.error) {
+                throw new Error(data.error || 'Image editing failed');
+            }
+            
+            // Clear the uploaded image after successful editing
+            this.currentStabilityImage = null;
+            
+            // Show a message that the image was processed
+            this.showImageEditingComplete();
+            
+            return data.response;
+            
+        } catch (error) {
+            console.error('Stability image editing error:', error);
+            throw error;
+        }
+    }
+
+    showImageEditingComplete() {
+        const container = document.getElementById('chat-messages');
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message system';
+        messageDiv.innerHTML = `
+            <div class="message-content">
+                <div style="color: #28a745; font-weight: 500;">
+                    <i class="fas fa-check-circle"></i> Image editing request processed
+                </div>
+            </div>
+        `;
+        container.appendChild(messageDiv);
+        this.scrollToBottom();
     }
 
     showTypingIndicator() {
@@ -678,7 +744,7 @@ class KnowledgeBaseApp {
     }
 
     toggleImageUploadForStability(isStabilityModel) {
-        const imageUploadBtn = document.getElementById('image-upload-btn');
+        let imageUploadBtn = document.getElementById('image-upload-btn');
         const regularFileBtn = document.querySelector('button[onclick="triggerFileUpload()"]');
         
         if (isStabilityModel) {
@@ -693,9 +759,19 @@ class KnowledgeBaseApp {
                 
                 // Insert after the regular file upload button
                 const inputControlsLeft = document.querySelector('.input-controls-left');
-                inputControlsLeft.appendChild(newImageBtn);
+                if (inputControlsLeft) {
+                    inputControlsLeft.appendChild(newImageBtn);
+                    imageUploadBtn = newImageBtn; // Update reference
+                } else {
+                    console.error('Could not find .input-controls-left element');
+                    return;
+                }
             }
-            imageUploadBtn.style.display = 'block';
+            
+            // Now safely set display
+            if (imageUploadBtn) {
+                imageUploadBtn.style.display = 'block';
+            }
             
             // Hide regular file upload to avoid confusion
             if (regularFileBtn) {

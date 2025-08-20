@@ -920,6 +920,52 @@ def generated_image(filename):
     images_dir = os.path.join(os.path.dirname(__file__), 'static', 'generated_images')
     return send_from_directory(images_dir, filename)
 
+@app.route('/stability-edit-image', methods=['POST'])
+@limiter.limit("10 per minute")
+@auth.access_required(allow_free=True)
+def stability_edit_image():
+    """Handle Stability AI image editing requests"""
+    try:
+        # Get form data
+        if 'image' not in request.files:
+            return jsonify({'error': 'No image file provided'}), 400
+        
+        image_file = request.files['image']
+        prompt = request.form.get('prompt', '')
+        model = request.form.get('model', 'stable-image-ultra')
+        conversation_id = request.form.get('conversation_id')
+        
+        if not prompt:
+            return jsonify({'error': 'Editing prompt is required'}), 400
+        
+        app.logger.info(f"Stability image edit request: model={model}, prompt_length={len(prompt)}")
+        
+        # For now, return a message indicating the feature needs backend implementation
+        response_message = f"""I understand you want to edit the uploaded image: "{prompt}"
+
+**Current Status:** This requires backend implementation to integrate with Stability AI's image editing APIs.
+
+**What you uploaded:** {image_file.filename} ({image_file.content_type})
+
+**Next Steps for Implementation:**
+1. Add Stability AI image editing endpoints in `llm_service.py`
+2. Implement specific editing operations (background removal, inpainting, etc.)
+3. Handle image upload to Stability AI platform
+4. Process the edited result and save to Cloudinary
+
+**For now:** You can still generate new images with text prompts using Stability AI models."""
+        
+        return jsonify({
+            'response': response_message,
+            'model': model,
+            'timestamp': datetime.utcnow().isoformat(),
+            'editing_request': True
+        })
+        
+    except Exception as e:
+        app.logger.error(f"Stability image editing error: {str(e)}", exc_info=True)
+        return jsonify({'error': f'Image editing failed: {str(e)}'}), 500
+
 @app.route('/llm-usage-stats', methods=['GET'])
 def llm_usage_stats():
     from models import LLMUsageLog
