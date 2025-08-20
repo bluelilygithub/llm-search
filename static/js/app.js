@@ -1652,6 +1652,111 @@ KnowledgeBaseApp.prototype.renderContextStats = function() {
     document.getElementById('total-context-tokens').textContent = this.contextStats.total_tokens || 0;
 };
 
+// Render filtered context items (used by search)
+KnowledgeBaseApp.prototype.renderFilteredContextItems = function(filteredItems, searchTerm) {
+    const container = document.getElementById('context-items-list');
+    
+    if (filteredItems.length === 0) {
+        container.innerHTML = `<div class="empty-context">No context items found for "${searchTerm}"</div>`;
+        return;
+    }
+    
+    const contextInConversation = new Set(this.conversationContext.map(c => c.item_id));
+    
+    // Use same rendering logic but with filtered items
+    container.innerHTML = filteredItems.map(item => `
+        <div class="context-item-card ${contextInConversation.has(item.id) ? 'in-conversation' : ''}"
+             onclick="window.app.showContextItemDetails('${item.id}')">
+            <div class="context-item-header">
+                <div class="context-item-name">${this.highlightSearchTerm(item.name, searchTerm)}</div>
+                <div class="context-item-type">${item.content_type}</div>
+            </div>
+            ${item.description ? `<div class="context-item-description">${this.highlightSearchTerm(item.description, searchTerm)}</div>` : ''}
+            <div class="context-item-meta">
+                <div class="context-item-tokens">${item.token_count} tokens</div>
+                <div class="context-item-actions">
+                    ${contextInConversation.has(item.id) 
+                        ? `<button class="context-item-action remove" onclick="event.stopPropagation(); window.app.removeContextFromConversation('${item.id}')" title="Remove from conversation">
+                             <i class="fas fa-minus-circle"></i>
+                           </button>`
+                        : `<button class="context-item-action add" onclick="event.stopPropagation(); window.app.addContextToConversation('${item.id}')" title="Add to conversation">
+                             <i class="fas fa-plus-circle"></i>
+                           </button>`
+                    }
+                    <button class="context-item-action" onclick="event.stopPropagation(); window.app.editContextItem('${item.id}')" title="Edit">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    `).join('');
+};
+
+// Search through context content using API
+KnowledgeBaseApp.prototype.searchContextContentAPI = async function(searchTerm) {
+    try {
+        const response = await fetch(`/api/context/suggestions?query=${encodeURIComponent(searchTerm)}&limit=10`);
+        const data = await response.json();
+        
+        if (data.success && data.suggestions.length > 0) {
+            // Show API search results with content matching
+            this.renderContentSearchResults(data.suggestions, searchTerm);
+        } else {
+            // Show no results message
+            document.getElementById('context-items-list').innerHTML = 
+                `<div class="empty-context">No context items found for "${searchTerm}"</div>`;
+        }
+    } catch (error) {
+        console.error('Content search error:', error);
+        document.getElementById('context-items-list').innerHTML = 
+            '<div class="empty-context">Search failed. Please try again.</div>';
+    }
+};
+
+// Render content search results
+KnowledgeBaseApp.prototype.renderContentSearchResults = function(suggestions, searchTerm) {
+    const container = document.getElementById('context-items-list');
+    const contextInConversation = new Set(this.conversationContext.map(c => c.item_id));
+    
+    container.innerHTML = suggestions.map(item => `
+        <div class="context-item-card ${contextInConversation.has(item.item_id) ? 'in-conversation' : ''}"
+             onclick="window.app.showContextItemDetails('${item.item_id}')">
+            <div class="context-item-header">
+                <div class="context-item-name">${this.highlightSearchTerm(item.name, searchTerm)}</div>
+                <div class="context-item-type">${item.content_type}</div>
+            </div>
+            ${item.description ? `<div class="context-item-description">${this.highlightSearchTerm(item.description, searchTerm)}</div>` : ''}
+            <div class="search-relevance" style="font-size: 11px; color: #2563eb; margin: 4px 0;">
+                Relevance: ${Math.round(item.relevance_score * 100) / 100} | Used: ${item.usage_count} times
+            </div>
+            <div class="context-item-meta">
+                <div class="context-item-tokens">${item.token_count} tokens</div>
+                <div class="context-item-actions">
+                    ${contextInConversation.has(item.item_id) 
+                        ? `<button class="context-item-action remove" onclick="event.stopPropagation(); window.app.removeContextFromConversation('${item.item_id}')" title="Remove from conversation">
+                             <i class="fas fa-minus-circle"></i>
+                           </button>`
+                        : `<button class="context-item-action add" onclick="event.stopPropagation(); window.app.addContextToConversation('${item.item_id}')" title="Add to conversation">
+                             <i class="fas fa-plus-circle"></i>
+                           </button>`
+                    }
+                    <button class="context-item-action" onclick="event.stopPropagation(); window.app.editContextItem('${item.item_id}')" title="Edit">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    `).join('');
+};
+
+// Highlight search terms in text
+KnowledgeBaseApp.prototype.highlightSearchTerm = function(text, searchTerm) {
+    if (!text || !searchTerm) return text || '';
+    
+    const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    return text.replace(regex, '<mark style="background: #fff3cd; padding: 1px 2px; border-radius: 2px;">$1</mark>');
+};
+
 // Add context item to conversation
 KnowledgeBaseApp.prototype.addContextToConversation = async function(contextItemId) {
     if (!this.currentConversationId) {
@@ -1723,21 +1828,44 @@ KnowledgeBaseApp.prototype.editContextItem = function(contextItemId) {
     // This will be implemented in later increments
 };
 
-// Search context items
+// Search context items through content
 function searchContextItems() {
-    const searchTerm = document.getElementById('context-search').value.toLowerCase();
-    const items = document.querySelectorAll('.context-item-card');
+    const searchTerm = document.getElementById('context-search').value.trim();
     
-    items.forEach(item => {
-        const name = item.querySelector('.context-item-name').textContent.toLowerCase();
-        const description = item.querySelector('.context-item-description')?.textContent.toLowerCase() || '';
+    if (!searchTerm) {
+        // If empty search, show all items
+        window.app.renderContextItems();
+        return;
+    }
+    
+    // Filter context items based on search term
+    const filteredItems = window.app.contextItems.filter(item => {
+        const searchLower = searchTerm.toLowerCase();
         
-        if (name.includes(searchTerm) || description.includes(searchTerm)) {
-            item.style.display = 'block';
-        } else {
-            item.style.display = 'none';
+        // Search through multiple fields
+        const name = (item.name || '').toLowerCase();
+        const description = (item.description || '').toLowerCase();
+        const contentType = (item.content_type || '').toLowerCase();
+        const filename = (item.original_filename || '').toLowerCase();
+        
+        // Basic text matching
+        if (name.includes(searchLower) || 
+            description.includes(searchLower) || 
+            contentType.includes(searchLower) || 
+            filename.includes(searchLower)) {
+            return true;
         }
+        
+        return false;
     });
+    
+    // If no items match basic fields, search through content text
+    if (filteredItems.length === 0 && searchTerm.length >= 3) {
+        window.app.searchContextContentAPI(searchTerm);
+    } else {
+        // Render filtered results
+        window.app.renderFilteredContextItems(filteredItems, searchTerm);
+    }
 }
 
 // Refresh context panel
