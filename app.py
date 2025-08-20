@@ -282,23 +282,54 @@ def chat():
             conversation = Conversation.query.get_or_404(conv_uuid)
             db_messages = Message.query.filter_by(conversation_id=conv_uuid).order_by(Message.timestamp.asc()).all()
             messages = llm_service.format_conversation_for_llm(db_messages)
-            # Add context document(s) to prompt if present
+            # Add context items to prompt using new context management system
+            try:
+                active_context = ContextService.get_conversation_context(str(conversation_id))
+                if active_context:
+                    # Build comprehensive context system message
+                    context_content = []
+                    for ctx in active_context:
+                        context_content.append(f"""
+=== {ctx['name']} ===
+Type: {ctx['content_type']}
+{f"Description: {ctx['description']}" if ctx['description'] else ""}
+
+{ctx['content_text']}
+""")
+                    
+                    if context_content:
+                        system_msg = f"""You have access to the following context documents for this conversation. Use this information to inform your responses:
+
+{chr(10).join(context_content)}
+
+---
+Please use this context information appropriately when responding to user questions. If the user asks you to create content based on guidelines, use the provided guidelines. If they ask about document content, reference the documents above."""
+                        
+                        messages.insert(0, {
+                            'role': 'system',
+                            'content': system_msg
+                        })
+                        
+                        app.logger.info(f"Added {len(active_context)} context items to conversation {conversation_id}")
+                    
+            except Exception as context_error:
+                app.logger.error(f"Failed to load context for conversation {conversation_id}: {context_error}")
+            
+            # Fallback to old context_documents system for backward compatibility
             import json
             docs = getattr(conversation, 'context_documents', None)
-            # Debug logging removed for security
             if isinstance(docs, str):
                 try:
                     docs = json.loads(docs)
                 except Exception:
                     docs = []
-            if docs:
+            if docs and not active_context:  # Only use old system if new system has no context
                 for doc in docs:
                     if doc and 'content' in doc:
                         task_type = doc.get('task_type', 'instructions')
                         filename = doc.get('filename', 'uploaded file')
                         content = doc['content']
                         
-                        # Create context-aware system message
                         if task_type == 'summary':
                             system_msg = f"You have been provided with a document ({filename}) to summarize. You can analyze, count words, and provide detailed summaries of this content:\n\n{content}"
                         elif task_type == 'analysis':
@@ -308,7 +339,7 @@ def chat():
                         
                         messages.insert(0, {
                             'role': 'system',
-                            'content': system_msg  # Full document content
+                            'content': system_msg
                         })
         # Log prompt details
         app.logger.debug(f"LLM request with {len(messages)} messages for model {model}")
@@ -320,6 +351,7 @@ def chat():
         # Get AI response and usage info
         ai_response, tokens, estimated_cost = llm_service.get_response(model, messages)
         app.logger.info(f"Got response from {model}: {tokens} tokens, cost: ${estimated_cost:.4f}")
+        
         # Log usage
         from models import LLMUsageLog
         usage_log = LLMUsageLog(
@@ -329,6 +361,27 @@ def chat():
             estimated_cost=estimated_cost
         )
         db.session.add(usage_log)
+        
+        # Log context usage if conversation exists and context was used
+        if conversation_id:
+            try:
+                active_context = ContextService.get_conversation_context(str(conversation_id))
+                if active_context:
+                    # Create a message ID for logging (since we don't save the user message yet)
+                    temp_message_id = str(uuid.uuid4())
+                    
+                    for ctx in active_context:
+                        ContextService.log_context_usage(
+                            conversation_id=str(conversation_id),
+                            message_id=temp_message_id,
+                            context_item_id=ctx['item_id'],
+                            usage_type='input',
+                            influence_score=1.0,  # Could be refined later
+                            tokens_consumed=ctx['token_count']
+                        )
+            except Exception as log_error:
+                app.logger.error(f"Failed to log context usage: {log_error}")
+        
         db.session.commit()
         
         # Prepare response
