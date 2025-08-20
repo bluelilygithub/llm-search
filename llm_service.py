@@ -82,7 +82,7 @@ class LLMService:
             return self._get_gemini_response(model, messages, max_tokens, temperature)
         elif model in ['llama2-70b', 'mixtral-8x7b', 'codellama-34b']:
             return self._get_huggingface_response(model, messages, max_tokens, temperature)
-        elif model in ['stable-diffusion-ultra', 'stable-code-3b', 'stablelm-2-1_6b']:
+        elif model in ['stable-image-ultra', 'stable-image-core', 'stable-image-sd3', 'stable-audio-2']:
             return self._get_stability_response(model, messages, max_tokens, temperature)
         else:
             raise ValueError(f"Model {model} not available")
@@ -283,85 +283,127 @@ class LLMService:
             raise Exception(f"Hugging Face API error: {str(e)}")
 
     def _get_stability_response(self, model, messages, max_tokens, temperature):
-        """Get response from Stability AI models"""
+        """Get response from Stability AI models (Image/Audio generation)"""
         if not self.stability_available:
             raise Exception("Stability AI API key not configured")
             
         try:
-            # Map model names to Stability API endpoints
-            model_mapping = {
-                'stable-diffusion-ultra': 'stable-diffusion-xl-1024-v1-0',
-                'stable-code-3b': 'stable-code-3b',
-                'stablelm-2-1_6b': 'stablelm-2-1_6b'
+            # Get the latest user message as the prompt
+            user_message = None
+            for msg in reversed(messages):
+                if msg['role'] == 'user':
+                    user_message = msg['content']
+                    break
+            
+            if not user_message:
+                raise Exception("No user prompt found for Stability AI generation")
+            
+            # Map model names to endpoints and handle different generation types
+            if model == 'stable-image-ultra':
+                endpoint = "https://api.stability.ai/v2beta/stable-image/generate/ultra"
+                return self._generate_image(endpoint, user_message, "ultra")
+            
+            elif model == 'stable-image-core':
+                endpoint = "https://api.stability.ai/v2beta/stable-image/generate/core"
+                return self._generate_image(endpoint, user_message, "core")
+            
+            elif model == 'stable-image-sd3':
+                endpoint = "https://api.stability.ai/v2beta/stable-image/generate/sd3"
+                return self._generate_image(endpoint, user_message, "sd3")
+            
+            elif model == 'stable-audio-2':
+                endpoint = "https://api.stability.ai/v2beta/stable-audio/generate/audio"
+                return self._generate_audio(endpoint, user_message)
+            
+            else:
+                raise Exception(f"Unknown Stability AI model: {model}")
+                
+        except Exception as e:
+            raise Exception(f"Stability AI API error: {str(e)}")
+    
+    def _generate_image(self, endpoint, prompt, model_type):
+        """Generate image using Stability AI v2beta endpoints"""
+        try:
+            # Prepare form data for image generation
+            files = {
+                'prompt': (None, prompt),
+                'output_format': (None, 'png'),
             }
             
-            stability_model = model_mapping.get(model, model)
+            # Add model-specific parameters
+            if model_type == "ultra":
+                files['aspect_ratio'] = (None, '1:1')
+            elif model_type == "core":
+                files['style_preset'] = (None, 'photographic')
+                files['aspect_ratio'] = (None, '1:1')
+            elif model_type == "sd3":
+                files['aspect_ratio'] = (None, '1:1')
+                files['seed'] = (None, '0')
             
-            # Format conversation for Stability AI
-            conversation_text = ""
-            for msg in messages:
-                role = "Human" if msg['role'] == 'user' else "Assistant"
-                conversation_text += f"{role}: {msg['content']}\n\n"
-            
-            # Use Stability AI's text generation endpoint
             response = requests.post(
-                f"https://api.stability.ai/v1/generation/{stability_model}/text-to-text",
+                endpoint,
+                headers={"Authorization": f"Bearer {self.stability_api_key}"},
+                files=files,
+                timeout=60
+            )
+            
+            if response.status_code != 200:
+                raise Exception(f"Stability API returned {response.status_code}: {response.text}")
+            
+            # For successful image generation, return a description of what was created
+            text_response = f"✅ **Image Generated Successfully**\n\n"
+            text_response += f"**Model:** Stability AI {model_type.title()}\n"
+            text_response += f"**Prompt:** {prompt}\n"
+            text_response += f"**Format:** PNG image\n"
+            text_response += f"**Status:** Image generated and ready\n\n"
+            text_response += "*Note: This is an image generation model. The actual image would be displayed in a full implementation.*"
+            
+            # Estimate tokens and cost
+            tokens = len(prompt.split()) + 50  # Prompt tokens + generation overhead
+            cost = 0.05  # Rough cost for image generation
+            
+            return text_response, tokens, cost
+                
+        except Exception as e:
+            raise Exception(f"Image generation error: {str(e)}")
+    
+    def _generate_audio(self, endpoint, prompt):
+        """Generate audio using Stability AI v2beta endpoints"""
+        try:
+            response = requests.post(
+                endpoint,
                 headers={
-                    **self.stability_headers,
-                    "Content-Type": "application/json",
-                    "Accept": "application/json"
+                    "Authorization": f"Bearer {self.stability_api_key}",
+                    "Content-Type": "application/json"
                 },
                 json={
-                    "text_prompts": [{"text": conversation_text}],
-                    "cfg_scale": 7,
-                    "height": 1024,
-                    "width": 1024,
-                    "samples": 1,
-                    "steps": 30,
-                    "seed": 0
+                    "prompt": prompt,
+                    "length": 10.0,  # 10 second audio clip
+                    "output_format": "mp3"
                 },
                 timeout=60
             )
             
             if response.status_code != 200:
-                # Try alternative endpoint for text models
-                response = requests.post(
-                    "https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-text",
-                    headers={
-                        **self.stability_headers,
-                        "Content-Type": "application/json"
-                    },
-                    json={
-                        "text": conversation_text,
-                        "max_tokens": max_tokens,
-                        "temperature": temperature
-                    },
-                    timeout=30
-                )
-            
-            if response.status_code != 200:
                 raise Exception(f"Stability API returned {response.status_code}: {response.text}")
             
-            result = response.json()
+            # For successful audio generation, return a description
+            text_response = f"🎵 **Audio Generated Successfully**\n\n"
+            text_response += f"**Model:** Stability AI Audio 2\n"
+            text_response += f"**Prompt:** {prompt}\n"
+            text_response += f"**Duration:** 10 seconds\n"
+            text_response += f"**Format:** MP3 audio\n"
+            text_response += f"**Status:** Audio generated and ready\n\n"
+            text_response += "*Note: This is an audio generation model. The actual audio file would be playable in a full implementation.*"
             
-            # Handle different response formats
-            if 'artifacts' in result and len(result['artifacts']) > 0:
-                text = result['artifacts'][0].get('text', 'No response generated')
-            elif 'choices' in result and len(result['choices']) > 0:
-                text = result['choices'][0].get('text', 'No response generated')
-            elif 'text' in result:
-                text = result['text']
-            else:
-                text = "Stability AI response received but could not parse content"
+            # Estimate tokens and cost
+            tokens = len(prompt.split()) + 30  # Prompt tokens + generation overhead
+            cost = 0.03  # Rough cost for audio generation
             
-            # Stability AI doesn't typically return token usage for text models
-            tokens = len(text.split()) * 1.3  # Rough estimate
-            cost = tokens * 0.0001  # Rough cost estimate
-            
-            return text, int(tokens), cost
+            return text_response, tokens, cost
                 
         except Exception as e:
-            raise Exception(f"Stability AI API error: {str(e)}")
+            raise Exception(f"Audio generation error: {str(e)}")
     
     def get_model_limits(self, model):
         """Get practical token limits for different models"""
@@ -394,10 +436,11 @@ class LLMService:
             'mixtral-8x7b': {'max_tokens': 3000, 'context_window': 30000}, 
             'codellama-34b': {'max_tokens': 3000, 'context_window': 14000},
             
-            # Stability AI Models
-            'stable-diffusion-ultra': {'max_tokens': 2000, 'context_window': 4000},
-            'stable-code-3b': {'max_tokens': 4000, 'context_window': 8000},
-            'stablelm-2-1_6b': {'max_tokens': 4000, 'context_window': 8000}
+            # Stability AI Models (Image & Audio Generation)
+            'stable-image-ultra': {'max_tokens': 500, 'context_window': 1000},
+            'stable-image-core': {'max_tokens': 500, 'context_window': 1000},
+            'stable-image-sd3': {'max_tokens': 500, 'context_window': 1000},
+            'stable-audio-2': {'max_tokens': 300, 'context_window': 600}
         }
         return limits.get(model, {'max_tokens': 2000, 'context_window': 6000})
     
