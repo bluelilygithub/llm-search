@@ -329,131 +329,207 @@
         </div>
     </div>
 
-    <div id="settings-modal" class="modal" style="display: none;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Settings & Usage Tracking</h3>
-                <span class="close" onclick="window.app.closeSettingsModal()">&times;</span>
+    <div id="settings-modal" class="modal analytics-modal" style="display: none;">
+        <div class="modal-content analytics-dashboard-modal">
+            <!-- Analytics Dashboard Header -->
+            <div class="analytics-dashboard-header">
+                <div class="dashboard-header-left">
+                    <div class="dashboard-title-main">
+                        <h1>Analytics Dashboard</h1>
+                        <span class="live-indicator">
+                            <span class="live-dot"></span>
+                            Live
+                        </span>
+                    </div>
+                </div>
+                <div class="dashboard-header-right">
+                    <button class="dashboard-control-btn theme-toggle-btn" onclick="toggleDashboardTheme()" title="Toggle Theme">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                    <button class="dashboard-control-btn export-btn" onclick="exportDashboardData()" title="Export Data">
+                        <i class="fas fa-download"></i>
+                        Export
+                    </button>
+                    <button class="dashboard-control-btn close-btn" onclick="window.app.closeSettingsModal()" title="Close Dashboard">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
             </div>
-            <div class="modal-body" id="settings-body">
+
+            <!-- Dashboard Controls Bar -->
+            <div class="dashboard-controls-bar">
+                <div class="controls-left">
+                    <button class="control-btn primary" onclick="addDashboardWidget()" title="Add Widget">
+                        <i class="fas fa-plus"></i>
+                        Add Widget
+                    </button>
+                    <div class="control-group">
+                        <label class="control-label">Time Range:</label>
+                        <select class="control-select time-range-selector" id="dashboard-time-range" onchange="updateDashboardTimeRange()">
+                            <option value="7">Last 7 days</option>
+                            <option value="30">Last 30 days</option>
+                            <option value="90">Last 3 months</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="controls-right">
+                    <div class="control-group">
+                        <label class="control-label">Auto-refresh:</label>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="auto-refresh-toggle" class="toggle-input" checked onchange="toggleAutoRefresh()">
+                            <label for="auto-refresh-toggle" class="toggle-label"></label>
+                        </div>
+                        <span class="refresh-interval">30s</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-body analytics-dashboard-body" id="settings-body">
                 <div class="settings-tabs">
                     <button class="tab-btn active" onclick="showTab('usage')">Usage Stats</button>
                     <button class="tab-btn" onclick="showTab('whitelist')" id="whitelist-tab" style="display:none;">IP Whitelist</button>
                 </div>
                 
-                <div id="usage-tab" class="tab-content">
-                    <!-- Dashboard Header -->
-                    <div class="dashboard-header">
-                        <div class="dashboard-title">
-                            <h3>Analytics Dashboard</h3>
-                            <span class="live-indicator">Live</span>
-                        </div>
-                        <div class="dashboard-controls">
-                            <select class="time-range-selector">
-                                <option value="7">Last 7 days</option>
-                                <option value="30">Last 30 days</option>
-                                <option value="90">Last 3 months</option>
-                            </select>
-                            <button class="export-btn">Export</button>
-                        </div>
-                    </div>
+                <div id="usage-tab" class="tab-content analytics-main-content">
+                    <!-- Main Analytics Layout -->
+                    <div class="analytics-layout">
+                        <!-- Left Main Content -->
+                        <div class="analytics-main">
+                            <!-- Usage Metrics Chart -->
+                            <div class="analytics-widget usage-metrics-widget">
+                                <div class="widget-header">
+                                    <div class="widget-title">
+                                        <i class="fas fa-chart-bar widget-icon"></i>
+                                        <div class="widget-title-text">
+                                            <h3>Usage Metrics</h3>
+                                            <span class="widget-subtitle">Token usage and API calls</span>
+                                        </div>
+                                    </div>
+                                    <div class="widget-controls">
+                                        <button class="widget-control-btn" onclick="expandChart('usage-metrics')" title="Expand">
+                                            <i class="fas fa-expand"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="widget-content">
+                                    <canvas id="llm-usage-chart"></canvas>
+                                </div>
+                            </div>
 
-                    <!-- Quick Stats Cards -->
-                    <div class="quick-stats-grid">
-                        <div class="stat-card">
-                            <div class="stat-content">
-                                <div class="stat-label">
-                                    <span class="stat-dot active"></span>
-                                    Active Models
+                            <!-- Activity Timeline Chart -->
+                            <div class="analytics-widget timeline-widget">
+                                <div class="widget-header">
+                                    <div class="widget-title">
+                                        <i class="fas fa-chart-line widget-icon"></i>
+                                        <div class="widget-title-text">
+                                            <h3>Activity Timeline</h3>
+                                            <span class="widget-subtitle">Model usage timeline</span>
+                                        </div>
+                                    </div>
+                                    <div class="widget-controls">
+                                        <button class="widget-control-btn" onclick="expandChart('activity-timeline')" title="Expand">
+                                            <i class="fas fa-expand"></i>
+                                        </button>
+                                    </div>
                                 </div>
-                                <div class="stat-value" id="stat-active-models">-</div>
-                            </div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-content">
-                                <div class="stat-label">
-                                    <span class="stat-dot requests"></span>
-                                    Total Requests
+                                <div class="widget-content">
+                                    <canvas id="activity-timeline-chart"></canvas>
                                 </div>
-                                <div class="stat-value" id="stat-total-requests">-</div>
                             </div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-content">
-                                <div class="stat-label">
-                                    <span class="stat-dot response"></span>
-                                    Avg Response
-                                </div>
-                                <div class="stat-value" id="stat-avg-response">-</div>
-                            </div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-content">
-                                <div class="stat-label">
-                                    <span class="stat-dot success"></span>
-                                    Success Rate
-                                </div>
-                                <div class="stat-value" id="stat-success-rate">-</div>
-                            </div>
-                        </div>
-                    </div>
 
-                    <!-- Charts Section -->
-                    <div class="charts-container">
-                        <!-- Usage Metrics Chart -->
-                        <div class="chart-panel usage-chart">
-                            <div class="chart-header">
-                                <div class="chart-title">
-                                    <i class="fas fa-chart-bar"></i>
-                                    <span>Usage Metrics</span>
+                            <!-- Model Performance Table -->
+                            <div class="analytics-widget performance-widget">
+                                <div class="widget-header">
+                                    <div class="widget-title">
+                                        <i class="fas fa-server widget-icon"></i>
+                                        <div class="widget-title-text">
+                                            <h3>Model Performance</h3>
+                                            <span class="widget-subtitle">Detailed performance metrics</span>
+                                        </div>
+                                    </div>
+                                    <div class="widget-controls">
+                                        <button class="widget-control-btn" onclick="filterModelPerformance()" title="Filter">
+                                            <i class="fas fa-filter"></i>
+                                        </button>
+                                    </div>
                                 </div>
-                                <div class="chart-subtitle">Token usage and API calls</div>
-                            </div>
-                            <div class="chart-content">
-                                <canvas id="llm-usage-chart"></canvas>
-                            </div>
-                        </div>
-
-                        <!-- Activity Timeline Chart -->
-                        <div class="chart-panel timeline-chart">
-                            <div class="chart-header">
-                                <div class="chart-title">
-                                    <i class="fas fa-chart-line"></i>
-                                    <span>Activity Timeline</span>
+                                <div class="widget-content">
+                                    <div class="performance-table" id="model-performance-table">
+                                        <!-- Table will be populated by JavaScript -->
+                                    </div>
                                 </div>
-                                <div class="chart-subtitle">Model usage timeline</div>
                             </div>
-                            <div class="chart-content">
-                                <canvas id="activity-timeline-chart"></canvas>
-                            </div>
-                        </div>
-                    </div>
 
-                    <!-- Model Performance Table -->
-                    <div class="performance-panel">
-                        <div class="panel-header">
-                            <div class="panel-title">
-                                <i class="fas fa-server"></i>
-                                <span>Model Performance</span>
+                            <!-- Activity Log -->
+                            <div class="analytics-widget activity-widget">
+                                <div class="widget-header">
+                                    <div class="widget-title">
+                                        <i class="fas fa-list widget-icon"></i>
+                                        <div class="widget-title-text">
+                                            <h3>Activity Log</h3>
+                                            <span class="widget-subtitle">Recent system activities</span>
+                                        </div>
+                                    </div>
+                                    <div class="widget-controls">
+                                        <button class="widget-control-btn" onclick="searchActivityLog()" title="Search">
+                                            <i class="fas fa-search"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="widget-content">
+                                    <div class="activity-log" id="activity-log">
+                                        <!-- Activity log will be populated by JavaScript -->
+                                    </div>
+                                </div>
                             </div>
-                            <div class="panel-subtitle">Detailed performance metrics</div>
                         </div>
-                        <div class="performance-table" id="model-performance-table">
-                            <!-- Table will be populated by JavaScript -->
-                        </div>
-                    </div>
 
-                    <!-- Activity Log -->
-                    <div class="activity-panel">
-                        <div class="panel-header">
-                            <div class="panel-title">
-                                <i class="fas fa-list"></i>
-                                <span>Activity Log</span>
+                        <!-- Right Sidebar - Quick Stats -->
+                        <div class="analytics-sidebar">
+                            <div class="analytics-widget quick-stats-widget">
+                                <div class="widget-header">
+                                    <div class="widget-title">
+                                        <i class="fas fa-tachometer-alt widget-icon"></i>
+                                        <div class="widget-title-text">
+                                            <h3>Quick Stats</h3>
+                                            <span class="widget-subtitle">Performance overview</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="widget-content quick-stats-content">
+                                    <div class="quick-stat-item">
+                                        <div class="stat-indicator">
+                                            <span class="stat-dot active-models"></span>
+                                            <span class="stat-label">Active Models</span>
+                                        </div>
+                                        <div class="stat-value" id="stat-active-models">12</div>
+                                    </div>
+                                    
+                                    <div class="quick-stat-item">
+                                        <div class="stat-indicator">
+                                            <span class="stat-dot total-requests"></span>
+                                            <span class="stat-label">Total Requests</span>
+                                        </div>
+                                        <div class="stat-value" id="stat-total-requests">1.2M</div>
+                                    </div>
+                                    
+                                    <div class="quick-stat-item">
+                                        <div class="stat-indicator">
+                                            <span class="stat-dot avg-response"></span>
+                                            <span class="stat-label">Avg Response</span>
+                                        </div>
+                                        <div class="stat-value" id="stat-avg-response">245ms</div>
+                                    </div>
+                                    
+                                    <div class="quick-stat-item">
+                                        <div class="stat-indicator">
+                                            <span class="stat-dot success-rate"></span>
+                                            <span class="stat-label">Success Rate</span>
+                                        </div>
+                                        <div class="stat-value success" id="stat-success-rate">99.8%</div>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="panel-subtitle">Recent system activities</div>
-                        </div>
-                        <div class="activity-log" id="activity-log">
-                            <!-- Activity log will be populated by JavaScript -->
                         </div>
                     </div>
                 </div>
