@@ -399,7 +399,7 @@ class KnowledgeBaseApp {
             item.className = 'conversation-item';
             item.onclick = () => this.loadConversation(conv.id);
             
-            const tags = conv.tags.map(tag => `<span class="tag">${tag}</span>`).join('');
+            const tags = (conv.tags || []).map(tag => `<span class="tag">${tag}</span>`).join('');
             
             item.innerHTML = `
                 <div class="conversation-title">${conv.title}</div>
@@ -1122,6 +1122,7 @@ class KnowledgeBaseApp {
     
     filterConversationsClientSide(query) {
         const items = document.querySelectorAll('.conversation-item');
+        console.log(`Filtering ${items.length} conversations for query: "${query}"`);
         
         items.forEach(item => {
             const titleElem = item.querySelector('.conversation-title');
@@ -1130,6 +1131,8 @@ class KnowledgeBaseApp {
             const title = titleElem.textContent.toLowerCase();
             const tagsContainer = item.querySelector('.conversation-tags');
             const tags = (tagsContainer?.textContent || '').toLowerCase();
+            
+            console.log(`Conversation: "${title}", Tags: "${tags}"`);
             
             if (title.includes(query) || tags.includes(query)) {
                 item.style.display = 'block';
