@@ -152,20 +152,19 @@
                 </div>
                 
                 <div class="input-section">
-                    <div class="input-controls">
-                        <button class="input-btn" onclick="triggerFileUpload()" title="Upload File">
-                            <i class="fas fa-paperclip"></i>
-                        </button>
-                        <button class="input-btn" onclick="startVoiceInput()" title="Voice Input" id="voice-btn">
-                            <i class="fas fa-microphone"></i>
-                        </button>
-                        <button class="input-btn" onclick="addUrlReference()" title="Add URL">
-                            <i class="fas fa-link"></i>
-                        </button>
-                    </div>
-                    
                     <div class="message-input-wrapper">
-                        <textarea id="message-input" placeholder="Search knowledge base or ask a question..." 
+                        <div class="input-controls-left">
+                            <button class="input-btn-inline" onclick="triggerFileUpload()" title="Upload File">
+                                <i class="fas fa-paperclip"></i>
+                            </button>
+                            <button class="input-btn-inline" onclick="startVoiceInput()" title="Voice Input" id="voice-btn">
+                                <i class="fas fa-microphone"></i>
+                            </button>
+                            <button class="input-btn-inline" onclick="addUrlReference()" title="Add URL">
+                                <i class="fas fa-link"></i>
+                            </button>
+                        </div>
+                        <textarea id="message-input" placeholder="Ask a question or search knowledge base..." 
                                 rows="1" onkeydown="handleInputKeydown(event)" oninput="handleInputChange()"></textarea>
                         <button class="send-btn" onclick="sendMessage()" id="send-btn">
                             <i class="fas fa-paper-plane"></i>
