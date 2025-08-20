@@ -127,7 +127,7 @@
 
             <!-- Bottom Settings -->
             <div class="sidebar-footer" id="sidebar-footer">
-                <button class="settings-btn" onclick="window.app.openSettingsModal()" title="Settings">
+                <button class="settings-btn" id="sidebar-settings-btn" onclick="openSettingsPanel()" title="Settings" style="display: none;">
                     <i class="fas fa-cog"></i>
                     <span class="settings-label">Settings</span>
                 </button>
@@ -147,6 +147,7 @@
                                 <option value="gpt-4-turbo">GPT-4 Turbo</option>
                                 <option value="gpt-4o">GPT-4o</option>
                                 <option value="gpt-4o-mini">GPT-4o Mini</option>
+                                <option value="gpt-5" style="display: none;">ChatGPT 5</option>
                                 <option value="o1-preview">O1 Preview</option>
                                 <option value="o1-mini">O1 Mini</option>
                             </optgroup>
@@ -280,6 +281,92 @@
                 </div>
                 
                 <input type="file" id="file-input" multiple style="display: none;" onchange="window.app.handleContextUpload(event)">
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Slide-Out Panel -->
+    <div class="settings-panel" id="settings-panel">
+        <div class="settings-panel-overlay" onclick="closeSettingsPanel()"></div>
+        <div class="settings-panel-content">
+            <!-- Settings Header -->
+            <div class="settings-header">
+                <div class="settings-title">
+                    <i class="fas fa-cog"></i>
+                    <h2>Settings</h2>
+                </div>
+                <button class="settings-close-btn" onclick="closeSettingsPanel()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <!-- Settings Navigation -->
+            <div class="settings-nav">
+                <button class="settings-nav-btn active" data-section="models" onclick="showSettingsSection('models')">
+                    <i class="fas fa-robot"></i>
+                    Models
+                </button>
+                <button class="settings-nav-btn" data-section="account" onclick="showSettingsSection('account')">
+                    <i class="fas fa-user"></i>
+                    Account
+                </button>
+                <button class="settings-nav-btn" data-section="preferences" onclick="showSettingsSection('preferences')">
+                    <i class="fas fa-sliders-h"></i>
+                    Preferences
+                </button>
+            </div>
+
+            <!-- Settings Content -->
+            <div class="settings-content">
+                <!-- Models Section -->
+                <div class="settings-section active" id="models-section">
+                    <div class="section-header">
+                        <h3>Model Configuration</h3>
+                        <p>Manage which models are available in the dropdown and check their access status.</p>
+                    </div>
+
+                    <div class="models-container">
+                        <div class="models-header">
+                            <div class="models-actions">
+                                <button class="btn-secondary" onclick="checkAllModelsAccess()">
+                                    <i class="fas fa-sync"></i>
+                                    Check All Access
+                                </button>
+                                <button class="btn-primary" onclick="saveModelSettings()">
+                                    <i class="fas fa-save"></i>
+                                    Save Changes
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="models-list" id="models-list">
+                            <!-- Models will be populated by JavaScript -->
+                            <div class="loading-models">Loading model configurations...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Account Section -->
+                <div class="settings-section" id="account-section" style="display: none;">
+                    <div class="section-header">
+                        <h3>Account Information</h3>
+                        <p>View your account details and usage statistics.</p>
+                    </div>
+                    <div class="account-info">
+                        <p>Account settings coming soon...</p>
+                    </div>
+                </div>
+
+                <!-- Preferences Section -->
+                <div class="settings-section" id="preferences-section" style="display: none;">
+                    <div class="section-header">
+                        <h3>User Preferences</h3>
+                        <p>Customize your application experience.</p>
+                    </div>
+                    <div class="preferences-info">
+                        <p>Preference settings coming soon...</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -913,11 +1000,296 @@
             }
         }
 
+        // Settings Panel Functions
+        function openSettingsPanel() {
+            const panel = document.getElementById('settings-panel');
+            panel.classList.add('open');
+            // Load models when panel opens
+            loadModelConfigurations();
+        }
+
+        function closeSettingsPanel() {
+            const panel = document.getElementById('settings-panel');
+            panel.classList.remove('open');
+        }
+
+        function showSettingsSection(sectionName) {
+            // Hide all sections
+            document.querySelectorAll('.settings-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // Remove active from all nav buttons
+            document.querySelectorAll('.settings-nav-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected section
+            document.getElementById(sectionName + '-section').classList.add('active');
+            document.querySelector(`[data-section="${sectionName}"]`).classList.add('active');
+        }
+
+        // Model management functions
+        const availableModels = {
+            openai: [
+                { value: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', description: 'Fast and efficient model for most tasks' },
+                { value: 'gpt-4', name: 'GPT-4', description: 'More capable model for complex reasoning' },
+                { value: 'gpt-4-turbo', name: 'GPT-4 Turbo', description: 'Faster GPT-4 with longer context' },
+                { value: 'gpt-4o', name: 'GPT-4o', description: 'Latest GPT-4 optimized model' },
+                { value: 'gpt-4o-mini', name: 'GPT-4o Mini', description: 'Smaller, faster GPT-4o variant' },
+                { value: 'gpt-5', name: 'ChatGPT 5', description: 'Next generation OpenAI model' },
+                { value: 'o1-preview', name: 'O1 Preview', description: 'Advanced reasoning model (preview)' },
+                { value: 'o1-mini', name: 'O1 Mini', description: 'Compact advanced reasoning model' }
+            ],
+            anthropic: [
+                { value: 'claude-3.5-sonnet', name: 'Claude 3.5 Sonnet', description: 'Latest high-performance Claude model' },
+                { value: 'claude-3-opus', name: 'Claude 3 Opus', description: 'Most capable Claude model' },
+                { value: 'claude-3-sonnet', name: 'Claude 3 Sonnet', description: 'Balanced performance and speed' },
+                { value: 'claude-3-haiku', name: 'Claude 3 Haiku', description: 'Fast and efficient Claude model' }
+            ],
+            google: [
+                { value: 'gemini-pro', name: 'Gemini Pro', description: 'Google\'s flagship language model' },
+                { value: 'gemini-flash', name: 'Gemini Flash', description: 'Fast and lightweight Gemini variant' }
+            ],
+            huggingface: [
+                { value: 'llama2-70b', name: 'Llama 2 70B', description: 'Large open-source language model' },
+                { value: 'mixtral-8x7b', name: 'Mixtral 8x7B', description: 'Mixture of experts model' },
+                { value: 'codellama-34b', name: 'CodeLlama 34B', description: 'Specialized code generation model' }
+            ],
+            stability: [
+                { value: 'stable-image-ultra', name: 'Stable Image Ultra', description: 'Highest quality image generation' },
+                { value: 'stable-image-core', name: 'Stable Image Core', description: 'Balanced image generation' },
+                { value: 'stable-image-sd3', name: 'Stable Image SD3', description: 'Latest Stable Diffusion model' },
+                { value: 'stable-audio-2', name: 'Stable Audio 2', description: 'Audio generation model' }
+            ]
+        };
+
+        let modelSettings = {};
+
+        async function loadModelConfigurations() {
+            const modelsList = document.getElementById('models-list');
+            modelsList.innerHTML = '<div class="loading-models">Loading model configurations...</div>';
+            
+            try {
+                // Load current model settings from server
+                const response = await fetch('/api/model-settings');
+                if (response.ok) {
+                    modelSettings = await response.json();
+                } else {
+                    // Initialize with default settings
+                    modelSettings = {};
+                    Object.keys(availableModels).forEach(provider => {
+                        availableModels[provider].forEach(model => {
+                            modelSettings[model.value] = {
+                                enabled: model.value !== 'gpt-5', // GPT-5 disabled by default
+                                status: 'unknown'
+                            };
+                        });
+                    });
+                }
+                
+                renderModelsList();
+                
+            } catch (error) {
+                console.error('Failed to load model configurations:', error);
+                modelsList.innerHTML = '<div class="loading-models" style="color: red;">Failed to load model configurations</div>';
+            }
+        }
+
+        function renderModelsList() {
+            const modelsList = document.getElementById('models-list');
+            let html = '';
+            
+            Object.keys(availableModels).forEach(provider => {
+                const providerName = provider.charAt(0).toUpperCase() + provider.slice(1);
+                html += `
+                    <div class="model-group">
+                        <div class="model-group-header">
+                            <h4 class="model-group-title">
+                                <i class="fas fa-${getProviderIcon(provider)}"></i>
+                                ${providerName}
+                            </h4>
+                            <div class="model-group-actions">
+                                <button class="model-group-btn" onclick="toggleGroupModels('${provider}', true)">Enable All</button>
+                                <button class="model-group-btn" onclick="toggleGroupModels('${provider}', false)">Disable All</button>
+                                <button class="model-group-btn" onclick="checkGroupAccess('${provider}')">Check Access</button>
+                            </div>
+                        </div>
+                        <div class="models-grid">
+                `;
+                
+                availableModels[provider].forEach(model => {
+                    const settings = modelSettings[model.value] || { enabled: false, status: 'unknown' };
+                    html += `
+                        <div class="model-item">
+                            <div class="model-info">
+                                <input type="checkbox" class="model-checkbox" 
+                                       id="model-${model.value}" 
+                                       ${settings.enabled ? 'checked' : ''}
+                                       onchange="toggleModelEnabled('${model.value}')">
+                                <div class="model-details">
+                                    <h5 class="model-name">${model.name}</h5>
+                                    <p class="model-description">${model.description}</p>
+                                </div>
+                            </div>
+                            <div class="model-status">
+                                <div class="model-access-status ${settings.status}">
+                                    <span class="status-icon ${settings.status}"></span>
+                                    ${getStatusText(settings.status)}
+                                </div>
+                                <div class="model-actions">
+                                    <button class="model-action-btn" onclick="checkModelAccess('${model.value}')" title="Check Access">
+                                        <i class="fas fa-sync"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += `
+                        </div>
+                    </div>
+                `;
+            });
+            
+            modelsList.innerHTML = html;
+        }
+
+        function getProviderIcon(provider) {
+            const icons = {
+                openai: 'brain',
+                anthropic: 'robot',
+                google: 'search',
+                huggingface: 'heart',
+                stability: 'image'
+            };
+            return icons[provider] || 'cog';
+        }
+
+        function getStatusText(status) {
+            const statusTexts = {
+                active: 'Active',
+                limited: 'Limited',
+                unavailable: 'No Access',
+                checking: 'Checking...',
+                unknown: 'Unknown'
+            };
+            return statusTexts[status] || 'Unknown';
+        }
+
+        function toggleModelEnabled(modelValue) {
+            if (!modelSettings[modelValue]) {
+                modelSettings[modelValue] = { enabled: false, status: 'unknown' };
+            }
+            modelSettings[modelValue].enabled = document.getElementById(`model-${modelValue}`).checked;
+        }
+
+        function toggleGroupModels(provider, enabled) {
+            availableModels[provider].forEach(model => {
+                const checkbox = document.getElementById(`model-${model.value}`);
+                if (checkbox) {
+                    checkbox.checked = enabled;
+                    toggleModelEnabled(model.value);
+                }
+            });
+        }
+
+        async function checkModelAccess(modelValue) {
+            const statusElement = document.querySelector(`#model-${modelValue}`).closest('.model-item').querySelector('.model-access-status');
+            const iconElement = statusElement.querySelector('.status-icon');
+            
+            // Set checking state
+            statusElement.className = 'model-access-status checking';
+            iconElement.className = 'status-icon checking';
+            statusElement.innerHTML = '<span class="status-icon checking"></span>Checking...';
+            
+            try {
+                const response = await fetch('/api/check-model-access', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ model: modelValue })
+                });
+                
+                const result = await response.json();
+                const status = result.hasAccess ? 'active' : 'unavailable';
+                
+                modelSettings[modelValue] = modelSettings[modelValue] || {};
+                modelSettings[modelValue].status = status;
+                
+                statusElement.className = `model-access-status ${status}`;
+                iconElement.className = `status-icon ${status}`;
+                statusElement.innerHTML = `<span class="status-icon ${status}"></span>${getStatusText(status)}`;
+                
+            } catch (error) {
+                console.error('Failed to check model access:', error);
+                statusElement.className = 'model-access-status unavailable';
+                iconElement.className = 'status-icon unavailable';
+                statusElement.innerHTML = '<span class="status-icon unavailable"></span>Error';
+            }
+        }
+
+        async function checkGroupAccess(provider) {
+            const promises = availableModels[provider].map(model => checkModelAccess(model.value));
+            await Promise.all(promises);
+        }
+
+        async function checkAllModelsAccess() {
+            const allModels = Object.keys(availableModels).flatMap(provider => 
+                availableModels[provider].map(model => model.value)
+            );
+            
+            const promises = allModels.map(modelValue => checkModelAccess(modelValue));
+            await Promise.all(promises);
+        }
+
+        async function saveModelSettings() {
+            try {
+                const response = await fetch('/api/model-settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(modelSettings)
+                });
+                
+                if (response.ok) {
+                    // Update the model dropdown based on enabled models
+                    updateModelDropdown();
+                    alert('Model settings saved successfully!');
+                } else {
+                    alert('Failed to save model settings');
+                }
+                
+            } catch (error) {
+                console.error('Failed to save model settings:', error);
+                alert('Failed to save model settings');
+            }
+        }
+
+        function updateModelDropdown() {
+            const dropdown = document.getElementById('llm-model');
+            const options = dropdown.querySelectorAll('option');
+            
+            options.forEach(option => {
+                const modelValue = option.value;
+                const settings = modelSettings[modelValue];
+                
+                if (settings) {
+                    if (settings.enabled && settings.status === 'active') {
+                        option.style.display = '';
+                    } else {
+                        option.style.display = 'none';
+                    }
+                }
+            });
+        }
+
         // Check auth status on load and show admin tab if authenticated
         document.addEventListener('DOMContentLoaded', async () => {
             const authStatus = await checkAuthStatus();
             if (authStatus.authenticated) {
                 document.getElementById('whitelist-tab').style.display = 'inline-block';
+                // Show settings button for authenticated users
+                document.getElementById('sidebar-settings-btn').style.display = 'flex';
             }
         });
     </script>
