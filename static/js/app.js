@@ -172,6 +172,7 @@ class KnowledgeBaseApp {
             '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'
         ];
         
+        const projectsSection = document.getElementById('projects-section');
         if (projectsSection && projectsSection.classList.contains('collapsed')) {
             return;
         }
@@ -1314,15 +1315,26 @@ class KnowledgeBaseApp {
 
 // --- Add at the top of the file, before class KnowledgeBaseApp ---
 KnowledgeBaseApp.prototype.showNewProjectInput = function() {
-    document.getElementById('new-project-input-row').style.display = '';
-    document.getElementById('new-project-input').focus();
+    this.addingProject = true;
+    this.loadProjects();
 };
 
 KnowledgeBaseApp.prototype.toggleProjects = function() {
     const section = document.getElementById('projects-section');
-    const toggleBtn = document.getElementById('toggle-projects-btn');
+    const chevron = document.getElementById('projects-chevron');
+    const projectList = document.getElementById('project-list');
+    
+    if (!section || !chevron || !projectList) return;
+    
     section.classList.toggle('collapsed');
-    toggleBtn.textContent = section.classList.contains('collapsed') ? '► Projects' : '▼ Projects';
+    
+    if (section.classList.contains('collapsed')) {
+        chevron.className = 'fas fa-chevron-right';
+        projectList.style.display = 'none';
+    } else {
+        chevron.className = 'fas fa-chevron-down';
+        projectList.style.display = 'flex';
+    }
 };
 
 KnowledgeBaseApp.prototype.openSettingsModal = async function() {
