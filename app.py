@@ -1263,35 +1263,34 @@ def search_conversations():
         if not query:
             return jsonify({'success': False, 'error': 'Query parameter is required'}), 400
         
-        from sqlalchemy import or_, and_
+        from sqlalchemy import or_, and_, exists
         from models import Conversation, Message
         
-        # Build base query - search in conversation titles and message content
-        search_filter = or_(
-            Conversation.title.ilike(f'%{query}%'),
-            Message.content.ilike(f'%{query}%')
+        # Build search filter using EXISTS for better performance and no DISTINCT issues
+        message_exists = exists().where(
+            and_(
+                Message.conversation_id == Conversation.id,
+                Message.content.ilike(f'%{query}%')
+            )
         )
         
-        # Add project filter if specified
+        search_filter = or_(
+            Conversation.title.ilike(f'%{query}%'),
+            message_exists
+        )
+        
+        # Build base query with project filter if specified
+        base_query = db.session.query(Conversation).filter(search_filter)
+        
         if project_id:
             try:
                 project_uuid = uuid.UUID(project_id)
-                base_query = db.session.query(Conversation).join(Message).filter(
-                    and_(
-                        Conversation.project_id == project_uuid,
-                        search_filter
-                    )
-                )
+                base_query = base_query.filter(Conversation.project_id == project_uuid)
             except ValueError:
                 return jsonify({'success': False, 'error': 'Invalid project_id'}), 400
-        else:
-            # Search all conversations if no project specified
-            base_query = db.session.query(Conversation).join(Message).filter(search_filter)
         
-        # Get distinct conversations ordered by most recent
-        conversations = base_query.distinct(Conversation.id).order_by(
-            Conversation.updated_at.desc()
-        ).limit(limit).all()
+        # Get conversations ordered by most recent (no DISTINCT needed with EXISTS)
+        conversations = base_query.order_by(Conversation.updated_at.desc()).limit(limit).all()
         
         # Format results with matching message snippets
         results = []
