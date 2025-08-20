@@ -53,6 +53,15 @@ class LLMService:
             self.logger.info("Hugging Face API key configured")
         else:
             self.hf_available = False
+            
+        # Initialize Stability AI
+        self.stability_api_key = os.getenv('STABILITY_API_KEY')
+        if self.stability_api_key:
+            self.stability_headers = {"Authorization": f"Bearer {self.stability_api_key}"}
+            self.stability_available = True
+            self.logger.info("Stability AI API key configured")
+        else:
+            self.stability_available = False
         
     def get_response(self, model, messages, max_tokens=4000, temperature=0.7, is_authenticated=False):
         """Get response from specified LLM model. Returns (response_text, tokens, estimated_cost)"""
@@ -73,6 +82,8 @@ class LLMService:
             return self._get_gemini_response(model, messages, max_tokens, temperature)
         elif model in ['llama2-70b', 'mixtral-8x7b', 'codellama-34b']:
             return self._get_huggingface_response(model, messages, max_tokens, temperature)
+        elif model in ['stable-diffusion-ultra', 'stable-code-3b', 'stablelm-2-1_6b']:
+            return self._get_stability_response(model, messages, max_tokens, temperature)
         else:
             raise ValueError(f"Model {model} not available")
     
@@ -270,6 +281,87 @@ class LLMService:
                 
         except Exception as e:
             raise Exception(f"Hugging Face API error: {str(e)}")
+
+    def _get_stability_response(self, model, messages, max_tokens, temperature):
+        """Get response from Stability AI models"""
+        if not self.stability_available:
+            raise Exception("Stability AI API key not configured")
+            
+        try:
+            # Map model names to Stability API endpoints
+            model_mapping = {
+                'stable-diffusion-ultra': 'stable-diffusion-xl-1024-v1-0',
+                'stable-code-3b': 'stable-code-3b',
+                'stablelm-2-1_6b': 'stablelm-2-1_6b'
+            }
+            
+            stability_model = model_mapping.get(model, model)
+            
+            # Format conversation for Stability AI
+            conversation_text = ""
+            for msg in messages:
+                role = "Human" if msg['role'] == 'user' else "Assistant"
+                conversation_text += f"{role}: {msg['content']}\n\n"
+            
+            # Use Stability AI's text generation endpoint
+            response = requests.post(
+                f"https://api.stability.ai/v1/generation/{stability_model}/text-to-text",
+                headers={
+                    **self.stability_headers,
+                    "Content-Type": "application/json",
+                    "Accept": "application/json"
+                },
+                json={
+                    "text_prompts": [{"text": conversation_text}],
+                    "cfg_scale": 7,
+                    "height": 1024,
+                    "width": 1024,
+                    "samples": 1,
+                    "steps": 30,
+                    "seed": 0
+                },
+                timeout=60
+            )
+            
+            if response.status_code != 200:
+                # Try alternative endpoint for text models
+                response = requests.post(
+                    "https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-text",
+                    headers={
+                        **self.stability_headers,
+                        "Content-Type": "application/json"
+                    },
+                    json={
+                        "text": conversation_text,
+                        "max_tokens": max_tokens,
+                        "temperature": temperature
+                    },
+                    timeout=30
+                )
+            
+            if response.status_code != 200:
+                raise Exception(f"Stability API returned {response.status_code}: {response.text}")
+            
+            result = response.json()
+            
+            # Handle different response formats
+            if 'artifacts' in result and len(result['artifacts']) > 0:
+                text = result['artifacts'][0].get('text', 'No response generated')
+            elif 'choices' in result and len(result['choices']) > 0:
+                text = result['choices'][0].get('text', 'No response generated')
+            elif 'text' in result:
+                text = result['text']
+            else:
+                text = "Stability AI response received but could not parse content"
+            
+            # Stability AI doesn't typically return token usage for text models
+            tokens = len(text.split()) * 1.3  # Rough estimate
+            cost = tokens * 0.0001  # Rough cost estimate
+            
+            return text, int(tokens), cost
+                
+        except Exception as e:
+            raise Exception(f"Stability AI API error: {str(e)}")
     
     def get_model_limits(self, model):
         """Get practical token limits for different models"""
@@ -300,7 +392,12 @@ class LLMService:
             # Hugging Face Models - Limited
             'llama2-70b': {'max_tokens': 2000, 'context_window': 3000},
             'mixtral-8x7b': {'max_tokens': 3000, 'context_window': 30000}, 
-            'codellama-34b': {'max_tokens': 3000, 'context_window': 14000}
+            'codellama-34b': {'max_tokens': 3000, 'context_window': 14000},
+            
+            # Stability AI Models
+            'stable-diffusion-ultra': {'max_tokens': 2000, 'context_window': 4000},
+            'stable-code-3b': {'max_tokens': 4000, 'context_window': 8000},
+            'stablelm-2-1_6b': {'max_tokens': 4000, 'context_window': 8000}
         }
         return limits.get(model, {'max_tokens': 2000, 'context_window': 6000})
     
