@@ -1250,5 +1250,116 @@ def get_context_stats():
 
 # ==================== END CONTEXT MANAGEMENT API ====================
 
+# ==================== SEARCH API ENDPOINTS ====================
+
+@app.route('/api/search/conversations', methods=['GET'])
+def search_conversations():
+    """Search conversations by content with project awareness"""
+    try:
+        query = request.args.get('query', '').strip()
+        project_id = request.args.get('project_id')
+        limit = int(request.args.get('limit', 20))
+        
+        if not query:
+            return jsonify({'success': False, 'error': 'Query parameter is required'}), 400
+        
+        from sqlalchemy import or_, and_
+        from models import Conversation, Message
+        
+        # Build base query - search in conversation titles and message content
+        search_filter = or_(
+            Conversation.title.ilike(f'%{query}%'),
+            Message.content.ilike(f'%{query}%')
+        )
+        
+        # Add project filter if specified
+        if project_id:
+            try:
+                project_uuid = uuid.UUID(project_id)
+                base_query = db.session.query(Conversation).join(Message).filter(
+                    and_(
+                        Conversation.project_id == project_uuid,
+                        search_filter
+                    )
+                )
+            except ValueError:
+                return jsonify({'success': False, 'error': 'Invalid project_id'}), 400
+        else:
+            # Search all conversations if no project specified
+            base_query = db.session.query(Conversation).join(Message).filter(search_filter)
+        
+        # Get distinct conversations ordered by most recent
+        conversations = base_query.distinct(Conversation.id).order_by(
+            Conversation.updated_at.desc()
+        ).limit(limit).all()
+        
+        # Format results with matching message snippets
+        results = []
+        for conv in conversations:
+            # Find matching messages in this conversation
+            matching_messages = Message.query.filter(
+                and_(
+                    Message.conversation_id == conv.id,
+                    Message.content.ilike(f'%{query}%')
+                )
+            ).order_by(Message.timestamp.desc()).limit(3).all()
+            
+            # Create snippets from matching messages
+            snippets = []
+            for msg in matching_messages:
+                content = msg.content
+                # Find the query in content and create a snippet around it
+                query_lower = query.lower()
+                content_lower = content.lower()
+                
+                if query_lower in content_lower:
+                    start_idx = content_lower.find(query_lower)
+                    snippet_start = max(0, start_idx - 50)
+                    snippet_end = min(len(content), start_idx + len(query) + 50)
+                    snippet = content[snippet_start:snippet_end]
+                    
+                    if snippet_start > 0:
+                        snippet = "..." + snippet
+                    if snippet_end < len(content):
+                        snippet = snippet + "..."
+                    
+                    snippets.append({
+                        'content': snippet,
+                        'role': msg.role,
+                        'timestamp': msg.timestamp.isoformat()
+                    })
+            
+            # If no message matches but title matches, use title
+            if not snippets and query.lower() in conv.title.lower():
+                snippets.append({
+                    'content': conv.title,
+                    'role': 'title',
+                    'timestamp': conv.created_at.isoformat()
+                })
+            
+            results.append({
+                'id': str(conv.id),
+                'title': conv.title,
+                'project_id': str(conv.project_id) if conv.project_id else None,
+                'created_at': conv.created_at.isoformat(),
+                'updated_at': conv.updated_at.isoformat(),
+                'tags': conv.tags or [],
+                'snippets': snippets[:2]  # Limit to 2 snippets per conversation
+            })
+        
+        return jsonify({
+            'success': True,
+            'query': query,
+            'project_id': project_id,
+            'total_results': len(results),
+            'conversations': results
+        })
+        
+    except Exception as e:
+        app.logger.error(f"Error searching conversations: {str(e)}")
+        return jsonify({'success': False, 'error': 'Search failed'}), 500
+
+# ==================== END SEARCH API ====================
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

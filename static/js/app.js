@@ -928,17 +928,50 @@ class KnowledgeBaseApp {
     }
 
     // Search conversations
-    searchConversations() {
-        const query = document.getElementById('conversation-search').value.toLowerCase();
+    async searchConversations() {
+        const query = document.getElementById('conversation-search').value.trim();
+        
+        if (!query) {
+            // If empty query, reload normal conversations
+            this.loadConversations();
+            return;
+        }
+        
+        // If query is less than 2 characters, use simple client-side filtering
+        if (query.length < 2) {
+            this.filterConversationsClientSide(query.toLowerCase());
+            return;
+        }
+        
+        try {
+            // Build search URL with project awareness
+            let searchUrl = `/api/search/conversations?query=${encodeURIComponent(query)}`;
+            if (this.currentProject && this.currentProject.id) {
+                searchUrl += `&project_id=${this.currentProject.id}`;
+            }
+            
+            const response = await fetch(searchUrl);
+            const data = await response.json();
+            
+            if (data.success) {
+                this.renderSearchResults(data.conversations, query);
+            } else {
+                console.error('Search failed:', data.error);
+                this.showErrorNotification('Search failed: ' + data.error);
+            }
+        } catch (error) {
+            console.error('Search error:', error);
+            this.showErrorNotification('Search failed');
+        }
+    }
+    
+    filterConversationsClientSide(query) {
         const items = document.querySelectorAll('.conversation-item');
         
         items.forEach(item => {
-            // Only filter conversation items that have a .conversation-title (not project items)
             const titleElem = item.querySelector('.conversation-title');
-            if (!titleElem) {
-                // console.log('Skipping project item:', item.textContent);
-                return;
-            }
+            if (!titleElem) return; // Skip project items
+            
             const title = titleElem.textContent.toLowerCase();
             const tags = (item.querySelector('.conversation-tags')?.textContent || '').toLowerCase();
             
@@ -948,6 +981,53 @@ class KnowledgeBaseApp {
                 item.style.display = 'none';
             }
         });
+    }
+    
+    renderSearchResults(conversations, query) {
+        const container = document.querySelector('.conversations-list');
+        
+        if (conversations.length === 0) {
+            container.innerHTML = `
+                <div style="padding: 20px; text-align: center; color: #666; font-style: italic;">
+                    No conversations found for "${query}"
+                    ${this.currentProject ? ` in ${this.currentProject.name}` : ''}
+                </div>
+            `;
+            return;
+        }
+        
+        container.innerHTML = conversations.map(conv => {
+            const isActive = this.currentConversationId === conv.id;
+            const tags = conv.tags.length > 0 ? 
+                `<div class="conversation-tags">
+                    ${conv.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+                </div>` : '';
+            
+            // Show snippets with highlighted query terms
+            const snippets = conv.snippets.map(snippet => {
+                let content = snippet.content;
+                // Highlight search terms (simple highlighting)
+                const regex = new RegExp(`(${query})`, 'gi');
+                content = content.replace(regex, '<mark>$1</mark>');
+                
+                return `<div class="search-snippet" style="font-size: 11px; color: #666; margin-top: 4px; line-height: 1.3;">
+                    ${snippet.role === 'title' ? '<strong>Title:</strong> ' : 
+                      snippet.role === 'user' ? '<strong>You:</strong> ' : '<strong>AI:</strong> '}
+                    ${content}
+                </div>`;
+            }).join('');
+            
+            return `
+                <div class="conversation-item ${isActive ? 'active' : ''}" onclick="window.app.loadConversation('${conv.id}')">
+                    <div class="conversation-title">${conv.title}</div>
+                    <div class="conversation-meta">
+                        <span>${new Date(conv.updated_at).toLocaleDateString()}</span>
+                    </div>
+                    ${tags}
+                    ${snippets}
+                </div>
+            `;
+        }).join('');
     }
 
     // Input handling
@@ -1265,6 +1345,15 @@ function handleFileUpload(event) {
 
 function searchConversations() {
     window.app.searchConversations();
+}
+
+// Debounced search function to avoid too many API calls
+let searchTimeout;
+function debouncedSearchConversations() {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        window.app.searchConversations();
+    }, 300); // 300ms delay
 }
 
 function performKnowledgeBaseSearch() {
