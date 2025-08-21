@@ -64,12 +64,8 @@ def validate_csrf_for_api():
             return jsonify({'error': 'CSRF token required'}), 403
     return None
 
-# Exempt certain endpoints from CSRF (like token endpoint and logout)
-@csrf.exempt
-def csrf_exempt_routes():
-    """Exempt certain routes from CSRF protection"""
-    exempt_routes = ['/api/csrf-token', '/auth/logout']
-    return request.endpoint in exempt_routes or request.path in exempt_routes
+# CSRF protection is enabled globally
+# Individual routes can be exempted using @csrf.exempt decorator
 
 # Rate limiting - use in-memory for simplicity
 limiter = Limiter(
@@ -217,6 +213,7 @@ def login_page():
         return redirect(url_for('index'))
     return render_template('login.html')
 
+@csrf.exempt
 @app.route('/api/csrf-token', methods=['GET'])
 def get_csrf_token():
     """Get CSRF token for AJAX requests"""
@@ -226,8 +223,15 @@ def get_csrf_token():
     except Exception as e:
         return jsonify({'error': 'Failed to generate CSRF token'}), 500
 
-# Exempt logout endpoint from CSRF protection
-csrf.exempt('/auth/logout')
+# Configure CSRF exemptions
+@csrf.exempt
+@app.route('/auth/logout', methods=['POST'])
+def logout_override():
+    """Logout endpoint - bypassing auth.py registration to add CSRF exemption"""
+    from flask import session
+    session.pop('authenticated', None)
+    session.pop('user_id', None)
+    return jsonify({'success': True, 'message': 'Logged out'})
 
 @app.route('/init-db')
 def init_database():

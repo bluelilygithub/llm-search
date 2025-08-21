@@ -292,12 +292,7 @@ class SimpleAuth:
             else:
                 return jsonify({'success': False, 'error': 'Invalid password'}), 401
         
-        @app.route('/auth/logout', methods=['POST'])
-        def logout():
-            """Logout endpoint - exempt from CSRF as it's a security action"""
-            session.pop('authenticated', None)
-            session.pop('user_id', None)
-            return jsonify({'success': True, 'message': 'Logged out'})
+        # Logout route is now handled in app.py with CSRF exemption
     
     def is_auth_enabled(self):
         """Check if authentication is enabled"""
