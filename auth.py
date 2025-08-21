@@ -294,7 +294,7 @@ class SimpleAuth:
         
         @app.route('/auth/logout', methods=['POST'])
         def logout():
-            """Logout endpoint"""
+            """Logout endpoint - exempt from CSRF as it's a security action"""
             session.pop('authenticated', None)
             session.pop('user_id', None)
             return jsonify({'success': True, 'message': 'Logged out'})

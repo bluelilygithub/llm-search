@@ -64,11 +64,11 @@ def validate_csrf_for_api():
             return jsonify({'error': 'CSRF token required'}), 403
     return None
 
-# Exempt certain endpoints from CSRF (like token endpoint)
+# Exempt certain endpoints from CSRF (like token endpoint and logout)
 @csrf.exempt
 def csrf_exempt_routes():
     """Exempt certain routes from CSRF protection"""
-    exempt_routes = ['/api/csrf-token']
+    exempt_routes = ['/api/csrf-token', '/auth/logout']
     return request.endpoint in exempt_routes or request.path in exempt_routes
 
 # Rate limiting - use in-memory for simplicity
@@ -225,6 +225,9 @@ def get_csrf_token():
         return jsonify({'csrf_token': token}), 200
     except Exception as e:
         return jsonify({'error': 'Failed to generate CSRF token'}), 500
+
+# Exempt logout endpoint from CSRF protection
+csrf.exempt('/auth/logout')
 
 @app.route('/init-db')
 def init_database():
