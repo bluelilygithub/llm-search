@@ -139,18 +139,26 @@ def init_database():
 @app.route('/projects', methods=['GET'])
 @auth.login_required
 def get_projects():
-    from models import Project
+    from models import Project, Conversation
     projects = Project.query.order_by(Project.created_at.desc()).all()
-    return jsonify([
-        {
+    
+    project_data = []
+    for project in projects:
+        # Count conversations for this project
+        conversation_count = db.session.query(Conversation).filter(
+            Conversation.project_id == project.id
+        ).count()
+        
+        project_data.append({
             'id': str(project.id),
             'name': project.name,
             'description': project.description,
             'created_at': project.created_at.isoformat(),
-            'updated_at': project.updated_at.isoformat() if project.updated_at else None
-        }
-        for project in projects
-    ])
+            'updated_at': project.updated_at.isoformat() if project.updated_at else None,
+            'conversation_count': conversation_count
+        })
+    
+    return jsonify(project_data)
 
 @app.route('/projects', methods=['POST'])
 def create_project():

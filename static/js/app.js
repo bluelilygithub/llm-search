@@ -438,7 +438,14 @@ class KnowledgeBaseApp {
             item.className = 'conversation-item';
             item.onclick = () => this.loadConversation(conv.id);
             
-            const tags = (conv.tags || []).map(tag => `<span class="tag">${tag}</span>`).join('');
+            const tags = (conv.tags || []).map(tag => 
+                `<span class="tag">
+                    ${tag}
+                    <button class="tag-remove-btn" onclick="event.stopPropagation(); window.app.removeTagFromConversation(${conv.id}, '${tag}')" title="Remove tag">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </span>`
+            ).join('');
             console.log(`DEBUG: Generated tags HTML for "${conv.title}":`, tags);
             
             item.innerHTML = `
@@ -1050,6 +1057,31 @@ class KnowledgeBaseApp {
     removeTagFromCurrent(tag) {
         // Remove tag immediately from current conversation
         this.removeSingleTag(tag);
+    }
+
+    async removeTagFromConversation(conversationId, tag) {
+        try {
+            const response = await fetch(`/api/conversations/${conversationId}/tags`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ tag: tag })
+            });
+            
+            if (response.ok) {
+                console.log(`Successfully removed tag "${tag}" from conversation ${conversationId}`);
+                // Refresh the conversation list to show updated tags
+                this.loadConversations();
+            } else {
+                const errorData = await response.json();
+                console.error('Failed to remove tag:', errorData);
+                alert(`Failed to remove tag: ${errorData.error || 'Unknown error'}`);
+            }
+        } catch (error) {
+            console.error('Error removing tag from conversation:', error);
+            alert('Failed to remove tag: Network error');
+        }
     }
 
     async removeSingleTag(tag) {
