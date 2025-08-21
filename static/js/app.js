@@ -239,10 +239,11 @@ class KnowledgeBaseApp {
                 <div class="empty-state-icon">
                     <i class="fas fa-comments"></i>
                 </div>
-                <h2 class="empty-state-title">New Conversation</h2>
+                <h2 class="empty-state-title" id="new-conversation-title">New Conversation</h2>
                 <p class="empty-state-description">Start a conversation or search your knowledge base.</p>
             </div>
         `;
+        this.updateNewConversationTitle();
     }
 
     createNewProject(name) {
@@ -395,12 +396,24 @@ class KnowledgeBaseApp {
             this.currentConversationId = null;
             document.getElementById('chat-messages').innerHTML = `
                 <div class="welcome-message">
-                    <h3>New Conversation</h3>
+                    <h3 id="new-conversation-title">New Conversation</h3>
                     <p>Start a conversation or search your knowledge base.</p>
                 </div>
             `;
+            this.updateNewConversationTitle();
             document.getElementById('message-input').value = '';
             this.autoResizeTextarea();
+        }
+    }
+
+    updateNewConversationTitle() {
+        const titleElement = document.getElementById('new-conversation-title');
+        if (!titleElement) return;
+        
+        if (this.currentProject && this.currentProject.name) {
+            titleElement.textContent = `New Conversation - ${this.currentProject.name}`;
+        } else {
+            titleElement.textContent = 'New Conversation - All Conversations';
         }
     }
 
@@ -441,7 +454,7 @@ class KnowledgeBaseApp {
             const tags = (conv.tags || []).map(tag => 
                 `<span class="tag">
                     ${tag}
-                    <button class="tag-remove-btn" onclick="event.stopPropagation(); window.app.removeTagFromConversation(${conv.id}, '${tag}')" title="Remove tag">
+                    <button class="tag-remove-btn" onclick="event.stopPropagation(); window.app.removeTagFromConversation(${conv.id}, ${JSON.stringify(tag)})" title="Remove tag">
                         <i class="fas fa-times"></i>
                     </button>
                 </span>`
@@ -754,10 +767,11 @@ class KnowledgeBaseApp {
         this.currentConversationId = null;
         document.getElementById('chat-messages').innerHTML = `
             <div class="welcome-message">
-                <h3>New Conversation</h3>
+                <h3 id="new-conversation-title">New Conversation</h3>
                 <p>Start a conversation or search your knowledge base.</p>
             </div>
         `;
+        this.updateNewConversationTitle();
         
         // Clear active conversation
         document.querySelectorAll('.conversation-item').forEach(item => {

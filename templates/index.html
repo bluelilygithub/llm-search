@@ -1306,9 +1306,8 @@
                 const settings = modelSettings[modelValue];
                 
                 if (settings) {
-                    // Show model if it's enabled and either has active status OR status is unknown
-                    // This allows models to appear before access checking is complete
-                    if (settings.enabled && (settings.status === 'active' || settings.status === 'unknown')) {
+                    // Show model only if it's enabled (ignore status - let admin decide via checkboxes)
+                    if (settings.enabled) {
                         option.style.display = '';
                     } else {
                         option.style.display = 'none';
