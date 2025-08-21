@@ -223,7 +223,7 @@ def get_csrf_token():
     except Exception as e:
         return jsonify({'error': 'Failed to generate CSRF token'}), 500
 
-# Configure CSRF exemptions
+# Configure CSRF exemptions for auth endpoints
 @csrf.exempt
 @app.route('/auth/logout', methods=['POST'])
 def logout_override():
@@ -232,6 +232,24 @@ def logout_override():
     session.pop('authenticated', None)
     session.pop('user_id', None)
     return jsonify({'success': True, 'message': 'Logged out'})
+
+@csrf.exempt  
+@app.route('/auth/login', methods=['POST'])
+def login_override():
+    """Login endpoint - bypassing auth.py registration to add CSRF exemption"""
+    from flask import session
+    if not auth.is_auth_enabled():
+        return jsonify({'success': True, 'message': 'Authentication disabled'})
+    
+    data = request.get_json()
+    password = data.get('password', '')
+    
+    if auth.verify_password(password):
+        session['authenticated'] = True
+        session['user_id'] = 'admin'  # Simple single-user system
+        return jsonify({'success': True, 'message': 'Login successful'})
+    else:
+        return jsonify({'success': False, 'error': 'Invalid password'}), 401
 
 @app.route('/init-db')
 def init_database():

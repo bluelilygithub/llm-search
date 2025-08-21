@@ -276,21 +276,7 @@ class SimpleAuth:
                 'free_access': free_access_info
             })
         
-        @app.route('/auth/login', methods=['POST'])
-        def login():
-            """Simple login endpoint"""
-            if not self.is_auth_enabled():
-                return jsonify({'success': True, 'message': 'Authentication disabled'})
-            
-            data = request.get_json()
-            password = data.get('password', '')
-            
-            if self.verify_password(password):
-                session['authenticated'] = True
-                session['user_id'] = 'admin'  # Simple single-user system
-                return jsonify({'success': True, 'message': 'Login successful'})
-            else:
-                return jsonify({'success': False, 'error': 'Invalid password'}), 401
+        # Login route is now handled in app.py with CSRF exemption
         
         # Logout route is now handled in app.py with CSRF exemption
     
