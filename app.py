@@ -435,6 +435,30 @@ def get_messages(conversation_id):
         } for msg in messages]
     })
 
+@app.route('/conversations/<conversation_id>', methods=['DELETE'])
+@require_conversation_access
+def delete_conversation(conversation_id):
+    """Delete a conversation and all its messages"""
+    try:
+        conv_uuid = uuid.UUID(conversation_id)
+        
+        conversation = Conversation.query.get(conv_uuid)
+        if not conversation:
+            return jsonify({'error': 'Conversation not found'}), 404
+        
+        # Delete associated messages and attachments (cascade should handle this)
+        db.session.delete(conversation)
+        db.session.commit()
+        
+        return jsonify({'success': True, 'message': 'Conversation deleted'}), 200
+        
+    except ValueError:
+        return jsonify({'error': 'Invalid conversation ID'}), 400
+    except Exception as e:
+        app.logger.error(f"Error deleting conversation: {e}")
+        db.session.rollback()
+        return jsonify({'error': 'Failed to delete conversation'}), 500
+
 @app.route('/conversations/<conversation_id>/messages', methods=['POST'])
 @require_conversation_access
 def add_message(conversation_id):

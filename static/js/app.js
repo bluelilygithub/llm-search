@@ -496,11 +496,26 @@ class KnowledgeBaseApp {
             event.currentTarget.classList.add('active');
 
             const response = await fetch(`/conversations/${conversationId}/messages`);
+            
+            if (!response.ok) {
+                throw new Error(`Failed to fetch conversation: ${response.status} ${response.statusText}`);
+            }
+            
             const data = await response.json();
             
+            // Safety checks for API response
+            if (!data || !data.messages) {
+                console.warn('Invalid API response:', data);
+                this.renderMessages([]);
+                return;
+            }
+            
             this.renderMessages(data.messages);
-            this.selectedModel = data.conversation.llm_model;
-            document.getElementById('llm-model').value = this.selectedModel;
+            
+            if (data.conversation && data.conversation.llm_model) {
+                this.selectedModel = data.conversation.llm_model;
+                document.getElementById('llm-model').value = this.selectedModel;
+            }
             // No longer showing model instructions automatically
             
         } catch (error) {
@@ -511,6 +526,12 @@ class KnowledgeBaseApp {
     renderMessages(messages) {
         const container = document.getElementById('chat-messages');
         container.innerHTML = '';
+
+        // Safety check: ensure messages is an array
+        if (!messages || !Array.isArray(messages)) {
+            console.warn('Messages is not an array or is undefined:', messages);
+            return;
+        }
 
         messages.forEach(message => {
             this.addMessageToChat(message);
