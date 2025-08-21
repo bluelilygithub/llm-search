@@ -2,6 +2,7 @@ from flask import Flask, jsonify, request, render_template, send_from_directory,
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from flask_wtf.csrf import CSRFProtect, generate_csrf, validate_csrf
 from config import Config
 import uuid
 from datetime import datetime
@@ -40,6 +41,36 @@ db = init_db(app)
 
 CORS(app)
 
+# CSRF Protection
+csrf = CSRFProtect(app)
+
+# Custom CSRF validation for API endpoints
+def validate_csrf_for_api():
+    """Custom CSRF validation for API endpoints that expect JSON"""
+    if request.method in ['POST', 'PUT', 'DELETE', 'PATCH']:
+        # Check for CSRF token in headers or JSON body
+        csrf_token = request.headers.get('X-CSRFToken')
+        if not csrf_token and request.is_json:
+            data = request.get_json(silent=True)
+            if data:
+                csrf_token = data.get('csrf_token')
+        
+        if csrf_token:
+            try:
+                validate_csrf(csrf_token)
+            except Exception as e:
+                return jsonify({'error': 'CSRF token validation failed'}), 403
+        else:
+            return jsonify({'error': 'CSRF token required'}), 403
+    return None
+
+# Exempt certain endpoints from CSRF (like token endpoint)
+@csrf.exempt
+def csrf_exempt_routes():
+    """Exempt certain routes from CSRF protection"""
+    exempt_routes = ['/api/csrf-token']
+    return request.endpoint in exempt_routes or request.path in exempt_routes
+
 # Rate limiting - use in-memory for simplicity
 limiter = Limiter(
     key_func=get_remote_address,
@@ -54,9 +85,47 @@ from llm_service import LLMService
 
 # Initialize authentication
 from auth import auth
+from security_utils import (
+    require_conversation_access, require_message_access, require_project_access,
+    require_context_item_access, get_user_identity, check_conversation_access,
+    sanitize_filename
+)
 auth.init_app(app)
 
 llm_service = LLMService()
+
+# Security configuration validation
+def validate_security_config():
+    """Validate critical security configurations on startup"""
+    issues = []
+    
+    # Check SECRET_KEY
+    secret_key = app.config.get('SECRET_KEY', '')
+    if not secret_key or len(secret_key) < 32:
+        issues.append("SECRET_KEY is too short or missing - minimum 32 characters required")
+    if 'dev-key' in secret_key.lower() or 'insecure' in secret_key.lower():
+        issues.append("SECRET_KEY appears to be a development key - change immediately in production")
+    
+    # Check AUTH_PASSWORD if set
+    auth_password = os.getenv('AUTH_PASSWORD', '')
+    if auth_password and not auth_password.startswith(('$2b$', '$2a$', '$2y$', 'pbkdf2:', 'scrypt:')):
+        issues.append("AUTH_PASSWORD should be hashed - use werkzeug.security.generate_password_hash()")
+    
+    # Check FLASK_CONFIG
+    flask_config = os.getenv('FLASK_CONFIG', 'development')
+    if flask_config == 'development' and not app.debug:
+        issues.append("FLASK_CONFIG set to development but DEBUG is False - verify configuration")
+    
+    if issues:
+        for issue in issues:
+            app.logger.warning(f"SECURITY WARNING: {issue}")
+        
+        # In production, these should be fatal errors
+        if not app.debug:
+            app.logger.error("Critical security issues detected in production mode")
+
+# Run security validation on startup
+validate_security_config()
 
 # User identification helper functions
 def get_user_identity():
@@ -108,8 +177,28 @@ def filter_conversations_by_user(query):
             )
         )
 
+# File upload configuration
 UPLOAD_FOLDER = os.path.join(os.getcwd(), 'uploads')
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+ALLOWED_EXTENSIONS = {
+    'txt', 'pdf', 'docx', 'doc', 'csv', 
+    'jpg', 'jpeg', 'png', 'gif', 'webp',  # For image editing
+    'mp3', 'wav', 'ogg', 'flac'  # For audio transcription
+}
+
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+def allowed_file(filename):
+    """Check if file extension is allowed"""
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def validate_file_size(file):
+    """Validate file size"""
+    file.seek(0, 2)  # Seek to end
+    size = file.tell()
+    file.seek(0)  # Reset to beginning
+    return size <= MAX_FILE_SIZE
 
 @app.route('/health')
 def health_check():
@@ -127,6 +216,15 @@ def login_page():
     if auth.is_authenticated():
         return redirect(url_for('index'))
     return render_template('login.html')
+
+@app.route('/api/csrf-token', methods=['GET'])
+def get_csrf_token():
+    """Get CSRF token for AJAX requests"""
+    try:
+        token = generate_csrf()
+        return jsonify({'csrf_token': token}), 200
+    except Exception as e:
+        return jsonify({'error': 'Failed to generate CSRF token'}), 500
 
 @app.route('/init-db')
 def init_database():
@@ -288,6 +386,7 @@ def create_conversation():
     return response, 201
 
 @app.route('/conversations/<conversation_id>/messages', methods=['GET'])
+@require_conversation_access
 def get_messages(conversation_id):
     try:
         conv_uuid = uuid.UUID(conversation_id)
@@ -312,6 +411,7 @@ def get_messages(conversation_id):
     })
 
 @app.route('/conversations/<conversation_id>/messages', methods=['POST'])
+@require_conversation_access
 def add_message(conversation_id):
     try:
         conv_uuid = uuid.UUID(conversation_id)
@@ -549,6 +649,7 @@ def transcribe_audio():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/conversations/<conversation_id>/attachments', methods=['POST'])
+@require_conversation_access
 def upload_attachments(conversation_id):
     try:
         conv_uuid = uuid.UUID(conversation_id)
@@ -563,8 +664,19 @@ def upload_attachments(conversation_id):
     attachments = []
     try:
         for file in files:
-            filename = secure_filename(file.filename)
+            # Validate file
+            if not file.filename:
+                return jsonify({'error': 'Empty filename not allowed'}), 400
+            
+            if not allowed_file(file.filename):
+                return jsonify({'error': f'File type not allowed. Allowed: {", ".join(ALLOWED_EXTENSIONS)}'}), 400
+            
+            if not validate_file_size(file):
+                return jsonify({'error': f'File too large. Maximum size: {MAX_FILE_SIZE // (1024*1024)}MB'}), 400
+            
+            filename = sanitize_filename(secure_filename(file.filename))
             file_path = os.path.join(UPLOAD_FOLDER, filename)
+            
             # Ensure unique filename
             base, ext = os.path.splitext(filename)
             counter = 1
@@ -572,6 +684,7 @@ def upload_attachments(conversation_id):
                 filename = f"{base}_{counter}{ext}"
                 file_path = os.path.join(UPLOAD_FOLDER, filename)
                 counter += 1
+            
             file.save(file_path)
             # Create a new message for the attachment (role='user', content='[file upload]')
             message = Message(
@@ -646,6 +759,7 @@ def extract_document_content(file, filename):
 
 @app.route('/upload-context', methods=['POST'])
 @limiter.limit("10 per minute")
+@require_conversation_access
 def upload_context():
     conversation_id = request.form.get('conversation_id')
     task_type = request.form.get('task_type', 'instructions')  # New: instructions, summary, analysis, etc.
@@ -665,7 +779,18 @@ def upload_context():
         return jsonify({'error': 'No file part in the request'}), 400
     
     file = request.files['file']
-    filename = secure_filename(file.filename)
+    
+    # Validate file
+    if not file.filename:
+        return jsonify({'error': 'Empty filename not allowed'}), 400
+    
+    if not allowed_file(file.filename):
+        return jsonify({'error': f'File type not allowed. Allowed: {", ".join(ALLOWED_EXTENSIONS)}'}), 400
+    
+    if not validate_file_size(file):
+        return jsonify({'error': f'File too large. Maximum size: {MAX_FILE_SIZE // (1024*1024)}MB'}), 400
+    
+    filename = sanitize_filename(secure_filename(file.filename))
     
     try:
         # Use generic content extractor
@@ -920,12 +1045,57 @@ def extract_url_content():
 
 @app.route('/uploads/<path:filename>')
 def uploaded_file(filename):
+    # Prevent path traversal attacks
+    filename = sanitize_filename(filename)
+    
+    # Additional security check - ensure file exists and is within upload folder
+    file_path = os.path.join(UPLOAD_FOLDER, filename)
+    
+    # Resolve any symbolic links and ensure path is within upload folder
+    try:
+        real_upload_folder = os.path.realpath(UPLOAD_FOLDER)
+        real_file_path = os.path.realpath(file_path)
+        
+        # Check if the real file path starts with the real upload folder path
+        if not real_file_path.startswith(real_upload_folder + os.sep) and real_file_path != real_upload_folder:
+            app.logger.warning(f"Path traversal attempt blocked: {filename} -> {real_file_path}")
+            return jsonify({'error': 'Access denied'}), 403
+        
+        # Check if file exists
+        if not os.path.exists(real_file_path):
+            return jsonify({'error': 'File not found'}), 404
+            
+    except Exception as e:
+        app.logger.error(f"File access error: {e}")
+        return jsonify({'error': 'File access error'}), 500
+    
     return send_from_directory(UPLOAD_FOLDER, filename)
 
 @app.route('/static/generated_images/<path:filename>')
 def generated_image(filename):
     """Serve generated images from Stability AI"""
+    # Prevent path traversal attacks
+    filename = sanitize_filename(filename)
+    
     images_dir = os.path.join(os.path.dirname(__file__), 'static', 'generated_images')
+    file_path = os.path.join(images_dir, filename)
+    
+    # Security check - ensure path is within images directory
+    try:
+        real_images_dir = os.path.realpath(images_dir)
+        real_file_path = os.path.realpath(file_path)
+        
+        if not real_file_path.startswith(real_images_dir + os.sep) and real_file_path != real_images_dir:
+            app.logger.warning(f"Path traversal attempt blocked in images: {filename} -> {real_file_path}")
+            return jsonify({'error': 'Access denied'}), 403
+        
+        if not os.path.exists(real_file_path):
+            return jsonify({'error': 'Image not found'}), 404
+            
+    except Exception as e:
+        app.logger.error(f"Generated image access error: {e}")
+        return jsonify({'error': 'Image access error'}), 500
+    
     return send_from_directory(images_dir, filename)
 
 @app.route('/stability-edit-image', methods=['POST'])

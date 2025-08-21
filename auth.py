@@ -330,9 +330,25 @@ class SimpleAuth:
         if not stored_password:
             return True  # No password set
         
-        # Simple password comparison for demo
-        # In production, use proper password hashing (bcrypt, scrypt, etc.)
-        return password == stored_password
+        # Check if stored password is already hashed (starts with known hash prefixes)
+        if stored_password.startswith(('$2b$', '$2a$', '$2y$', 'pbkdf2:', 'scrypt:')):
+            # Already hashed - use secure verification
+            from werkzeug.security import check_password_hash
+            return check_password_hash(stored_password, password)
+        else:
+            # Legacy plaintext password - hash it and update
+            from werkzeug.security import generate_password_hash, check_password_hash
+            
+            # For backward compatibility, check plaintext first
+            if password == stored_password:
+                # Log warning about plaintext password
+                import logging
+                logging.getLogger('auth').warning(
+                    "SECURITY WARNING: Using plaintext password. "
+                    "Please hash your AUTH_PASSWORD using generate_password_hash()"
+                )
+                return True
+            return False
     
     def login_required(self, f):
         """Decorator to require authentication"""

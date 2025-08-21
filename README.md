@@ -6,85 +6,97 @@ A comprehensive AI-powered knowledge management and chat application that enable
 
 The AI Knowledge Base is a multi-LLM chat interface that allows users to:
 
-- **Chat with Multiple AI Models**: Interact with OpenAI GPT models, Anthropic Claude, Google Gemini, and Hugging Face models
-- **Document Upload & Context Management**: Upload documents (PDF, DOCX, TXT) and use them as context for AI conversations
-- **Intelligent Organization**: Tag conversations, organize them into projects, and search through your knowledge base
-- **Free & Authenticated Access**: Supports both free-tier users and authenticated users with separate conversation histories
-- **Real-time Search**: Search conversations by title, content, or tags with intelligent filtering
+- **Chat with Multiple AI Models**: Interact with OpenAI GPT models (including O1), Anthropic Claude 3.5/4, Google Gemini, Hugging Face models, and Stability AI image/audio generation
+- **Advanced Context Management**: Upload documents (PDF, DOCX, TXT, CSV), extract content from URLs, and manage context items across conversations with the new Context Service
+- **Intelligent Organization**: Tag conversations, organize them into projects, and search through your knowledge base with advanced filtering
+- **Dual Access System**: Robust free-tier access with IP tracking/whitelisting and authenticated users with unlimited access
+- **Real-time Search**: Search conversations by title, content, tags, or project with intelligent filtering and snippets
+- **Image & Audio Generation**: Create and edit images using Stability AI models, with Cloudinary integration for storage
 
 ## 🏗️ Infrastructure & Technology Stack
 
 ### Backend
-- **Framework**: Flask (Python web framework)
-- **Database**: PostgreSQL with SQLAlchemy ORM
-- **Authentication**: Simple session-based authentication with IP whitelisting
-- **File Processing**: PyPDF2 for PDFs, python-docx for Word documents
-- **Rate Limiting**: Flask-Limiter for API protection
+- **Framework**: Flask 3.0.0 with modular architecture (app.py, config.py, models.py)
+- **Database**: PostgreSQL with SQLAlchemy ORM and Flask-Migrate for migrations
+- **Authentication**: SimpleAuth system with IP whitelisting, session-based auth, and dual access modes
+- **File Processing**: PyPDF2 for PDFs, python-docx for Word documents, BeautifulSoup for URL extraction
+- **Rate Limiting**: Flask-Limiter with comprehensive free-tier tracking
 - **CORS**: Flask-CORS for cross-origin requests
+- **Context Management**: New ContextService with advanced context item management
+- **Storage**: Cloudinary integration for generated image storage
 
 ### Frontend
-- **UI**: Vanilla JavaScript with HTML5/CSS3
-- **Styling**: Custom CSS with responsive design
-- **Icons**: Font Awesome
-- **Charts**: Chart.js for usage analytics
-- **File Handling**: Drag-and-drop interface with progress tracking
+- **UI**: Modern responsive interface with collapsible sidebar, project management, and context panels
+- **Styling**: Custom CSS with dark/light theme support and mobile responsiveness
+- **Icons**: Font Awesome 6.0.0
+- **Charts**: Chart.js for advanced usage analytics and dashboard
+- **File Handling**: Drag-and-drop interface with multiple file format support
+- **Settings**: Comprehensive settings panel with model configuration and access checking
 
 ### LLM Integration
-- **OpenAI**: GPT-3.5, GPT-4, GPT-4 Turbo, GPT-4o, O1 models
-- **Anthropic**: Claude 3.5 Sonnet, Claude 3 Opus/Sonnet/Haiku
-- **Google**: Gemini Pro and Gemini Flash
-- **Hugging Face**: Llama 2, Mixtral, CodeLlama models
+- **OpenAI**: GPT-3.5, GPT-4, GPT-4 Turbo, GPT-4o/4o-mini, O1-preview/mini models with updated pricing
+- **Anthropic**: Claude 3.5 Sonnet, Claude 4 Sonnet, Claude 3 Opus/Sonnet/Haiku with direct HTTP requests
+- **Google**: Gemini 1.5 Pro/Flash with updated model mappings
+- **Hugging Face**: Llama 2 70B, Mixtral 8x7B, CodeLlama 34B via Inference API
+- **Stability AI**: Image generation (Ultra, Core, SD3) and Audio generation with advanced editing capabilities
 
 ### Deployment
-- **Containerization**: Docker support
-- **Process Management**: Gunicorn WSGI server
-- **Environment**: Railway/Cloud platform ready
-- **Logging**: Structured logging with rotation
+- **Cloud Ready**: Gunicorn WSGI server with Procfile for Railway/Heroku deployment
+- **Environment**: Multi-environment configuration (development, production, testing)
+- **Logging**: Structured logging with RotatingFileHandler and service-specific loggers
+- **Database Migrations**: SQL migration scripts and Flask-Migrate support
 
 ## ✨ Current Features
 
-### 🤖 Multi-LLM Chat Interface
-- Switch between different AI models mid-conversation
-- Real-time streaming responses
-- Message history and conversation continuity
-- Model-specific pricing and token tracking
+### 🤖 Advanced Multi-LLM Chat Interface
+- Switch between 20+ different AI models including latest O1 and Claude 4 models
+- Real-time streaming responses with proper error handling
+- Message history and conversation continuity with user identification
+- Model-specific pricing, token tracking, and usage analytics
+- **New**: Image editing capabilities with Stability AI (remove background, search & replace, recoloring)
 
-### 📁 Document Management & Context System
-- Upload multiple file formats (PDF, DOCX, TXT, CSV)
-- Document processing with content extraction
-- Context panel for active document management
-- Intelligent context injection into conversations
+### 📁 Advanced Context Management System
+- **Context Service**: New centralized context management with ContextItem, ContextSession, and usage tracking
+- Upload multiple file formats (PDF, DOCX, TXT, CSV) with content extraction and sanitization
+- **URL Content Extraction**: Extract and process content from web URLs with BeautifulSoup
+- Context panel with search, statistics, and conversation-specific context management
+- Smart context suggestions based on query text and usage patterns
+- Context templates and analytics for power users
 
-### 🏷️ Organization & Search
-- **Tagging System**: Tag conversations with custom labels
-- **Project Organization**: Group conversations into projects
-- **Smart Search**: Search by conversation title, message content, or tags
-- **Real-time Filtering**: Client-side filtering with visual highlighting
+### 🏷️ Enhanced Organization & Search
+- **Advanced Tagging System**: Full CRUD operations for tags with search and filtering
+- **Project Management**: Complete project system with creation, deletion, and conversation assignment
+- **Powerful Search API**: Backend search with conversation content, snippets, and project filtering
+- **Real-time Filtering**: Client-side and server-side search with visual highlighting
 
-### 👥 User Management
-- **Free Tier**: Anonymous users with session-based conversation tracking
-- **Authenticated Users**: Persistent conversation history across sessions
-- **Complete Separation**: Free and authenticated user conversations are isolated
-- **Rate Limiting**: Configurable query limits for free users
+### 👥 Robust User Management & Access Control
+- **Dual Access System**: SimpleAuth class with sophisticated free-tier and authenticated modes
+- **IP Whitelisting**: Dynamic IP management with admin controls and usage tracking
+- **Free Tier Tracking**: Multi-method tracking (session, IP, hash) with comprehensive logging
+- **Rate Limiting**: Advanced Flask-Limiter configuration with model-specific limits
+- **Admin Interface**: Full admin panel with whitelist management and usage statistics
 
-### 📊 Analytics & Monitoring
-- **Usage Tracking**: Monitor API calls, costs, and model usage
-- **Error Logging**: Comprehensive error tracking and reporting
-- **Admin Dashboard**: User management and system monitoring
-- **IP Whitelisting**: Advanced access control for enterprise use
+### 📊 Professional Analytics & Monitoring
+- **Comprehensive Usage Tracking**: LLMUsageLog and LLMErrorLog models with detailed metrics
+- **Advanced Dashboard**: Chart.js integration with timeline charts, model performance tables
+- **Context Analytics**: Track context item usage, token consumption, and effectiveness
+- **Real-time Monitoring**: Live dashboard with auto-refresh and export capabilities
+- **Free Access Analytics**: Detailed tracking of free tier usage with IP analytics
 
-### 🔒 Security Features
-- Session-based authentication with secure cookies
-- IP-based rate limiting and tracking
-- CORS protection and secure headers
-- Input sanitization and XSS protection
+### 🔒 Enterprise-Grade Security
+- **Multi-layer Authentication**: SimpleAuth system with session-based and IP-based controls
+- **Input Sanitization**: Comprehensive content sanitization for documents and user inputs
+- **CORS & Security Headers**: Proper cross-origin request handling and security configurations
+- **Error Handling**: Structured error logging with client-side error reporting
+- **Rate Limiting**: Sophisticated rate limiting with free tier protections
 
-### 🎨 User Experience
-- **Responsive Design**: Works on desktop, tablet, and mobile
-- **Dark/Light Theme**: Automatic theme detection
-- **Keyboard Shortcuts**: Quick navigation and actions
-- **Progress Indicators**: Visual feedback for uploads and processing
-- **Export Functionality**: Export conversations to Markdown
+### 🎨 Modern User Experience
+- **Collapsible Sidebar**: Modern sidebar with project navigation and search
+- **Responsive Design**: Mobile-first design that works across all devices
+- **Settings Panel**: Comprehensive settings with model configuration and access checking
+- **Context Panel**: Advanced context management UI with drag-and-drop support
+- **Export & Import**: Full conversation export with context preservation
+- **Voice Input**: Voice recording capabilities with Google Speech-to-Text integration
 
 ## 🎯 Five Priority UI Features for Next Implementation
 
@@ -142,14 +154,14 @@ Priority: Low | Effort: Medium
 
 ### Prerequisites
 - Python 3.9+
-- PostgreSQL 12+
-- Node.js (for frontend asset management, optional)
+- PostgreSQL 12+ (with vector extension support for future features)
+- Node.js (optional, for frontend development tools)
 
 ### Installation
 ```bash
 # Clone repository
 git clone <repository-url>
-cd ai-knowledge-base
+cd llm-search
 
 # Create virtual environment
 python -m venv venv
@@ -160,25 +172,149 @@ pip install -r requirements.txt
 
 # Setup environment variables
 cp .env.example .env
-# Edit .env with your API keys and database URL
+# Edit .env with your API keys and database URL (see Environment Variables section)
+
+# Setup PostgreSQL database
+createdb llm_search_db  # or use your preferred database name
 
 # Run database migrations
 python -c "from app import db; db.create_all()"
-psql -d your_database -f migration_add_user_columns.sql
+psql -d llm_search_db -f migration_add_user_columns.sql
+
+# Initialize database with extensions (optional for advanced features)
+python -c "from database import init_database; from app import app; init_database(app)"
+
+# Test database connection
+python -c "from database import test_connection; from app import app; test_connection(app)"
 
 # Start development server
 python app.py
 ```
 
+### Production Deployment
+```bash
+# For Railway, Heroku, or similar platforms
+# Procfile is included for web: gunicorn app:app
+
+# Environment-specific configuration
+export FLASK_CONFIG=production
+export FLASK_DEBUG=False
+
+# Database migrations in production
+flask db init  # First time only
+flask db migrate -m "Initial migration"
+flask db upgrade
+```
+
 ### Environment Variables
 ```bash
+# Database
 DATABASE_URL=postgresql://user:password@localhost/dbname
+DB_POOL_SIZE=10
+DB_POOL_TIMEOUT=30
+DB_POOL_RECYCLE=3600
+DB_MAX_OVERFLOW=20
+
+# AI Model APIs
 OPENAI_API_KEY=your_openai_key
-CLAUDE_API_KEY=your_claude_key  
+ANTHROPIC_API_KEY=your_claude_key  
 GEMINI_API_KEY=your_gemini_key
 HUGGING_FACE_API_KEY=your_hf_key
-FLASK_SECRET_KEY=your_secret_key
+STABILITY_API_KEY=your_stability_key
+
+# Authentication & Security
+SECRET_KEY=your_secret_key_minimum_32_characters_long_random_string
+AUTH_PASSWORD=your_admin_password_or_use_generate_password_hash
+
+# Cloud Storage (Optional)
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+
+# Configuration
+FLASK_CONFIG=production  # or development, testing
+FLASK_DEBUG=False
 ```
+
+## 🏛️ Architecture Overview
+
+### Core Application Structure
+```
+llm-search/
+├── app.py                    # Main Flask application with 1900+ lines of endpoints
+├── config.py                 # Multi-environment configuration
+├── models.py                 # Database models (19+ models including context management)
+├── auth.py                   # SimpleAuth system with FreeAccessManager
+├── llm_service.py           # LLMService with 20+ model integrations
+├── context_service.py       # New ContextService for advanced context management  
+├── database.py              # Database initialization and utilities
+├── logger.py                # Structured logging configuration
+├── migration_add_user_columns.sql  # Database migration scripts
+├── requirements.txt         # Python dependencies (17 packages)
+├── Procfile                 # Production deployment configuration
+├── templates/
+│   ├── index.html          # Main application UI (1330+ lines)
+│   └── login.html          # Authentication interface
+└── static/
+    ├── css/style.css       # Application styling
+    ├── js/app.js          # Frontend JavaScript (68+ functions)
+    └── images/            # Static assets
+```
+
+### Key API Endpoints
+
+#### Chat & Conversations
+- `POST /chat` - Multi-LLM chat with context injection
+- `GET/POST /conversations` - Conversation CRUD with user filtering  
+- `GET/POST /conversations/<id>/messages` - Message management
+- `POST /conversations/<id>/attachments` - File upload handling
+
+#### Context Management (New)
+- `GET/POST /api/context` - Context item management
+- `GET /api/context/<item_id>` - Individual context item operations
+- `GET /api/context/suggestions` - AI-powered context suggestions
+- `POST/DELETE /api/conversation/<id>/context/<item_id>` - Context-conversation linking
+
+#### Advanced Features
+- `POST /upload-context` - Document processing with task types
+- `POST /extract-url` - URL content extraction with BeautifulSoup
+- `POST /stability-edit-image` - Stability AI image editing
+- `POST /transcribe` - Google Speech-to-Text integration
+
+#### Search & Organization
+- `GET /api/search/conversations` - Advanced search with snippets
+- `GET/POST/DELETE /api/conversations/<id>/tags` - Tag management
+- `GET/POST /projects` - Project organization system
+
+#### Analytics & Monitoring  
+- `GET /llm-usage-stats` - Comprehensive usage analytics
+- `GET /monthly-token-usage` - Time-series usage data
+- `GET /llm-error-log` - Error tracking and monitoring
+
+#### Administration
+- `GET/POST/DELETE /admin/whitelist` - IP whitelist management
+- `GET /admin/usage-stats` - Free tier usage analytics
+- `GET /admin/current-ip` - IP identification utilities
+
+### Database Models
+
+#### Core Models
+- **Conversation**: Enhanced with user_id, session_id, ip_address for dual access
+- **Message**: Core chat messages with UUID primary keys
+- **Project**: Organization system for conversations
+- **Attachment**: File upload tracking
+
+#### Context Management (New)
+- **ContextItem**: Centralized context storage with analytics
+- **ContextSession**: Context-conversation relationships
+- **ContextUsageLog**: Detailed usage tracking
+- **ContextTemplate**: Reusable context sets
+
+#### Access Control & Analytics
+- **FreeAccessLog**: Comprehensive free tier tracking
+- **IPWhitelist**: Dynamic IP management
+- **IPUsageSummary**: Daily usage aggregation
+- **LLMUsageLog/LLMErrorLog**: Model usage and error tracking
 
 ## 📄 License
 
