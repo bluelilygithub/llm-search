@@ -147,7 +147,7 @@
                                 <option value="gpt-4-turbo">GPT-4 Turbo</option>
                                 <option value="gpt-4o">GPT-4o</option>
                                 <option value="gpt-4o-mini">GPT-4o Mini</option>
-                                <option value="gpt-5" style="display: none;">ChatGPT 5</option>
+                                <option value="gpt-5">ChatGPT 5</option>
                                 <option value="o1-preview">O1 Preview</option>
                                 <option value="o1-mini">O1 Mini</option>
                             </optgroup>
@@ -1306,11 +1306,16 @@
                 const settings = modelSettings[modelValue];
                 
                 if (settings) {
-                    if (settings.enabled && settings.status === 'active') {
+                    // Show model if it's enabled and either has active status OR status is unknown
+                    // This allows models to appear before access checking is complete
+                    if (settings.enabled && (settings.status === 'active' || settings.status === 'unknown')) {
                         option.style.display = '';
                     } else {
                         option.style.display = 'none';
                     }
+                } else {
+                    // If no settings found, show by default (for backward compatibility)
+                    option.style.display = '';
                 }
             });
         }

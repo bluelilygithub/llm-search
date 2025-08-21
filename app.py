@@ -1852,29 +1852,30 @@ def check_model_access():
         has_access = False
         try:
             # Try to check model access - this is model-specific logic
+            # Use os.getenv() to match how LLM service checks for API keys
             if model.startswith('gpt-') or model.startswith('o1-'):
                 # OpenAI models - check if API key is configured
-                openai_key = app.config.get('OPENAI_API_KEY')
+                openai_key = os.getenv('OPENAI_API_KEY')
                 has_access = bool(openai_key and openai_key.strip())
                 
             elif model.startswith('claude-'):
                 # Anthropic models - check if API key is configured
-                anthropic_key = app.config.get('ANTHROPIC_API_KEY')
+                anthropic_key = os.getenv('ANTHROPIC_API_KEY')
                 has_access = bool(anthropic_key and anthropic_key.strip())
                 
             elif model.startswith('gemini-'):
                 # Google models - check if API key is configured
-                google_key = app.config.get('GOOGLE_API_KEY')
+                google_key = os.getenv('GOOGLE_API_KEY')
                 has_access = bool(google_key and google_key.strip())
                 
             elif model in ['llama2-70b', 'mixtral-8x7b', 'codellama-34b']:
                 # Hugging Face models - check if API key is configured
-                hf_key = app.config.get('HUGGINGFACE_API_KEY')
+                hf_key = os.getenv('HUGGINGFACE_API_KEY')
                 has_access = bool(hf_key and hf_key.strip())
                 
             elif model.startswith('stable-'):
                 # Stability AI models - check if API key is configured
-                stability_key = app.config.get('STABILITY_API_KEY')
+                stability_key = os.getenv('STABILITY_API_KEY')
                 has_access = bool(stability_key and stability_key.strip())
                 
             else:
