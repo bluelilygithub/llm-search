@@ -487,8 +487,8 @@
 
             <div class="modal-body analytics-dashboard-body" id="settings-body">
                 <div class="settings-tabs">
-                    <button class="control-btn primary active" onclick="showTab('usage', this)">Usage Stats</button>
-                    <button class="control-btn primary" onclick="console.log('IP Whitelist button clicked!'); showTab('whitelist', this)" id="whitelist-btn">IP Whitelist</button>
+                    <button class="control-btn primary active" onclick="showTab('usage')">Usage Stats</button>
+                    <button class="control-btn primary" onclick="showTab('whitelist')" id="whitelist-btn">IP Whitelist</button>
                 </div>
                 
                 <div id="usage-tab" class="tab-content analytics-main-content" style="display: block;">
@@ -1988,8 +1988,8 @@
         }
 
         // Tab switching function  
-        function showTab(tabName, clickedButton) {
-            console.log('showTab called with:', tabName, 'button:', clickedButton);
+        function showTab(tabName) {
+            console.log('showTab called with:', tabName);
             
             // Hide all tab contents
             const allTabContents = document.querySelectorAll('.tab-content');
@@ -2029,12 +2029,11 @@
             }
             
             // Add active class to clicked button
-            if (clickedButton) {
-                clickedButton.classList.add('active');
-                console.log('Added active class to button:', clickedButton);
-            } else {
-                console.log('No button parameter provided');
-            }
+            document.querySelectorAll('.settings-tabs .control-btn').forEach(btn => {
+                if (btn.onclick.toString().includes(tabName)) {
+                    btn.classList.add('active');
+                }
+            });
             
             // Load tab-specific data
             if (tabName === 'whitelist') {
