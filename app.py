@@ -802,7 +802,6 @@ def extract_document_content(file, filename):
 
 @app.route('/upload-context', methods=['POST'])
 @limiter.limit("10 per minute")
-@require_conversation_access
 def upload_context():
     conversation_id = request.form.get('conversation_id')
     task_type = request.form.get('task_type', 'instructions')  # New: instructions, summary, analysis, etc.
