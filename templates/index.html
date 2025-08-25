@@ -27,8 +27,10 @@
                             <h1>AI Knowledge Base</h1>
                         </div>
                     </div>
-                    <button class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()">
-                        <i class="fas fa-chevron-left" id="toggle-icon"></i>
+                    <button class="inline-flex items-center justify-center relative shrink-0 can-focus select-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none disabled:drop-shadow-none text-text-300 border-transparent transition font-ui tracking-tight duration-300 ease-[cubic-bezier(0.165,0.85,0.45,1)] hover:bg-bg-300 aria-checked:bg-bg-400 aria-expanded:bg-bg-400 hover:text-text-100 aria-pressed:text-text-100 aria-checked:text-text-100 aria-expanded:text-text-100 h-8 w-8 rounded-md active:scale-95 text-text-400/60 hover:text-text-200 sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()" type="button">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256" id="toggle-icon">
+                            <path d="M232,128a8,8,0,0,1-8,8H91.31l58.35,58.34a8,8,0,0,1-11.32,11.32l-72-72a8,8,0,0,1,0-11.32l72-72a8,8,0,0,1,11.32,11.32L91.31,120H224A8,8,0,0,1,232,128ZM40,32a8,8,0,0,0-8,8V216a8,8,0,0,0,16,0V40A8,8,0,0,0,40,32Z"></path>
+                        </svg>
                     </button>
                 </div>
             </div>
@@ -716,17 +718,17 @@
             sidebar.classList.toggle('collapsed');
             
             if (sidebar.classList.contains('collapsed')) {
-                // Collapsed state
+                // Collapsed state - show right arrow (expand icon)
                 logoText.style.display = 'none';
-                toggleIcon.className = 'fas fa-chevron-right';
+                toggleIcon.innerHTML = '<path d="m24,128a8,8,0,0,1,8-8h132.69l-58.35-58.34a8,8,0,0,1,11.32-11.32l72,72a8,8,0,0,1,0,11.32l-72,72a8,8,0,0,1-11.32-11.32l58.35-58.34h-132.69a8,8,0,0,1-8-8zm192-88a8,8,0,0,0,8-8v-176a8,8,0,0,0-16,0v176a8,8,0,0,0,8,8z"></path>';
                 sidebarMainActions.style.display = 'none';
                 sidebarContent.style.display = 'none';
                 sidebarCollapsedContent.style.display = 'block';
                 sidebarFooter.querySelector('.settings-label').style.display = 'none';
             } else {
-                // Expanded state
+                // Expanded state - show left arrow (collapse icon)
                 logoText.style.display = 'block';
-                toggleIcon.className = 'fas fa-chevron-left';
+                toggleIcon.innerHTML = '<path d="M232,128a8,8,0,0,1-8,8H91.31l58.35,58.34a8,8,0,0,1-11.32,11.32l-72-72a8,8,0,0,1,0-11.32l72-72a8,8,0,0,1,11.32,11.32L91.31,120H224A8,8,0,0,1,232,128ZM40,32a8,8,0,0,0-8,8V216a8,8,0,0,0,16,0V40A8,8,0,0,0,40,32Z"></path>';
                 sidebarMainActions.style.display = 'block';
                 sidebarContent.style.display = 'block';
                 sidebarCollapsedContent.style.display = 'none';

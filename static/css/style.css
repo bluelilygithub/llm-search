@@ -19,6 +19,14 @@
     --gray-800: #1f2937;
     --gray-900: #111827;
     
+    /* New toggle button color system */
+    --text-100: var(--gray-100);
+    --text-200: var(--gray-200);
+    --text-300: var(--gray-300);
+    --text-400: var(--gray-400);
+    --bg-300: var(--gray-100);
+    --bg-400: var(--gray-200);
+    
     /* Layout */
     --sidebar-width: 320px;
     --sidebar-collapsed-width: 64px;
@@ -3281,4 +3289,124 @@ body {
     .project-card-icon i {
         font-size: 24px;
     }
+}
+
+/* ==================== UTILITY CLASSES FOR NEW TOGGLE BUTTON ==================== */
+
+.inline-flex {
+    display: inline-flex;
+}
+
+.items-center {
+    align-items: center;
+}
+
+.justify-center {
+    justify-content: center;
+}
+
+.relative {
+    position: relative;
+}
+
+.shrink-0 {
+    flex-shrink: 0;
+}
+
+.select-none {
+    user-select: none;
+}
+
+.border-transparent {
+    border-color: transparent;
+}
+
+.font-ui {
+    font-family: var(--font-family);
+}
+
+.tracking-tight {
+    letter-spacing: -0.025em;
+}
+
+.duration-300 {
+    transition-duration: 300ms;
+}
+
+.h-8 {
+    height: 2rem;
+}
+
+.w-8 {
+    width: 2rem;
+}
+
+.rounded-md {
+    border-radius: var(--radius-md);
+}
+
+/* Custom utility classes for the new toggle button colors */
+.text-text-300 {
+    color: var(--text-300);
+}
+
+.text-text-100 {
+    color: var(--text-100);
+}
+
+.text-text-200 {
+    color: var(--text-200);
+}
+
+.text-text-400\/60 {
+    color: rgba(156, 163, 175, 0.6); /* --gray-400 with 60% opacity */
+}
+
+.hover\:bg-bg-300:hover {
+    background-color: var(--bg-300);
+}
+
+.hover\:text-text-100:hover {
+    color: var(--text-100);
+}
+
+.hover\:text-text-200:hover {
+    color: var(--text-200);
+}
+
+.active\:scale-95:active {
+    transform: scale(0.95);
+}
+
+.can-focus:focus {
+    outline: 2px solid var(--primary-blue);
+    outline-offset: 2px;
+}
+
+.disabled\:pointer-events-none:disabled {
+    pointer-events: none;
+}
+
+.disabled\:opacity-50:disabled {
+    opacity: 0.5;
+}
+
+.aria-checked\:bg-bg-400[aria-checked="true"] {
+    background-color: var(--bg-400);
+}
+
+.aria-expanded\:bg-bg-400[aria-expanded="true"] {
+    background-color: var(--bg-400);
+}
+
+.aria-pressed\:text-text-100[aria-pressed="true"] {
+    color: var(--text-100);
+}
+
+.aria-checked\:text-text-100[aria-checked="true"] {
+    color: var(--text-100);
+}
+
+.aria-expanded\:text-text-100[aria-expanded="true"] {
+    color: var(--text-100);
 }
