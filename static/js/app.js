@@ -567,9 +567,15 @@ class KnowledgeBaseApp {
 
     async sendMessage() {
         const input = document.getElementById('message-input');
+        const sendBtn = document.getElementById('send-btn');
         const content = input.value.trim();
         
         if (!content) return;
+        
+        // Disable input and send button during API call
+        input.disabled = true;
+        sendBtn.disabled = true;
+        sendBtn.textContent = 'Sending...';
 
         // Add user message immediately
         const userMessage = {
@@ -614,6 +620,11 @@ class KnowledgeBaseApp {
             console.error('Failed to send message:', error);
             // Show the actual error message instead of generic message
             this.showError(error.message || 'Failed to send message. Please try again.');
+        } finally {
+            // Re-enable input and send button
+            input.disabled = false;
+            sendBtn.disabled = false;
+            sendBtn.textContent = 'Send';
         }
     }
 
