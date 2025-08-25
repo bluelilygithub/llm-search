@@ -1764,14 +1764,19 @@ KnowledgeBaseApp.prototype.openSettingsModal = async function() {
     const modal = document.getElementById('settings-modal');
     modal.style.display = 'flex';
     try {
-        // Load all dashboard data in parallel
-        await Promise.all([
-            this.renderQuickStats(),
-            this.renderUsageChart(),
-            this.renderActivityTimelineChart(),
-            this.renderModelPerformanceTable(),
-            this.renderActivityLog()
-        ]);
+        // Call the HTML-based debugging functions instead of API-based ones
+        // Get current time range selection
+        const timeRange = document.getElementById('dashboard-time-range')?.value || '30';
+        
+        // Load dashboard with current time range
+        if (typeof updateDashboardData === 'function') {
+            updateDashboardData(timeRange);
+        }
+        
+        // Show usage tab by default
+        if (typeof showTab === 'function') {
+            showTab('usage');
+        }
     } catch (e) {
         console.error('Error loading dashboard data:', e);
     }

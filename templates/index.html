@@ -937,19 +937,6 @@
         }
 
         // Admin functions (keep existing)
-        function showTab(tabName) {
-            // Hide all tabs
-            document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            
-            // Show selected tab
-            document.getElementById(tabName + '-tab').style.display = 'block';
-            event.target.classList.add('active');
-            
-            if (tabName === 'whitelist') {
-                loadWhitelistData();
-            }
-        }
         
         async function loadWhitelistData() {
             try {
@@ -1490,6 +1477,8 @@
 
         // Update dashboard with demo data based on time range
         function updateDashboardData(timeRange) {
+            console.log('Updating dashboard data for time range:', timeRange);
+            
             const timeRangeText = timeRange === '1' ? 'Today' : 
                                  timeRange === '7' ? 'Last 7 days' :
                                  timeRange === '30' ? 'Last 30 days' : 'Last 3 months';
@@ -1503,15 +1492,24 @@
             };
             
             const currentStats = stats[timeRange];
+            console.log('Current stats for', timeRangeText, ':', currentStats);
             
-            // Update quick stats
-            document.getElementById('stat-total-requests').textContent = currentStats.requests;
-            document.getElementById('stat-active-models').textContent = currentStats.models;
-            document.getElementById('stat-avg-response').textContent = currentStats.avgResponse;
-            document.getElementById('stat-success-rate').textContent = currentStats.successRate;
+            // Update quick stats (safely with null checks)
+            const totalRequestsEl = document.getElementById('stat-total-requests');
+            const activeModelsEl = document.getElementById('stat-active-models');
+            const avgResponseEl = document.getElementById('stat-avg-response');
+            const successRateEl = document.getElementById('stat-success-rate');
+            
+            if (totalRequestsEl) totalRequestsEl.textContent = currentStats.requests;
+            if (activeModelsEl) activeModelsEl.textContent = currentStats.models;
+            if (avgResponseEl) avgResponseEl.textContent = currentStats.avgResponse;
+            if (successRateEl) successRateEl.textContent = currentStats.successRate;
+            
+            console.log('Updated quick stats elements');
             
             // Update widget contents with filtered data message
             const usageWidget = document.querySelector('.usage-metrics-widget .widget-content');
+            console.log('Looking for usage widget:', usageWidget);
             if (usageWidget) {
                 usageWidget.innerHTML = `
                     <div style="text-align: center; padding: 2rem;">
@@ -1522,6 +1520,22 @@
                         <p style="margin-top: 1rem; color: #6b7280;">Chart would show filtered data here</p>
                     </div>
                 `;
+                console.log('Updated usage widget');
+            } else {
+                console.log('Usage widget not found, trying alternative selector...');
+                const altWidget = document.querySelector('[class*="usage"] .widget-content');
+                console.log('Alternative widget found:', altWidget);
+                if (altWidget) {
+                    altWidget.innerHTML = `
+                        <div style="text-align: center; padding: 2rem;">
+                            <h3>Usage Data for ${timeRangeText}</h3>
+                            <p>Total Requests: <strong>${currentStats.requests}</strong></p>
+                            <p>Active Models: <strong>${currentStats.models}</strong></p>
+                            <p>Average Response Time: <strong>${currentStats.avgResponse}</strong></p>
+                            <p style="margin-top: 1rem; color: #6b7280;">Chart would show filtered data here</p>
+                        </div>
+                    `;
+                }
             }
             
             const timelineWidget = document.querySelector('.timeline-widget .widget-content');
@@ -1572,19 +1586,32 @@
                     ]
                 };
                 
-                const activityList = activities[timeRange] || activities['30'];
-                activityWidget.innerHTML = `
-                    <div id="activity-log">
-                        <h4>Activity Log - ${timeRangeText}</h4>
-                        ${activityList.map(activity => `
-                            <div class="activity-entry">
-                                <span class="activity-time">${activity.time}</span>
-                                <span class="activity-action">${activity.action}</span>
-                                <span class="activity-status ${activity.status}">${activity.status}</span>
+                // Check if activity log was cleared
+                if (sessionStorage.getItem('activityLogCleared') === 'true') {
+                    activityWidget.innerHTML = `
+                        <div id="activity-log">
+                            <h4>Activity Log - ${timeRangeText}</h4>
+                            <div class="empty-log">
+                                Activity log cleared
+                                <br><small><a href="#" onclick="restoreActivityLog()" style="color: #007bff; text-decoration: underline;">Restore log</a></small>
                             </div>
-                        `).join('')}
-                    </div>
-                `;
+                        </div>
+                    `;
+                } else {
+                    const activityList = activities[timeRange] || activities['30'];
+                    activityWidget.innerHTML = `
+                        <div id="activity-log">
+                            <h4>Activity Log - ${timeRangeText}</h4>
+                            ${activityList.map(activity => `
+                                <div class="activity-entry">
+                                    <span class="activity-time">${activity.time}</span>
+                                    <span class="activity-action">${activity.action}</span>
+                                    <span class="activity-status ${activity.status}">${activity.status}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
             }
             
             console.log(`Dashboard updated with data for ${timeRangeText}`);
@@ -1616,6 +1643,18 @@
                     sessionStorage.setItem('activityLogCleared', 'true');
                 }
             }
+        }
+
+        // Restore activity log
+        function restoreActivityLog() {
+            // Clear the session storage flag
+            sessionStorage.removeItem('activityLogCleared');
+            
+            // Refresh the dashboard to show the restored log
+            const timeRange = document.getElementById('dashboard-time-range')?.value || '30';
+            updateDashboardData(timeRange);
+            
+            console.log('Activity log restored');
         }
 
         // IP Whitelist Management Functions
@@ -1681,36 +1720,73 @@
                 // Fetch real data from API
                 const response = await fetch('/api/ip-whitelist');
                 
-                // Check if API exists
-                const contentType = response.headers.get('content-type');
-                if (!contentType || !contentType.includes('application/json')) {
-                    // API doesn't exist yet, show sample data
-                    const sampleData = [
-                        {
-                            id: '1',
-                            ip_address: '192.168.1.100',
-                            description: 'Office Network',
-                            created_at: new Date().toISOString(),
-                            created_by: 'demo_user',
-                            is_active: true
-                        },
-                        {
-                            id: '2', 
-                            ip_address: '10.0.0.50',
-                            description: 'Remote Access',
-                            created_at: new Date(Date.now() - 24*60*60*1000).toISOString(),
-                            created_by: 'admin',
-                            is_active: true
-                        }
-                    ];
-                    renderWhitelistTable(sampleData);
+                // For demo purposes, always show sample data since API doesn't exist yet
+                console.log('Loading sample whitelist data');
+                const sampleData = [
+                    {
+                        id: '1',
+                        ip_address: '192.168.1.100',
+                        description: 'Office Network',
+                        created_at: new Date().toISOString(),
+                        created_by: 'demo_user',
+                        is_active: true
+                    },
+                    {
+                        id: '2', 
+                        ip_address: '10.0.0.50',
+                        description: 'Remote Access',
+                        created_at: new Date(Date.now() - 24*60*60*1000).toISOString(),
+                        created_by: 'admin',
+                        is_active: true
+                    },
+                    {
+                        id: '3',
+                        ip_address: '203.0.113.15',
+                        description: 'VPN Gateway',
+                        created_at: new Date(Date.now() - 7*24*60*60*1000).toISOString(),
+                        created_by: 'system',
+                        is_active: false
+                    }
+                ];
+                
+                // Render the data directly here
+                if (!sampleData.length) {
+                    tableBody.innerHTML = `
+                        <tr>
+                            <td colspan="6" class="loading-cell">
+                                No IP addresses in whitelist
+                            </td>
+                        </tr>
+                    `;
                     return;
                 }
                 
-                if (!response.ok) throw new Error('Failed to fetch whitelist');
+                tableBody.innerHTML = sampleData.map(item => {
+                    const addedDate = new Date(item.created_at).toLocaleDateString();
+                    const status = item.is_active ? 'active' : 'inactive';
+                    
+                    return `
+                        <tr>
+                            <td><span class="ip-address">${item.ip_address}</span></td>
+                            <td><span class="ip-description">${item.description || 'No description'}</span></td>
+                            <td><span class="ip-date">${addedDate}</span></td>
+                            <td><span class="ip-date">${item.created_by || 'Unknown'}</span></td>
+                            <td><span class="ip-status ${status}">${status.toUpperCase()}</span></td>
+                            <td>
+                                <div class="ip-actions">
+                                    <button class="ip-action-btn" onclick="editIP('${item.id}', '${item.ip_address}', '${item.description || ''}')" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="ip-action-btn danger" onclick="removeIP('${item.id}', '${item.ip_address}')" title="Remove">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
                 
-                const data = await response.json();
-                renderWhitelistTable(data);
+                console.log('Whitelist table populated with', sampleData.length, 'entries');
                 
             } catch (error) {
                 console.error('Error loading whitelist:', error);
@@ -1876,10 +1952,15 @@
             }
         }
 
-        // Tab switching function
+        // Tab switching function  
         function showTab(tabName) {
+            console.log('showTab called with:', tabName);
+            
             // Hide all tab contents
-            document.querySelectorAll('.tab-content').forEach(tab => {
+            const allTabContents = document.querySelectorAll('.tab-content');
+            console.log('Found tab contents:', allTabContents.length);
+            allTabContents.forEach(tab => {
+                console.log('Hiding tab:', tab.id);
                 tab.style.display = 'none';
             });
             
@@ -1896,20 +1977,35 @@
                 tabContentId = 'whitelist-tab';
             }
             
+            console.log('Looking for tab with ID:', tabContentId);
             const tabContent = document.getElementById(tabContentId);
+            console.log('Found tab element:', tabContent);
+            
             if (tabContent) {
                 tabContent.style.display = 'block';
+                console.log('Set display to block for:', tabContentId);
             } else {
                 console.error('Tab content not found:', tabContentId);
+                // List all available elements for debugging
+                console.log('Available elements:');
+                document.querySelectorAll('[id*="tab"]').forEach(el => {
+                    console.log('- ID:', el.id, 'Display:', el.style.display);
+                });
             }
             
             // Add active class to clicked button
-            event.target.classList.add('active');
+            if (typeof event !== 'undefined' && event.target) {
+                event.target.classList.add('active');
+                console.log('Added active class to button');
+            } else {
+                console.log('No event target available');
+            }
             
             // Load tab-specific data
             if (tabName === 'whitelist') {
+                console.log('Loading whitelist data...');
                 loadCurrentIP();
-                refreshWhitelist();
+                setTimeout(() => refreshWhitelist(), 100);
             }
         }
 
