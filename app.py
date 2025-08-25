@@ -2130,7 +2130,7 @@ def check_model_access():
 
 @app.route('/api/ip-whitelist', methods=['GET'])
 @auth.access_required(allow_free=False)
-def api_get_ip_whitelist():
+def get_ip_whitelist():
     """Get all IP whitelist entries"""
     try:
         from models import IPWhitelist
@@ -2165,7 +2165,7 @@ def api_get_ip_whitelist():
 
 @app.route('/api/ip-whitelist', methods=['POST'])
 @auth.access_required(allow_free=False)
-def api_add_ip_whitelist():
+def add_ip_whitelist():
     """Add IP address to whitelist"""
     try:
         from models import IPWhitelist
@@ -2245,7 +2245,7 @@ def api_add_ip_whitelist():
 
 @app.route('/api/ip-whitelist/<whitelist_id>', methods=['DELETE'])
 @auth.access_required(allow_free=False)
-def api_remove_ip_whitelist(whitelist_id):
+def remove_ip_whitelist(whitelist_id):
     """Remove IP address from whitelist (soft delete)"""
     try:
         from models import IPWhitelist
@@ -2275,7 +2275,7 @@ def api_remove_ip_whitelist(whitelist_id):
 
 @app.route('/api/ip-whitelist/<whitelist_id>', methods=['PATCH'])
 @auth.access_required(allow_free=False)
-def api_update_ip_whitelist(whitelist_id):
+def update_ip_whitelist(whitelist_id):
     """Update IP whitelist entry description"""
     try:
         from models import IPWhitelist
@@ -2316,7 +2316,7 @@ def api_update_ip_whitelist(whitelist_id):
 
 @app.route('/api/usage-stats', methods=['GET'])
 @auth.access_required(allow_free=False)
-def api_get_usage_stats():
+def get_usage_stats():
     """Get LLM usage statistics"""
     try:
         from models import LLMUsageLog
@@ -2399,7 +2399,7 @@ def api_get_usage_stats():
 
 @app.route('/api/activity-log', methods=['GET'])
 @auth.access_required(allow_free=False)
-def api_get_activity_log():
+def get_activity_log():
     """Get system activity log from multiple sources"""
     try:
         from models import LLMUsageLog, LLMErrorLog, FreeAccessLog
@@ -2484,7 +2484,7 @@ def api_get_activity_log():
 
 @app.route('/api/activity-log', methods=['DELETE'])
 @auth.access_required(allow_free=False)
-def api_clear_activity_log():
+def clear_activity_log():
     """Clear activity logs (for demo purposes - careful in production!)"""
     try:
         # Note: This is a dangerous operation in production
