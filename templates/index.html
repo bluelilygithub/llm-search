@@ -689,7 +689,7 @@
                                                     <th>IP Address</th>
                                                     <th>Description</th>
                                                     <th>Added Date</th>
-                                                    <th>Last Used</th>
+                                                    <th>Added By</th>
                                                     <th>Status</th>
                                                     <th>Actions</th>
                                                 </tr>
@@ -1489,7 +1489,7 @@
         }
 
         // IP Whitelist Management Functions
-        function refreshWhitelist() {
+        async function refreshWhitelist() {
             const tableBody = document.getElementById('whitelist-table-body');
             tableBody.innerHTML = `
                 <tr class="loading-row">
@@ -1500,60 +1500,75 @@
                 </tr>
             `;
             
-            // Simulate loading and populate with sample data
-            setTimeout(() => {
-                populateWhitelistTable();
-            }, 1000);
+            // Load the actual data
+            await populateWhitelistTable();
         }
 
-        function populateWhitelistTable() {
+        async function populateWhitelistTable() {
             const tableBody = document.getElementById('whitelist-table-body');
             
-            // Sample data - in real implementation, this would come from API
-            const sampleData = [
-                {
-                    ip: '192.168.1.100',
-                    description: 'Office Network',
-                    added: '2024-01-15',
-                    lastUsed: '2 hours ago',
-                    status: 'active'
-                },
-                {
-                    ip: '10.0.0.50',
-                    description: 'Remote Access',
-                    added: '2024-01-10',
-                    lastUsed: '1 day ago',
-                    status: 'active'
+            try {
+                // Fetch real data from API
+                const response = await fetch('/api/ip-whitelist');
+                if (!response.ok) throw new Error('Failed to fetch whitelist');
+                
+                const data = await response.json();
+                
+                if (!data.length) {
+                    tableBody.innerHTML = `
+                        <tr>
+                            <td colspan="6" class="loading-cell">
+                                No IP addresses in whitelist
+                            </td>
+                        </tr>
+                    `;
+                    return;
                 }
-            ];
-            
-            tableBody.innerHTML = sampleData.map(item => `
-                <tr>
-                    <td><span class="ip-address">${item.ip}</span></td>
-                    <td><span class="ip-description">${item.description}</span></td>
-                    <td><span class="ip-date">${item.added}</span></td>
-                    <td><span class="ip-date">${item.lastUsed}</span></td>
-                    <td><span class="ip-status ${item.status}">${item.status.toUpperCase()}</span></td>
-                    <td>
-                        <div class="ip-actions">
-                            <button class="ip-action-btn" onclick="editIP('${item.ip}')" title="Edit">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="ip-action-btn danger" onclick="removeIP('${item.ip}')" title="Remove">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            `).join('');
+                
+                tableBody.innerHTML = data.map(item => {
+                    const addedDate = new Date(item.created_at).toLocaleDateString();
+                    const status = item.is_active ? 'active' : 'inactive';
+                    
+                    return `
+                        <tr>
+                            <td><span class="ip-address">${item.ip_address}</span></td>
+                            <td><span class="ip-description">${item.description || 'No description'}</span></td>
+                            <td><span class="ip-date">${addedDate}</span></td>
+                            <td><span class="ip-date">${item.created_by || 'Unknown'}</span></td>
+                            <td><span class="ip-status ${status}">${status.toUpperCase()}</span></td>
+                            <td>
+                                <div class="ip-actions">
+                                    <button class="ip-action-btn" onclick="editIP('${item.id}', '${item.ip_address}', '${item.description || ''}')" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="ip-action-btn danger" onclick="removeIP('${item.id}', '${item.ip_address}')" title="Remove">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+                
+            } catch (error) {
+                console.error('Error loading whitelist:', error);
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="loading-cell">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Error loading whitelist data
+                        </td>
+                    </tr>
+                `;
+            }
         }
 
-        function addIPToWhitelist() {
+        async function addIPToWhitelist() {
             const ipInput = document.getElementById('new-ip-address');
             const descInput = document.getElementById('ip-description');
             
             const ip = ipInput.value.trim();
-            const description = descInput.value.trim() || 'No description';
+            const description = descInput.value.trim();
             
             if (!ip) {
                 alert('Please enter an IP address');
@@ -1567,19 +1582,36 @@
                 return;
             }
             
-            // Here you would make an API call to add the IP
-            console.log('Adding IP to whitelist:', ip, description);
-            
-            // Clear inputs
-            ipInput.value = '';
-            descInput.value = '';
-            
-            // Refresh the table
-            setTimeout(() => {
-                refreshWhitelist();
-            }, 500);
-            
-            alert('IP address added to whitelist successfully');
+            try {
+                const response = await fetch('/api/ip-whitelist', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        ip_address: ip,
+                        description: description
+                    })
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to add IP');
+                }
+                
+                // Clear inputs
+                ipInput.value = '';
+                descInput.value = '';
+                
+                // Refresh the table
+                await refreshWhitelist();
+                
+                alert('IP address added to whitelist successfully');
+                
+            } catch (error) {
+                console.error('Error adding IP:', error);
+                alert('Failed to add IP: ' + error.message);
+            }
         }
 
         function whitelistCurrentIP() {
@@ -1598,22 +1630,54 @@
             }
         }
 
-        function editIP(ip) {
-            const newDescription = prompt('Enter new description for ' + ip + ':');
-            if (newDescription !== null) {
-                console.log('Editing IP:', ip, 'New description:', newDescription);
-                // Here you would make an API call to update the description
-                alert('IP description updated successfully');
-                refreshWhitelist();
+        async function editIP(id, ipAddress, currentDescription) {
+            const newDescription = prompt('Enter new description for ' + ipAddress + ':', currentDescription);
+            if (newDescription !== null && newDescription !== currentDescription) {
+                try {
+                    const response = await fetch(`/api/ip-whitelist/${id}`, {
+                        method: 'PATCH',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            description: newDescription
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.error || 'Failed to update IP');
+                    }
+                    
+                    alert('IP description updated successfully');
+                    await refreshWhitelist();
+                    
+                } catch (error) {
+                    console.error('Error updating IP:', error);
+                    alert('Failed to update IP: ' + error.message);
+                }
             }
         }
 
-        function removeIP(ip) {
-            if (confirm('Are you sure you want to remove ' + ip + ' from the whitelist?')) {
-                console.log('Removing IP from whitelist:', ip);
-                // Here you would make an API call to remove the IP
-                alert('IP address removed from whitelist');
-                refreshWhitelist();
+        async function removeIP(id, ipAddress) {
+            if (confirm('Are you sure you want to remove ' + ipAddress + ' from the whitelist?')) {
+                try {
+                    const response = await fetch(`/api/ip-whitelist/${id}`, {
+                        method: 'DELETE'
+                    });
+                    
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.error || 'Failed to remove IP');
+                    }
+                    
+                    alert('IP address removed from whitelist');
+                    await refreshWhitelist();
+                    
+                } catch (error) {
+                    console.error('Error removing IP:', error);
+                    alert('Failed to remove IP: ' + error.message);
+                }
             }
         }
 
