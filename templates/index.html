@@ -1442,37 +1442,14 @@
 
         // Update dashboard based on time range selection
         function updateDashboardTimeRange() {
-            const timeRange = document.getElementById('dashboard-time-range').value;
-            console.log('Updating dashboard for time range:', timeRange + ' days');
-            
-            // Show loading state and update with demo data
-            refreshAnalyticsData(timeRange);
+            // Do nothing - just let the original charts work
+            console.log('Time range changed - keeping original charts');
         }
 
-        // Refresh analytics data with time filtering
+        // Remove broken refresh function
         function refreshAnalyticsData(timeRange) {
-            console.log('Refreshing analytics data for:', timeRange, 'days');
-            
-            // Show loading state
-            const widgets = document.querySelectorAll('.analytics-widget');
-            widgets.forEach(widget => {
-                const content = widget.querySelector('.widget-content');
-                if (content) {
-                    content.style.opacity = '0.4';
-                    content.innerHTML = '<div style="text-align: center; padding: 2rem;"><i class="fas fa-spinner fa-spin"></i> Loading data...</div>';
-                }
-            });
-
-            // Simulate API call and update with time-specific data
-            setTimeout(() => {
-                updateDashboardData(timeRange);
-                widgets.forEach(widget => {
-                    const content = widget.querySelector('.widget-content');
-                    if (content) {
-                        content.style.opacity = '1';
-                    }
-                });
-            }, 1000);
+            // Do nothing - avoid breaking the charts
+            console.log('Refresh disabled to preserve charts');
         }
 
         // Update dashboard with demo data based on time range
