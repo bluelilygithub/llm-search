@@ -487,8 +487,8 @@
 
             <div class="modal-body analytics-dashboard-body" id="settings-body">
                 <div class="settings-tabs">
-                    <button class="control-btn primary active" onclick="showTab('usage', this)">Usage Stats</button>
-                    <button class="control-btn primary" onclick="console.log('IP Whitelist button clicked!'); showTab('whitelist', this)" id="whitelist-btn">IP Whitelist</button>
+                    <button class="control-btn primary active" onclick="showTab('usage')">Usage Stats</button>
+                    <button class="control-btn primary" onclick="showTab('whitelist')" id="whitelist-tab">IP Whitelist</button>
                 </div>
                 
                 <div id="usage-tab" class="tab-content analytics-main-content" style="display: block;">
@@ -1507,31 +1507,46 @@
             
             console.log('Updated quick stats elements');
             
-            // Update usage widget - preserve the canvas chart
+            // Update widget contents with filtered data message
             const usageWidget = document.querySelector('.usage-metrics-widget .widget-content');
             console.log('Looking for usage widget:', usageWidget);
             if (usageWidget) {
-                // Check if canvas exists, if not, restore it
-                let canvas = usageWidget.querySelector('#llm-usage-chart');
-                if (!canvas) {
-                    usageWidget.innerHTML = '<canvas id="llm-usage-chart"></canvas>';
-                    console.log('Restored usage chart canvas');
+                usageWidget.innerHTML = `
+                    <div style="text-align: center; padding: 2rem;">
+                        <h3>Usage Data for ${timeRangeText}</h3>
+                        <p>Total Requests: <strong>${currentStats.requests}</strong></p>
+                        <p>Active Models: <strong>${currentStats.models}</strong></p>
+                        <p>Average Response Time: <strong>${currentStats.avgResponse}</strong></p>
+                        <p style="margin-top: 1rem; color: #6b7280;">Chart would show filtered data here</p>
+                    </div>
+                `;
+                console.log('Updated usage widget');
+            } else {
+                console.log('Usage widget not found, trying alternative selector...');
+                const altWidget = document.querySelector('[class*="usage"] .widget-content');
+                console.log('Alternative widget found:', altWidget);
+                if (altWidget) {
+                    altWidget.innerHTML = `
+                        <div style="text-align: center; padding: 2rem;">
+                            <h3>Usage Data for ${timeRangeText}</h3>
+                            <p>Total Requests: <strong>${currentStats.requests}</strong></p>
+                            <p>Active Models: <strong>${currentStats.models}</strong></p>
+                            <p>Average Response Time: <strong>${currentStats.avgResponse}</strong></p>
+                            <p style="margin-top: 1rem; color: #6b7280;">Chart would show filtered data here</p>
+                        </div>
+                    `;
                 }
-                // Note: Chart data would be updated by Chart.js if implemented
-                console.log('Usage widget canvas preserved for', timeRangeText);
             }
             
-            // Update timeline widget - preserve the canvas chart
             const timelineWidget = document.querySelector('.timeline-widget .widget-content');
             if (timelineWidget) {
-                // Check if canvas exists, if not, restore it
-                let canvas = timelineWidget.querySelector('#activity-timeline-chart');
-                if (!canvas) {
-                    timelineWidget.innerHTML = '<canvas id="activity-timeline-chart"></canvas>';
-                    console.log('Restored timeline chart canvas');
-                }
-                // Note: Chart data would be updated by Chart.js if implemented
-                console.log('Timeline widget canvas preserved for', timeRangeText);
+                timelineWidget.innerHTML = `
+                    <div style="text-align: center; padding: 2rem;">
+                        <h3>Activity Timeline - ${timeRangeText}</h3>
+                        <p>Success Rate: <strong>${currentStats.successRate}</strong></p>
+                        <p style="margin-top: 1rem; color: #6b7280;">Timeline chart filtered for ${timeRangeText.toLowerCase()}</p>
+                    </div>
+                `;
             }
             
             const performanceWidget = document.querySelector('.performance-widget .widget-content');
@@ -1700,15 +1715,13 @@
 
         async function populateWhitelistTable() {
             const tableBody = document.getElementById('whitelist-table-body');
-            console.log('populateWhitelistTable called, tableBody found:', tableBody);
             
             try {
                 // Fetch real data from API
-                console.log('Attempting to fetch from /api/ip-whitelist...');
                 const response = await fetch('/api/ip-whitelist');
                 
                 // For demo purposes, always show sample data since API doesn't exist yet
-                console.log('API fetch completed, loading sample data instead');
+                console.log('Loading sample whitelist data');
                 const sampleData = [
                     {
                         id: '1',
@@ -1940,8 +1953,8 @@
         }
 
         // Tab switching function  
-        function showTab(tabName, clickedButton) {
-            console.log('showTab called with:', tabName, 'button:', clickedButton);
+        function showTab(tabName) {
+            console.log('showTab called with:', tabName);
             
             // Hide all tab contents
             const allTabContents = document.querySelectorAll('.tab-content');
@@ -1981,11 +1994,11 @@
             }
             
             // Add active class to clicked button
-            if (clickedButton) {
-                clickedButton.classList.add('active');
-                console.log('Added active class to button:', clickedButton);
+            if (typeof event !== 'undefined' && event.target) {
+                event.target.classList.add('active');
+                console.log('Added active class to button');
             } else {
-                console.log('No button parameter provided');
+                console.log('No event target available');
             }
             
             // Load tab-specific data
