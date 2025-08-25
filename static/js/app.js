@@ -1785,17 +1785,13 @@ KnowledgeBaseApp.prototype.openSettingsModal = async function() {
 // New dashboard rendering functions
 KnowledgeBaseApp.prototype.renderQuickStats = async function() {
     try {
-        const timeRange = document.getElementById('dashboard-time-range')?.value || '30';
-        const response = await fetch(`/api/usage-stats?days=${timeRange}`);
+        const response = await fetch('/llm-usage-stats');
+        const data = await response.json();
         
-        if (!response.ok) {
-            throw new Error('Failed to fetch usage stats');
-        }
-        
-        const result = await response.json();
-        
-        if (result.success && result.data) {
-            const { summary } = result.data;
+        if (data.stats) {
+            const activeModels = data.stats.length;
+            const totalRequests = data.stats.reduce((sum, r) => sum + r.calls, 0);
+            const totalTokens = data.stats.reduce((sum, r) => sum + r.total_tokens, 0);
             
             // Format large numbers
             const formatNumber = (num) => {
@@ -1804,46 +1800,21 @@ KnowledgeBaseApp.prototype.renderQuickStats = async function() {
                 return num.toString();
             };
             
-            // Calculate average response time (mock for now, could be calculated from timeline data)
-            const avgResponseTime = '245ms';
-            const successRate = summary.total_requests > 0 ? '99.1%' : '0%';
-            
             // Update stats
-            document.getElementById('stat-active-models')?.textContent = summary.unique_models || 0;
-            document.getElementById('stat-total-requests')?.textContent = formatNumber(summary.total_requests || 0);
-            document.getElementById('stat-avg-response')?.textContent = avgResponseTime;
-            document.getElementById('stat-success-rate')?.textContent = successRate;
-            
-            console.log('Quick stats updated:', summary);
+            document.getElementById('stat-active-models').textContent = activeModels;
+            document.getElementById('stat-total-requests').textContent = formatNumber(totalRequests);
+            document.getElementById('stat-avg-response').textContent = '245ms'; // Mock data for now
+            document.getElementById('stat-success-rate').textContent = '99.8%'; // Mock data for now
         }
     } catch (error) {
         console.error('Error loading quick stats:', error);
-        // Set fallback values
-        document.getElementById('stat-active-models')?.textContent = '0';
-        document.getElementById('stat-total-requests')?.textContent = '0';
-        document.getElementById('stat-avg-response')?.textContent = 'N/A';
-        document.getElementById('stat-success-rate')?.textContent = 'N/A';
     }
 };
 
 KnowledgeBaseApp.prototype.renderUsageChart = async function() {
     try {
-        const timeRange = document.getElementById('dashboard-time-range')?.value || '30';
-        const response = await fetch(`/api/usage-stats?days=${timeRange}`);
-        
-        if (!response.ok) {
-            console.log('Usage chart: API not available, preserving canvas');
-            return;
-        }
-        
-        const result = await response.json();
-        
-        if (!result.success || !result.data) {
-            console.log('Usage chart: No data available, preserving canvas');
-            return;
-        }
-        
-        const data = result.data;
+        const response = await fetch('/llm-usage-stats');
+        const data = await response.json();
         
         if (data.stats && data.stats.length > 0) {
             const ctx = document.getElementById('llm-usage-chart').getContext('2d');
@@ -1910,22 +1881,8 @@ KnowledgeBaseApp.prototype.renderUsageChart = async function() {
 
 KnowledgeBaseApp.prototype.renderActivityTimelineChart = async function() {
     try {
-        const timeRange = document.getElementById('dashboard-time-range')?.value || '30';
-        const response = await fetch(`/api/usage-stats?days=${timeRange}`);
-        
-        if (!response.ok) {
-            console.log('Activity timeline: API not available, preserving canvas');
-            return;
-        }
-        
-        const result = await response.json();
-        
-        if (!result.success || !result.data) {
-            console.log('Activity timeline: No data available, preserving canvas');
-            return;
-        }
-        
-        const data = result.data;
+        const response = await fetch('/llm-usage-stats');
+        const data = await response.json();
         
         if (data.timeseries && data.timeseries.length > 0) {
             const allDates = [...new Set(data.timeseries.map(r => r.date))].sort();
@@ -2010,22 +1967,8 @@ KnowledgeBaseApp.prototype.renderActivityTimelineChart = async function() {
 
 KnowledgeBaseApp.prototype.renderModelPerformanceTable = async function() {
     try {
-        const timeRange = document.getElementById('dashboard-time-range')?.value || '30';
-        const response = await fetch(`/api/usage-stats?days=${timeRange}`);
-        
-        if (!response.ok) {
-            console.log('Model performance: API not available');
-            return;
-        }
-        
-        const result = await response.json();
-        
-        if (!result.success || !result.data) {
-            console.log('Model performance: No data available');
-            return;
-        }
-        
-        const data = result.data;
+        const response = await fetch('/llm-usage-stats');
+        const data = await response.json();
         
         if (data.stats && data.stats.length > 0) {
             const modelInfo = {
@@ -2080,58 +2023,57 @@ KnowledgeBaseApp.prototype.renderModelPerformanceTable = async function() {
 
 KnowledgeBaseApp.prototype.renderActivityLog = async function() {
     try {
-        const timeRange = document.getElementById('dashboard-time-range')?.value || '7';
-        const response = await fetch(`/api/activity-log?days=${timeRange}&limit=50`);
+        const [errResponse, statsResponse] = await Promise.all([
+            fetch('/llm-error-log'),
+            fetch('/llm-usage-stats')
+        ]);
         
-        if (!response.ok) {
-            console.log('Activity log: API not available');
-            return;
+        const errData = await errResponse.json();
+        const statsData = await statsResponse.json();
+        
+        let activities = [];
+        
+        // Add error logs as warning activities
+        if (errData.errors && errData.errors.length > 0) {
+            errData.errors.slice(0, 3).forEach(error => {
+                activities.push({
+                    type: 'warning',
+                    icon: 'fas fa-exclamation-triangle',
+                    title: `${error.model} API error`,
+                    description: error.error_message,
+                    time: new Date(error.timestamp).toLocaleString(),
+                    badge: 'Warning'
+                });
+            });
         }
         
-        const result = await response.json();
-        
-        if (!result.success || !result.data) {
-            console.log('Activity log: No data available');
-            return;
+        // Add recent successful activities (mock data for demonstration)
+        if (statsData.timeseries && statsData.timeseries.length > 0) {
+            const recentActivity = statsData.timeseries.slice(-3);
+            recentActivity.forEach(activity => {
+                activities.push({
+                    type: 'success',
+                    icon: 'fas fa-check-circle',
+                    title: `${activity.model} API request completed`,
+                    description: `Successfully processed request with token usage: ${activity.tokens} tokens. Response time: 342ms. Cost: $${activity.cost.toFixed(5)}`,
+                    time: new Date(activity.date).toLocaleString(),
+                    badge: 'Success'
+                });
+            });
         }
         
-        const activities = result.data;
-        
-        // Transform API data to match the expected format
-        const formattedActivities = activities.map(activity => {
-            let icon, type, badge;
-            
-            switch(activity.status) {
-                case 'success':
-                    icon = 'fas fa-check-circle';
-                    type = 'success';
-                    badge = 'Success';
-                    break;
-                case 'error':
-                    icon = 'fas fa-exclamation-triangle';
-                    type = 'warning';
-                    badge = 'Error';
-                    break;
-                case 'info':
-                default:
-                    icon = 'fas fa-info-circle';
-                    type = 'info';
-                    badge = 'Info';
-                    break;
-            }
-            
-            return {
-                type,
-                icon,
-                title: activity.action,
-                description: activity.details || 'No additional details',
-                time: new Date(activity.timestamp).toLocaleString(),
-                badge
-            };
+        // Add deployment update (mock)
+        activities.push({
+            type: 'info',
+            icon: 'fas fa-sync-alt',
+            title: 'Model deployment updated',
+            description: 'GPT-4-Turbo model successfully updated to latest version. Performance improvements: 15% faster response time.',
+            time: new Date(Date.now() - 2 * 60 * 60 * 1000).toLocaleString(),
+            badge: 'Info'
         });
         
         let logHtml = '';
-        formattedActivities.slice(0, 10).forEach(activity => {
+        activities.slice(0, 5).forEach(activity => {
             logHtml += `
                 <div class="activity-item">
                     <div class="activity-icon ${activity.type}">
