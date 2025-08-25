@@ -807,9 +807,13 @@ def upload_context():
     conversation_id = request.form.get('conversation_id')
     task_type = request.form.get('task_type', 'instructions')  # New: instructions, summary, analysis, etc.
     
-    # Upload logging removed for security
+    # DEBUG LOGGING
+    app.logger.info(f"Upload context - Raw form data: {dict(request.form)}")
+    app.logger.info(f"Upload context - conversation_id received: '{conversation_id}' (type: {type(conversation_id)})")
+    app.logger.info(f"Upload context - bool check: {bool(conversation_id)}")
     
     if not conversation_id:
+        app.logger.error("No conversation_id found in request.form")
         return jsonify({'error': 'Missing conversation_id'}), 400
     try:
         conv_uuid = uuid.UUID(conversation_id)
