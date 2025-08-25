@@ -216,7 +216,7 @@ class KnowledgeBaseApp {
                     </div>
                 </div>
                 <div class="project-actions">
-                    <button class="project-action-btn" onclick="event.stopPropagation(); window.app.editProject('${project.id}', ${JSON.stringify(project.name)})" title="Edit Project">
+                    <button class="project-action-btn" onclick="event.stopPropagation(); window.app.editProject('${project.id}', '${project.name.replace(/'/g, "\\'")}')" title="Edit Project">
                         <i class="fas fa-edit"></i>
                     </button>
                     <button class="project-action-btn" onclick="event.stopPropagation(); window.app.deleteProject('${project.id}')" title="Delete Project">
@@ -448,7 +448,7 @@ class KnowledgeBaseApp {
             const tags = (conv.tags || []).map(tag => 
                 `<span class="tag">
                     ${tag}
-                    <button class="tag-remove-btn" onclick="event.stopPropagation(); window.app.removeTagFromConversation(${conv.id}, ${JSON.stringify(tag)})" title="Remove tag">
+                    <button class="tag-remove-btn" onclick="event.stopPropagation(); window.app.removeTagFromConversation('${conv.id}', '${tag.replace(/'/g, "\\'")}')" title="Remove tag">
                         <i class="fas fa-times"></i>
                     </button>
                 </span>`
