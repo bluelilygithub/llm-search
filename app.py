@@ -123,55 +123,21 @@ def validate_security_config():
 # Run security validation on startup
 validate_security_config()
 
-# User identification helper functions
-def get_user_identity():
-    """Get user identity for conversation ownership"""
-    from auth import FreeAccessManager
-    
-    if auth.is_authenticated():
-        # Authenticated user - use a consistent identifier based on IP + auth status
-        # This ensures authenticated users can see their conversations across sessions
-        ip = FreeAccessManager.get_client_ip()
-        user_id = f"auth_{hashlib.sha256(ip.encode()).hexdigest()[:16]}"
-        
-        return {
-            'user_id': user_id,
-            'session_id': None,
-            'ip_address': ip,
-            'is_authenticated': True
-        }
-    else:
-        # Free/anonymous user - use session-based identification
-        session_id = request.cookies.get('session_id')
-        if not session_id:
-            # Generate a session ID if none exists (will be set as cookie in response)
-            session_id = str(uuid.uuid4())
-        
-        return {
-            'user_id': None,
-            'session_id': session_id,
-            'ip_address': FreeAccessManager.get_client_ip(),
-            'is_authenticated': False
-        }
+# Import get_user_identity from security_utils to avoid duplication
+from security_utils import get_user_identity
 
 def filter_conversations_by_user(query):
     """Filter conversations by current user identity"""
     identity = get_user_identity()
     
-    if identity['is_authenticated']:
+    if identity['type'] == 'authenticated':
         # Authenticated user: only show conversations with their specific user_id
         return query.filter(Conversation.user_id == identity['user_id'])
     else:
         # Free user: only show conversations that:
         # 1. Have the same session_id (primary match)
         # 2. OR have same IP but NO user_id (legacy free conversations)
-        return query.filter(
-            (Conversation.session_id == identity['session_id']) |
-            (
-                (Conversation.ip_address == identity['ip_address']) & 
-                (Conversation.user_id.is_(None))
-            )
-        )
+        return query.filter(Conversation.session_id == identity['session_id'])
 
 # File upload configuration
 UPLOAD_FOLDER = os.path.join(os.getcwd(), 'uploads')
@@ -389,7 +355,7 @@ def get_conversations():
     response = jsonify(response_data)
     
     # Set session cookie for free users
-    if not identity['is_authenticated'] and not request.cookies.get('session_id'):
+    if identity['type'] == 'free' and identity['session_id'] and not request.cookies.get('session_id'):
         response.set_cookie('session_id', identity['session_id'], max_age=30*24*60*60)  # 30 days
     
     return response
@@ -414,7 +380,7 @@ def create_conversation():
         project_id=data.get('project_id'),
         user_id=identity['user_id'],
         session_id=identity['session_id'],
-        ip_address=identity['ip_address']
+        ip_address=None  # IP address not needed for access control with unified identity system
     )
     db.session.add(conversation)
     db.session.commit()
@@ -430,7 +396,7 @@ def create_conversation():
     response = jsonify(response_data)
     
     # Set session cookie for free users
-    if not identity['is_authenticated'] and not request.cookies.get('session_id'):
+    if identity['type'] == 'free' and identity['session_id'] and not request.cookies.get('session_id'):
         response.set_cookie('session_id', identity['session_id'], max_age=30*24*60*60)  # 30 days
     
     return response, 201

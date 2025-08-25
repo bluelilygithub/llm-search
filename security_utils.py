@@ -6,24 +6,37 @@ from models import Conversation, Message, Project, ContextItem
 from auth import SimpleAuth
 import uuid
 import logging
+import hashlib
 
 security_logger = logging.getLogger('security')
 
 def get_user_identity():
     """Get current user identity (authenticated or session-based)"""
+    from auth import FreeAccessManager
     auth = SimpleAuth()
     
     if auth.is_authenticated():
+        # Authenticated user - use a consistent identifier based on IP + auth status
+        # This ensures authenticated users can see their conversations across sessions
+        ip = FreeAccessManager.get_client_ip()
+        user_id = f"auth_{hashlib.sha256(ip.encode()).hexdigest()[:16]}"
+        
         return {
             'type': 'authenticated',
-            'user_id': session.get('user_id', 'admin'),
+            'user_id': user_id,
             'session_id': None
         }
     else:
+        # Free/anonymous user - use session-based identification
+        session_id = request.cookies.get('session_id')
+        if not session_id:
+            # Check Flask session as fallback
+            session_id = session.get('free_session_id')
+        
         return {
             'type': 'free',
             'user_id': None,
-            'session_id': session.get('free_session_id')
+            'session_id': session_id
         }
 
 def validate_uuid(uuid_string):

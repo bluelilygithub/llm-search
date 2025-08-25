@@ -489,7 +489,10 @@ class KnowledgeBaseApp {
             document.querySelectorAll('.conversation-item').forEach(item => {
                 item.classList.remove('active');
             });
-            event.currentTarget.classList.add('active');
+            // Only try to add active class if event exists (from sidebar click)
+            if (typeof event !== 'undefined' && event.currentTarget) {
+                event.currentTarget.classList.add('active');
+            }
 
             const response = await fetch(`/conversations/${conversationId}/messages`);
             
@@ -3047,9 +3050,10 @@ KnowledgeBaseApp.prototype.renderConversationsGrid = function(conversations, con
             `<span class="tag">${tag}</span>`
         ).join('');
         
-        // Get first message as preview
-        const preview = conv.messages && conv.messages.length > 0 
-            ? conv.messages[0].content.substring(0, 150) + '...'
+        // Show message count as preview since we don't have message content in the API
+        const messageCount = conv.message_count || 0;
+        const preview = messageCount > 0 
+            ? `${messageCount} message${messageCount !== 1 ? 's' : ''}`
             : 'No messages yet';
             
         return `
