@@ -1768,10 +1768,7 @@ KnowledgeBaseApp.prototype.openSettingsModal = async function() {
         // Get current time range selection
         const timeRange = document.getElementById('dashboard-time-range')?.value || '30';
         
-        // Load dashboard with current time range
-        if (typeof updateDashboardData === 'function') {
-            updateDashboardData(timeRange);
-        }
+        // Don't call updateDashboardData - it breaks the charts
         
         // Show usage tab by default
         if (typeof showTab === 'function') {
