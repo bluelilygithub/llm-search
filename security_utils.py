@@ -12,14 +12,13 @@ security_logger = logging.getLogger('security')
 
 def get_user_identity():
     """Get current user identity (authenticated or session-based)"""
-    from auth import FreeAccessManager
+    from auth import SimpleAuth, current_user_id
+    
     auth = SimpleAuth()
     
     if auth.is_authenticated():
-        # Authenticated user - use a consistent identifier based on IP + auth status
-        # This ensures authenticated users can see their conversations across sessions
-        ip = FreeAccessManager.get_client_ip()
-        user_id = f"auth_{hashlib.sha256(ip.encode()).hexdigest()[:16]}"
+        # Authenticated user - use consistent user_id from session
+        user_id = current_user_id()
         
         return {
             'type': 'authenticated',
