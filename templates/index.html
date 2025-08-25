@@ -466,6 +466,7 @@
                     <div class="control-group">
                         <label class="control-label">Time Range:</label>
                         <select class="control-select time-range-selector" id="dashboard-time-range" onchange="updateDashboardTimeRange()">
+                            <option value="1">Today</option>
                             <option value="7">Last 7 days</option>
                             <option value="30" selected>Last 30 days</option>
                             <option value="90">Last 3 months</option>
@@ -490,7 +491,7 @@
                     <button class="control-btn primary" onclick="showTab('whitelist')" id="whitelist-tab">IP Whitelist</button>
                 </div>
                 
-                <div id="usage-tab" class="tab-content analytics-main-content">
+                <div id="usage-tab" class="tab-content analytics-main-content" style="display: block;">
                     <!-- Main Analytics Layout -->
                     <div class="analytics-layout">
                         <!-- Left Main Content -->
@@ -1564,11 +1565,22 @@
         }
 
         async function addIPToWhitelist() {
+            console.log('addIPToWhitelist function called');
+            
             const ipInput = document.getElementById('new-ip-address');
             const descInput = document.getElementById('ip-description');
             
+            console.log('Input elements:', ipInput, descInput);
+            
+            if (!ipInput || !descInput) {
+                alert('Form elements not found. Please try again.');
+                return;
+            }
+            
             const ip = ipInput.value.trim();
             const description = descInput.value.trim();
+            
+            console.log('Values:', { ip, description });
             
             if (!ip) {
                 alert('Please enter an IP address');
@@ -1583,6 +1595,7 @@
             }
             
             try {
+                console.log('Making API call to add IP');
                 const response = await fetch('/api/ip-whitelist', {
                     method: 'POST',
                     headers: {
@@ -1593,6 +1606,8 @@
                         description: description
                     })
                 });
+                
+                console.log('API response:', response);
                 
                 if (!response.ok) {
                     const error = await response.json();
@@ -1689,7 +1704,7 @@
             });
             
             // Remove active class from all tab buttons
-            document.querySelectorAll('.control-btn').forEach(btn => {
+            document.querySelectorAll('.settings-tabs .control-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
             
@@ -1710,7 +1725,11 @@
         }
 
         function loadCurrentIP() {
-            // Simulate fetching current IP
+            // For now, show a placeholder IP until backend API is ready
+            document.getElementById('current-ip-display').textContent = '192.168.1.100';
+            
+            // TODO: Uncomment when /api/current-ip endpoint is implemented
+            /*
             fetch('/api/current-ip')
                 .then(response => response.json())
                 .then(data => {
@@ -1720,6 +1739,7 @@
                     document.getElementById('current-ip-display').textContent = 'Unable to detect';
                     console.error('Failed to fetch current IP:', error);
                 });
+            */
         }
     </script>
 </body>

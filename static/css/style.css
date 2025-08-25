@@ -3589,3 +3589,17 @@ body {
     border-color: #fca5a5;
     color: #991b1b;
 }
+
+/* ==================== SETTINGS TABS LAYOUT ==================== */
+
+.settings-tabs {
+    display: flex;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-xl);
+    align-items: center;
+}
+
+.settings-tabs .control-btn {
+    flex: 0 0 auto;
+    min-width: auto;
+}
