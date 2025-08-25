@@ -1111,8 +1111,17 @@ class KnowledgeBaseApp {
             
             if (response.ok) {
                 console.log(`Successfully removed tag "${tag}" from conversation ${conversationId}`);
-                // Refresh the conversation list to show updated tags
-                this.loadConversations();
+                
+                // Optimistically update UI immediately
+                const tagElement = document.querySelector(`[onclick*="${conversationId}"][onclick*="${tag}"]`)?.closest('.tag');
+                if (tagElement) {
+                    tagElement.remove();
+                }
+                
+                // Refresh the conversation list after a small delay to ensure database consistency
+                setTimeout(() => {
+                    this.loadConversations();
+                }, 100);
             } else {
                 const errorData = await response.json();
                 console.error('Failed to remove tag:', errorData);
