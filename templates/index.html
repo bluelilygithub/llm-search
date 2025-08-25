@@ -721,15 +721,29 @@
         }
 
         function toggleSection(sectionName) {
+            // Handle new main content views
+            if (sectionName === 'recent' && window.app) {
+                window.app.showConversationsView();
+                return;
+            }
+            
+            if (sectionName === 'projects' && window.app) {
+                window.app.showProjectsView();
+                return;
+            }
+            
+            // Original sidebar toggle functionality for other sections
             const content = document.getElementById(sectionName + '-content');
             const toggle = document.getElementById(sectionName + '-toggle');
             
-            if (content.classList.contains('expanded')) {
-                content.classList.remove('expanded');
-                toggle.className = 'fas fa-plus';
-            } else {
-                content.classList.add('expanded');
-                toggle.className = 'fas fa-minus';
+            if (content && toggle) {
+                if (content.classList.contains('expanded')) {
+                    content.classList.remove('expanded');
+                    toggle.className = 'fas fa-plus';
+                } else {
+                    content.classList.add('expanded');
+                    toggle.className = 'fas fa-minus';
+                }
             }
         }
 

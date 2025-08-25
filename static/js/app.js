@@ -2819,6 +2819,370 @@ KnowledgeBaseApp.prototype.loadConversation = function(conversationId) {
     }
 };
 
+// ==================== MAIN CONTENT VIEW METHODS ====================
+
+// Show conversations list view in main content area
+KnowledgeBaseApp.prototype.showConversationsView = function() {
+    this.currentView = 'conversations';
+    const container = document.getElementById('chat-messages');
+    
+    // Update top bar to hide context toggle
+    const contextToggle = document.getElementById('context-toggle-btn');
+    if (contextToggle) contextToggle.style.display = 'none';
+    
+    container.innerHTML = `
+        <div class="main-view">
+            <nav class="breadcrumb">
+                <span class="breadcrumb-item active">
+                    <i class="fas fa-clock"></i>
+                    All Conversations
+                </span>
+            </nav>
+            
+            <div class="view-header">
+                <div class="view-title">
+                    <i class="fas fa-clock"></i>
+                    <h2>Recent Conversations</h2>
+                </div>
+                <div class="view-actions">
+                    <button class="view-action-btn" onclick="window.app.startNewConversation()">
+                        <i class="fas fa-plus"></i>
+                        New Chat
+                    </button>
+                </div>
+            </div>
+            
+            <div id="conversations-grid" class="conversations-grid">
+                <div class="empty-state-large">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <h3>Loading conversations...</h3>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    this.loadConversationsGrid();
+};
+
+// Show projects grid view in main content area
+KnowledgeBaseApp.prototype.showProjectsView = function() {
+    this.currentView = 'projects';
+    const container = document.getElementById('chat-messages');
+    
+    // Update top bar to hide context toggle
+    const contextToggle = document.getElementById('context-toggle-btn');
+    if (contextToggle) contextToggle.style.display = 'none';
+    
+    container.innerHTML = `
+        <div class="main-view">
+            <nav class="breadcrumb">
+                <span class="breadcrumb-item active">
+                    <i class="fas fa-folder-open"></i>
+                    All Projects
+                </span>
+            </nav>
+            
+            <div class="view-header">
+                <div class="view-title">
+                    <i class="fas fa-folder-open"></i>
+                    <h2>Projects</h2>
+                </div>
+                <div class="view-actions">
+                    <button class="view-action-btn" onclick="window.app.promptCreateNewProject()">
+                        <i class="fas fa-plus"></i>
+                        New Project
+                    </button>
+                </div>
+            </div>
+            
+            <div id="projects-grid" class="projects-grid-view">
+                <div class="empty-state-large">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <h3>Loading projects...</h3>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    this.loadProjectsGrid();
+};
+
+// Show project conversations view
+KnowledgeBaseApp.prototype.showProjectConversationsView = function(project) {
+    this.currentView = 'project-conversations';
+    this.currentViewProject = project;
+    const container = document.getElementById('chat-messages');
+    
+    container.innerHTML = `
+        <div class="main-view">
+            <nav class="breadcrumb">
+                <span class="breadcrumb-item" onclick="window.app.showProjectsView()">
+                    <i class="fas fa-folder-open"></i>
+                    Projects
+                </span>
+                <span class="breadcrumb-separator"><i class="fas fa-chevron-right"></i></span>
+                <span class="breadcrumb-item active">
+                    ${project.name}
+                </span>
+            </nav>
+            
+            <div class="view-header">
+                <div class="view-title">
+                    <i class="fas fa-folder-open"></i>
+                    <h2>${project.name}</h2>
+                </div>
+                <div class="view-actions">
+                    <button class="view-action-btn" onclick="window.app.startNewConversationInProject('${project.id}')">
+                        <i class="fas fa-plus"></i>
+                        New Chat
+                    </button>
+                    <button class="view-action-btn secondary" onclick="window.app.editProject('${project.id}', '${project.name.replace(/'/g, "\\'")}')">
+                        <i class="fas fa-edit"></i>
+                        Edit Project
+                    </button>
+                </div>
+            </div>
+            
+            <div id="project-conversations-grid" class="conversations-grid">
+                <div class="empty-state-large">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <h3>Loading conversations...</h3>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    this.loadProjectConversationsGrid(project.id);
+};
+
+// Load conversations grid data
+KnowledgeBaseApp.prototype.loadConversationsGrid = async function() {
+    try {
+        const response = await fetch('/conversations');
+        const conversations = await response.json();
+        this.renderConversationsGrid(conversations);
+    } catch (error) {
+        console.error('Failed to load conversations:', error);
+        document.getElementById('conversations-grid').innerHTML = `
+            <div class="empty-state-large">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h3>Failed to load conversations</h3>
+                <p>Please try again later.</p>
+                <button class="view-action-btn" onclick="window.app.loadConversationsGrid()">
+                    <i class="fas fa-refresh"></i>
+                    Retry
+                </button>
+            </div>
+        `;
+    }
+};
+
+// Load projects grid data
+KnowledgeBaseApp.prototype.loadProjectsGrid = async function() {
+    try {
+        const response = await fetch('/projects');
+        const projects = await response.json();
+        this.renderProjectsGrid(projects);
+    } catch (error) {
+        console.error('Failed to load projects:', error);
+        document.getElementById('projects-grid').innerHTML = `
+            <div class="empty-state-large">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h3>Failed to load projects</h3>
+                <p>Please try again later.</p>
+                <button class="view-action-btn" onclick="window.app.loadProjectsGrid()">
+                    <i class="fas fa-refresh"></i>
+                    Retry
+                </button>
+            </div>
+        `;
+    }
+};
+
+// Load project conversations grid data
+KnowledgeBaseApp.prototype.loadProjectConversationsGrid = async function(projectId) {
+    try {
+        const response = await fetch(`/conversations?project_id=${projectId}`);
+        const conversations = await response.json();
+        this.renderConversationsGrid(conversations, 'project-conversations-grid');
+    } catch (error) {
+        console.error('Failed to load project conversations:', error);
+        document.getElementById('project-conversations-grid').innerHTML = `
+            <div class="empty-state-large">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h3>Failed to load conversations</h3>
+                <p>Please try again later.</p>
+                <button class="view-action-btn" onclick="window.app.loadProjectConversationsGrid('${projectId}')">
+                    <i class="fas fa-refresh"></i>
+                    Retry
+                </button>
+            </div>
+        `;
+    }
+};
+
+// Render conversations in grid format
+KnowledgeBaseApp.prototype.renderConversationsGrid = function(conversations, containerId = 'conversations-grid') {
+    const container = document.getElementById(containerId);
+    
+    if (!conversations.length) {
+        container.innerHTML = `
+            <div class="empty-state-large">
+                <i class="fas fa-comments"></i>
+                <h3>No conversations yet</h3>
+                <p>Start your first conversation to see it here.</p>
+                <button class="view-action-btn" onclick="window.app.startNewConversation()">
+                    <i class="fas fa-plus"></i>
+                    New Chat
+                </button>
+            </div>
+        `;
+        return;
+    }
+    
+    const conversationCards = conversations.map(conv => {
+        const tags = (conv.tags || []).map(tag => 
+            `<span class="tag">${tag}</span>`
+        ).join('');
+        
+        // Get first message as preview
+        const preview = conv.messages && conv.messages.length > 0 
+            ? conv.messages[0].content.substring(0, 150) + '...'
+            : 'No messages yet';
+            
+        return `
+            <div class="conversation-card" onclick="window.app.openConversationFromGrid('${conv.id}')">
+                <div class="conversation-card-header">
+                    <h3 class="conversation-card-title">${conv.title}</h3>
+                    <div class="conversation-card-actions">
+                        <button class="conversation-card-action" onclick="event.stopPropagation(); window.app.editConversationTitle('${conv.id}', '${conv.title.replace(/'/g, '\\\'')}')" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="conversation-card-action" onclick="event.stopPropagation(); window.app.deleteConversation('${conv.id}')" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="conversation-card-meta">
+                    <span class="model-badge">${conv.llm_model}</span>
+                    <span>•</span>
+                    <span>${this.formatDate(conv.updated_at)}</span>
+                </div>
+                <div class="conversation-card-tags">${tags}</div>
+                <div class="conversation-card-preview">${preview}</div>
+            </div>
+        `;
+    }).join('');
+    
+    container.innerHTML = conversationCards;
+};
+
+// Render projects in grid format
+KnowledgeBaseApp.prototype.renderProjectsGrid = function(projects) {
+    const container = document.getElementById('projects-grid');
+    
+    if (!projects.length) {
+        container.innerHTML = `
+            <div class="empty-state-large">
+                <i class="fas fa-folder-open"></i>
+                <h3>No projects yet</h3>
+                <p>Create your first project to organize your conversations.</p>
+                <button class="view-action-btn" onclick="window.app.promptCreateNewProject()">
+                    <i class="fas fa-plus"></i>
+                    New Project
+                </button>
+            </div>
+        `;
+        return;
+    }
+    
+    const projectCards = projects.map(project => {
+        const conversationCount = project.conversation_count || 0;
+        
+        return `
+            <div class="project-card" onclick="window.app.openProject('${project.id}')">
+                <div class="project-card-icon">
+                    <i class="fas fa-folder-open"></i>
+                </div>
+                <h3 class="project-card-title">${project.name}</h3>
+                <p class="project-card-count">${conversationCount} conversations</p>
+                <div class="project-card-actions">
+                    <button class="view-action-btn secondary" onclick="event.stopPropagation(); window.app.editProject('${project.id}', '${project.name.replace(/'/g, "\\'")}')" title="Edit Project">
+                        <i class="fas fa-edit"></i>
+                        Edit
+                    </button>
+                    <button class="view-action-btn secondary" onclick="event.stopPropagation(); window.app.deleteProject('${project.id}')" title="Delete Project">
+                        <i class="fas fa-trash"></i>
+                        Delete
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    container.innerHTML = projectCards;
+};
+
+// Open conversation from grid view
+KnowledgeBaseApp.prototype.openConversationFromGrid = function(conversationId) {
+    // Switch back to chat view and load the conversation
+    this.showChatView();
+    this.loadConversation(conversationId);
+};
+
+// Open project from grid view
+KnowledgeBaseApp.prototype.openProject = function(projectId) {
+    // Find project data
+    const project = this.projects.find(p => p.id === projectId);
+    if (project) {
+        this.showProjectConversationsView(project);
+    }
+};
+
+// Show normal chat view
+KnowledgeBaseApp.prototype.showChatView = function() {
+    this.currentView = 'chat';
+    const container = document.getElementById('chat-messages');
+    
+    // Show context toggle again
+    const contextToggle = document.getElementById('context-toggle-btn');
+    if (contextToggle) contextToggle.style.display = 'block';
+    
+    // Show empty state or current conversation
+    if (!this.currentConversationId) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">
+                    <i class="fas fa-comments"></i>
+                </div>
+                <h2 class="empty-state-title">New Conversation</h2>
+                <p class="empty-state-description">Start a conversation or search your knowledge base.</p>
+            </div>
+        `;
+    }
+    // If there's a current conversation, it will be loaded by the caller
+};
+
+// Start new conversation (enhanced to work from any view)
+KnowledgeBaseApp.prototype.startNewConversation = function() {
+    this.showChatView();
+    this.startNewChat();
+};
+
+// Start new conversation in specific project
+KnowledgeBaseApp.prototype.startNewConversationInProject = function(projectId) {
+    this.currentProject = this.projects.find(p => p.id === projectId);
+    this.startNewConversation();
+};
+
+// Prompt for new project creation
+KnowledgeBaseApp.prototype.promptCreateNewProject = function() {
+    const name = prompt('Enter project name:');
+    if (name && name.trim()) {
+        this.createNewProject(name.trim());
+    }
+};
+
 // Show success notification
 KnowledgeBaseApp.prototype.showSuccessNotification = function(message) {
     const notification = document.createElement('div');
