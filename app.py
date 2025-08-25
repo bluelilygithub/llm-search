@@ -305,7 +305,6 @@ def create_project():
 
 @csrf.exempt
 @app.route('/projects/<project_id>', methods=['DELETE'])
-@require_project_access
 def delete_project(project_id):
     """Delete a project and set related conversations to no project"""
     try:
@@ -327,7 +326,6 @@ def delete_project(project_id):
 
 @csrf.exempt
 @app.route('/projects/<project_id>', methods=['PATCH'])
-@require_project_access
 def rename_project(project_id):
     """Rename/update a project"""
     try:
