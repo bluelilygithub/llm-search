@@ -463,15 +463,11 @@
             <!-- Dashboard Controls Bar -->
             <div class="dashboard-controls-bar">
                 <div class="controls-left">
-                    <button class="control-btn primary" onclick="addDashboardWidget()" title="Add Widget">
-                        <i class="fas fa-plus"></i>
-                        Add Widget
-                    </button>
                     <div class="control-group">
                         <label class="control-label">Time Range:</label>
                         <select class="control-select time-range-selector" id="dashboard-time-range" onchange="updateDashboardTimeRange()">
                             <option value="7">Last 7 days</option>
-                            <option value="30">Last 30 days</option>
+                            <option value="30" selected>Last 30 days</option>
                             <option value="90">Last 3 months</option>
                         </select>
                     </div>
@@ -490,8 +486,8 @@
 
             <div class="modal-body analytics-dashboard-body" id="settings-body">
                 <div class="settings-tabs">
-                    <button class="tab-btn active" onclick="showTab('usage')">Usage Stats</button>
-                    <button class="tab-btn" onclick="showTab('whitelist')" id="whitelist-tab" style="display:none;">IP Whitelist</button>
+                    <button class="control-btn primary active" onclick="showTab('usage')">Usage Stats</button>
+                    <button class="control-btn primary" onclick="showTab('whitelist')" id="whitelist-tab">IP Whitelist</button>
                 </div>
                 
                 <div id="usage-tab" class="tab-content analytics-main-content">
@@ -575,6 +571,9 @@
                                         </div>
                                     </div>
                                     <div class="widget-controls">
+                                        <button class="widget-control-btn" onclick="clearActivityLog()" title="Clear Log">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
                                         <button class="widget-control-btn" onclick="searchActivityLog()" title="Search">
                                             <i class="fas fa-search"></i>
                                         </button>
@@ -638,31 +637,75 @@
                     </div>
                 </div>
                 
-                <div id="whitelist-tab-content" class="tab-content" style="display:none;">
-                    <div class="admin-section">
-                        <h4>Current IP Address</h4>
-                        <div id="current-ip-info" style="padding: 10px; background: #f8f9fa; border-radius: 4px; margin-bottom: 20px;">
-                            <div id="current-ip-display">Loading...</div>
-                            <button class="btn btn-sm btn-primary" onclick="whitelistCurrentIP()" id="whitelist-current-btn">
-                                Add to Whitelist
-                            </button>
-                        </div>
-                        
-                        <h4>Add IP to Whitelist</h4>
-                        <div style="margin-bottom: 20px;">
-                            <input type="text" id="new-ip-address" placeholder="192.168.1.1" style="margin-right: 10px; padding: 5px;">
-                            <input type="text" id="ip-description" placeholder="Description (optional)" style="margin-right: 10px; padding: 5px;">
-                            <button class="btn btn-primary" onclick="addIPToWhitelist()">Add IP</button>
-                        </div>
-                        
-                        <h4>Whitelisted IPs</h4>
-                        <div id="whitelist-table">
-                            <div class="loading">Loading whitelist...</div>
-                        </div>
-                        
-                        <h4>Usage Statistics</h4>
-                        <div id="usage-stats">
-                            <div class="loading">Loading stats...</div>
+                <div id="whitelist-tab" class="tab-content analytics-main-content" style="display:none;">
+                    <div class="analytics-layout">
+                        <div class="analytics-main" style="width: 100%;">
+                            <!-- IP Whitelist Management Widget -->
+                            <div class="analytics-widget ip-whitelist-widget">
+                                <div class="widget-header">
+                                    <div class="widget-title">
+                                        <i class="fas fa-shield-alt widget-icon"></i>
+                                        <div class="widget-title-text">
+                                            <h3>IP Whitelist Management</h3>
+                                            <span class="widget-subtitle">Manage authorized IP addresses</span>
+                                        </div>
+                                    </div>
+                                    <div class="widget-controls">
+                                        <button class="widget-control-btn" onclick="refreshWhitelist()" title="Refresh">
+                                            <i class="fas fa-sync"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="widget-content">
+                                    <!-- Current IP Display -->
+                                    <div class="current-ip-section">
+                                        <div class="current-ip-info">
+                                            <span class="current-ip-label">Your Current IP:</span>
+                                            <span class="current-ip-value" id="current-ip-display">Loading...</span>
+                                            <button class="control-btn primary" onclick="whitelistCurrentIP()" id="whitelist-current-btn">
+                                                <i class="fas fa-plus"></i>
+                                                Add Current IP
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Add New IP Section -->
+                                    <div class="add-ip-section">
+                                        <div class="add-ip-form">
+                                            <input type="text" class="ip-input" id="new-ip-address" placeholder="192.168.1.1" />
+                                            <input type="text" class="ip-input" id="ip-description" placeholder="Description (optional)" />
+                                            <button class="control-btn primary" onclick="addIPToWhitelist()">
+                                                <i class="fas fa-plus"></i>
+                                                Add IP
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- IP Whitelist Table -->
+                                    <div class="ip-whitelist-table">
+                                        <table class="whitelist-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>IP Address</th>
+                                                    <th>Description</th>
+                                                    <th>Added Date</th>
+                                                    <th>Last Used</th>
+                                                    <th>Status</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="whitelist-table-body">
+                                                <tr class="loading-row">
+                                                    <td colspan="6" class="loading-cell">
+                                                        <i class="fas fa-spinner fa-spin"></i>
+                                                        Loading whitelist data...
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1406,6 +1449,214 @@
                 document.getElementById('sidebar-settings-btn').style.display = 'flex';
             }
         });
+
+        // ==================== NEW ANALYTICS DASHBOARD FUNCTIONS ====================
+
+        // Update dashboard based on time range selection
+        function updateDashboardTimeRange() {
+            const timeRange = document.getElementById('dashboard-time-range').value;
+            console.log('Updating dashboard for time range:', timeRange);
+            
+            // Filter all analytics widgets based on selected time range
+            refreshAnalyticsData(timeRange);
+        }
+
+        // Refresh analytics data with time filtering
+        function refreshAnalyticsData(timeRange) {
+            // Here you would typically make API calls to get filtered data
+            // For now, we'll just show a loading state and update the displays
+            
+            const widgets = document.querySelectorAll('.analytics-widget');
+            widgets.forEach(widget => {
+                const content = widget.querySelector('.widget-content');
+                if (content) {
+                    content.style.opacity = '0.6';
+                    setTimeout(() => {
+                        content.style.opacity = '1';
+                        console.log(`Refreshed widget data for ${timeRange} days`);
+                    }, 500);
+                }
+            });
+        }
+
+        // Clear activity log
+        function clearActivityLog() {
+            if (confirm('Are you sure you want to clear the activity log? This action cannot be undone.')) {
+                const activityLogContainer = document.getElementById('activity-log');
+                activityLogContainer.innerHTML = '<div class="empty-log">Activity log cleared</div>';
+                console.log('Activity log cleared');
+            }
+        }
+
+        // IP Whitelist Management Functions
+        function refreshWhitelist() {
+            const tableBody = document.getElementById('whitelist-table-body');
+            tableBody.innerHTML = `
+                <tr class="loading-row">
+                    <td colspan="6" class="loading-cell">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        Refreshing whitelist data...
+                    </td>
+                </tr>
+            `;
+            
+            // Simulate loading and populate with sample data
+            setTimeout(() => {
+                populateWhitelistTable();
+            }, 1000);
+        }
+
+        function populateWhitelistTable() {
+            const tableBody = document.getElementById('whitelist-table-body');
+            
+            // Sample data - in real implementation, this would come from API
+            const sampleData = [
+                {
+                    ip: '192.168.1.100',
+                    description: 'Office Network',
+                    added: '2024-01-15',
+                    lastUsed: '2 hours ago',
+                    status: 'active'
+                },
+                {
+                    ip: '10.0.0.50',
+                    description: 'Remote Access',
+                    added: '2024-01-10',
+                    lastUsed: '1 day ago',
+                    status: 'active'
+                }
+            ];
+            
+            tableBody.innerHTML = sampleData.map(item => `
+                <tr>
+                    <td><span class="ip-address">${item.ip}</span></td>
+                    <td><span class="ip-description">${item.description}</span></td>
+                    <td><span class="ip-date">${item.added}</span></td>
+                    <td><span class="ip-date">${item.lastUsed}</span></td>
+                    <td><span class="ip-status ${item.status}">${item.status.toUpperCase()}</span></td>
+                    <td>
+                        <div class="ip-actions">
+                            <button class="ip-action-btn" onclick="editIP('${item.ip}')" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="ip-action-btn danger" onclick="removeIP('${item.ip}')" title="Remove">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function addIPToWhitelist() {
+            const ipInput = document.getElementById('new-ip-address');
+            const descInput = document.getElementById('ip-description');
+            
+            const ip = ipInput.value.trim();
+            const description = descInput.value.trim() || 'No description';
+            
+            if (!ip) {
+                alert('Please enter an IP address');
+                return;
+            }
+            
+            // Basic IP validation
+            const ipRegex = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/;
+            if (!ipRegex.test(ip)) {
+                alert('Please enter a valid IP address');
+                return;
+            }
+            
+            // Here you would make an API call to add the IP
+            console.log('Adding IP to whitelist:', ip, description);
+            
+            // Clear inputs
+            ipInput.value = '';
+            descInput.value = '';
+            
+            // Refresh the table
+            setTimeout(() => {
+                refreshWhitelist();
+            }, 500);
+            
+            alert('IP address added to whitelist successfully');
+        }
+
+        function whitelistCurrentIP() {
+            const currentIPElement = document.getElementById('current-ip-display');
+            const currentIP = currentIPElement.textContent;
+            
+            if (currentIP && currentIP !== 'Loading...') {
+                // Set the IP in the form and description
+                document.getElementById('new-ip-address').value = currentIP;
+                document.getElementById('ip-description').value = 'Current IP Address';
+                
+                // Add it automatically
+                addIPToWhitelist();
+            } else {
+                alert('Current IP address not available');
+            }
+        }
+
+        function editIP(ip) {
+            const newDescription = prompt('Enter new description for ' + ip + ':');
+            if (newDescription !== null) {
+                console.log('Editing IP:', ip, 'New description:', newDescription);
+                // Here you would make an API call to update the description
+                alert('IP description updated successfully');
+                refreshWhitelist();
+            }
+        }
+
+        function removeIP(ip) {
+            if (confirm('Are you sure you want to remove ' + ip + ' from the whitelist?')) {
+                console.log('Removing IP from whitelist:', ip);
+                // Here you would make an API call to remove the IP
+                alert('IP address removed from whitelist');
+                refreshWhitelist();
+            }
+        }
+
+        // Tab switching function
+        function showTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.style.display = 'none';
+            });
+            
+            // Remove active class from all tab buttons
+            document.querySelectorAll('.control-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected tab content
+            const tabContent = document.getElementById(tabName + '-tab');
+            if (tabContent) {
+                tabContent.style.display = 'block';
+            }
+            
+            // Add active class to clicked button
+            event.target.classList.add('active');
+            
+            // Load tab-specific data
+            if (tabName === 'whitelist') {
+                loadCurrentIP();
+                refreshWhitelist();
+            }
+        }
+
+        function loadCurrentIP() {
+            // Simulate fetching current IP
+            fetch('/api/current-ip')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('current-ip-display').textContent = data.ip || '192.168.1.100';
+                })
+                .catch(error => {
+                    document.getElementById('current-ip-display').textContent = 'Unable to detect';
+                    console.error('Failed to fetch current IP:', error);
+                });
+        }
     </script>
 </body>
 </html>

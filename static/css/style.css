@@ -3418,3 +3418,174 @@ body {
 .aria-expanded\:text-text-100[aria-expanded="true"] {
     color: var(--text-100);
 }
+
+/* ==================== IP WHITELIST MANAGEMENT STYLES ==================== */
+
+.current-ip-section {
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
+}
+
+.current-ip-info {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.current-ip-label {
+    font-weight: 500;
+    color: var(--gray-700);
+}
+
+.current-ip-value {
+    font-family: monospace;
+    background: white;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--gray-300);
+    font-weight: 600;
+    color: var(--primary-blue);
+}
+
+.add-ip-section {
+    background: white;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
+}
+
+.add-ip-form {
+    display: flex;
+    gap: var(--spacing-md);
+    align-items: center;
+}
+
+.ip-input {
+    flex: 1;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: 1px solid var(--gray-300);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-base);
+    transition: border-color var(--transition-fast);
+}
+
+.ip-input:focus {
+    outline: none;
+    border-color: var(--primary-blue);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.ip-input::placeholder {
+    color: var(--gray-400);
+}
+
+.ip-whitelist-table {
+    background: white;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    border: 1px solid var(--gray-200);
+}
+
+.whitelist-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.whitelist-table th {
+    background: var(--gray-50);
+    padding: var(--spacing-md);
+    text-align: left;
+    font-weight: 600;
+    color: var(--gray-700);
+    border-bottom: 1px solid var(--gray-200);
+    font-size: var(--font-size-sm);
+}
+
+.whitelist-table td {
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--gray-100);
+    font-size: var(--font-size-sm);
+}
+
+.whitelist-table tr:hover {
+    background: var(--gray-50);
+}
+
+.whitelist-table tr:last-child td {
+    border-bottom: none;
+}
+
+.loading-cell {
+    text-align: center;
+    color: var(--gray-500);
+    padding: var(--spacing-2xl) !important;
+}
+
+.ip-address {
+    font-family: monospace;
+    font-weight: 600;
+    color: var(--gray-800);
+}
+
+.ip-description {
+    color: var(--gray-600);
+}
+
+.ip-date {
+    color: var(--gray-500);
+    font-size: var(--font-size-xs);
+}
+
+.ip-status {
+    display: inline-block;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+    font-weight: 500;
+}
+
+.ip-status.active {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.ip-status.inactive {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.ip-actions {
+    display: flex;
+    gap: var(--spacing-xs);
+}
+
+.ip-action-btn {
+    background: none;
+    border: 1px solid var(--gray-300);
+    border-radius: var(--radius-sm);
+    padding: var(--spacing-xs);
+    cursor: pointer;
+    color: var(--gray-600);
+    transition: all var(--transition-fast);
+    font-size: var(--font-size-xs);
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ip-action-btn:hover {
+    background: var(--gray-100);
+    color: var(--gray-800);
+}
+
+.ip-action-btn.danger:hover {
+    background: #fee2e2;
+    border-color: #fca5a5;
+    color: #991b1b;
+}
