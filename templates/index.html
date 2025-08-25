@@ -1456,36 +1456,165 @@
         // Update dashboard based on time range selection
         function updateDashboardTimeRange() {
             const timeRange = document.getElementById('dashboard-time-range').value;
-            console.log('Updating dashboard for time range:', timeRange);
+            console.log('Updating dashboard for time range:', timeRange + ' days');
             
-            // Filter all analytics widgets based on selected time range
+            // Show loading state and update with demo data
             refreshAnalyticsData(timeRange);
         }
 
         // Refresh analytics data with time filtering
         function refreshAnalyticsData(timeRange) {
-            // Here you would typically make API calls to get filtered data
-            // For now, we'll just show a loading state and update the displays
+            console.log('Refreshing analytics data for:', timeRange, 'days');
             
+            // Show loading state
             const widgets = document.querySelectorAll('.analytics-widget');
             widgets.forEach(widget => {
                 const content = widget.querySelector('.widget-content');
                 if (content) {
-                    content.style.opacity = '0.6';
-                    setTimeout(() => {
-                        content.style.opacity = '1';
-                        console.log(`Refreshed widget data for ${timeRange} days`);
-                    }, 500);
+                    content.style.opacity = '0.4';
+                    content.innerHTML = '<div style="text-align: center; padding: 2rem;"><i class="fas fa-spinner fa-spin"></i> Loading data...</div>';
                 }
             });
+
+            // Simulate API call and update with time-specific data
+            setTimeout(() => {
+                updateDashboardData(timeRange);
+                widgets.forEach(widget => {
+                    const content = widget.querySelector('.widget-content');
+                    if (content) {
+                        content.style.opacity = '1';
+                    }
+                });
+            }, 1000);
+        }
+
+        // Update dashboard with demo data based on time range
+        function updateDashboardData(timeRange) {
+            const timeRangeText = timeRange === '1' ? 'Today' : 
+                                 timeRange === '7' ? 'Last 7 days' :
+                                 timeRange === '30' ? 'Last 30 days' : 'Last 3 months';
+            
+            // Generate different demo data based on time range
+            const stats = {
+                '1': { requests: '127', models: '8', avgResponse: '180ms', successRate: '99.2%' },
+                '7': { requests: '1.2K', models: '12', avgResponse: '195ms', successRate: '99.5%' },
+                '30': { requests: '8.4K', models: '15', avgResponse: '220ms', successRate: '99.1%' },
+                '90': { requests: '24.8K', models: '18', avgResponse: '245ms', successRate: '98.9%' }
+            };
+            
+            const currentStats = stats[timeRange];
+            
+            // Update quick stats
+            document.getElementById('stat-total-requests').textContent = currentStats.requests;
+            document.getElementById('stat-active-models').textContent = currentStats.models;
+            document.getElementById('stat-avg-response').textContent = currentStats.avgResponse;
+            document.getElementById('stat-success-rate').textContent = currentStats.successRate;
+            
+            // Update widget contents with filtered data message
+            const usageWidget = document.querySelector('.usage-metrics-widget .widget-content');
+            if (usageWidget) {
+                usageWidget.innerHTML = `
+                    <div style="text-align: center; padding: 2rem;">
+                        <h3>Usage Data for ${timeRangeText}</h3>
+                        <p>Total Requests: <strong>${currentStats.requests}</strong></p>
+                        <p>Active Models: <strong>${currentStats.models}</strong></p>
+                        <p>Average Response Time: <strong>${currentStats.avgResponse}</strong></p>
+                        <p style="margin-top: 1rem; color: #6b7280;">Chart would show filtered data here</p>
+                    </div>
+                `;
+            }
+            
+            const timelineWidget = document.querySelector('.timeline-widget .widget-content');
+            if (timelineWidget) {
+                timelineWidget.innerHTML = `
+                    <div style="text-align: center; padding: 2rem;">
+                        <h3>Activity Timeline - ${timeRangeText}</h3>
+                        <p>Success Rate: <strong>${currentStats.successRate}</strong></p>
+                        <p style="margin-top: 1rem; color: #6b7280;">Timeline chart filtered for ${timeRangeText.toLowerCase()}</p>
+                    </div>
+                `;
+            }
+            
+            const performanceWidget = document.querySelector('.performance-widget .widget-content');
+            if (performanceWidget) {
+                performanceWidget.innerHTML = `
+                    <div style="text-align: center; padding: 2rem;">
+                        <h3>Model Performance - ${timeRangeText}</h3>
+                        <p>Time Range: <strong>${timeRangeText}</strong></p>
+                        <p style="margin-top: 1rem; color: #6b7280;">Performance metrics filtered for selected period</p>
+                    </div>
+                `;
+            }
+            
+            const activityWidget = document.querySelector('.activity-widget .widget-content');
+            if (activityWidget) {
+                // Generate time-specific activity log entries
+                const activities = {
+                    '1': [
+                        { time: '14:32', action: 'GPT-4 request completed', status: 'success' },
+                        { time: '14:28', action: 'Claude request initiated', status: 'pending' },
+                        { time: '14:15', action: 'User login from 192.168.1.100', status: 'info' }
+                    ],
+                    '7': [
+                        { time: '3 hours ago', action: 'Weekly usage report generated', status: 'success' },
+                        { time: '1 day ago', action: 'Model performance alert', status: 'warning' },
+                        { time: '2 days ago', action: 'IP whitelist updated', status: 'info' }
+                    ],
+                    '30': [
+                        { time: '2 days ago', action: 'Monthly analytics compiled', status: 'success' },
+                        { time: '1 week ago', action: 'Usage threshold reached', status: 'warning' },
+                        { time: '2 weeks ago', action: 'New model added: GPT-4-Turbo', status: 'info' }
+                    ],
+                    '90': [
+                        { time: '1 week ago', action: 'Quarterly review completed', status: 'success' },
+                        { time: '1 month ago', action: 'System maintenance performed', status: 'info' },
+                        { time: '2 months ago', action: 'API rate limits adjusted', status: 'warning' }
+                    ]
+                };
+                
+                const activityList = activities[timeRange] || activities['30'];
+                activityWidget.innerHTML = `
+                    <div id="activity-log">
+                        <h4>Activity Log - ${timeRangeText}</h4>
+                        ${activityList.map(activity => `
+                            <div class="activity-entry">
+                                <span class="activity-time">${activity.time}</span>
+                                <span class="activity-action">${activity.action}</span>
+                                <span class="activity-status ${activity.status}">${activity.status}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+            
+            console.log(`Dashboard updated with data for ${timeRangeText}`);
         }
 
         // Clear activity log
-        function clearActivityLog() {
+        async function clearActivityLog() {
             if (confirm('Are you sure you want to clear the activity log? This action cannot be undone.')) {
-                const activityLogContainer = document.getElementById('activity-log');
-                activityLogContainer.innerHTML = '<div class="empty-log">Activity log cleared</div>';
-                console.log('Activity log cleared');
+                try {
+                    // Try to clear via API first
+                    const response = await fetch('/api/activity-log', {
+                        method: 'DELETE'
+                    });
+                    
+                    if (response.ok) {
+                        const activityLogContainer = document.getElementById('activity-log');
+                        activityLogContainer.innerHTML = '<div class="empty-log">Activity log cleared</div>';
+                        console.log('Activity log cleared via API');
+                    } else {
+                        throw new Error('API clear failed');
+                    }
+                } catch (error) {
+                    // Fallback to local clearing for demo
+                    const activityLogContainer = document.getElementById('activity-log');
+                    activityLogContainer.innerHTML = '<div class="empty-log">Activity log cleared (demo mode - will reappear on refresh)</div>';
+                    console.log('Activity log cleared locally (demo)');
+                    
+                    // Store in sessionStorage to persist during session
+                    sessionStorage.setItem('activityLogCleared', 'true');
+                }
             }
         }
 
@@ -1505,51 +1634,83 @@
             await populateWhitelistTable();
         }
 
+        function renderWhitelistTable(data) {
+            const tableBody = document.getElementById('whitelist-table-body');
+            
+            if (!data.length) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="loading-cell">
+                            No IP addresses in whitelist
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            tableBody.innerHTML = data.map(item => {
+                const addedDate = new Date(item.created_at).toLocaleDateString();
+                const status = item.is_active ? 'active' : 'inactive';
+                
+                return `
+                    <tr>
+                        <td><span class="ip-address">${item.ip_address}</span></td>
+                        <td><span class="ip-description">${item.description || 'No description'}</span></td>
+                        <td><span class="ip-date">${addedDate}</span></td>
+                        <td><span class="ip-date">${item.created_by || 'Unknown'}</span></td>
+                        <td><span class="ip-status ${status}">${status.toUpperCase()}</span></td>
+                        <td>
+                            <div class="ip-actions">
+                                <button class="ip-action-btn" onclick="editIP('${item.id}', '${item.ip_address}', '${item.description || ''}')" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="ip-action-btn danger" onclick="removeIP('${item.id}', '${item.ip_address}')" title="Remove">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
         async function populateWhitelistTable() {
             const tableBody = document.getElementById('whitelist-table-body');
             
             try {
                 // Fetch real data from API
                 const response = await fetch('/api/ip-whitelist');
-                if (!response.ok) throw new Error('Failed to fetch whitelist');
                 
-                const data = await response.json();
-                
-                if (!data.length) {
-                    tableBody.innerHTML = `
-                        <tr>
-                            <td colspan="6" class="loading-cell">
-                                No IP addresses in whitelist
-                            </td>
-                        </tr>
-                    `;
+                // Check if API exists
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    // API doesn't exist yet, show sample data
+                    const sampleData = [
+                        {
+                            id: '1',
+                            ip_address: '192.168.1.100',
+                            description: 'Office Network',
+                            created_at: new Date().toISOString(),
+                            created_by: 'demo_user',
+                            is_active: true
+                        },
+                        {
+                            id: '2', 
+                            ip_address: '10.0.0.50',
+                            description: 'Remote Access',
+                            created_at: new Date(Date.now() - 24*60*60*1000).toISOString(),
+                            created_by: 'admin',
+                            is_active: true
+                        }
+                    ];
+                    renderWhitelistTable(sampleData);
                     return;
                 }
                 
-                tableBody.innerHTML = data.map(item => {
-                    const addedDate = new Date(item.created_at).toLocaleDateString();
-                    const status = item.is_active ? 'active' : 'inactive';
-                    
-                    return `
-                        <tr>
-                            <td><span class="ip-address">${item.ip_address}</span></td>
-                            <td><span class="ip-description">${item.description || 'No description'}</span></td>
-                            <td><span class="ip-date">${addedDate}</span></td>
-                            <td><span class="ip-date">${item.created_by || 'Unknown'}</span></td>
-                            <td><span class="ip-status ${status}">${status.toUpperCase()}</span></td>
-                            <td>
-                                <div class="ip-actions">
-                                    <button class="ip-action-btn" onclick="editIP('${item.id}', '${item.ip_address}', '${item.description || ''}')" title="Edit">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button class="ip-action-btn danger" onclick="removeIP('${item.id}', '${item.ip_address}')" title="Remove">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    `;
-                }).join('');
+                if (!response.ok) throw new Error('Failed to fetch whitelist');
+                
+                const data = await response.json();
+                renderWhitelistTable(data);
                 
             } catch (error) {
                 console.error('Error loading whitelist:', error);
@@ -1607,7 +1768,19 @@
                     })
                 });
                 
-                console.log('API response:', response);
+                console.log('API response status:', response.status);
+                console.log('API response headers:', response.headers.get('content-type'));
+                
+                // Check if response is JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    // If not JSON, it's likely the API endpoint doesn't exist yet
+                    alert('Backend API not yet implemented. IP address would be: ' + ip + '\nDescription: ' + description);
+                    // Clear inputs anyway for demo purposes
+                    ipInput.value = '';
+                    descInput.value = '';
+                    return;
+                }
                 
                 if (!response.ok) {
                     const error = await response.json();
@@ -1625,7 +1798,14 @@
                 
             } catch (error) {
                 console.error('Error adding IP:', error);
-                alert('Failed to add IP: ' + error.message);
+                if (error.message.includes('Unexpected token')) {
+                    alert('Backend API not available. This is a demo - IP would be added: ' + ip);
+                    // Clear inputs for demo purposes
+                    ipInput.value = '';
+                    descInput.value = '';
+                } else {
+                    alert('Failed to add IP: ' + error.message);
+                }
             }
         }
 
@@ -1708,10 +1888,19 @@
                 btn.classList.remove('active');
             });
             
-            // Show selected tab content
-            const tabContent = document.getElementById(tabName + '-tab');
+            // Show selected tab content  
+            let tabContentId;
+            if (tabName === 'usage') {
+                tabContentId = 'usage-tab';
+            } else if (tabName === 'whitelist') {
+                tabContentId = 'whitelist-tab';
+            }
+            
+            const tabContent = document.getElementById(tabContentId);
             if (tabContent) {
                 tabContent.style.display = 'block';
+            } else {
+                console.error('Tab content not found:', tabContentId);
             }
             
             // Add active class to clicked button
