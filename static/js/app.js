@@ -7,6 +7,7 @@ class KnowledgeBaseApp {
         this.isRecording = false;
         this.mediaRecorder = null;
         this.currentProject = null; // Added for project management
+        this.projects = []; // Initialize projects array
         
         // Setup global error handling
         this.setupGlobalErrorHandling();
@@ -156,6 +157,7 @@ class KnowledgeBaseApp {
         try {
             const response = await fetch('/projects');
             const projects = await response.json();
+            this.projects = projects; // Store projects for later use
             this.renderProjects(projects);
         } catch (error) {
             console.error('Failed to load projects:', error);
