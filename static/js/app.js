@@ -2325,7 +2325,17 @@ function saveTags() {
 
 KnowledgeBaseApp.prototype.handleContextUpload = async function(event) {
     const files = Array.from(event.target.files);
+    
+    // DEBUG LOGGING
+    console.log('=== CONTEXT UPLOAD DEBUG ===');
+    console.log('Current conversation ID:', this.currentConversationId);
+    console.log('Type of conversation ID:', typeof this.currentConversationId);
+    console.log('Is null?', this.currentConversationId === null);
+    console.log('Is undefined?', this.currentConversationId === undefined);
+    console.log('Files to upload:', files.length);
+    
     if (!this.currentConversationId) {
+        console.log('ERROR: No conversation ID found');
         this.showError('Please start or select a conversation before uploading context.');
         return;
     }
@@ -2346,14 +2356,24 @@ KnowledgeBaseApp.prototype.handleContextUpload = async function(event) {
         formData.append('file', file);
         formData.append('conversation_id', this.currentConversationId);
         
+        // DEBUG LOGGING FOR EACH FILE
+        console.log(`--- Uploading file: ${file.name} ---`);
+        console.log('Conversation ID being sent:', this.currentConversationId);
+        console.log('FormData conversation_id:', formData.get('conversation_id'));
+        
         try {
+            console.log('Making fetch request to /upload-context');
             const response = await fetch('/upload-context', {
                 method: 'POST',
                 body: formData
             });
+            console.log('Response status:', response.status);
+            console.log('Response ok:', response.ok);
             const data = await response.json();
+            console.log('Response data:', data);
             
             if (data.success) {
+                console.log('Upload successful!');
                 this.showContextUploadMessage(data.filename, data.preview, data.file_type, data.word_count, data.task_type);
                 successCount++;
             } else {
