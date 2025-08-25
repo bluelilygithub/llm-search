@@ -395,6 +395,7 @@ def get_conversations():
     return response
 
 # Update create_conversation to accept project_id
+@csrf.exempt
 @app.route('/conversations', methods=['POST'])
 def create_conversation():
     """Create a new conversation with proper user ownership"""
@@ -483,6 +484,7 @@ def delete_conversation(conversation_id):
         db.session.rollback()
         return jsonify({'error': 'Failed to delete conversation'}), 500
 
+@csrf.exempt
 @app.route('/conversations/<conversation_id>/messages', methods=['POST'])
 @require_conversation_access
 def add_message(conversation_id):
@@ -518,6 +520,7 @@ def add_message(conversation_id):
         'timestamp': message.timestamp.isoformat()
     }), 201
 
+@csrf.exempt
 @app.route('/chat', methods=['POST'])
 @limiter.limit("30 per minute")
 @auth.access_required(allow_free=True)

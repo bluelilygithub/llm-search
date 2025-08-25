@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>AI Knowledge Base</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -655,6 +656,39 @@
 
     <script src="static/js/app.js"></script>
     <script>
+        // CSRF Token Setup - Add this before all other JavaScript
+        window.csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        
+        // Override fetch to automatically include CSRF tokens
+        const originalFetch = window.fetch;
+        window.fetch = function(url, options = {}) {
+            // Only add CSRF token for non-GET requests to our own domain
+            if (options.method && options.method.toUpperCase() !== 'GET' && 
+                (typeof url === 'string' && (url.startsWith('/') || url.startsWith(window.location.origin)))) {
+                
+                options.headers = options.headers || {};
+                
+                // Add CSRF token to headers
+                if (typeof options.headers === 'object' && !Array.isArray(options.headers)) {
+                    options.headers['X-CSRFToken'] = window.csrfToken;
+                }
+                
+                // If sending JSON, also add to body for fallback
+                if (options.headers['Content-Type'] === 'application/json' && options.body) {
+                    try {
+                        const bodyData = JSON.parse(options.body);
+                        bodyData.csrf_token = window.csrfToken;
+                        options.body = JSON.stringify(bodyData);
+                    } catch (e) {
+                        // If body isn't valid JSON, just add header
+                        console.log('Could not parse JSON body for CSRF token, using header only');
+                    }
+                }
+            }
+            
+            return originalFetch.call(this, url, options);
+        };
+
         // Global functions for new UI
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
