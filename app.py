@@ -303,34 +303,60 @@ def create_project():
         'updated_at': project.updated_at.isoformat() if project.updated_at else None
     }), 201
 
+@csrf.exempt
 @app.route('/projects/<project_id>', methods=['DELETE'])
+@require_project_access
 def delete_project(project_id):
-    from models import Project, Conversation
-    project = Project.query.get_or_404(project_id)
-    # Set project_id to None for all related conversations
-    Conversation.query.filter_by(project_id=project_id).update({'project_id': None})
-    db.session.delete(project)
-    db.session.commit()
-    return jsonify({'success': True})
+    """Delete a project and set related conversations to no project"""
+    try:
+        from models import Project, Conversation
+        project = Project.query.get(project_id)
+        if not project:
+            return jsonify({'error': 'Project not found'}), 404
+        
+        # Set project_id to None for all related conversations
+        Conversation.query.filter_by(project_id=project_id).update({'project_id': None})
+        db.session.delete(project)
+        db.session.commit()
+        
+        return jsonify({'success': True, 'message': 'Project deleted'}), 200
+    except Exception as e:
+        app.logger.error(f"Error deleting project: {e}")
+        db.session.rollback()
+        return jsonify({'error': 'Failed to delete project'}), 500
 
+@csrf.exempt
 @app.route('/projects/<project_id>', methods=['PATCH'])
+@require_project_access
 def rename_project(project_id):
-    from models import Project
-    project = Project.query.get_or_404(project_id)
-    data = request.get_json()
-    if not data or not data.get('name'):
-        return jsonify({'error': 'Project name is required'}), 400
-    project.name = data['name']
-    if 'description' in data:
-        project.description = data['description']
-    db.session.commit()
-    return jsonify({
-        'id': str(project.id),
-        'name': project.name,
-        'description': project.description,
-        'created_at': project.created_at.isoformat(),
-        'updated_at': project.updated_at.isoformat() if project.updated_at else None
-    })
+    """Rename/update a project"""
+    try:
+        from models import Project
+        project = Project.query.get(project_id)
+        if not project:
+            return jsonify({'error': 'Project not found'}), 404
+        
+        data = request.get_json()
+        if not data or not data.get('name'):
+            return jsonify({'error': 'Project name is required'}), 400
+        
+        project.name = data['name']
+        if 'description' in data:
+            project.description = data['description']
+        
+        db.session.commit()
+        
+        return jsonify({
+            'id': str(project.id),
+            'name': project.name,
+            'description': project.description,
+            'created_at': project.created_at.isoformat(),
+            'updated_at': project.updated_at.isoformat() if project.updated_at else None
+        }), 200
+    except Exception as e:
+        app.logger.error(f"Error renaming project: {e}")
+        db.session.rollback()
+        return jsonify({'error': 'Failed to rename project'}), 500
 
 @app.route('/conversations', methods=['GET'])
 def get_conversations():

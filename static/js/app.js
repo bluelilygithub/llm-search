@@ -312,29 +312,28 @@ class KnowledgeBaseApp {
         }
     }
 
-    deleteProject(projectId) {
+    async deleteProject(projectId) {
         if (confirm('Are you sure you want to delete this project?')) {
-            this.deleteProjectById(projectId);
-        }
-    }
+            try {
+                const response = await fetch(`/projects/${projectId}`, {
+                    method: 'DELETE'
+                });
 
-    async deleteProjectById(projectId) {
-        try {
-            const response = await fetch(`/projects/${projectId}`, {
-                method: 'DELETE'
-            });
-
-            if (response.ok) {
-                if (this.currentProject && this.currentProject.id === projectId) {
-                    this.currentProject = null;
+                if (response.ok) {
+                    if (this.currentProject && this.currentProject.id === projectId) {
+                        this.currentProject = null;
+                    }
+                    this.loadProjects();
+                    this.loadConversations();
+                } else {
+                    const errorData = await response.json();
+                    console.error('Failed to delete project:', errorData.error);
+                    alert(`Failed to delete project: ${errorData.error || 'Unknown error'}`);
                 }
-                this.loadProjects();
-                this.loadConversations();
-            } else {
-                console.error('Failed to delete project');
+            } catch (error) {
+                console.error('Error deleting project:', error);
+                alert('Failed to delete project. Please try again.');
             }
-        } catch (error) {
-            console.error('Error deleting project:', error);
         }
     }
 
@@ -355,19 +354,6 @@ class KnowledgeBaseApp {
         }
     }
 
-    async deleteProject(project) {
-        if (!confirm(`Delete project "${project.name}"? All related conversations will become unfiltered.`)) return;
-        try {
-            const response = await fetch(`/projects/${project.id}`, { method: 'DELETE' });
-            if (!response.ok) throw new Error('Failed to delete project');
-            if (this.currentProject && this.currentProject.id === project.id) this.currentProject = null;
-            await this.loadProjects();
-            this.loadConversations();
-            console.log('Deleted project:', project.name);
-        } catch (error) {
-            console.error('Failed to delete project:', error);
-        }
-    }
 
     async renameProject(project, newName) {
         if (!newName) return;
@@ -377,12 +363,20 @@ class KnowledgeBaseApp {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name: newName })
             });
-            if (!response.ok) throw new Error('Failed to rename project');
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error('Failed to rename project:', errorData.error);
+                alert(`Failed to rename project: ${errorData.error || 'Unknown error'}`);
+                return;
+            }
+            
             this.renamingProject = null;
             await this.loadProjects();
             console.log('Renamed project:', newName);
         } catch (error) {
             console.error('Failed to rename project:', error);
+            alert('Failed to rename project. Please try again.');
         }
     }
 
