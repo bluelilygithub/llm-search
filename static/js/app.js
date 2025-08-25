@@ -3172,8 +3172,17 @@ KnowledgeBaseApp.prototype.renderProjectsGrid = function(projects) {
 
 // Open conversation from grid view
 KnowledgeBaseApp.prototype.openConversationFromGrid = function(conversationId) {
+    // Preserve project context when opening conversation from project view
+    const preserveProjectContext = this.currentViewProject;
+    
     // Switch back to chat view and load the conversation
     this.showChatView();
+    
+    // Restore project context if we came from a project view
+    if (preserveProjectContext) {
+        this.currentViewProject = preserveProjectContext;
+    }
+    
     this.loadConversation(conversationId);
 };
 
