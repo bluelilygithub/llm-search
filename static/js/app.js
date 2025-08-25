@@ -216,10 +216,10 @@ class KnowledgeBaseApp {
                     </div>
                 </div>
                 <div class="project-actions">
-                    <button class="project-action-btn" onclick="event.stopPropagation(); window.app.editProject(${project.id}, '${project.name.replace(/'/g, '\\\'')}')" title="Edit">
+                    <button class="project-action-btn" onclick="event.stopPropagation(); window.app.editProject('${project.id}', '${project.name.replace(/'/g, '\\\'')}')" title="Edit">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="project-action-btn" onclick="event.stopPropagation(); window.app.deleteProject(${project.id})" title="Delete">
+                    <button class="project-action-btn" onclick="event.stopPropagation(); window.app.deleteProject('${project.id}')" title="Delete">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
