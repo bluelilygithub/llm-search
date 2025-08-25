@@ -324,6 +324,79 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 Contributions are welcome! Please read our [Contributing Guidelines](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
 
+## ⚠️ CURRENT ISSUES & KNOWN PROBLEMS
+
+### 🚨 **Analytics Dashboard Issues**
+**Status**: BROKEN - Charts not displaying  
+**Affected Components**: Usage Stats and Activity Timeline charts  
+**Root Cause**: Frontend/Backend integration conflicts during recent analytics enhancement attempts
+
+#### **Specific Problems:**
+
+1. **Charts Not Rendering** ❌
+   - **Issue**: Canvas elements exist but charts don't display
+   - **Location**: `/templates/index.html` - Usage Metrics and Activity Timeline widgets
+   - **Cause**: `updateDashboardData()` function conflicts with Chart.js initialization
+   - **Evidence**: Chart.js code exists in `app.js:1820-1870` but charts remain blank
+
+2. **Time Range Filtering Broken** ❌ 
+   - **Issue**: Dropdown changes cause "Loading data..." indefinitely
+   - **Location**: Dashboard time range selector triggers `updateDashboardTimeRange()`
+   - **Cause**: Function calls disabled/broken during API integration attempts
+
+3. **IP Whitelist Management Partially Working** ⚠️
+   - **Working**: Button shows/hides IP whitelist content
+   - **Broken**: Table shows "Loading data..." - tries to fetch from `/api/ip-whitelist` (doesn't exist)
+   - **Location**: `populateWhitelistTable()` function in HTML
+
+#### **Technical Debt Created:**
+- **Dual Function Systems**: Both `app.js` and `templates/index.html` have competing dashboard functions
+- **API Endpoint Mismatch**: Frontend calls `/api/*` endpoints that were partially implemented then removed
+- **Function Call Conflicts**: `openSettingsModal()` in app.js calls `updateDashboardData()` which overwrites Chart.js canvases
+
+#### **What Was Working Before:**
+- Chart.js charts displaying usage statistics
+- Basic dashboard functionality  
+- Time filtering with sample data
+
+#### **Recent Changes That Broke It:**
+1. **Commit fa5c6fe**: "Implement complete real API backend" - Added API endpoints but created conflicts
+2. **Commit 46b85bc**: "Resolve analytics dashboard remaining issues" - Broke chart rendering
+3. **Multiple Reverts**: Created inconsistent state between frontend and backend expectations
+
+### 🔧 **Quick Fix Recommendations:**
+
+#### **Option 1: Restore Original Charts (Recommended)**
+1. Identify last commit where charts were working (before analytics changes)
+2. Cherry-pick just the chart rendering code
+3. Remove all `updateDashboardData()` calls that overwrite canvases
+
+#### **Option 2: Complete the API Integration**  
+1. Implement missing `/api/ip-whitelist`, `/api/usage-stats`, `/api/activity-log` endpoints
+2. Fix frontend to properly handle API responses
+3. Add proper error handling for API failures
+
+#### **Option 3: Revert to Sample Data**
+1. Remove API calls completely
+2. Use static/sample data for dashboard
+3. Focus on chart rendering functionality
+
+### 🔍 **Debugging Steps Taken:**
+- ✅ Identified canvas elements exist in HTML
+- ✅ Confirmed Chart.js code exists in app.js  
+- ✅ Found function conflicts between app.js and HTML
+- ❌ Unable to restore chart rendering functionality
+- ❌ Time filtering still triggers infinite loading states
+
+### 📋 **Files Needing Attention:**
+- `static/js/app.js` - Chart rendering functions (lines 1811-1900+)
+- `templates/index.html` - Dashboard functions and `updateDashboardData()`
+- Analytics modal HTML structure may need alignment with Chart.js expectations
+
+---
+
 ## 📞 Support
 
 For support, email support@example.com or create an issue in the GitHub repository.
+
+**Note**: The analytics dashboard issues are currently under investigation. All other application features (chat, context management, search, projects) remain fully functional.
