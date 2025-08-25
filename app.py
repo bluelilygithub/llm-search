@@ -416,7 +416,8 @@ def get_messages(conversation_id):
         'conversation': {
             'id': str(conversation.id),
             'title': conversation.title,
-            'llm_model': conversation.llm_model
+            'llm_model': conversation.llm_model,
+            'project_id': str(conversation.project_id) if conversation.project_id else None
         },
         'messages': [{
             'id': str(msg.id),

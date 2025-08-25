@@ -757,6 +757,51 @@ body {
     flex-direction: column;
 }
 
+/* Chat Header */
+.chat-header {
+    background: var(--gray-50);
+    border-bottom: 1px solid var(--gray-200);
+    padding: var(--spacing-lg) var(--spacing-xl);
+    flex-shrink: 0;
+}
+
+.chat-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-size: var(--font-size-sm);
+}
+
+.breadcrumb-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    color: var(--gray-600);
+    font-weight: 500;
+}
+
+.breadcrumb-item.active {
+    color: var(--gray-900);
+}
+
+.breadcrumb-separator {
+    color: var(--gray-400);
+    font-size: 12px;
+}
+
+.breadcrumb-item i {
+    font-size: var(--font-size-xs);
+}
+
+.breadcrumb-clickable {
+    cursor: pointer;
+    transition: color var(--transition-fast);
+}
+
+.breadcrumb-clickable:hover {
+    color: var(--primary-blue);
+}
+
 .chat-messages {
     flex: 1;
     overflow-y: auto;

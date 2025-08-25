@@ -198,6 +198,20 @@
 
             <!-- Chat Messages Area -->
             <div class="chat-messages-container">
+                <!-- Chat Header (for project/conversation context) -->
+                <div class="chat-header" id="chat-header" style="display: none;">
+                    <div class="chat-breadcrumb">
+                        <span class="breadcrumb-item breadcrumb-clickable" id="project-breadcrumb" onclick="window.app.goBackToProject()">
+                            <i class="fas fa-folder-open"></i>
+                            <span id="project-name"></span>
+                        </span>
+                        <span class="breadcrumb-separator"><i class="fas fa-chevron-right"></i></span>
+                        <span class="breadcrumb-item active">
+                            <i class="fas fa-comment"></i>
+                            <span id="conversation-title"></span>
+                        </span>
+                    </div>
+                </div>
                 <div class="chat-messages" id="chat-messages">
                     <!-- Empty State -->
                     <div class="empty-state" id="empty-state">

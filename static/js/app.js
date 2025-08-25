@@ -515,10 +515,51 @@ class KnowledgeBaseApp {
                 this.selectedModel = data.conversation.llm_model;
                 document.getElementById('llm-model').value = this.selectedModel;
             }
+            
+            // Update chat header with project and conversation context
+            this.updateChatHeader(data.conversation);
+            
             // No longer showing model instructions automatically
             
         } catch (error) {
             console.error('Failed to load conversation:', error);
+        }
+    }
+
+    updateChatHeader(conversation) {
+        const chatHeader = document.getElementById('chat-header');
+        const projectName = document.getElementById('project-name');
+        const conversationTitle = document.getElementById('conversation-title');
+        
+        if (!chatHeader || !projectName || !conversationTitle) {
+            return;
+        }
+        
+        // Check if we're in a project context and have project info
+        if (this.currentViewProject || (conversation && conversation.project_id && this.projects)) {
+            let project = this.currentViewProject;
+            
+            // If we don't have currentViewProject, try to find it from conversation's project_id
+            if (!project && conversation.project_id && this.projects) {
+                project = this.projects.find(p => p.id === conversation.project_id);
+            }
+            
+            if (project) {
+                // Show header with project context
+                projectName.textContent = project.name;
+                conversationTitle.textContent = conversation.title;
+                chatHeader.style.display = 'block';
+                return;
+            }
+        }
+        
+        // Hide header if no project context
+        chatHeader.style.display = 'none';
+    }
+
+    goBackToProject() {
+        if (this.currentViewProject) {
+            this.showProjectConversationsView(this.currentViewProject);
         }
     }
 
@@ -3149,6 +3190,13 @@ KnowledgeBaseApp.prototype.openProject = function(projectId) {
 KnowledgeBaseApp.prototype.showChatView = function() {
     this.currentView = 'chat';
     const container = document.getElementById('chat-messages');
+    
+    // Clear project context when switching to normal chat view
+    this.currentViewProject = null;
+    
+    // Hide chat header when not in project context
+    const chatHeader = document.getElementById('chat-header');
+    if (chatHeader) chatHeader.style.display = 'none';
     
     // Show context toggle again
     const contextToggle = document.getElementById('context-toggle-btn');
