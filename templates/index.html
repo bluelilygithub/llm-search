@@ -78,7 +78,7 @@
                 </div>
 
                 <!-- Projects Section -->
-                <div class="nav-section">
+                <div class="nav-section" id="projects-section" style="display: none;">
                     <button class="section-header" onclick="toggleSection('projects')" id="projects-header">
                         <div class="section-header-content">
                             <div class="section-title">
@@ -714,6 +714,7 @@
             const sidebarContent = document.getElementById('sidebar-content');
             const sidebarCollapsedContent = document.getElementById('sidebar-collapsed-content');
             const sidebarFooter = document.getElementById('sidebar-footer');
+            const projectsSection = document.getElementById('projects-section');
             
             sidebar.classList.toggle('collapsed');
             
@@ -725,6 +726,7 @@
                 sidebarContent.style.display = 'none';
                 sidebarCollapsedContent.style.display = 'block';
                 sidebarFooter.querySelector('.settings-label').style.display = 'none';
+                // In collapsed state, projects are accessible via collapsed icons
             } else {
                 // Expanded state - show left arrow (collapse icon)
                 logoText.style.display = 'block';
@@ -733,6 +735,8 @@
                 sidebarContent.style.display = 'block';
                 sidebarCollapsedContent.style.display = 'none';
                 sidebarFooter.querySelector('.settings-label').style.display = 'inline';
+                // Hide projects section in expanded content - recent conversations will take full space
+                projectsSection.style.display = 'none';
             }
         }
 
