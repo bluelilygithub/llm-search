@@ -1507,46 +1507,20 @@
             
             console.log('Updated quick stats elements');
             
-            // Update widget contents with filtered data message
+            // Preserve usage chart canvas - don't overwrite
             const usageWidget = document.querySelector('.usage-metrics-widget .widget-content');
-            console.log('Looking for usage widget:', usageWidget);
-            if (usageWidget) {
-                usageWidget.innerHTML = `
-                    <div style="text-align: center; padding: 2rem;">
-                        <h3>Usage Data for ${timeRangeText}</h3>
-                        <p>Total Requests: <strong>${currentStats.requests}</strong></p>
-                        <p>Active Models: <strong>${currentStats.models}</strong></p>
-                        <p>Average Response Time: <strong>${currentStats.avgResponse}</strong></p>
-                        <p style="margin-top: 1rem; color: #6b7280;">Chart would show filtered data here</p>
-                    </div>
-                `;
-                console.log('Updated usage widget');
-            } else {
-                console.log('Usage widget not found, trying alternative selector...');
-                const altWidget = document.querySelector('[class*="usage"] .widget-content');
-                console.log('Alternative widget found:', altWidget);
-                if (altWidget) {
-                    altWidget.innerHTML = `
-                        <div style="text-align: center; padding: 2rem;">
-                            <h3>Usage Data for ${timeRangeText}</h3>
-                            <p>Total Requests: <strong>${currentStats.requests}</strong></p>
-                            <p>Active Models: <strong>${currentStats.models}</strong></p>
-                            <p>Average Response Time: <strong>${currentStats.avgResponse}</strong></p>
-                            <p style="margin-top: 1rem; color: #6b7280;">Chart would show filtered data here</p>
-                        </div>
-                    `;
-                }
+            if (usageWidget && !usageWidget.querySelector('canvas')) {
+                // Restore canvas if missing
+                usageWidget.innerHTML = '<canvas id="llm-usage-chart"></canvas>';
+                console.log('Restored usage chart canvas');
             }
             
+            // Preserve timeline chart canvas - don't overwrite
             const timelineWidget = document.querySelector('.timeline-widget .widget-content');
-            if (timelineWidget) {
-                timelineWidget.innerHTML = `
-                    <div style="text-align: center; padding: 2rem;">
-                        <h3>Activity Timeline - ${timeRangeText}</h3>
-                        <p>Success Rate: <strong>${currentStats.successRate}</strong></p>
-                        <p style="margin-top: 1rem; color: #6b7280;">Timeline chart filtered for ${timeRangeText.toLowerCase()}</p>
-                    </div>
-                `;
+            if (timelineWidget && !timelineWidget.querySelector('canvas')) {
+                // Restore canvas if missing
+                timelineWidget.innerHTML = '<canvas id="activity-timeline-chart"></canvas>';
+                console.log('Restored timeline chart canvas');
             }
             
             const performanceWidget = document.querySelector('.performance-widget .widget-content');
