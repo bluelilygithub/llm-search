@@ -914,6 +914,11 @@ def upload_context():
         
         print(f"DEBUG: After commit - conversation.context_documents: {conversation.context_documents}, type: {type(conversation.context_documents)}, length: {len(conversation.context_documents) if conversation.context_documents else 0}")
         
+        # Fresh query after commit to see actual database state
+        from models import Conversation
+        fresh_conversation = Conversation.query.get(conv_uuid)
+        print(f"DEBUG: Fresh query after commit - context_documents: {fresh_conversation.context_documents}, length: {len(fresh_conversation.context_documents) if fresh_conversation.context_documents else 0}")
+        
         # Get file type for icon
         file_type = get_file_type(filename)
         word_count = len(content.split()) if content else 0
