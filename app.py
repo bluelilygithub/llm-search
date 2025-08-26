@@ -904,18 +904,44 @@ def upload_context():
         
         print(f"DEBUG: After append - docs: {docs}, type: {type(docs)}, length: {len(docs)}")
         
-        # Use direct SQL update to properly handle JSON array
-        from sqlalchemy import text
-        update_sql = text("""
-            UPDATE conversations 
-            SET context_documents = :docs::jsonb 
-            WHERE id = :conv_id
-        """)
-        db.session.execute(update_sql, {
-            'docs': json.dumps(docs),  # Convert Python list to JSON string
-            'conv_id': conv_uuid
-        })
-        print(f"DEBUG: After SQL update - docs: {docs}, type: {type(docs)}, length: {len(docs)}")
+        # DEBUG: Let's see what's actually happening with the data
+        print(f"DEBUG: === DATABASE DEBUGGING ===")
+        print(f"DEBUG: Before any database operations:")
+        print(f"DEBUG: - docs array: {docs}")
+        print(f"DEBUG: - docs type: {type(docs)}")
+        print(f"DEBUG: - docs length: {len(docs)}")
+        print(f"DEBUG: - conversation.id: {conversation.id}")
+        print(f"DEBUG: - conversation.context_documents: {conversation.context_documents}")
+        
+        # Try the original SQLAlchemy approach but with explicit debugging
+        print(f"DEBUG: Attempting SQLAlchemy assignment...")
+        conversation.context_documents = docs
+        print(f"DEBUG: After assignment - conversation.context_documents: {conversation.context_documents}")
+        print(f"DEBUG: After assignment - type: {type(conversation.context_documents)}")
+        print(f"DEBUG: After assignment - length: {len(conversation.context_documents) if conversation.context_documents else 0}")
+        
+        # Check if the object is dirty
+        print(f"DEBUG: Is conversation object dirty? {db.session.is_modified(conversation)}")
+        
+        # Try to commit
+        print(f"DEBUG: Attempting commit...")
+        db.session.commit()
+        print(f"DEBUG: Commit completed")
+        
+        # Check what's in the database now
+        print(f"DEBUG: Refreshing conversation object...")
+        db.session.refresh(conversation)
+        print(f"DEBUG: After refresh - conversation.context_documents: {conversation.context_documents}")
+        print(f"DEBUG: After refresh - type: {type(conversation.context_documents)}")
+        print(f"DEBUG: After refresh - length: {len(conversation.context_documents) if conversation.context_documents else 0}")
+        
+        # Also check with a fresh query
+        print(f"DEBUG: Making fresh database query...")
+        fresh_conv = Conversation.query.get(conv_uuid)
+        print(f"DEBUG: Fresh query - context_documents: {fresh_conv.context_documents}")
+        print(f"DEBUG: Fresh query - type: {type(fresh_conv.context_documents)}")
+        print(f"DEBUG: Fresh query - length: {len(fresh_conv.context_documents) if fresh_conv.context_documents else 0}")
+        print(f"DEBUG: === END DATABASE DEBUGGING ===")
         
         db.session.commit()
         
