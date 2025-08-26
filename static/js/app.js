@@ -1763,9 +1763,16 @@ class KnowledgeBaseApp {
         fetch(`/conversations/${this.currentConversationId}/messages`)
             .then(response => response.json())
             .then(data => {
+                console.log('DEBUG: Full response from backend:', data);
+                console.log('DEBUG: Conversation data:', data.conversation);
+                console.log('DEBUG: Context documents:', data.conversation?.context_documents);
+                console.log('DEBUG: Number of context documents:', data.conversation?.context_documents?.length || 0);
+                
                 if (data.conversation && data.conversation.context_documents) {
                     console.log('DEBUG: Refreshing with documents:', data.conversation.context_documents);
                     this.renderContextDocuments(data.conversation.context_documents);
+                } else {
+                    console.warn('DEBUG: No context documents found in response');
                 }
             })
             .catch(error => {
