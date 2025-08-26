@@ -1750,6 +1750,28 @@ class KnowledgeBaseApp {
         
         document.body.appendChild(indicator);
     }
+
+    refreshDocumentDisplay() {
+        console.log('DEBUG: Refreshing document display for conversation:', this.currentConversationId);
+        
+        if (!this.currentConversationId) {
+            console.error('DEBUG: No current conversation ID to refresh');
+            return;
+        }
+        
+        // Fetch the latest conversation data to get updated documents
+        fetch(`/conversations/${this.currentConversationId}/messages`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.conversation && data.conversation.context_documents) {
+                    console.log('DEBUG: Refreshing with documents:', data.conversation.context_documents);
+                    this.renderContextDocuments(data.conversation.context_documents);
+                }
+            })
+            .catch(error => {
+                console.error('DEBUG: Error refreshing document display:', error);
+            });
+    }
 }
 
 // --- Add at the top of the file, before class KnowledgeBaseApp ---
@@ -2396,6 +2418,9 @@ KnowledgeBaseApp.prototype.handleContextUpload = async function(event) {
     if (this.contextPanelOpen) {
         await this.loadContextData();
     }
+    
+    // Refresh the document display to show newly uploaded files
+    this.refreshDocumentDisplay();
     
     // Clear the file input for next upload
     event.target.value = '';
@@ -3419,52 +3444,72 @@ KnowledgeBaseApp.prototype.downloadDocument = function(filename, content) {
 };
 
 KnowledgeBaseApp.prototype.handleDocumentClick = function(filename) {
-    console.log('DEBUG: handleDocumentClick called for filename:', filename);
-    
-    // Remove any existing document menu
-    const existingMenu = document.querySelector('.document-menu');
-    if (existingMenu) {
-        existingMenu.remove();
-    }
-    
-    // Get the content from our global map
-    const content = this.documentContentMap.get(filename) || '';
-    console.log('DEBUG: Retrieved content for', filename, ':', content ? `length: ${content.length}` : 'no content');
-    
-    // Create a small floating menu
-    const menu = document.createElement('div');
-    menu.className = 'document-menu';
-    menu.innerHTML = `
-        <div class="document-menu-item" onclick="window.app.viewDocument('${filename}', '${content}')">
-            <i class="fas fa-eye"></i> View
-        </div>
-        <div class="document-menu-item" onclick="window.app.downloadDocument('${filename}', '${content}')">
-            <i class="fas fa-download"></i> Download
-        </div>
-    `;
-    
-    // Position the menu near the clicked element
-    const clickedElement = document.querySelector(`[data-filename="${filename}"]`);
-    if (clickedElement) {
-        const rect = clickedElement.getBoundingClientRect();
-        menu.style.position = 'fixed';
-        menu.style.top = (rect.bottom + 5) + 'px';
-        menu.style.left = rect.left + 'px';
-        menu.style.zIndex = '1000';
-    }
-    
-    document.body.appendChild(menu);
-    
-    // Close menu when clicking outside
-    const closeMenu = (e) => {
-        if (!menu.contains(e.target) && !clickedElement.contains(e.target)) {
-            menu.remove();
-            document.removeEventListener('click', closeMenu);
+    try {
+        console.log('DEBUG: handleDocumentClick called for filename:', filename);
+        
+        // Remove any existing document menu
+        const existingMenu = document.querySelector('.document-menu');
+        if (existingMenu) {
+            existingMenu.remove();
         }
-    };
-    
-    // Delay adding the event listener to avoid immediate closure
-    setTimeout(() => {
-        document.addEventListener('click', closeMenu);
-    }, 100);
+        
+        // Get the content from our global map
+        const content = this.documentContentMap.get(filename) || '';
+        console.log('DEBUG: Retrieved content for', filename, ':', content ? `length: ${content.length}` : 'no content');
+        
+        if (!content) {
+            console.error('DEBUG: No content found for filename:', filename);
+            return;
+        }
+        
+        // Create a small floating menu
+        const menu = document.createElement('div');
+        menu.className = 'document-menu';
+        
+        // Use a different approach to avoid content escaping issues
+        const viewButton = document.createElement('div');
+        viewButton.className = 'document-menu-item';
+        viewButton.innerHTML = '<i class="fas fa-eye"></i> View';
+        viewButton.addEventListener('click', () => {
+            this.viewDocument(filename, content);
+        });
+        
+        const downloadButton = document.createElement('div');
+        downloadButton.className = 'document-menu-item';
+        downloadButton.innerHTML = '<i class="fas fa-download"></i> Download';
+        downloadButton.addEventListener('click', () => {
+            this.downloadDocument(filename, content);
+        });
+        
+        menu.appendChild(viewButton);
+        menu.appendChild(downloadButton);
+        
+        // Position the menu near the clicked element
+        const clickedElement = document.querySelector(`[data-filename="${filename}"]`);
+        if (clickedElement) {
+            const rect = clickedElement.getBoundingClientRect();
+            menu.style.position = 'fixed';
+            menu.style.top = (rect.bottom + 5) + 'px';
+            menu.style.left = rect.left + 'px';
+            menu.style.zIndex = '1000';
+        }
+        
+        document.body.appendChild(menu);
+        
+        // Close menu when clicking outside
+        const closeMenu = (e) => {
+            if (!menu.contains(e.target) && !clickedElement.contains(e.target)) {
+                menu.remove();
+                document.removeEventListener('click', closeMenu);
+            }
+        };
+        
+        // Delay adding the event listener to avoid immediate closure
+        setTimeout(() => {
+            document.addEventListener('click', closeMenu);
+        }, 100);
+        
+    } catch (error) {
+        console.error('DEBUG: Error in handleDocumentClick:', error);
+    }
 };
