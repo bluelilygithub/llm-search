@@ -24,6 +24,7 @@ MANIFEST
 .venv
 env/
 venv/
+venv_new/
 ENV/
 env.bak/
 venv.bak/
@@ -38,3 +39,12 @@ htmlcov/
 .DS_Store
 .vscode/
 .idea/
+
+# Additional patterns
+*.db
+*.sqlite
+*.sqlite3
+uploads/
+static/generated_images/
+*.log
+logs/

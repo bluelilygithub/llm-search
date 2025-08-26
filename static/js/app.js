@@ -483,7 +483,9 @@ class KnowledgeBaseApp {
 
     async loadConversation(conversationId) {
         try {
+            console.log('DEBUG: loadConversation called with ID:', conversationId);
             this.currentConversationId = conversationId;
+            console.log('DEBUG: currentConversationId set to:', this.currentConversationId);
             
             // Update active conversation in sidebar
             document.querySelectorAll('.conversation-item').forEach(item => {
@@ -2323,7 +2325,11 @@ function saveTags() {
 
 KnowledgeBaseApp.prototype.handleContextUpload = async function(event) {
     const files = Array.from(event.target.files);
+    console.log('DEBUG: handleContextUpload called, currentConversationId:', this.currentConversationId);
+    console.log('DEBUG: this object:', this);
+    
     if (!this.currentConversationId) {
+        console.error('DEBUG: No currentConversationId found, cannot upload');
         this.showError('Please start or select a conversation before uploading context.');
         return;
     }
@@ -3183,7 +3189,18 @@ KnowledgeBaseApp.prototype.openConversationFromGrid = function(conversationId) {
         this.currentViewProject = preserveProjectContext;
     }
     
-    this.loadConversation(conversationId);
+    // Ensure we're using the correct 'this' context
+    if (this && typeof this.loadConversation === 'function') {
+        this.loadConversation(conversationId);
+    } else {
+        // Fallback to window.app if 'this' context is lost
+        console.warn('Lost context in openConversationFromGrid, using window.app fallback');
+        if (window.app && typeof window.app.loadConversation === 'function') {
+            window.app.loadConversation(conversationId);
+        } else {
+            console.error('Cannot load conversation: loadConversation method not found');
+        }
+    }
 };
 
 // Open project from grid view

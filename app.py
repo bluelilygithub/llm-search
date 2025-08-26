@@ -2081,7 +2081,7 @@ def check_model_access():
                 
             elif model.startswith('claude-'):
                 # Anthropic models - check if API key is configured
-                anthropic_key = os.getenv('ANTHROPIC_API_KEY')
+                anthropic_key = os.getenv('CLAUDE_API_KEY')
                 has_access = bool(anthropic_key and anthropic_key.strip())
                 
             elif model.startswith('gemini-'):

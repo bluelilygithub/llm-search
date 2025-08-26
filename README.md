@@ -217,7 +217,7 @@ DB_MAX_OVERFLOW=20
 
 # AI Model APIs
 OPENAI_API_KEY=your_openai_key
-ANTHROPIC_API_KEY=your_claude_key  
+CLAUDE_API_KEY=your_claude_key  
 GEMINI_API_KEY=your_gemini_key
 HUGGING_FACE_API_KEY=your_hf_key
 STABILITY_API_KEY=your_stability_key

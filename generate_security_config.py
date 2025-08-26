@@ -99,7 +99,7 @@ def main():
             f.write("DB_MAX_OVERFLOW=20\n\n")
             
             f.write("# AI Model APIs\n")
-            for key in ['OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'GEMINI_API_KEY', 'HUGGING_FACE_API_KEY', 'STABILITY_API_KEY']:
+            for key in ['OPENAI_API_KEY', 'CLAUDE_API_KEY', 'GEMINI_API_KEY', 'HUGGING_FACE_API_KEY', 'STABILITY_API_KEY']:
                 f.write(f"{key}={existing_env.get(key, 'your_' + key.lower())}\n")
             f.write("\n")
             
