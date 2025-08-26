@@ -327,6 +327,14 @@ class KnowledgeBaseApp {
                     }
                     this.loadProjects();
                     this.loadConversations();
+                    
+                    // If currently viewing projects page, refresh the main content area too
+                    if (this.currentView === 'projects') {
+                        await this.loadProjectsGrid();
+                    }
+                    
+                    // Show success notification
+                    this.showSuccessNotification('Project deleted successfully!');
                 } else {
                     const errorData = await response.json();
                     console.error('Failed to delete project:', errorData.error);
@@ -350,6 +358,15 @@ class KnowledgeBaseApp {
             if (!response.ok) throw new Error('Failed to create project');
             this.addingProject = false;
             await this.loadProjects();
+            
+            // If currently viewing projects page, refresh the main content area too
+            if (this.currentView === 'projects') {
+                await this.loadProjectsGrid();
+            }
+            
+            // Show success notification
+            this.showSuccessNotification(`Project "${name}" created successfully!`);
+            
             console.log('Created project:', name);
         } catch (error) {
             console.error('Failed to create project:', error);
@@ -375,6 +392,15 @@ class KnowledgeBaseApp {
             
             this.renamingProject = null;
             await this.loadProjects();
+            
+            // If currently viewing projects page, refresh the main content area too
+            if (this.currentView === 'projects') {
+                await this.loadProjectsGrid();
+            }
+            
+            // Show success notification
+            this.showSuccessNotification(`Project renamed to "${newName}" successfully!`);
+            
             console.log('Renamed project:', newName);
         } catch (error) {
             console.error('Failed to rename project:', error);
