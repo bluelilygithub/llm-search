@@ -764,6 +764,9 @@ def sanitize_content(content):
     if not content:
         return content
     
+    # Remove NUL characters that cause database errors
+    content = content.replace('\x00', '')
+    
     # Limit content size to prevent memory issues
     MAX_CONTENT_SIZE = 5 * 1024 * 1024  # 5MB text limit
     if len(content) > MAX_CONTENT_SIZE:
