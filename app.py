@@ -909,6 +909,9 @@ def upload_context():
         
         db.session.commit()
         
+        # Force refresh the conversation object to get updated data from database
+        db.session.refresh(conversation)
+        
         print(f"DEBUG: After commit - conversation.context_documents: {conversation.context_documents}, type: {type(conversation.context_documents)}, length: {len(conversation.context_documents) if conversation.context_documents else 0}")
         
         # Get file type for icon
