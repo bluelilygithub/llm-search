@@ -3295,6 +3295,9 @@ KnowledgeBaseApp.prototype.showSuccessNotification = function(message) {
 
 // Render uploaded context documents
 KnowledgeBaseApp.prototype.renderContextDocuments = function(documents) {
+    console.log('DEBUG: renderContextDocuments called with:', documents);
+    console.log('DEBUG: Number of documents:', documents.length);
+    
     const container = document.getElementById('chat-messages');
     
     // Remove any existing context documents section
@@ -3302,6 +3305,15 @@ KnowledgeBaseApp.prototype.renderContextDocuments = function(documents) {
     if (existingSection) {
         existingSection.remove();
     }
+    
+    // Clear previous document content map
+    this.documentContentMap.clear();
+    
+    // First, populate the document content map
+    documents.forEach(doc => {
+        console.log('DEBUG: Storing document:', doc.filename, 'with content length:', doc.content ? doc.content.length : 0);
+        this.documentContentMap.set(doc.filename, doc.content || '');
+    });
     
     // Create a subtle section for uploaded documents
     const docsSection = document.createElement('div');
@@ -3313,17 +3325,20 @@ KnowledgeBaseApp.prototype.renderContextDocuments = function(documents) {
         </div>
     `;
     
+    console.log('DEBUG: Final HTML generated:', docsSection.innerHTML);
+    
     // Insert at the top of the chat messages
     container.insertBefore(docsSection, container.firstChild);
 };
 
 KnowledgeBaseApp.prototype.renderDocumentItem = function(doc) {
+    console.log('DEBUG: renderDocumentItem called for:', doc.filename);
     const fileType = this.getFileTypeIcon(doc.filename);
     
     // Store the document content in our global map
     this.documentContentMap.set(doc.filename, doc.content || '');
     
-    return `
+    const html = `
         <span class="document-item-subtle" 
               data-filename="${doc.filename}"
               title="${doc.filename} - Click to view/download"
@@ -3331,6 +3346,9 @@ KnowledgeBaseApp.prototype.renderDocumentItem = function(doc) {
             <i class="${fileType.icon}"></i>
         </span>
     `;
+    
+    console.log('DEBUG: Generated HTML for document:', doc.filename, ':', html);
+    return html;
 };
 
 KnowledgeBaseApp.prototype.getFileTypeIcon = function(filename) {
@@ -3360,6 +3378,8 @@ KnowledgeBaseApp.prototype.formatFileSize = function(bytes) {
 };
 
 KnowledgeBaseApp.prototype.viewDocument = function(filename, content) {
+    console.log('DEBUG: viewDocument called for:', filename, 'with content length:', content ? content.length : 0);
+    
     // Create a modal to view document content
     const modal = document.createElement('div');
     modal.className = 'document-modal';
@@ -3384,6 +3404,8 @@ KnowledgeBaseApp.prototype.viewDocument = function(filename, content) {
 };
 
 KnowledgeBaseApp.prototype.downloadDocument = function(filename, content) {
+    console.log('DEBUG: downloadDocument called for:', filename, 'with content length:', content ? content.length : 0);
+    
     // Create a blob and download the document
     const blob = new Blob([content], { type: 'text/plain' });
     const url = window.URL.createObjectURL(blob);
@@ -3397,6 +3419,8 @@ KnowledgeBaseApp.prototype.downloadDocument = function(filename, content) {
 };
 
 KnowledgeBaseApp.prototype.handleDocumentClick = function(filename) {
+    console.log('DEBUG: handleDocumentClick called for filename:', filename);
+    
     // Remove any existing document menu
     const existingMenu = document.querySelector('.document-menu');
     if (existingMenu) {
@@ -3405,6 +3429,7 @@ KnowledgeBaseApp.prototype.handleDocumentClick = function(filename) {
     
     // Get the content from our global map
     const content = this.documentContentMap.get(filename) || '';
+    console.log('DEBUG: Retrieved content for', filename, ':', content ? `length: ${content.length}` : 'no content');
     
     // Create a small floating menu
     const menu = document.createElement('div');
