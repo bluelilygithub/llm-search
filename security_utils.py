@@ -162,7 +162,13 @@ def require_conversation_access(f):
     """Decorator to require conversation access"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        # Check function arguments first
         conversation_id = kwargs.get('conversation_id') or kwargs.get('id')
+        
+        # If not in arguments, check request form data (for POST requests)
+        if not conversation_id and hasattr(request, 'form'):
+            conversation_id = request.form.get('conversation_id')
+        
         if not conversation_id:
             return jsonify({'error': 'Conversation ID required'}), 400
         
