@@ -2469,6 +2469,9 @@ KnowledgeBaseApp.prototype.contextItems = [];
 KnowledgeBaseApp.prototype.conversationContext = [];
 KnowledgeBaseApp.prototype.contextStats = { total_items: 0, total_tokens: 0 };
 
+// Global map to store document content for view/download
+KnowledgeBaseApp.prototype.documentContentMap = new Map();
+
 // Toggle context panel visibility
 function toggleContextPanel() {
     const panel = document.getElementById('context-panel');
@@ -3317,11 +3320,14 @@ KnowledgeBaseApp.prototype.renderContextDocuments = function(documents) {
 KnowledgeBaseApp.prototype.renderDocumentItem = function(doc) {
     const fileType = this.getFileTypeIcon(doc.filename);
     
+    // Store the document content in our global map
+    this.documentContentMap.set(doc.filename, doc.content || '');
+    
     return `
         <span class="document-item-subtle" 
               data-filename="${doc.filename}"
               title="${doc.filename} - Click to view/download"
-              onclick="window.app.handleDocumentClick('${doc.filename}', '${doc.content ? doc.content.replace(/'/g, '\\\'') : ''}')">
+              onclick="window.app.handleDocumentClick('${doc.filename}')">
             <i class="${fileType.icon}"></i>
         </span>
     `;
@@ -3390,12 +3396,15 @@ KnowledgeBaseApp.prototype.downloadDocument = function(filename, content) {
     window.URL.revokeObjectURL(url);
 };
 
-KnowledgeBaseApp.prototype.handleDocumentClick = function(filename, content) {
+KnowledgeBaseApp.prototype.handleDocumentClick = function(filename) {
     // Remove any existing document menu
     const existingMenu = document.querySelector('.document-menu');
     if (existingMenu) {
         existingMenu.remove();
     }
+    
+    // Get the content from our global map
+    const content = this.documentContentMap.get(filename) || '';
     
     // Create a small floating menu
     const menu = document.createElement('div');
