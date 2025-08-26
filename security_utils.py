@@ -16,10 +16,9 @@ def get_user_identity():
     auth = SimpleAuth()
     
     if auth.is_authenticated():
-        # Authenticated user - use a consistent identifier based on IP + auth status
-        # This ensures authenticated users can see their conversations across sessions
-        ip = FreeAccessManager.get_client_ip()
-        user_id = f"auth_{hashlib.sha256(ip.encode()).hexdigest()[:16]}"
+        # Authenticated user - use fixed admin user ID (no IP dependency)
+        # This ensures authenticated users can see their conversations across all locations
+        user_id = 'admin_user'
         
         return {
             'type': 'authenticated',
