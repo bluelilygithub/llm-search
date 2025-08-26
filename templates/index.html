@@ -243,6 +243,7 @@
                     </div>
                 </div>
                 <div class="context-content">
+                    <!-- Context Statistics -->
                     <div class="context-stats" id="context-stats">
                         <div class="stat-item">
                             <span class="stat-label">Total Items:</span>
@@ -253,17 +254,47 @@
                             <span class="stat-value" id="total-context-tokens">0</span>
                         </div>
                     </div>
+                    
+                    <!-- Current Conversation Context Section -->
                     <div class="context-conversation-section" id="context-conversation-section" style="display: none;">
-                        <h5>Context for This Conversation</h5>
+                        <div class="section-header">
+                            <h5><i class="fas fa-comment"></i> Context for This Conversation</h5>
+                            <span class="section-count" id="conversation-context-count">0 items</span>
+                        </div>
                         <div class="conversation-context-list" id="conversation-context-list">
                             <div class="empty-context">No context items added to this conversation yet.</div>
                         </div>
                     </div>
+                    
+                    <!-- Available Context Items Section -->
                     <div class="context-items-section">
-                        <h5>Available Context Items</h5>
-                        <div class="context-search-container">
-                            <input type="text" id="context-search" placeholder="Search context items..." onkeyup="searchContextItems()">
+                        <div class="section-header">
+                            <h5><i class="fas fa-folder-open"></i> Available Context Items</h5>
+                            <span class="section-count" id="available-context-count">0 items</span>
                         </div>
+                        
+                        <!-- Search functionality moved to top of this section -->
+                        <div class="context-search-container">
+                            <div class="search-input-wrapper">
+                                <i class="fas fa-search search-icon"></i>
+                                <input type="text" 
+                                       id="context-search" 
+                                       placeholder="Search available context items..." 
+                                       onkeyup="searchContextItems()"
+                                       title="Search by name, description, content type, or filename">
+                                <button class="search-clear-btn" 
+                                        id="search-clear-btn" 
+                                        onclick="clearContextSearch()" 
+                                        title="Clear search"
+                                        style="display: none;">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div class="search-help">
+                                <small>Search through names, descriptions, and content types</small>
+                            </div>
+                        </div>
+                        
                         <div class="context-items-list" id="context-items-list">
                             <div class="loading-context">Loading context items...</div>
                         </div>

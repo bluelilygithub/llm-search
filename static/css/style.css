@@ -64,6 +64,13 @@
     --transition-fast: 150ms ease-out;
     --transition-normal: 200ms ease-out;
     --transition-slow: 300ms ease-out;
+    
+    /* Additional variables for context panel */
+    --border-color: var(--gray-200);
+    --text-primary: var(--gray-900);
+    --text-secondary: var(--gray-600);
+    --background-light: var(--gray-50);
+    --background-white: white;
 }
 
 /* ==================== RESET & BASE STYLES ==================== */
@@ -3698,4 +3705,150 @@ body {
     font-size: var(--font-size-sm);
     line-height: 1.6;
     color: var(--gray-800);
+}
+
+/* Context Panel Improvements */
+.context-panel .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.context-panel .section-header h5 {
+    margin: 0;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.context-panel .section-header h5 i {
+    color: var(--primary-blue);
+    font-size: 14px;
+}
+
+.context-panel .section-count {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+    background: var(--background-light);
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+    font-weight: 500;
+}
+
+/* Enhanced Search Container */
+.context-search-container {
+    margin-bottom: 16px;
+    padding: 12px;
+    background: var(--background-light);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+}
+
+.search-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-icon {
+    position: absolute;
+    left: 12px;
+    color: var(--text-secondary);
+    font-size: 14px;
+    z-index: 1;
+}
+
+.context-search-container input[type="text"] {
+    width: 100%;
+    padding: 10px 12px 10px 36px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+    background: var(--background-white);
+    transition: border-color 0.2s ease;
+}
+
+.context-search-container input[type="text"]:focus {
+    outline: none;
+    border-color: var(--primary-blue);
+    box-shadow: 0 0 0 2px var(--primary-blue-light);
+}
+
+.search-clear-btn {
+    position: absolute;
+    right: 8px;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: var(--radius-sm);
+    transition: all 0.2s ease;
+}
+
+.search-clear-btn:hover {
+    color: var(--text-primary);
+    background: var(--background-light);
+}
+
+.search-help {
+    margin-top: 8px;
+    text-align: center;
+}
+
+.search-help small {
+    color: var(--text-secondary);
+    font-size: var(--font-size-xs);
+}
+
+/* Context Stats Improvements */
+.context-stats {
+    background: var(--background-light);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border-color);
+}
+
+.context-stats .stat-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.context-stats .stat-item:last-child {
+    margin-bottom: 0;
+}
+
+.context-stats .stat-label {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.context-stats .stat-value {
+    font-size: var(--font-size-sm);
+    color: var(--text-primary);
+    font-weight: 600;
+    background: var(--primary-blue-light);
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+}
+
+/* Section Spacing */
+.context-conversation-section {
+    margin-bottom: 24px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.context-items-section {
+    margin-bottom: 16px;
 }

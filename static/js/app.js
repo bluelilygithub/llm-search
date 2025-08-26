@@ -2634,6 +2634,9 @@ KnowledgeBaseApp.prototype.renderContextItems = function() {
             </div>
         </div>
     `).join('');
+    
+    // Update section counts
+    this.updateSectionCounts();
 };
 
 // Render conversation context
@@ -2662,12 +2665,32 @@ KnowledgeBaseApp.prototype.renderConversationContext = function() {
             </div>
         </div>
     `).join('');
+    
+    // Update conversation context count
+    this.updateSectionCounts();
 };
 
 // Render context stats
 KnowledgeBaseApp.prototype.renderContextStats = function() {
     document.getElementById('total-context-items').textContent = this.contextStats.total_items || 0;
     document.getElementById('total-context-tokens').textContent = this.contextStats.total_tokens || 0;
+    
+    // Update section counts
+    this.updateSectionCounts();
+};
+
+// Update section counts
+KnowledgeBaseApp.prototype.updateSectionCounts = function() {
+    const conversationCount = document.getElementById('conversation-context-count');
+    const availableCount = document.getElementById('available-context-count');
+    
+    if (conversationCount) {
+        conversationCount.textContent = `${this.conversationContext.length} item${this.conversationContext.length !== 1 ? 's' : ''}`;
+    }
+    
+    if (availableCount) {
+        availableCount.textContent = `${this.contextItems.length} item${this.contextItems.length !== 1 ? 's' : ''}`;
+    }
 };
 
 // Render filtered context items (used by search)
@@ -2688,6 +2711,7 @@ KnowledgeBaseApp.prototype.renderFilteredContextItems = function(filteredItems, 
             <div class="context-item-header">
                 <div class="context-item-name">${this.highlightSearchTerm(item.name, searchTerm)}</div>
                 <div class="context-item-type">${item.content_type}</div>
+                ${item.project_name ? `<div class="context-item-project">📁 ${item.project_name}</div>` : ''}
             </div>
             ${item.description ? `<div class="context-item-description">${this.highlightSearchTerm(item.description, searchTerm)}</div>` : ''}
             <div class="context-item-meta">
@@ -2708,6 +2732,9 @@ KnowledgeBaseApp.prototype.renderFilteredContextItems = function(filteredItems, 
             </div>
         </div>
     `).join('');
+    
+    // Update section counts for filtered results
+    this.updateSectionCounts();
 };
 
 // Search through context content using API
@@ -2765,6 +2792,9 @@ KnowledgeBaseApp.prototype.renderContentSearchResults = function(suggestions, se
             </div>
         </div>
     `).join('');
+    
+    // Update section counts for search results
+    this.updateSectionCounts();
 };
 
 // Highlight search terms in text
@@ -2849,8 +2879,13 @@ KnowledgeBaseApp.prototype.editContextItem = function(contextItemId) {
 // Search context items through content
 function searchContextItems() {
     const searchTerm = document.getElementById('context-search').value.trim();
+    const clearBtn = document.getElementById('search-clear-btn');
     
-    if (!searchTerm) {
+    // Show/hide clear button based on search content
+    if (searchTerm) {
+        clearBtn.style.display = 'block';
+    } else {
+        clearBtn.style.display = 'none';
         // If empty search, show all items
         window.app.renderContextItems();
         return;
@@ -2884,6 +2919,21 @@ function searchContextItems() {
         // Render filtered results
         window.app.renderFilteredContextItems(filteredItems, searchTerm);
     }
+}
+
+// Clear context search and show all items
+function clearContextSearch() {
+    const searchInput = document.getElementById('context-search');
+    const clearBtn = document.getElementById('search-clear-btn');
+    
+    searchInput.value = '';
+    clearBtn.style.display = 'none';
+    
+    // Show all context items
+    window.app.renderContextItems();
+    
+    // Focus back to search input
+    searchInput.focus();
 }
 
 // Refresh context panel
