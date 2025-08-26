@@ -521,6 +521,11 @@ class KnowledgeBaseApp {
             // Update chat header with project and conversation context
             this.updateChatHeader(data.conversation);
             
+            // Display uploaded files if any
+            if (data.conversation.context_documents && data.conversation.context_documents.length > 0) {
+                this.renderContextDocuments(data.conversation.context_documents);
+            }
+            
             // No longer showing model instructions automatically
             
         } catch (error) {
@@ -3283,4 +3288,121 @@ KnowledgeBaseApp.prototype.showSuccessNotification = function(message) {
             notification.remove();
         }
     }, 3000);
+};
+
+// Render uploaded context documents
+KnowledgeBaseApp.prototype.renderContextDocuments = function(documents) {
+    const container = document.getElementById('chat-messages');
+    
+    // Remove any existing context documents section
+    const existingSection = container.querySelector('.context-documents-section');
+    if (existingSection) {
+        existingSection.remove();
+    }
+    
+    // Create a section for uploaded documents
+    const docsSection = document.createElement('div');
+    docsSection.className = 'context-documents-section';
+    docsSection.innerHTML = `
+        <div class="context-documents-header">
+            <h4><i class="fas fa-paperclip"></i> Uploaded Documents</h4>
+        </div>
+        <div class="context-documents-list">
+            ${documents.map(doc => this.renderDocumentItem(doc)).join('')}
+        </div>
+    `;
+    
+    // Insert at the top of the chat messages
+    container.insertBefore(docsSection, container.firstChild);
+};
+
+KnowledgeBaseApp.prototype.renderDocumentItem = function(doc) {
+    const fileType = this.getFileTypeIcon(doc.filename);
+    const fileSize = this.formatFileSize(doc.content ? doc.content.length : 0);
+    
+    return `
+        <div class="document-item" data-filename="${doc.filename}">
+            <div class="document-icon">
+                <i class="${fileType.icon}" title="${fileType.name}"></i>
+            </div>
+            <div class="document-info">
+                <div class="document-name">${doc.filename}</div>
+                <div class="document-meta">
+                    <span class="document-size">${fileSize}</span>
+                    <span class="document-type">${doc.task_type || 'Document'}</span>
+                </div>
+            </div>
+            <div class="document-actions">
+                <button class="document-action-btn" onclick="window.app.viewDocument('${doc.filename}', '${doc.content ? doc.content.replace(/'/g, '\\\'') : ''}')" title="View">
+                    <i class="fas fa-eye"></i>
+                </button>
+                <button class="document-action-btn" onclick="window.app.downloadDocument('${doc.filename}', '${doc.content ? doc.content.replace(/'/g, '\\\'') : ''}')" title="Download">
+                    <i class="fas fa-download"></i>
+                </button>
+            </div>
+        </div>
+    `;
+};
+
+KnowledgeBaseApp.prototype.getFileTypeIcon = function(filename) {
+    const ext = filename.split('.').pop().toLowerCase();
+    const iconMap = {
+        'pdf': { icon: 'fas fa-file-pdf', name: 'PDF Document' },
+        'doc': { icon: 'fas fa-file-word', name: 'Word Document' },
+        'docx': { icon: 'fas fa-file-word', name: 'Word Document' },
+        'png': { icon: 'fas fa-file-image', name: 'Image' },
+        'jpg': { icon: 'fas fa-file-image', name: 'Image' },
+        'jpeg': { icon: 'fas fa-file-image', name: 'Image' },
+        'gif': { icon: 'fas fa-file-image', name: 'Image' },
+        'svg': { icon: 'fas fa-file-image', name: 'Image' },
+        'txt': { icon: 'fas fa-file-alt', name: 'Text Document' },
+        'md': { icon: 'fas fa-file-alt', name: 'Markdown Document' }
+    };
+    
+    return iconMap[ext] || { icon: 'fas fa-file', name: 'Document' };
+};
+
+KnowledgeBaseApp.prototype.formatFileSize = function(bytes) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+};
+
+KnowledgeBaseApp.prototype.viewDocument = function(filename, content) {
+    // Create a modal to view document content
+    const modal = document.createElement('div');
+    modal.className = 'document-modal';
+    modal.innerHTML = `
+        <div class="document-modal-content">
+            <div class="document-modal-header">
+                <h3>${filename}</h3>
+                <button class="close-btn" onclick="this.parentElement.parentElement.parentElement.remove()">&times;</button>
+            </div>
+            <div class="document-modal-body">
+                <pre>${content}</pre>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Close modal when clicking outside
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) modal.remove();
+    });
+};
+
+KnowledgeBaseApp.prototype.downloadDocument = function(filename, content) {
+    // Create a blob and download the document
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
 };

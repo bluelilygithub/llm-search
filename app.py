@@ -417,7 +417,8 @@ def get_messages(conversation_id):
             'id': str(conversation.id),
             'title': conversation.title,
             'llm_model': conversation.llm_model,
-            'project_id': str(conversation.project_id) if conversation.project_id else None
+            'project_id': str(conversation.project_id) if conversation.project_id else None,
+            'context_documents': conversation.context_documents or []
         },
         'messages': [{
             'id': str(msg.id),
