@@ -102,7 +102,9 @@ class ContextService:
         item_id: str,
         name: str = None,
         description: str = None,
+        content_type: str = None,
         content_text: str = None,
+        project_id: str = None,
         extra_data: Dict[str, Any] = None
     ) -> Optional[ContextItem]:
         """Update an existing context item"""
@@ -115,10 +117,14 @@ class ContextService:
             context_item.name = name
         if description is not None:
             context_item.description = description
+        if content_type is not None:
+            context_item.content_type = content_type
         if content_text is not None:
             context_item.content_text = content_text
             # Update token count
             context_item.token_count = int(len(content_text.split()) * 1.3)
+        if project_id is not None:
+            context_item.project_id = project_id
         if extra_data is not None:
             context_item.extra_data = extra_data
             

@@ -1689,7 +1689,9 @@ def update_context_item(item_id):
             item_id=item_id,
             name=data.get('name'),
             description=data.get('description'),
+            content_type=data.get('content_type'),
             content_text=data.get('content_text'),
+            project_id=data.get('project_id'),
             extra_data=data.get('extra_data')
         )
         

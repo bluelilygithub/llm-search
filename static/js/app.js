@@ -2805,6 +2805,14 @@ KnowledgeBaseApp.prototype.highlightSearchTerm = function(text, searchTerm) {
     return text.replace(regex, '<mark style="background: #fff3cd; padding: 1px 2px; border-radius: 2px;">$1</mark>');
 };
 
+// Escape HTML to prevent XSS
+KnowledgeBaseApp.prototype.escapeHtml = function(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+};
+
 // Add context item to conversation
 KnowledgeBaseApp.prototype.addContextToConversation = async function(contextItemId) {
     if (!this.currentConversationId) {
@@ -2870,11 +2878,153 @@ KnowledgeBaseApp.prototype.showContextItemDetails = function(contextItemId) {
     // This will be implemented in later increments
 };
 
-// Edit context item (placeholder)
+// Edit context item
 KnowledgeBaseApp.prototype.editContextItem = function(contextItemId) {
-    console.log('Edit context item:', contextItemId);
-    // This will be implemented in later increments
+    // Find the context item to edit
+    const contextItem = this.contextItems.find(item => item.id === contextItemId);
+    if (!contextItem) {
+        console.error('Context item not found:', contextItemId);
+        return;
+    }
+    
+    // Create modal for editing context
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+        <div class="modal-content context-modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-edit"></i> Edit Context Item</h3>
+                <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="edit-context-form">
+                    <div class="form-group">
+                        <label for="edit-context-name">Context Name *</label>
+                        <input type="text" id="edit-context-name" name="name" required 
+                               value="${this.escapeHtml(contextItem.name)}"
+                               placeholder="Enter a descriptive name for this context">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit-context-description">Description</label>
+                        <textarea id="edit-context-description" name="description" rows="3"
+                                  placeholder="Describe what this context contains or its purpose">${this.escapeHtml(contextItem.description || '')}</textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit-context-type">Content Type *</label>
+                        <select id="edit-context-type" name="content_type" required>
+                            <option value="document" ${contextItem.content_type === 'document' ? 'selected' : ''}>Document</option>
+                            <option value="instructions" ${contextItem.content_type === 'instructions' ? 'selected' : ''}>Instructions</option>
+                            <option value="notes" ${contextItem.content_type === 'notes' ? 'selected' : ''}>Notes</option>
+                            <option value="reference" ${contextItem.content_type === 'reference' ? 'selected' : ''}>Reference</option>
+                            <option value="template" ${contextItem.content_type === 'template' ? 'selected' : ''}>Template</option>
+                            <option value="other" ${contextItem.content_type === 'other' ? 'selected' : ''}>Other</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit-context-content">Content Text *</label>
+                        <textarea id="edit-context-content" name="content_text" rows="6" required
+                                  placeholder="Enter the actual content or text for this context item">${this.escapeHtml(contextItem.content_text || '')}</textarea>
+                        <div class="form-help">This text will be used for AI context and search</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit-context-project">Associate with Project (Optional)</label>
+                        <select id="edit-context-project" name="project_id">
+                            <option value="">No project association</option>
+                            ${this.projects ? this.projects.map(p => 
+                                `<option value="${p.id}" ${contextItem.project_id === p.id ? 'selected' : ''}>${p.name}</option>`
+                            ).join('') : ''}
+                        </select>
+                    </div>
+                    
+                    <input type="hidden" name="context_id" value="${contextItemId}">
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
+                <button class="btn btn-primary" onclick="submitEditContext()">Update Context</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Focus on first input
+    setTimeout(() => {
+        document.getElementById('edit-context-name').focus();
+    }, 100);
 };
+
+// Submit edit context form
+function submitEditContext() {
+    const form = document.getElementById('edit-context-form');
+    const formData = new FormData(form);
+    
+    // Validate required fields
+    const name = formData.get('name').trim();
+    const contentType = formData.get('content_type');
+    const contentText = formData.get('content_text').trim();
+    const contextId = formData.get('context_id');
+    
+    if (!name || !contentType || !contentText || !contextId) {
+        alert('Please fill in all required fields');
+        return;
+    }
+    
+    // Prepare data for API
+    const contextData = {
+        name: name,
+        description: formData.get('description').trim() || null,
+        content_type: contentType,
+        content_text: contentText,
+        project_id: formData.get('project_id') || null
+    };
+    
+    // Show loading state
+    const submitBtn = document.querySelector('.context-modal .btn-primary');
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = 'Updating...';
+    submitBtn.disabled = true;
+    
+    // Call API to update context item
+    fetch(`/api/context/${contextId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(contextData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Close modal
+            document.querySelector('.modal-overlay').remove();
+            
+            // Refresh context panel
+            if (window.app.contextPanelOpen) {
+                window.app.loadContextData();
+            }
+            
+            // Show success message
+            window.app.showNotification('Context item updated successfully!', 'success');
+        } else {
+            throw new Error(data.error || 'Failed to update context item');
+        }
+    })
+    .catch(error => {
+        console.error('Error updating context item:', error);
+        alert('Error updating context item: ' + error.message);
+        
+        // Reset button
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+    });
+}
 
 // Search context items through content
 function searchContextItems() {
@@ -2943,10 +3093,142 @@ function refreshContextPanel() {
     }
 }
 
-// Add new context (placeholder)
+// Add new context
 function addNewContext() {
-    console.log('Add new context - will be implemented in later increments');
-    // This will be implemented in later increments
+    // Create modal for adding new context
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+        <div class="modal-content context-modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-plus"></i> Add New Context</h3>
+                <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="new-context-form">
+                    <div class="form-group">
+                        <label for="context-name">Context Name *</label>
+                        <input type="text" id="context-name" name="name" required 
+                               placeholder="Enter a descriptive name for this context">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="context-description">Description</label>
+                        <textarea id="context-description" name="description" rows="3"
+                                  placeholder="Describe what this context contains or its purpose"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="context-type">Content Type *</label>
+                        <select id="context-type" name="content_type" required>
+                            <option value="">Select content type</option>
+                            <option value="document">Document</option>
+                            <option value="instructions">Instructions</option>
+                            <option value="notes">Notes</option>
+                            <option value="reference">Reference</option>
+                            <option value="template">Template</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="context-content">Content Text *</label>
+                        <textarea id="context-content" name="content_text" rows="6" required
+                                  placeholder="Enter the actual content or text for this context item"></textarea>
+                        <div class="form-help">This text will be used for AI context and search</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="context-project">Associate with Project (Optional)</label>
+                        <select id="context-project" name="project_id">
+                            <option value="">No project association</option>
+                            ${window.app.projects ? window.app.projects.map(p => 
+                                `<option value="${p.id}">${p.name}</option>`
+                            ).join('') : ''}
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
+                <button class="btn btn-primary" onclick="submitNewContext()">Create Context</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Focus on first input
+    setTimeout(() => {
+        document.getElementById('context-name').focus();
+    }, 100);
+}
+
+// Submit new context form
+function submitNewContext() {
+    const form = document.getElementById('new-context-form');
+    const formData = new FormData(form);
+    
+    // Validate required fields
+    const name = formData.get('name').trim();
+    const contentType = formData.get('content_type');
+    const contentText = formData.get('content_text').trim();
+    
+    if (!name || !contentType || !contentText) {
+        alert('Please fill in all required fields');
+        return;
+    }
+    
+    // Prepare data for API
+    const contextData = {
+        name: name,
+        description: formData.get('description').trim() || null,
+        content_type: contentType,
+        content_text: contentText,
+        project_id: formData.get('project_id') || null
+    };
+    
+    // Show loading state
+    const submitBtn = document.querySelector('.context-modal .btn-primary');
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = 'Creating...';
+    submitBtn.disabled = true;
+    
+    // Call API to create context item
+    fetch('/api/context', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(contextData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Close modal
+            document.querySelector('.modal-overlay').remove();
+            
+            // Refresh context panel
+            if (window.app.contextPanelOpen) {
+                window.app.loadContextData();
+            }
+            
+            // Show success message
+            window.app.showNotification('Context item created successfully!', 'success');
+        } else {
+            throw new Error(data.error || 'Failed to create context item');
+        }
+    })
+    .catch(error => {
+        console.error('Error creating context item:', error);
+        alert('Error creating context item: ' + error.message);
+        
+        // Reset button
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+    });
 }
 
 // Override loadConversation to update context panel
@@ -3376,6 +3658,18 @@ KnowledgeBaseApp.prototype.showSuccessNotification = function(message) {
     }, 3000);
 };
 
+// Show notification with type
+KnowledgeBaseApp.prototype.showNotification = function(message, type = 'info') {
+    // Simple notification for now - can be enhanced later
+    if (type === 'success') {
+        this.showSuccessNotification(message);
+    } else if (type === 'error') {
+        this.showErrorNotification(message);
+    } else {
+        alert(message);
+    }
+};
+
 // Render uploaded context documents
 KnowledgeBaseApp.prototype.renderContextDocuments = function(documents) {
     console.log('DEBUG: renderContextDocuments called with:', documents);
@@ -3571,3 +3865,74 @@ KnowledgeBaseApp.prototype.handleDocumentClick = function(filename) {
         console.error('DEBUG: Error in handleDocumentClick:', error);
     }
 };
+
+// Focus on first input
+setTimeout(() => {
+    document.getElementById('edit-context-name').focus();
+}, 100);
+
+// Submit edit context form
+function submitEditContext() {
+    const form = document.getElementById('edit-context-form');
+    const formData = new FormData(form);
+    
+    // Validate required fields
+    const name = formData.get('name').trim();
+    const contentType = formData.get('content_type');
+    const contentText = formData.get('content_text').trim();
+    const contextId = formData.get('context_id');
+    
+    if (!name || !contentType || !contentText || !contextId) {
+        alert('Please fill in all required fields');
+        return;
+    }
+    
+    // Prepare data for API
+    const contextData = {
+        name: name,
+        description: formData.get('description').trim() || null,
+        content_type: contentType,
+        content_text: contentText,
+        project_id: formData.get('project_id') || null
+    };
+    
+    // Show loading state
+    const submitBtn = document.querySelector('.context-modal .btn-primary');
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = 'Updating...';
+    submitBtn.disabled = true;
+    
+    // Call API to update context item
+    fetch(`/api/context/${contextId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(contextData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Close modal
+            document.querySelector('.modal-overlay').remove();
+            
+            // Refresh context panel
+            if (window.app.contextPanelOpen) {
+                window.app.loadContextData();
+            }
+            
+            // Show success message
+            window.app.showNotification('Context item updated successfully!', 'success');
+        } else {
+            throw new Error(data.error || 'Failed to update context item');
+        }
+    })
+    .catch(error => {
+        console.error('Error updating context item:', error);
+        alert('Error updating context item: ' + error.message);
+        
+        // Reset button
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+    });
+}

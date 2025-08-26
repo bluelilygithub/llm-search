@@ -71,6 +71,8 @@
     --text-secondary: var(--gray-600);
     --background-light: var(--gray-50);
     --background-white: white;
+    --primary-blue-dark: #1e40af;
+    --radius-md: 8px;
 }
 
 /* ==================== RESET & BASE STYLES ==================== */
@@ -3851,4 +3853,102 @@ body {
 
 .context-items-section {
     margin-bottom: 16px;
+}
+
+/* Context Modal Styles */
+.context-modal {
+    max-width: 600px;
+    width: 90%;
+}
+
+.context-modal .modal-header h3 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+}
+
+.context-modal .form-group {
+    margin-bottom: 20px;
+}
+
+.context-modal .form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
+}
+
+.context-modal .form-group input,
+.context-modal .form-group select,
+.context-modal .form-group textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-sm);
+    background: var(--background-white);
+    transition: border-color var(--transition-fast);
+}
+
+.context-modal .form-group input:focus,
+.context-modal .form-group select:focus,
+.context-modal .form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary-blue);
+    box-shadow: 0 0 0 3px var(--primary-blue-light);
+}
+
+.context-modal .form-group textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.context-modal .form-help {
+    margin-top: 6px;
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+.context-modal .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+}
+
+.context-modal .btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.context-modal .btn-primary {
+    background: var(--primary-blue);
+    color: white;
+}
+
+.context-modal .btn-primary:hover:not(:disabled) {
+    background: var(--primary-blue-dark);
+}
+
+.context-modal .btn-primary:disabled {
+    background: var(--gray-400);
+    cursor: not-allowed;
+}
+
+.context-modal .btn-secondary {
+    background: var(--gray-200);
+    color: var(--text-primary);
+}
+
+.context-modal .btn-secondary:hover {
+    background: var(--gray-300);
 }
