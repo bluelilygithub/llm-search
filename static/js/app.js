@@ -3300,14 +3300,12 @@ KnowledgeBaseApp.prototype.renderContextDocuments = function(documents) {
         existingSection.remove();
     }
     
-    // Create a section for uploaded documents
+    // Create a subtle section for uploaded documents
     const docsSection = document.createElement('div');
     docsSection.className = 'context-documents-section';
     docsSection.innerHTML = `
-        <div class="context-documents-header">
-            <h4><i class="fas fa-paperclip"></i> Uploaded Documents</h4>
-        </div>
-        <div class="context-documents-list">
+        <div class="context-documents-subtle">
+            <span class="context-documents-label">📎</span>
             ${documents.map(doc => this.renderDocumentItem(doc)).join('')}
         </div>
     `;
@@ -3318,29 +3316,14 @@ KnowledgeBaseApp.prototype.renderContextDocuments = function(documents) {
 
 KnowledgeBaseApp.prototype.renderDocumentItem = function(doc) {
     const fileType = this.getFileTypeIcon(doc.filename);
-    const fileSize = this.formatFileSize(doc.content ? doc.content.length : 0);
     
     return `
-        <div class="document-item" data-filename="${doc.filename}">
-            <div class="document-icon">
-                <i class="${fileType.icon}" title="${fileType.name}"></i>
-            </div>
-            <div class="document-info">
-                <div class="document-name">${doc.filename}</div>
-                <div class="document-meta">
-                    <span class="document-size">${fileSize}</span>
-                    <span class="document-type">${doc.task_type || 'Document'}</span>
-                </div>
-            </div>
-            <div class="document-actions">
-                <button class="document-action-btn" onclick="window.app.viewDocument('${doc.filename}', '${doc.content ? doc.content.replace(/'/g, '\\\'') : ''}')" title="View">
-                    <i class="fas fa-eye"></i>
-                </button>
-                <button class="document-action-btn" onclick="window.app.downloadDocument('${doc.filename}', '${doc.content ? doc.content.replace(/'/g, '\\\'') : ''}')" title="Download">
-                    <i class="fas fa-download"></i>
-                </button>
-            </div>
-        </div>
+        <span class="document-item-subtle" 
+              data-filename="${doc.filename}"
+              title="${doc.filename} - Click to view/download"
+              onclick="window.app.handleDocumentClick('${doc.filename}', '${doc.content ? doc.content.replace(/'/g, '\\\'') : ''}')">
+            <i class="${fileType.icon}"></i>
+        </span>
     `;
 };
 
@@ -3405,4 +3388,49 @@ KnowledgeBaseApp.prototype.downloadDocument = function(filename, content) {
     a.click();
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
+};
+
+KnowledgeBaseApp.prototype.handleDocumentClick = function(filename, content) {
+    // Remove any existing document menu
+    const existingMenu = document.querySelector('.document-menu');
+    if (existingMenu) {
+        existingMenu.remove();
+    }
+    
+    // Create a small floating menu
+    const menu = document.createElement('div');
+    menu.className = 'document-menu';
+    menu.innerHTML = `
+        <div class="document-menu-item" onclick="window.app.viewDocument('${filename}', '${content}')">
+            <i class="fas fa-eye"></i> View
+        </div>
+        <div class="document-menu-item" onclick="window.app.downloadDocument('${filename}', '${content}')">
+            <i class="fas fa-download"></i> Download
+        </div>
+    `;
+    
+    // Position the menu near the clicked element
+    const clickedElement = document.querySelector(`[data-filename="${filename}"]`);
+    if (clickedElement) {
+        const rect = clickedElement.getBoundingClientRect();
+        menu.style.position = 'fixed';
+        menu.style.top = (rect.bottom + 5) + 'px';
+        menu.style.left = rect.left + 'px';
+        menu.style.zIndex = '1000';
+    }
+    
+    document.body.appendChild(menu);
+    
+    // Close menu when clicking outside
+    const closeMenu = (e) => {
+        if (!menu.contains(e.target) && !clickedElement.contains(e.target)) {
+            menu.remove();
+            document.removeEventListener('click', closeMenu);
+        }
+    };
+    
+    // Delay adding the event listener to avoid immediate closure
+    setTimeout(() => {
+        document.addEventListener('click', closeMenu);
+    }, 100);
 };
