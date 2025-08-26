@@ -11,6 +11,7 @@ import re
 import html
 import hashlib
 from werkzeug.utils import secure_filename
+from sqlalchemy import text
 
 from PyPDF2 import PdfReader
 import io
@@ -877,11 +878,16 @@ def upload_context():
         # Keep old system for backward compatibility
         import json
         
+        # CRITICAL FIX: Get the latest conversation data to handle multiple sequential uploads
+        # This ensures we don't lose previous uploads
+        db.session.refresh(conversation)
+        
         # Handle the case where context_documents might be None
         if conversation.context_documents is None:
             docs = []
         else:
-            docs = conversation.context_documents
+            # Make a copy to avoid modifying the original object
+            docs = list(conversation.context_documents)
         
         if not docs:
             docs = []
@@ -895,12 +901,27 @@ def upload_context():
         
         print(f"DEBUG: Before append - docs: {docs}, type: {type(docs)}, length: {len(docs)}")
         
-        docs.append({
-            'filename': filename, 
-            'content': processed_content,
-            'task_type': task_type,
-            'original_content': content  # Keep original for reference
-        })
+        # Check if this file is already in the documents (avoid duplicates)
+        existing_filenames = [doc.get('filename') for doc in docs if isinstance(doc, dict) and doc.get('filename')]
+        if filename in existing_filenames:
+            print(f"DEBUG: File {filename} already exists, updating instead of adding duplicate")
+            # Update existing document instead of adding duplicate
+            for doc in docs:
+                if isinstance(doc, dict) and doc.get('filename') == filename:
+                    doc.update({
+                        'content': processed_content,
+                        'task_type': task_type,
+                        'original_content': content
+                    })
+                    break
+        else:
+            # Add new document
+            docs.append({
+                'filename': filename, 
+                'content': processed_content,
+                'task_type': task_type,
+                'original_content': content  # Keep original for reference
+            })
         
         print(f"DEBUG: After append - docs: {docs}, type: {type(docs)}, length: {len(docs)}")
         
@@ -943,7 +964,31 @@ def upload_context():
         print(f"DEBUG: Fresh query - length: {len(fresh_conv.context_documents) if fresh_conv.context_documents else 0}")
         print(f"DEBUG: === END DATABASE DEBUGGING ===")
         
-        db.session.commit()
+        # If SQLAlchemy approach failed, try direct SQL update as fallback
+        if not fresh_conv.context_documents or len(fresh_conv.context_documents) != len(docs):
+            print(f"DEBUG: SQLAlchemy approach failed, trying direct SQL update...")
+            try:
+                # Use direct SQL to ensure the update works
+                docs_json = json.dumps(docs)
+                update_sql = text("""
+                    UPDATE conversations 
+                    SET context_documents = :docs_json, updated_at = NOW()
+                    WHERE id = :conv_id
+                """)
+                db.session.execute(update_sql, {
+                    'docs_json': docs_json,
+                    'conv_id': str(conv_uuid)
+                })
+                db.session.commit()
+                print(f"DEBUG: Direct SQL update completed")
+                
+                # Verify the update worked
+                db.session.refresh(conversation)
+                print(f"DEBUG: After SQL update - context_documents length: {len(conversation.context_documents) if conversation.context_documents else 0}")
+                
+            except Exception as sql_error:
+                print(f"DEBUG: Direct SQL update failed: {sql_error}")
+                # Continue with what we have
         
         # Verify the update worked by checking the database directly
         print(f"DEBUG: After SQL update and commit - updated docs array length: {len(docs)}")
