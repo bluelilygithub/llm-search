@@ -908,11 +908,11 @@ def upload_context():
         from sqlalchemy import text
         update_sql = text("""
             UPDATE conversations 
-            SET context_documents = :docs::jsonb 
+            SET context_documents = :docs 
             WHERE id = :conv_id
         """)
         db.session.execute(update_sql, {
-            'docs': json.dumps(docs),
+            'docs': docs,  # Pass the Python list directly
             'conv_id': conv_uuid
         })
         print(f"DEBUG: After SQL update - docs: {docs}, type: {type(docs)}, length: {len(docs)}")
