@@ -876,7 +876,12 @@ def upload_context():
         
         # Keep old system for backward compatibility
         import json
-        docs = conversation.context_documents
+        
+        # Handle the case where context_documents might be None
+        if conversation.context_documents is None:
+            docs = []
+        else:
+            docs = conversation.context_documents
         
         if not docs:
             docs = []
