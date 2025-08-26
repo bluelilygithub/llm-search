@@ -888,6 +888,8 @@ def upload_context():
         if not isinstance(docs, list):
             docs = []
         
+        print(f"DEBUG: Before append - docs: {docs}, type: {type(docs)}, length: {len(docs)}")
+        
         docs.append({
             'filename': filename, 
             'content': processed_content,
@@ -895,8 +897,14 @@ def upload_context():
             'original_content': content  # Keep original for reference
         })
         
+        print(f"DEBUG: After append - docs: {docs}, type: {type(docs)}, length: {len(docs)}")
+        
         conversation.context_documents = docs
+        print(f"DEBUG: After assignment - conversation.context_documents: {conversation.context_documents}, type: {type(conversation.context_documents)}, length: {len(conversation.context_documents) if conversation.context_documents else 0}")
+        
         db.session.commit()
+        
+        print(f"DEBUG: After commit - conversation.context_documents: {conversation.context_documents}, type: {type(conversation.context_documents)}, length: {len(conversation.context_documents) if conversation.context_documents else 0}")
         
         # Get file type for icon
         file_type = get_file_type(filename)
