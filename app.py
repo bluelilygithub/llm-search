@@ -904,20 +904,23 @@ def upload_context():
         
         print(f"DEBUG: After append - docs: {docs}, type: {type(docs)}, length: {len(docs)}")
         
-        conversation.context_documents = docs
-        print(f"DEBUG: After assignment - conversation.context_documents: {conversation.context_documents}, type: {type(conversation.context_documents)}, length: {len(conversation.context_documents) if conversation.context_documents else 0}")
+        # Use direct SQL update to properly handle JSON array
+        from sqlalchemy import text
+        update_sql = text("""
+            UPDATE conversations 
+            SET context_documents = :docs::jsonb 
+            WHERE id = :conv_id
+        """)
+        db.session.execute(update_sql, {
+            'docs': json.dumps(docs),
+            'conv_id': conv_uuid
+        })
+        print(f"DEBUG: After SQL update - docs: {docs}, type: {type(docs)}, length: {len(docs)}")
         
         db.session.commit()
         
-        # Force refresh the conversation object to get updated data from database
-        db.session.refresh(conversation)
-        
-        print(f"DEBUG: After commit - conversation.context_documents: {conversation.context_documents}, type: {type(conversation.context_documents)}, length: {len(conversation.context_documents) if conversation.context_documents else 0}")
-        
-        # Fresh query after commit to see actual database state
-        from models import Conversation
-        fresh_conversation = Conversation.query.get(conv_uuid)
-        print(f"DEBUG: Fresh query after commit - context_documents: {fresh_conversation.context_documents}, length: {len(fresh_conversation.context_documents) if fresh_conversation.context_documents else 0}")
+        # Verify the update worked by checking the database directly
+        print(f"DEBUG: After SQL update and commit - updated docs array length: {len(docs)}")
         
         # Get file type for icon
         file_type = get_file_type(filename)
