@@ -1145,6 +1145,128 @@ body {
     padding: var(--spacing-lg);
 }
 
+/* Context Items Styling */
+.context-items-section {
+    margin-bottom: var(--spacing-xl);
+}
+
+.context-items-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.context-item-card {
+    background: white;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.context-item-card:hover {
+    border-color: var(--primary-blue);
+    box-shadow: var(--shadow-sm);
+}
+
+.context-item-card.in-conversation {
+    border-color: var(--primary-blue);
+    background-color: var(--primary-blue-light);
+}
+
+.context-item-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-sm);
+    flex-wrap: wrap;
+}
+
+.context-item-name {
+    font-weight: 600;
+    color: var(--gray-900);
+    flex: 1;
+}
+
+.context-item-type {
+    font-size: var(--font-size-xs);
+    color: var(--gray-600);
+    background: var(--gray-100);
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+    text-transform: uppercase;
+    font-weight: 500;
+}
+
+.context-item-project {
+    font-size: var(--font-size-xs);
+    color: var(--primary-blue);
+    background: var(--primary-blue-light);
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+    font-weight: 500;
+}
+
+.context-item-description {
+    color: var(--gray-600);
+    font-size: var(--font-size-sm);
+    margin-bottom: var(--spacing-sm);
+    line-height: 1.4;
+}
+
+.context-item-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.context-item-tokens {
+    font-size: var(--font-size-xs);
+    color: var(--gray-500);
+}
+
+.context-item-actions {
+    display: flex;
+    gap: var(--spacing-xs);
+}
+
+.context-item-action {
+    width: 24px;
+    height: 24px;
+    background: none;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--gray-500);
+    transition: all var(--transition-fast);
+}
+
+.context-item-action:hover {
+    background-color: var(--gray-100);
+    color: var(--gray-700);
+}
+
+.context-item-action.add:hover {
+    background-color: var(--success-light);
+    color: var(--success);
+}
+
+.context-item-action.remove:hover {
+    background-color: var(--danger-light);
+    color: var(--danger);
+}
+
+.empty-context {
+    text-align: center;
+    color: var(--gray-500);
+    padding: var(--spacing-xl);
+    font-style: italic;
+}
+
 /* ==================== MODALS ==================== */
 
 .modal {

@@ -26,6 +26,7 @@ class ContextService:
         original_filename: str = None,
         file_path: str = None,
         file_size: int = None,
+        project_id: str = None,
         extra_data: Dict[str, Any] = None
     ) -> ContextItem:
         """Create a new context item"""
@@ -39,6 +40,7 @@ class ContextService:
         
         context_item = ContextItem(
             user_id=user_id,
+            project_id=project_id,
             name=name,
             description=description,
             content_type=content_type,
@@ -62,6 +64,20 @@ class ContextService:
         user_id = ContextService.get_user_id()
         
         query = ContextItem.query.filter_by(user_id=user_id)
+        
+        if not include_inactive:
+            query = query.filter_by(is_active=True)
+            
+        return query.order_by(ContextItem.last_used_at.desc().nullsfirst(), 
+                            ContextItem.created_at.desc()).all()
+    
+    @staticmethod
+    def get_user_context_items_by_project(project_id: str, include_inactive: bool = False) -> List[ContextItem]:
+        """Get all context items for current user in a specific project"""
+        
+        user_id = ContextService.get_user_id()
+        
+        query = ContextItem.query.filter_by(user_id=user_id, project_id=project_id)
         
         if not include_inactive:
             query = query.filter_by(is_active=True)

@@ -125,6 +125,7 @@ class ContextItem(db.Model):
     __tablename__ = 'context_items'
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = db.Column(db.String(255), nullable=False, index=True)
+    project_id = db.Column(UUID(as_uuid=True), db.ForeignKey('projects.id', ondelete='SET NULL'), nullable=True)
     name = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text)
     content_type = db.Column(db.String(50), nullable=False)  # 'document', 'url', 'text', 'conversation'
@@ -140,6 +141,9 @@ class ContextItem(db.Model):
     usage_count = db.Column(db.Integer, default=0)
     is_active = db.Column(db.Boolean, default=True)
     extra_data = db.Column(db.JSON)  # Store additional metadata as JSON
+    
+    # Relationships
+    project = db.relationship('Project', backref='context_items')
 
 class ContextSession(db.Model):
     __tablename__ = 'context_sessions'

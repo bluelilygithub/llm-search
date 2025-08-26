@@ -856,6 +856,7 @@ def upload_context():
                 description=f"Uploaded document - {task_type}",
                 original_filename=filename,
                 file_size=len(content) if content else 0,
+                project_id=str(conversation.project_id) if conversation.project_id else None,
                 extra_data={
                     'task_type': task_type,
                     'original_content': content[:1000] if content else None  # Store first 1000 chars of original
@@ -1593,7 +1594,9 @@ def get_context_items():
                     'last_used_at': item.last_used_at.isoformat() if item.last_used_at else None,
                     'is_active': item.is_active,
                     'file_size': item.file_size,
-                    'original_filename': item.original_filename
+                    'original_filename': item.original_filename,
+                    'project_id': str(item.project_id) if item.project_id else None,
+                    'project_name': item.project.name if item.project else None
                 }
                 for item in items
             ]

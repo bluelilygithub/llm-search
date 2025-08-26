@@ -2613,6 +2613,7 @@ KnowledgeBaseApp.prototype.renderContextItems = function() {
             <div class="context-item-header">
                 <div class="context-item-name">${item.name}</div>
                 <div class="context-item-type">${item.content_type}</div>
+                ${item.project_name ? `<div class="context-item-project">📁 ${item.project_name}</div>` : ''}
             </div>
             ${item.description ? `<div class="context-item-description">${item.description}</div>` : ''}
             <div class="context-item-meta">
