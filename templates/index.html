@@ -1484,13 +1484,24 @@
              console.log(`User preferred default: ${userPreferences.defaultModel}`);
              
                                              // Always prioritize user's saved preference if available and enabled
-               if (userPreferences.defaultModel && modelSettings[userPreferences.defaultModel] && modelSettings[userPreferences.defaultModel].enabled) {
-                   // User has a saved preference and it's enabled - use it
-                   if (dropdown.value !== userPreferences.defaultModel) {
-                       dropdown.value = userPreferences.defaultModel;
-                       console.log(`Set dropdown to user's saved preference: ${userPreferences.defaultModel}`);
-                   }
-               } else if (!currentValue || (currentSettings && !currentSettings.enabled)) {
+                               if (userPreferences.defaultModel && modelSettings[userPreferences.defaultModel] && modelSettings[userPreferences.defaultModel].enabled) {
+                    // User has a saved preference and it's enabled - use it
+                    if (dropdown.value !== userPreferences.defaultModel) {
+                        // Remove 'selected' attribute from all options first
+                        dropdown.querySelectorAll('option').forEach(option => {
+                            option.removeAttribute('selected');
+                        });
+                        
+                        // Set 'selected' attribute on the target option
+                        const targetOption = dropdown.querySelector(`option[value="${userPreferences.defaultModel}"]`);
+                        if (targetOption) {
+                            targetOption.setAttribute('selected', 'selected');
+                        }
+                        
+                        dropdown.value = userPreferences.defaultModel;
+                        console.log(`Set dropdown to user's saved preference: ${userPreferences.defaultModel}`);
+                    }
+                } else if (!currentValue || (currentSettings && !currentSettings.enabled)) {
                    // No current selection or current selection is disabled, and no saved preference
                    // Only set a fallback if there's no current value at all
                    if (!currentValue) {
@@ -1498,16 +1509,24 @@
                            modelSettings[model] && modelSettings[model].enabled
                        );
                        
-                       if (newSelection) {
-                           // Find the actual option element to set
-                           const targetOption = dropdown.querySelector(`option[value="${newSelection}"]`);
-                           if (targetOption) {
-                               dropdown.value = newSelection;
-                               console.log(`Set dropdown to first enabled model: ${newSelection}`);
-                           } else {
-                               console.error(`Could not find option element for value: ${newSelection}`);
-                           }
-                       }
+                                               if (newSelection) {
+                            // Find the actual option element to set
+                            const targetOption = dropdown.querySelector(`option[value="${newSelection}"]`);
+                            if (targetOption) {
+                                // Remove 'selected' attribute from all options first
+                                dropdown.querySelectorAll('option').forEach(option => {
+                                    option.removeAttribute('selected');
+                                });
+                                
+                                // Set 'selected' attribute on the target option
+                                targetOption.setAttribute('selected', 'selected');
+                                
+                                dropdown.value = newSelection;
+                                console.log(`Set dropdown to first enabled model: ${newSelection}`);
+                            } else {
+                                console.error(`Could not find option element for value: ${newSelection}`);
+                            }
+                        }
                    } else {
                        console.log(`Current selection ${currentValue} is disabled, but keeping it to avoid unwanted changes`);
                    }
@@ -1552,14 +1571,25 @@
                              console.log(`Attempting to set main dropdown to: ${userPreferences.defaultModel}`);
                              console.log('Current dropdown value before:', mainDropdown.value);
                              
-                             // Find the actual option element
-                             const targetOption = mainDropdown.querySelector(`option[value="${userPreferences.defaultModel}"]`);
-                             if (targetOption) {
-                                 mainDropdown.value = userPreferences.defaultModel;
-                                 console.log('Successfully updated main dropdown to default model:', userPreferences.defaultModel);
-                                 console.log('New dropdown value:', mainDropdown.value);
-                                 console.log('Selected option text:', targetOption.textContent);
-                             } else {
+                                                           // Find the actual option element
+                              const targetOption = mainDropdown.querySelector(`option[value="${userPreferences.defaultModel}"]`);
+                              if (targetOption) {
+                                  // Remove 'selected' attribute from all options first
+                                  mainDropdown.querySelectorAll('option').forEach(option => {
+                                      option.removeAttribute('selected');
+                                  });
+                                  
+                                  // Set 'selected' attribute on the target option
+                                  targetOption.setAttribute('selected', 'selected');
+                                  
+                                  // Update the dropdown value
+                                  mainDropdown.value = userPreferences.defaultModel;
+                                  
+                                  console.log('Successfully updated main dropdown to default model:', userPreferences.defaultModel);
+                                  console.log('New dropdown value:', mainDropdown.value);
+                                  console.log('Selected option text:', targetOption.textContent);
+                                  console.log('Selected attribute set on:', targetOption.value);
+                              } else {
                                  console.error(`Could not find option with value: ${userPreferences.defaultModel}`);
                                  console.log('Available options:');
                                  mainDropdown.querySelectorAll('option').forEach(option => {
