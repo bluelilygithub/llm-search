@@ -39,6 +39,7 @@
     --spacing-lg: 16px;
     --spacing-xl: 24px;
     --spacing-2xl: 32px;
+    --spacing-3xl: 48px;
     
     /* Typography */
     --font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -690,6 +691,111 @@ body {
     display: flex;
     flex-direction: column;
     min-width: 0;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Main view styles for conversations and projects */
+.main-view {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: var(--spacing-xl);
+    overflow-y: auto;
+    position: relative;
+    z-index: 1;
+}
+
+.breadcrumb {
+    margin-bottom: var(--spacing-xl);
+    padding: var(--spacing-md) 0;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.breadcrumb-item {
+    color: var(--gray-600);
+    font-size: var(--font-size-sm);
+}
+
+.breadcrumb-item.active {
+    color: var(--gray-900);
+    font-weight: 500;
+}
+
+.view-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-2xl);
+}
+
+.view-title {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.view-title i {
+    font-size: var(--font-size-2xl);
+    color: var(--primary-blue);
+}
+
+.view-title h2 {
+    font-size: var(--font-size-2xl);
+    font-weight: 600;
+    color: var(--gray-900);
+    margin: 0;
+}
+
+.view-action-btn {
+    padding: var(--spacing-md) var(--spacing-xl);
+    background-color: var(--primary-blue);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-base);
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.view-action-btn:hover {
+    background-color: var(--primary-blue-hover);
+}
+
+.view-action-btn i {
+    font-size: var(--font-size-base);
+}
+
+/* Grid layouts for conversations and projects */
+.conversations-grid, .projects-grid-view {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: var(--spacing-xl);
+    padding: var(--spacing-lg) 0;
+}
+
+.empty-state-large {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: var(--spacing-3xl);
+    color: var(--gray-500);
+}
+
+.empty-state-large i {
+    font-size: 48px;
+    margin-bottom: var(--spacing-lg);
+    color: var(--gray-400);
+}
+
+.empty-state-large h3 {
+    font-size: var(--font-size-xl);
+    font-weight: 500;
+    margin: 0;
+    color: var(--gray-600);
 }
 
 /* Top Bar */
@@ -770,6 +876,8 @@ body {
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    position: relative;
+    z-index: 1;
 }
 
 /* Chat Header */
@@ -902,6 +1010,11 @@ body {
     padding: var(--spacing-xl);
     background-color: white;
     flex-shrink: 0;
+    position: relative;
+    width: 100%;
+    left: 0;
+    right: 0;
+    bottom: 0;
 }
 
 .input-area {

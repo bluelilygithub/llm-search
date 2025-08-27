@@ -3572,36 +3572,54 @@ KnowledgeBaseApp.prototype.showConversationsView = function() {
         return;
     }
     
-    container.innerHTML = `
-        <div class="main-view">
-            <nav class="breadcrumb">
-                <span class="breadcrumb-item active">
-                    <i class="fas fa-clock"></i>
-                    All Conversations
-                </span>
-            </nav>
-            
-            <div class="view-header">
-                <div class="view-title">
-                    <i class="fas fa-clock"></i>
-                    <h2>Recent Conversations</h2>
-                </div>
-                <div class="view-actions">
-                    <button class="view-action-btn" onclick="window.app.startNewConversation()">
-                        <i class="fas fa-plus"></i>
-                        New Chat
-                    </button>
-                </div>
+    // Preserve the top bar and bottom input container
+    const topBar = container.querySelector('.top-bar');
+    const bottomInput = container.querySelector('.bottom-input-container');
+    
+    // Clear only the chat messages area, not the entire container
+    const chatMessagesContainer = container.querySelector('.chat-messages-container');
+    if (chatMessagesContainer) {
+        chatMessagesContainer.remove();
+    }
+    
+    // Create the conversations view content
+    const conversationsContent = document.createElement('div');
+    conversationsContent.className = 'main-view';
+    conversationsContent.innerHTML = `
+        <nav class="breadcrumb">
+            <span class="breadcrumb-item active">
+                <i class="fas fa-clock"></i>
+                All Conversations
+            </span>
+        </nav>
+        
+        <div class="view-header">
+            <div class="view-title">
+                <i class="fas fa-clock"></i>
+                <h2>Recent Conversations</h2>
             </div>
-            
-            <div id="conversations-grid" class="conversations-grid">
-                <div class="empty-state-large">
-                    <i class="fas fa-spinner fa-spin"></i>
-                    <h3>Loading conversations...</h3>
-                </div>
+            <div class="view-actions">
+                <button class="view-action-btn" onclick="window.app.startNewConversation()">
+                    <i class="fas fa-plus"></i>
+                    New Chat
+                </button>
+            </div>
+        </div>
+        
+        <div id="conversations-grid" class="conversations-grid">
+            <div class="empty-state-large">
+                <i class="fas fa-spinner fa-spin"></i>
+                <h3>Loading conversations...</h3>
             </div>
         </div>
     `;
+    
+    // Insert after the top bar to maintain proper layout
+    if (topBar) {
+        topBar.insertAdjacentElement('afterend', conversationsContent);
+    } else {
+        container.appendChild(conversationsContent);
+    }
     
     this.loadConversationsGrid();
 };
@@ -3620,26 +3638,38 @@ KnowledgeBaseApp.prototype.showProjectsView = function() {
         return;
     }
     
-    container.innerHTML = `
-        <div class="main-view">
-            <nav class="breadcrumb">
-                <span class="breadcrumb-item active">
-                    <i class="fas fa-folder-open"></i>
-                    All Projects
-                </span>
-            </nav>
-            
-            <div class="view-header">
-                <div class="view-title">
-                    <i class="fas fa-folder-open"></i>
-                    <h2>Projects</h2>
-                </div>
-                <div class="view-actions">
-                    <button class="view-action-btn" onclick="window.app.promptCreateNewProject()">
-                        <i class="fas fa-plus"></i>
-                        New Project
-                    </button>
-                </div>
+    // Preserve the top bar and bottom input container
+    const topBar = container.querySelector('.top-bar');
+    const bottomInput = container.querySelector('.bottom-input-container');
+    
+    // Clear only the chat messages area, not the entire container
+    const chatMessagesContainer = container.querySelector('.chat-messages-container');
+    if (chatMessagesContainer) {
+        chatMessagesContainer.remove();
+    }
+    
+    // Create the projects view content
+    const projectsContent = document.createElement('div');
+    projectsContent.className = 'main-view';
+    projectsContent.innerHTML = `
+        <nav class="breadcrumb">
+            <span class="breadcrumb-item active">
+                <i class="fas fa-folder-open"></i>
+                All Projects
+            </span>
+        </nav>
+        
+        <div class="view-header">
+            <div class="view-title">
+                <i class="fas fa-folder-open"></i>
+                <h2>Projects</h2>
+            </div>
+            <div class="view-actions">
+                <button class="view-action-btn" onclick="window.app.promptCreateNewProject()">
+                    <i class="fas fa-plus"></i>
+                    New Project
+                </button>
+            </div>
             </div>
             
             <div id="projects-grid" class="projects-grid-view">
@@ -3650,6 +3680,13 @@ KnowledgeBaseApp.prototype.showProjectsView = function() {
             </div>
         </div>
     `;
+    
+    // Insert after the top bar to maintain proper layout
+    if (topBar) {
+        topBar.insertAdjacentElement('afterend', projectsContent);
+    } else {
+        container.appendChild(projectsContent);
+    }
     
     this.loadProjectsGrid();
 };
@@ -3983,13 +4020,10 @@ KnowledgeBaseApp.prototype.showChatView = function() {
     
     // If we're using main-content (coming from search), set up the chat interface
     if (isMainContent) {
-        // Preserve the top bar and only clear the chat messages area
-        const topBar = container.querySelector('.top-bar');
-        const existingChatContainer = container.querySelector('.chat-messages-container');
-        
-        // Clear only the chat messages area, not the entire main-content
-        if (existingChatContainer) {
-            existingChatContainer.remove();
+        // Clear any existing view content (conversations, projects, etc.)
+        const existingViewContent = container.querySelector('.main-view');
+        if (existingViewContent) {
+            existingViewContent.remove();
         }
         
         // Ensure the main-content div has the proper CSS classes for chat layout
@@ -4005,6 +4039,7 @@ KnowledgeBaseApp.prototype.showChatView = function() {
         `;
         
         // Insert after the top bar to maintain proper layout
+        const topBar = container.querySelector('.top-bar');
         if (topBar) {
             topBar.insertAdjacentElement('afterend', chatMessagesContainer);
         } else {
