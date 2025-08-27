@@ -2000,9 +2000,10 @@ def search_projects():
         
         from models import Project
         
-        # Search projects by name
-        projects = filter_projects_by_user(
-            db.session.query(Project).filter(Project.name.ilike(f'%{query}%'))
+        # For now, search all projects (no user filtering implemented yet)
+        # TODO: Implement proper user filtering for projects
+        projects = db.session.query(Project).filter(
+            Project.name.ilike(f'%{query}%')
         ).order_by(Project.created_at.desc()).limit(limit).all()
         
         # Format results
@@ -2047,12 +2048,12 @@ def search_context():
         from sqlalchemy import or_
         
         # Search context items by filename and content
-        context_items = filter_context_items_by_user(
-            db.session.query(ContextItem).filter(
-                or_(
-                    ContextItem.filename.ilike(f'%{query}%'),
-                    ContextItem.content.ilike(f'%{query}%')
-                )
+        # For now, search all context items (no user filtering implemented yet)
+        # TODO: Implement proper user filtering for context items
+        context_items = db.session.query(ContextItem).filter(
+            or_(
+                ContextItem.filename.ilike(f'%{query}%'),
+                ContextItem.content.ilike(f'%{query}%')
             )
         ).order_by(ContextItem.created_at.desc()).limit(limit).all()
         
