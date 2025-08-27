@@ -1931,12 +1931,8 @@ class KnowledgeBaseApp {
         }
         
         // Restore normal view based on current state
-        if (this.currentView === 'projects') {
-            this.showProjectsView();
-        } else if (this.currentView === 'conversations') {
+        if (this.currentView === 'conversations') {
             this.showConversationsView();
-        } else if (this.currentView === 'project-conversations') {
-            this.showProjectConversationsView(this.currentViewProject);
         } else if (this.currentView === 'chat') {
             this.showChatView();
         } else {
@@ -3624,10 +3620,7 @@ KnowledgeBaseApp.prototype.showHomeView = function() {
                         <i class="fas fa-plus"></i>
                         New Chat
                     </button>
-                    <button class="view-action-btn" onclick="window.app.showProjectsView()">
-                        <i class="fas fa-folder"></i>
-                        View Projects
-                    </button>
+
                 </div>
             </div>
             
@@ -3640,13 +3633,7 @@ KnowledgeBaseApp.prototype.showHomeView = function() {
                             <span class="stat-label">Conversations</span>
                         </div>
                     </div>
-                    <div class="stat-card">
-                        <i class="fas fa-folder"></i>
-                        <div class="stat-info">
-                            <span class="stat-number" id="total-projects">-</span>
-                            <span class="stat-label">Projects</span>
-                        </div>
-                    </div>
+
                     <div class="stat-card">
                         <i class="fas fa-file-alt"></i>
                         <div class="stat-info">
@@ -3662,11 +3649,7 @@ KnowledgeBaseApp.prototype.showHomeView = function() {
                         <h3>Start New Chat</h3>
                         <p>Begin a new conversation or ask questions about your knowledge base</p>
                     </div>
-                    <div class="action-card" onclick="window.app.showProjectsView()">
-                        <i class="fas fa-folder"></i>
-                        <h3>Manage Projects</h3>
-                        <p>Organize your conversations and context into projects</p>
-                    </div>
+
                     <div class="action-card" onclick="window.app.showConversationsView()">
                         <i class="fas fa-clock"></i>
                         <h3>View All Conversations</h3>
@@ -3860,11 +3843,6 @@ KnowledgeBaseApp.prototype.loadHomeStats = async function() {
         const conversations = await convResponse.json();
         const totalConversations = conversations.length;
         
-        // Load projects count
-        const projResponse = await fetch('/projects');
-        const projects = await projResponse.json();
-        const totalProjects = projects.length;
-        
         // Load context items count
         const contextResponse = await fetch('/api/context');
         const contextItems = await contextResponse.json();
@@ -3872,11 +3850,9 @@ KnowledgeBaseApp.prototype.loadHomeStats = async function() {
         
         // Update the stats display
         const convElement = document.getElementById('total-conversations');
-        const projElement = document.getElementById('total-projects');
         const contextElement = document.getElementById('total-context-items');
         
         if (convElement) convElement.textContent = totalConversations;
-        if (projElement) projElement.textContent = totalProjects;
         if (contextElement) contextElement.textContent = totalContextItems;
         
     } catch (error) {

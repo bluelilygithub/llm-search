@@ -77,43 +77,7 @@
                     </div>
                 </div>
 
-                <!-- Projects Section -->
-                <div class="nav-section" id="projects-section" style="display: none;">
-                    <button class="section-header" onclick="toggleSection('projects')" id="projects-header">
-                        <div class="section-header-content">
-                            <div class="section-title">
-                                <i class="fas fa-folder-open"></i>
-                                <span class="section-label">Projects</span>
-                            </div>
-                            <div class="section-toggle">
-                                <i class="fas fa-minus" id="projects-toggle"></i>
-                            </div>
-                        </div>
-                    </button>
-                    
-                    <div class="section-content expanded" id="projects-content">
-                        <div class="projects-scroll-area">
-                            <div class="project-list" id="project-list">
-                                <!-- Projects will be loaded here -->
-                            </div>
-                        </div>
-                        
-                        <!-- New Project Button -->
-                        <div class="new-project-container">
-                            <button class="new-project-btn" id="new-project-btn" onclick="showNewProjectInput()">
-                                <div class="new-project-icon">
-                                    <i class="fas fa-plus"></i>
-                                </div>
-                                <span>New Project</span>
-                            </button>
-                            
-                            <!-- Hidden input for new project -->
-                            <div class="new-project-input-container" id="new-project-input-row" style="display:none;">
-                                <input type="text" class="new-project-input" id="new-project-input" placeholder="Project name..." onkeydown="handleNewProjectInput(event)">
-                            </div>
-                        </div>
-                    </div>
-                </div>
+
             </div>
 
             <!-- Collapsed Sidebar Icons -->
@@ -121,9 +85,6 @@
                 <div class="collapsed-nav-icons">
                     <button class="collapsed-nav-btn" onclick="toggleSection('recent')" title="Recent">
                         <i class="fas fa-clock"></i>
-                    </button>
-                    <button class="collapsed-nav-btn" onclick="toggleSection('projects')" title="Projects">
-                        <i class="fas fa-folder-open"></i>
                     </button>
                 </div>
             </div>
@@ -784,11 +745,6 @@
                 return;
             }
             
-            if (sectionName === 'projects' && window.app) {
-                window.app.showProjectsView();
-                return;
-            }
-            
             // Original sidebar toggle functionality for other sections
             const content = document.getElementById(sectionName + '-content');
             const toggle = document.getElementById(sectionName + '-toggle');
@@ -810,34 +766,7 @@
             }
         }
 
-        function showNewProjectInput() {
-            const inputRow = document.getElementById('new-project-input-row');
-            const input = document.getElementById('new-project-input');
-            
-            inputRow.style.display = 'block';
-            input.focus();
-        }
 
-        function handleNewProjectInput(event) {
-            if (event.key === 'Enter') {
-                const input = event.target;
-                const projectName = input.value.trim();
-                
-                if (projectName) {
-                    // Handle project creation
-                    if (window.app && window.app.createNewProject) {
-                        window.app.createNewProject(projectName);
-                    }
-                    
-                    // Clear and hide input immediately for better UX
-                    input.value = '';
-                    document.getElementById('new-project-input-row').style.display = 'none';
-                }
-            } else if (event.key === 'Escape') {
-                event.target.value = '';
-                document.getElementById('new-project-input-row').style.display = 'none';
-            }
-        }
 
         function updateModel() {
             if (window.app && window.app.updateModel) {
