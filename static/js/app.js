@@ -165,70 +165,8 @@ class KnowledgeBaseApp {
     }
 
     renderProjects(projects) {
-        const container = document.getElementById('project-list');
-        if (!container) {
-            console.error('Project list container not found');
-            return;
-        }
-        
-        container.innerHTML = '';
-
-        // Add "All Projects" option
-        const allItem = document.createElement('div');
-        allItem.className = 'project-item';
-        allItem.onclick = () => this.selectProject(null);
-        if (!this.currentProject) {
-            allItem.classList.add('active');
-        }
-
-        allItem.innerHTML = `
-            <div class="project-main">
-                <div class="project-icon">
-                    <i class="fas fa-folder"></i>
-                </div>
-                <div class="project-info">
-                    <div class="project-name">All Projects</div>
-                    <div class="project-count">View all conversations</div>
-                </div>
-            </div>
-        `;
-        container.appendChild(allItem);
-
-        // Add individual projects
-        projects.forEach(project => {
-            const item = document.createElement('div');
-            item.className = 'project-item';
-            item.onclick = () => this.selectProject(project);
-            
-            if (this.currentProject && this.currentProject.id === project.id) {
-                item.classList.add('active');
-            }
-
-            // Count conversations for this project (you may need to add this to backend)
-            const conversationCount = project.conversation_count || 0;
-
-            item.innerHTML = `
-                <div class="project-main">
-                    <div class="project-icon">
-                        <i class="fas fa-folder-open"></i>
-                    </div>
-                    <div class="project-info">
-                        <div class="project-name">${project.name}</div>
-                        <div class="project-count">${conversationCount} conversations</div>
-                    </div>
-                </div>
-                <div class="project-actions">
-                    <button class="project-action-btn" onclick="event.stopPropagation(); window.app.editProject('${project.id}', '${project.name.replace(/'/g, "\\'")}')" title="Edit Project">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="project-action-btn" onclick="event.stopPropagation(); window.app.deleteProject('${project.id}')" title="Delete Project">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            `;
-            
-            container.appendChild(item);
-        });
+        // Projects section removed - no longer needed
+        return;
     }
 
     showNewProjectPrompt() { /* no-op, replaced by inline input */ }
@@ -2559,15 +2497,21 @@ KnowledgeBaseApp.prototype.closeSettingsModal = function() {
 // Initialize the app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     window.app = new KnowledgeBaseApp();
-    document.getElementById('new-project-btn').onclick = function() {
-        window.app.showNewProjectInput();
-    };
-    document.getElementById('new-chat-btn').onclick = function() {
-        window.app.startNewChat();
-    };
-    document.getElementById('settings-btn').onclick = function() {
-        window.app.openSettingsModal();
-    };
+    
+    // Only attach event handlers if elements exist
+    const newChatBtn = document.getElementById('new-chat-btn');
+    if (newChatBtn) {
+        newChatBtn.onclick = function() {
+            window.app.startNewChat();
+        };
+    }
+    
+    const settingsBtn = document.getElementById('settings-btn');
+    if (settingsBtn) {
+        settingsBtn.onclick = function() {
+            window.app.openSettingsModal();
+        };
+    }
 });
 
 // Global functions for HTML onclick handlers

@@ -319,6 +319,7 @@ body {
 .conversations-scroll-area {
     flex: 1;
     overflow-y: auto;
+    overflow-x: auto;
     padding-right: var(--spacing-sm);
 }
 
@@ -357,8 +358,8 @@ body {
     color: var(--gray-900);
     margin-bottom: 2px;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    overflow: visible;
+    min-width: max-content;
 }
 
 .conversation-meta {
