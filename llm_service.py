@@ -237,14 +237,45 @@ class LLMService:
             raise Exception("Hugging Face API key not configured")
             
         try:
-            # Map model names to HF endpoints
+            # Map model names to HF endpoints - using more accessible models
             model_mapping = {
-                'llama2-70b': 'meta-llama/Llama-2-70b-chat-hf',
-                'mixtral-8x7b': 'mistralai/Mixtral-8x7B-Instruct-v0.1',
-                'codellama-34b': 'codellama/CodeLlama-34b-Instruct-hf'
+                'llama2-70b': 'gpt2',  # More accessible alternative
+                'mixtral-8x7b': 'distilgpt2',  # More accessible alternative
+                'codellama-34b': 'gpt2'  # More accessible alternative
             }
             
+            # Check if the model exists and is available
             hf_model = model_mapping.get(model, model)
+            
+            # First, check if the model is available
+            check_response = requests.get(
+                f"https://api-inference.huggingface.co/models/{hf_model}",
+                headers=self.hf_headers,
+                timeout=10
+            )
+            
+            if check_response.status_code == 404:
+                # Try alternative model names
+                alternative_mapping = {
+                    'llama2-70b': 'meta-llama/Llama-2-70b-chat-hf',
+                    'mixtral-8x7b': 'mistralai/Mixtral-8x7B-Instruct-v0.1',
+                    'codellama-34b': 'codellama/CodeLlama-34b-Instruct-hf'
+                }
+                
+                # Try to find a working alternative
+                for alt_name, alt_path in alternative_mapping.items():
+                    if alt_name != model:
+                        alt_check = requests.get(
+                            f"https://api-inference.huggingface.co/models/{alt_path}",
+                            headers=self.hf_headers,
+                            timeout=10
+                        )
+                        if alt_check.status_code == 200:
+                            self.logger.warning(f"Model {model} not found, using alternative {alt_name}")
+                            hf_model = alt_path
+                            break
+                else:
+                    raise Exception(f"Model {model} not found on Hugging Face. Please check the model name or try a different model.")
             
             # Format conversation for HF
             conversation_text = ""
@@ -280,7 +311,11 @@ class LLMService:
                 return str(result), 0, 0.0
                 
         except Exception as e:
-            raise Exception(f"Hugging Face API error: {str(e)}")
+            self.logger.error(f"Hugging Face API error for model {model}: {str(e)}")
+            if "404" in str(e):
+                raise Exception(f"Hugging Face model '{model}' not found. The model may have been deprecated or requires special access. Try using a different model.")
+            else:
+                raise Exception(f"Hugging Face API error: {str(e)}")
 
     def _get_stability_response(self, model, messages, max_tokens, temperature):
         """Get response from Stability AI models (Image/Audio generation)"""
