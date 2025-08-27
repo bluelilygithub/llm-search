@@ -259,7 +259,7 @@
                                         style="display: none;">
                                     <i class="fas fa-times"></i>
                                 </button>
-                            </div>
+                        </div>
                             <div class="search-help">
                                 <small>Search through names, descriptions, and content types</small>
                             </div>
@@ -745,6 +745,11 @@
             // Handle new main content views
             if (sectionName === 'recent' && window.app) {
                 window.app.showConversationsView();
+                return;
+            }
+            
+            if (sectionName === 'projects' && window.app) {
+                window.app.showProjectsView();
                 return;
             }
             

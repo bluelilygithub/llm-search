@@ -166,7 +166,7 @@ class KnowledgeBaseApp {
 
     renderProjects(projects) {
         // Projects section removed - no longer needed
-        return;
+            return;
     }
 
     showNewProjectPrompt() { /* no-op, replaced by inline input */ }
@@ -2502,15 +2502,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const newChatBtn = document.getElementById('new-chat-btn');
     if (newChatBtn) {
         newChatBtn.onclick = function() {
-            window.app.startNewChat();
-        };
+        window.app.startNewChat();
+    };
     }
     
     const settingsBtn = document.getElementById('settings-btn');
     if (settingsBtn) {
         settingsBtn.onclick = function() {
-            window.app.openSettingsModal();
-        };
+        window.app.openSettingsModal();
+    };
     }
 });
 
