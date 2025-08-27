@@ -541,7 +541,10 @@ class KnowledgeBaseApp {
             
             if (data.conversation && data.conversation.llm_model) {
                 this.selectedModel = data.conversation.llm_model;
-                document.getElementById('llm-model').value = this.selectedModel;
+                const llmModelElement = document.getElementById('llm-model');
+                if (llmModelElement) {
+                    llmModelElement.value = this.selectedModel;
+                }
             }
             
             // Update chat header with project and conversation context
@@ -604,8 +607,13 @@ class KnowledgeBaseApp {
         // Try to find the appropriate container
         let container = document.getElementById('chat-messages');
         
-        // If we're in search results view, use main-content
-        if (!container && this.currentView === 'search-results') {
+        // If we're in chat view but using main-content, the chat-messages div should exist now
+        if (!container && this.currentView === 'chat') {
+            container = document.getElementById('chat-messages');
+        }
+        
+        // If still no container, fall back to main-content
+        if (!container) {
             container = document.getElementById('main-content');
         }
         
@@ -613,6 +621,8 @@ class KnowledgeBaseApp {
             console.error('No suitable container found for rendering messages');
             return;
         }
+        
+        console.log('DEBUG: renderMessages - using container:', container.id);
         
         container.innerHTML = '';
 
@@ -633,8 +643,13 @@ class KnowledgeBaseApp {
         // Try to find the appropriate container
         let container = document.getElementById('chat-messages');
         
-        // If we're in search results view, use main-content
-        if (!container && this.currentView === 'search-results') {
+        // If we're in chat view but using main-content, the chat-messages div should exist now
+        if (!container && this.currentView === 'chat') {
+            container = document.getElementById('chat-messages');
+        }
+        
+        // If still no container, fall back to main-content
+        if (!container) {
             container = document.getElementById('main-content');
         }
         
@@ -642,6 +657,8 @@ class KnowledgeBaseApp {
             console.error('No suitable container found for adding message');
             return;
         }
+        
+        console.log('DEBUG: addMessageToChat - using container:', container.id);
         
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${message.role} new`;
@@ -1795,8 +1812,13 @@ class KnowledgeBaseApp {
     
     // Open conversation from search results (switches to chat view first)
     openConversationFromSearch(conversationId) {
+        console.log('DEBUG: openConversationFromSearch called with ID:', conversationId);
+        console.log('DEBUG: Current view before switch:', this.currentView);
+        
         // Switch to chat view first to ensure proper DOM structure
         this.showChatView();
+        
+        console.log('DEBUG: Current view after switch:', this.currentView);
         
         // Ensure the chat interface is visible
         const chatInterface = document.getElementById('chat-interface');
@@ -1806,6 +1828,7 @@ class KnowledgeBaseApp {
         
         // Then load the conversation
         setTimeout(() => {
+            console.log('DEBUG: About to load conversation');
             this.loadConversation(conversationId);
         }, 100);
     }
@@ -1898,8 +1921,13 @@ class KnowledgeBaseApp {
         // Try to find the appropriate container
         let container = document.getElementById('chat-messages');
         
-        // If we're in search results view, use main-content
-        if (!container && this.currentView === 'search-results') {
+        // If we're in chat view but using main-content, the chat-messages div should exist now
+        if (!container && this.currentView === 'chat') {
+            container = document.getElementById('chat-messages');
+        }
+        
+        // If still no container, fall back to main-content
+        if (!container) {
             container = document.getElementById('main-content');
         }
         
@@ -1914,8 +1942,13 @@ class KnowledgeBaseApp {
         // Display error as a message in the chat
         let container = document.getElementById('chat-messages');
         
-        // If we're in search results view, use main-content
-        if (!container && this.currentView === 'search-results') {
+        // If we're in chat view but using main-content, the chat-messages div should exist now
+        if (!container && this.currentView === 'chat') {
+            container = document.getElementById('chat-messages');
+        }
+        
+        // If still no container, fall back to main-content
+        if (!container) {
             container = document.getElementById('main-content');
         }
         
@@ -3971,6 +4004,8 @@ KnowledgeBaseApp.prototype.showChatView = function() {
         return;
     }
     
+    console.log('DEBUG: showChatView - using container:', container.id, 'isMainContent:', isMainContent);
+    
     // Note: Project context is now preserved by the caller when needed
     // Only clear if explicitly switching away from project context
     
@@ -3993,18 +4028,35 @@ KnowledgeBaseApp.prototype.showChatView = function() {
     const contextToggle = document.getElementById('context-toggle-btn');
     if (contextToggle) contextToggle.style.display = 'block';
     
-    // Show empty state or current conversation
-    if (!this.currentConversationId) {
-        if (container) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-state-icon">
-                        <i class="fas fa-comments"></i>
-                    </div>
-                    <h2 class="empty-state-title">New Conversation</h2>
-                    <p class="empty-state-description">Start a conversation or search your knowledge base.</p>
+    // If we're using main-content (coming from search), set up the chat interface
+    if (isMainContent) {
+        container.innerHTML = `
+            <div class="chat-view">
+                <div class="chat-messages" id="chat-messages">
+                    <!-- Messages will be loaded here -->
                 </div>
-            `;
+            </div>
+        `;
+        
+        // Also ensure the chat interface is visible
+        const chatInterface = document.getElementById('chat-interface');
+        if (chatInterface) {
+            chatInterface.style.display = 'block';
+        }
+    } else {
+        // Show empty state or current conversation for normal chat view
+        if (!this.currentConversationId) {
+            if (container) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">
+                            <i class="fas fa-comments"></i>
+                        </div>
+                        <h2 class="empty-state-title">New Conversation</h2>
+                        <p class="empty-state-description">Start a conversation or search your knowledge base.</p>
+                    </div>
+                `;
+            }
         }
     }
     // If there's a current conversation, it will be loaded by the caller
