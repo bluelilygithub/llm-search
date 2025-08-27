@@ -375,16 +375,26 @@
                     </div>
                 </div>
 
-                <!-- Preferences Section -->
-                <div class="settings-section" id="preferences-section" style="display: none;">
-                    <div class="section-header">
-                        <h3>User Preferences</h3>
-                        <p>Customize your application experience.</p>
-                    </div>
-                    <div class="preferences-info">
-                        <p>Preference settings coming soon...</p>
-                    </div>
-                </div>
+                                 <!-- Preferences Section -->
+                 <div class="settings-section" id="preferences-section" style="display: none;">
+                     <div class="section-header">
+                         <h3>User Preferences</h3>
+                         <p>Customize your application experience.</p>
+                     </div>
+                     <div class="preferences-info">
+                         <div class="preference-item">
+                             <label for="default-model-select"><strong>Default Model:</strong></label>
+                             <p class="preference-description">Select the model that will be automatically chosen when you start a new conversation.</p>
+                             <select id="default-model-select" onchange="updateDefaultModel()">
+                                 <option value="">Loading models...</option>
+                             </select>
+                             <button class="btn-secondary" onclick="savePreferences()" style="margin-top: 10px;">
+                                 <i class="fas fa-save"></i>
+                                 Save Preferences
+                             </button>
+                         </div>
+                     </div>
+                 </div>
             </div>
         </div>
     </div>
@@ -1065,21 +1075,26 @@
             panel.classList.remove('open');
         }
 
-        function showSettingsSection(sectionName) {
-            // Hide all sections
-            document.querySelectorAll('.settings-section').forEach(section => {
-                section.classList.remove('active');
-            });
-            
-            // Remove active from all nav buttons
-            document.querySelectorAll('.settings-nav-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            
-            // Show selected section
-            document.getElementById(sectionName + '-section').classList.add('active');
-            document.querySelector(`[data-section="${sectionName}"]`).classList.add('active');
-        }
+                 function showSettingsSection(sectionName) {
+             // Hide all sections
+             document.querySelectorAll('.settings-section').forEach(section => {
+                 section.classList.remove('active');
+             });
+             
+             // Remove active from all nav buttons
+             document.querySelectorAll('.settings-nav-btn').forEach(btn => {
+                 btn.classList.remove('active');
+             });
+             
+             // Show selected section
+             document.getElementById(sectionName + '-section').classList.add('active');
+             document.querySelector(`[data-section="${sectionName}"]`).classList.add('active');
+             
+             // Populate preferences section if needed
+             if (sectionName === 'preferences') {
+                 populateDefaultModelSelect();
+             }
+         }
 
         // Model management functions
         const availableModels = {
@@ -1365,81 +1380,192 @@
             }
         }
 
-        function updateModelDropdown() {
-            const dropdown = document.getElementById('llm-model');
-            if (!dropdown) {
-                console.error('Model dropdown not found');
-                return;
-            }
-            
-            console.log('Updating model dropdown with modelSettings:', modelSettings);
-            
-            // Get all options, including those in optgroups
-            const allOptions = dropdown.querySelectorAll('option');
-            console.log('Found options:', allOptions.length);
-            
-            allOptions.forEach(option => {
-                const modelValue = option.value;
-                const settings = modelSettings[modelValue];
-                
-                console.log(`Processing option: ${modelValue}, settings:`, settings);
-                
-                if (settings) {
-                    // Show model only if it's enabled
-                    if (settings.enabled) {
-                        option.style.display = '';
-                        option.disabled = false;
-                        console.log(`Model ${modelValue}: showing (enabled)`);
-                    } else {
-                        option.style.display = 'none';
-                        option.disabled = true;
-                        console.log(`Model ${modelValue}: hiding (disabled)`);
-                    }
-                } else {
-                    // If no settings found, show by default (for backward compatibility)
-                    option.style.display = '';
-                    option.disabled = false;
-                    console.log(`Model ${modelValue}: showing (no settings found)`);
-                }
-            });
-            
-            // Also update the selected option if the current selection is now disabled
-            const currentValue = dropdown.value;
-            const currentSettings = modelSettings[currentValue];
-            if (currentSettings && !currentSettings.enabled) {
-                // Find the first enabled model
-                const firstEnabled = Object.keys(modelSettings).find(model => 
-                    modelSettings[model] && modelSettings[model].enabled
-                );
-                if (firstEnabled) {
-                    dropdown.value = firstEnabled;
-                    console.log(`Changed selection from ${currentValue} to ${firstEnabled}`);
-                }
-            }
-        }
+                 function updateModelDropdown() {
+             const dropdown = document.getElementById('llm-model');
+             if (!dropdown) {
+                 console.error('Model dropdown not found');
+                 return;
+             }
+             
+             console.log('Updating model dropdown with modelSettings:', modelSettings);
+             
+             // Get all options, including those in optgroups
+             const allOptions = dropdown.querySelectorAll('option');
+             console.log('Found options:', allOptions.length);
+             
+             allOptions.forEach(option => {
+                 const modelValue = option.value;
+                 const settings = modelSettings[modelValue];
+                 
+                 console.log(`Processing option: ${modelValue}, settings:`, settings);
+                 
+                 if (settings) {
+                     // Show model only if it's enabled
+                     if (settings.enabled) {
+                         option.style.display = '';
+                         option.disabled = false;
+                         console.log(`Model ${modelValue}: showing (enabled)`);
+                     } else {
+                         option.style.display = 'none';
+                         option.disabled = true;
+                         console.log(`Model ${modelValue}: hiding (disabled)`);
+                     }
+                 } else {
+                     // If no settings found, show by default (for backward compatibility)
+                     option.style.display = '';
+                     option.disabled = false;
+                     console.log(`Model ${modelValue}: showing (no settings found)`);
+                 }
+             });
+             
+             // Set the default model if no model is currently selected or if current selection is disabled
+             const currentValue = dropdown.value;
+             const currentSettings = modelSettings[currentValue];
+             
+             if (!currentValue || (currentSettings && !currentSettings.enabled)) {
+                 // First try to use the user's preferred default model
+                 let newSelection = null;
+                 if (userPreferences.defaultModel && modelSettings[userPreferences.defaultModel] && modelSettings[userPreferences.defaultModel].enabled) {
+                     newSelection = userPreferences.defaultModel;
+                     console.log(`Using preferred default model: ${newSelection}`);
+                 } else {
+                     // Fall back to first enabled model
+                     newSelection = Object.keys(modelSettings).find(model => 
+                         modelSettings[model] && modelSettings[model].enabled
+                     );
+                     console.log(`Falling back to first enabled model: ${newSelection}`);
+                 }
+                 
+                 if (newSelection) {
+                     dropdown.value = newSelection;
+                     console.log(`Set dropdown to: ${newSelection}`);
+                 }
+             }
+         }
 
-        // Check auth status on load and show admin tab if authenticated
-        document.addEventListener('DOMContentLoaded', async () => {
-            const authStatus = await checkAuthStatus();
-            if (authStatus.authenticated) {
-                document.getElementById('whitelist-tab').style.display = 'inline-block';
-                // Show settings button for authenticated users
-                document.getElementById('sidebar-settings-btn').style.display = 'flex';
-            }
-            
-            // Load model settings and update dropdown on page load
-            try {
-                const response = await fetch('/api/model-settings');
-                if (response.ok) {
-                    modelSettings = await response.json();
-                    console.log('Loaded modelSettings on page load:', modelSettings);
-                    // Update the dropdown to reflect saved settings
-                    updateModelDropdown();
-                }
-            } catch (error) {
-                console.error('Failed to load model settings on page load:', error);
-            }
-        });
+                 // Preferences management
+         let userPreferences = {
+             defaultModel: ''
+         };
+         
+         function updateDefaultModel() {
+             const select = document.getElementById('default-model-select');
+             userPreferences.defaultModel = select.value;
+             console.log('Default model updated to:', userPreferences.defaultModel);
+         }
+         
+         async function savePreferences() {
+             const saveBtn = document.querySelector('#preferences-section .btn-secondary');
+             const originalText = saveBtn.innerHTML;
+             
+             try {
+                 // Show loading state
+                 saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+                 saveBtn.disabled = true;
+                 
+                 console.log('Saving preferences:', userPreferences);
+                 
+                 const response = await fetch('/api/preferences', {
+                     method: 'POST',
+                     headers: { 'Content-Type': 'application/json' },
+                     body: JSON.stringify(userPreferences)
+                 });
+                 
+                 if (response.ok) {
+                     // Update the main dropdown to reflect the new default
+                     if (userPreferences.defaultModel) {
+                         const mainDropdown = document.getElementById('llm-model');
+                         if (mainDropdown) {
+                             mainDropdown.value = userPreferences.defaultModel;
+                             console.log('Updated main dropdown to default model:', userPreferences.defaultModel);
+                         }
+                     }
+                     alert('Preferences saved successfully!');
+                 } else {
+                     const result = await response.json();
+                     alert(`Failed to save preferences: ${result.error || 'Unknown error'}`);
+                 }
+                 
+             } catch (error) {
+                 console.error('Failed to save preferences:', error);
+                 alert('Failed to save preferences: Network error');
+             } finally {
+                 // Restore button state
+                 saveBtn.innerHTML = originalText;
+                 saveBtn.disabled = false;
+             }
+         }
+         
+         function populateDefaultModelSelect() {
+             const select = document.getElementById('default-model-select');
+             if (!select) return;
+             
+             // Clear existing options
+             select.innerHTML = '';
+             
+             // Add a default option
+             select.innerHTML = '<option value="">Select a default model...</option>';
+             
+             // Add options for each enabled model
+             Object.keys(modelSettings).forEach(modelValue => {
+                 const settings = modelSettings[modelValue];
+                 if (settings && settings.enabled) {
+                     // Find the model name from availableModels
+                     let modelName = modelValue;
+                     Object.keys(availableModels).forEach(provider => {
+                         const model = availableModels[provider].find(m => m.value === modelValue);
+                         if (model) {
+                             modelName = model.name;
+                         }
+                     });
+                     
+                     const option = document.createElement('option');
+                     option.value = modelValue;
+                     option.textContent = modelName;
+                     
+                     // Mark as selected if it's the current preference
+                     if (modelValue === userPreferences.defaultModel) {
+                         option.selected = true;
+                     }
+                     
+                     select.appendChild(option);
+                 }
+             });
+         }
+         
+         // Check auth status on load and show admin tab if authenticated
+         document.addEventListener('DOMContentLoaded', async () => {
+             const authStatus = await checkAuthStatus();
+             if (authStatus.authenticated) {
+                 document.getElementById('whitelist-tab').style.display = 'inline-block';
+                 // Show settings button for authenticated users
+                 document.getElementById('sidebar-settings-btn').style.display = 'flex';
+             }
+             
+             // Load model settings and update dropdown on page load
+             try {
+                 const response = await fetch('/api/model-settings');
+                 if (response.ok) {
+                     modelSettings = await response.json();
+                     console.log('Loaded modelSettings on page load:', modelSettings);
+                     // Update the dropdown to reflect saved settings
+                     updateModelDropdown();
+                     
+                     // Load user preferences
+                     try {
+                         const prefsResponse = await fetch('/api/preferences');
+                         if (prefsResponse.ok) {
+                             userPreferences = await prefsResponse.json();
+                             console.log('Loaded user preferences:', userPreferences);
+                         }
+                     } catch (error) {
+                         console.error('Failed to load preferences:', error);
+                     }
+                 }
+             } catch (error) {
+                 console.error('Failed to load model settings on page load:', error);
+             }
+         });
     </script>
 </body>
 </html>

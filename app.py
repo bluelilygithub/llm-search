@@ -2440,5 +2440,103 @@ def check_model_access():
 
 # ==================== END MODEL SETTINGS API ====================
 
+# ==================== PREFERENCES API ====================
+
+@app.route('/api/preferences', methods=['GET'])
+def get_preferences():
+    """Get user preferences"""
+    try:
+        # Check if user is authenticated (but don't fail if auth is not available)
+        user_id = None
+        try:
+            from auth import current_user_id
+            user_id = current_user_id()
+        except ImportError:
+            # Auth module not available, continue without authentication
+            pass
+        
+        # For now, allow access even without authentication for demo purposes
+        # You can enhance this to require authentication in production
+        
+        # Load preferences from file
+        preferences_file = os.path.join(app.instance_path, 'user_preferences.json')
+        app.logger.info(f"Preferences file path: {preferences_file}")
+        
+        try:
+            if os.path.exists(preferences_file):
+                import json
+                with open(preferences_file, 'r') as f:
+                    preferences = json.load(f)
+                app.logger.info(f"Loaded preferences from file: {preferences}")
+            else:
+                # Default preferences
+                preferences = {
+                    'defaultModel': 'gpt-3.5-turbo'  # Default to GPT-3.5 Turbo
+                }
+                app.logger.info(f"Using default preferences: {preferences}")
+        except Exception as e:
+            app.logger.error(f"Failed to load or create preferences: {str(e)}")
+            # Return default preferences on error
+            preferences = {
+                'defaultModel': 'gpt-3.5-turbo'
+            }
+        
+        return jsonify(preferences)
+    
+    except Exception as e:
+        app.logger.error(f"Error getting preferences: {str(e)}")
+        return jsonify({'error': 'Failed to get preferences'}), 500
+
+@app.route('/api/preferences', methods=['POST'])
+def save_preferences():
+    """Save user preferences"""
+    try:
+        # Check if user is authenticated (but don't fail if auth is not available)
+        user_id = None
+        try:
+            from auth import current_user_id
+            user_id = current_user_id()
+        except ImportError:
+            # Auth module not available, continue without authentication
+            pass
+        
+        # For now, allow access even without authentication for demo purposes
+        # You can enhance this to require authentication in production
+        
+        preferences = request.get_json()
+        if not preferences:
+            return jsonify({'error': 'No preferences provided'}), 400
+        
+        app.logger.info(f"Received preferences: {preferences}")
+        
+        # Ensure instance path exists
+        try:
+            os.makedirs(app.instance_path, exist_ok=True)
+            app.logger.info(f"Instance path: {app.instance_path}")
+        except Exception as e:
+            app.logger.error(f"Failed to create instance path: {str(e)}")
+            return jsonify({'error': f'Failed to create instance path: {str(e)}'}), 500
+        
+        # Save preferences to file (you can enhance this to use database)
+        preferences_file = os.path.join(app.instance_path, 'user_preferences.json')
+        app.logger.info(f"Preferences file path: {preferences_file}")
+        
+        try:
+            import json
+            with open(preferences_file, 'w') as f:
+                json.dump(preferences, f, indent=2)
+        except Exception as e:
+            app.logger.error(f"Failed to write preferences file: {str(e)}")
+            return jsonify({'error': f'Failed to write preferences file: {str(e)}'}), 500
+        
+        app.logger.info(f"Preferences saved for user {user_id}")
+        return jsonify({'success': True, 'message': 'Preferences saved successfully'})
+    
+    except Exception as e:
+        app.logger.error(f"Error saving preferences: {str(e)}")
+        return jsonify({'error': 'Failed to save preferences'}), 500
+
+# ==================== END PREFERENCES API ====================
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
