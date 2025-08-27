@@ -601,7 +601,19 @@ class KnowledgeBaseApp {
     }
 
     renderMessages(messages) {
-        const container = document.getElementById('chat-messages');
+        // Try to find the appropriate container
+        let container = document.getElementById('chat-messages');
+        
+        // If we're in search results view, use main-content
+        if (!container && this.currentView === 'search-results') {
+            container = document.getElementById('main-content');
+        }
+        
+        if (!container) {
+            console.error('No suitable container found for rendering messages');
+            return;
+        }
+        
         container.innerHTML = '';
 
         // Safety check: ensure messages is an array
@@ -618,7 +630,19 @@ class KnowledgeBaseApp {
     }
 
     addMessageToChat(message) {
-        const container = document.getElementById('chat-messages');
+        // Try to find the appropriate container
+        let container = document.getElementById('chat-messages');
+        
+        // If we're in search results view, use main-content
+        if (!container && this.currentView === 'search-results') {
+            container = document.getElementById('main-content');
+        }
+        
+        if (!container) {
+            console.error('No suitable container found for adding message');
+            return;
+        }
+        
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${message.role} new`;
         
@@ -1602,6 +1626,7 @@ class KnowledgeBaseApp {
     
     // Display comprehensive search results
     displaySearchResults(results, query) {
+        this.currentView = 'search-results';
         const mainContent = document.getElementById('main-content');
         const totalResults = results.conversations.length + results.projects.length + results.contextItems.length;
         
@@ -1690,7 +1715,7 @@ class KnowledgeBaseApp {
             </div>` : '';
         
         return `
-            <div class="search-result-item conversation-result ${isActive ? 'active' : ''}" onclick="window.app.loadConversation('${conv.id}')">
+            <div class="search-result-item conversation-result ${isActive ? 'active' : ''}" onclick="window.app.openConversationFromSearch('${conv.id}')">
                 <div class="search-result-icon">
                     <i class="fas fa-comments"></i>
                 </div>
@@ -1727,7 +1752,7 @@ class KnowledgeBaseApp {
     // Render individual search result context item
     renderSearchResultContextItem(item, query) {
         return `
-            <div class="search-result-item context-result" onclick="window.app.loadConversation('${item.conversation_id}')">
+            <div class="search-result-item context-result" onclick="window.app.openConversationFromSearch('${item.conversation_id}')">
                 <div class="search-result-icon">
                     <i class="fas fa-file-alt"></i>
                 </div>
@@ -1752,6 +1777,7 @@ class KnowledgeBaseApp {
     
     // Show search loading state
     showSearchLoading() {
+        this.currentView = 'search-results';
         const mainContent = document.getElementById('main-content');
         mainContent.innerHTML = `
             <div class="search-results-container">
@@ -1767,11 +1793,35 @@ class KnowledgeBaseApp {
         `;
     }
     
+    // Open conversation from search results (switches to chat view first)
+    openConversationFromSearch(conversationId) {
+        // Switch to chat view first to ensure proper DOM structure
+        this.showChatView();
+        
+        // Ensure the chat interface is visible
+        const chatInterface = document.getElementById('chat-interface');
+        if (chatInterface) {
+            chatInterface.style.display = 'block';
+        }
+        
+        // Then load the conversation
+        setTimeout(() => {
+            this.loadConversation(conversationId);
+        }, 100);
+    }
+
     // Clear search results and restore normal view
     clearSearchResults() {
         const searchInput = document.getElementById('conversation-search');
         if (searchInput) {
             searchInput.value = '';
+        }
+        
+        // Ensure we're working with the main-content div for view restoration
+        const mainContent = document.getElementById('main-content');
+        if (!mainContent) {
+            console.error('main-content div not found');
+            return;
         }
         
         // Restore normal view based on current state
@@ -1845,15 +1895,35 @@ class KnowledgeBaseApp {
     }
 
     scrollToBottom() {
-        const container = document.getElementById('chat-messages');
-        container.scrollTop = container.scrollHeight;
+        // Try to find the appropriate container
+        let container = document.getElementById('chat-messages');
+        
+        // If we're in search results view, use main-content
+        if (!container && this.currentView === 'search-results') {
+            container = document.getElementById('main-content');
+        }
+        
+        if (container) {
+            container.scrollTop = container.scrollHeight;
+        }
     }
 
     showError(message) {
         console.error(message);
         
         // Display error as a message in the chat
-        const container = document.getElementById('chat-messages');
+        let container = document.getElementById('chat-messages');
+        
+        // If we're in search results view, use main-content
+        if (!container && this.currentView === 'search-results') {
+            container = document.getElementById('main-content');
+        }
+        
+        if (!container) {
+            console.error('No suitable container found for showing error');
+            return;
+        }
+        
         const errorDiv = document.createElement('div');
         errorDiv.className = 'message assistant error';
         errorDiv.innerHTML = `
@@ -3408,11 +3478,16 @@ KnowledgeBaseApp.prototype.loadConversation = function(conversationId) {
 // Show home view in main content area
 KnowledgeBaseApp.prototype.showHomeView = function() {
     this.currentView = 'home';
-    const container = document.getElementById('chat-messages');
+    const container = document.getElementById('main-content');
     
     // Update top bar to hide context toggle
     const contextToggle = document.getElementById('context-toggle-btn');
     if (contextToggle) contextToggle.style.display = 'none';
+    
+    if (!container) {
+        console.error('main-content div not found');
+        return;
+    }
     
     container.innerHTML = `
         <div class="main-view">
@@ -3493,11 +3568,16 @@ KnowledgeBaseApp.prototype.showHomeView = function() {
 // Show conversations list view in main content area
 KnowledgeBaseApp.prototype.showConversationsView = function() {
     this.currentView = 'conversations';
-    const container = document.getElementById('chat-messages');
+    const container = document.getElementById('main-content');
     
     // Update top bar to hide context toggle
     const contextToggle = document.getElementById('context-toggle-btn');
     if (contextToggle) contextToggle.style.display = 'none';
+    
+    if (!container) {
+        console.error('main-content div not found');
+        return;
+    }
     
     container.innerHTML = `
         <div class="main-view">
@@ -3536,11 +3616,16 @@ KnowledgeBaseApp.prototype.showConversationsView = function() {
 // Show projects grid view in main content area
 KnowledgeBaseApp.prototype.showProjectsView = function() {
     this.currentView = 'projects';
-    const container = document.getElementById('chat-messages');
+    const container = document.getElementById('main-content');
     
     // Update top bar to hide context toggle
     const contextToggle = document.getElementById('context-toggle-btn');
     if (contextToggle) contextToggle.style.display = 'none';
+    
+    if (!container) {
+        console.error('main-content div not found');
+        return;
+    }
     
     container.innerHTML = `
         <div class="main-view">
@@ -3580,7 +3665,12 @@ KnowledgeBaseApp.prototype.showProjectsView = function() {
 KnowledgeBaseApp.prototype.showProjectConversationsView = function(project) {
     this.currentView = 'project-conversations';
     this.currentViewProject = project;
-    const container = document.getElementById('chat-messages');
+    const container = document.getElementById('main-content');
+    
+    if (!container) {
+        console.error('main-content div not found');
+        return;
+    }
     
     container.innerHTML = `
         <div class="main-view">
@@ -3865,7 +3955,21 @@ KnowledgeBaseApp.prototype.openProject = function(projectId) {
 // Show normal chat view
 KnowledgeBaseApp.prototype.showChatView = function() {
     this.currentView = 'chat';
-    const container = document.getElementById('chat-messages');
+    
+    // Determine which container to use based on current view state
+    let container = document.getElementById('chat-messages');
+    let isMainContent = false;
+    
+    // If we're coming from search results, use main-content
+    if (this.currentView === 'search-results' || !container) {
+        container = document.getElementById('main-content');
+        isMainContent = true;
+    }
+    
+    if (!container) {
+        console.error('No suitable container found for chat view');
+        return;
+    }
     
     // Note: Project context is now preserved by the caller when needed
     // Only clear if explicitly switching away from project context
@@ -3891,15 +3995,17 @@ KnowledgeBaseApp.prototype.showChatView = function() {
     
     // Show empty state or current conversation
     if (!this.currentConversationId) {
-        container.innerHTML = `
-            <div class="empty-state">
-                <div class="empty-state-icon">
-                    <i class="fas fa-comments"></i>
+        if (container) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">
+                        <i class="fas fa-comments"></i>
+                    </div>
+                    <h2 class="empty-state-title">New Conversation</h2>
+                    <p class="empty-state-description">Start a conversation or search your knowledge base.</p>
                 </div>
-                <h2 class="empty-state-title">New Conversation</h2>
-                <p class="empty-state-description">Start a conversation or search your knowledge base.</p>
-            </div>
-        `;
+            `;
+        }
     }
     // If there's a current conversation, it will be loaded by the caller
 };
