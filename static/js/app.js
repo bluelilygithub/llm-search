@@ -4170,10 +4170,10 @@ KnowledgeBaseApp.prototype.handleDocumentClick = function(filename) {
     }
 };
 
-// Focus on first input
-setTimeout(() => {
-    document.getElementById('edit-context-name').focus();
-}, 100);
+// Focus on first input - only when modal is open
+// setTimeout(() => {
+//     document.getElementById('edit-context-name').focus();
+// }, 100);
 
 // Submit edit context form
 function submitEditContext() {
