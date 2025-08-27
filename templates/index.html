@@ -1367,29 +1367,55 @@
 
         function updateModelDropdown() {
             const dropdown = document.getElementById('llm-model');
-            const options = dropdown.querySelectorAll('option');
+            if (!dropdown) {
+                console.error('Model dropdown not found');
+                return;
+            }
             
             console.log('Updating model dropdown with modelSettings:', modelSettings);
             
-            options.forEach(option => {
+            // Get all options, including those in optgroups
+            const allOptions = dropdown.querySelectorAll('option');
+            console.log('Found options:', allOptions.length);
+            
+            allOptions.forEach(option => {
                 const modelValue = option.value;
                 const settings = modelSettings[modelValue];
                 
+                console.log(`Processing option: ${modelValue}, settings:`, settings);
+                
                 if (settings) {
-                    // Show model only if it's enabled (ignore status - let admin decide via checkboxes)
+                    // Show model only if it's enabled
                     if (settings.enabled) {
                         option.style.display = '';
+                        option.disabled = false;
                         console.log(`Model ${modelValue}: showing (enabled)`);
                     } else {
                         option.style.display = 'none';
+                        option.disabled = true;
                         console.log(`Model ${modelValue}: hiding (disabled)`);
                     }
                 } else {
                     // If no settings found, show by default (for backward compatibility)
                     option.style.display = '';
+                    option.disabled = false;
                     console.log(`Model ${modelValue}: showing (no settings found)`);
                 }
             });
+            
+            // Also update the selected option if the current selection is now disabled
+            const currentValue = dropdown.value;
+            const currentSettings = modelSettings[currentValue];
+            if (currentSettings && !currentSettings.enabled) {
+                // Find the first enabled model
+                const firstEnabled = Object.keys(modelSettings).find(model => 
+                    modelSettings[model] && modelSettings[model].enabled
+                );
+                if (firstEnabled) {
+                    dropdown.value = firstEnabled;
+                    console.log(`Changed selection from ${currentValue} to ${firstEnabled}`);
+                }
+            }
         }
 
         // Check auth status on load and show admin tab if authenticated
@@ -1399,6 +1425,19 @@
                 document.getElementById('whitelist-tab').style.display = 'inline-block';
                 // Show settings button for authenticated users
                 document.getElementById('sidebar-settings-btn').style.display = 'flex';
+            }
+            
+            // Load model settings and update dropdown on page load
+            try {
+                const response = await fetch('/api/model-settings');
+                if (response.ok) {
+                    modelSettings = await response.json();
+                    console.log('Loaded modelSettings on page load:', modelSettings);
+                    // Update the dropdown to reflect saved settings
+                    updateModelDropdown();
+                }
+            } catch (error) {
+                console.error('Failed to load model settings on page load:', error);
             }
         });
     </script>
