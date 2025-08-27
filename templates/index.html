@@ -414,6 +414,10 @@
                                  <i class="fas fa-info-circle"></i>
                                  Debug Dropdown State
                              </button>
+                             <button class="btn-secondary" onclick="debugCurrentState()" style="margin-top: 10px; margin-left: 10px;">
+                                 <i class="fas fa-bug"></i>
+                                 Debug Current State
+                             </button>
                          </div>
                      </div>
                  </div>
@@ -1479,33 +1483,37 @@
              console.log(`Current settings for ${currentValue}:`, currentSettings);
              console.log(`User preferred default: ${userPreferences.defaultModel}`);
              
-             if (!currentValue || (currentSettings && !currentSettings.enabled)) {
-                 // First try to use the user's preferred default model
-                 let newSelection = null;
-                 if (userPreferences.defaultModel && modelSettings[userPreferences.defaultModel] && modelSettings[userPreferences.defaultModel].enabled) {
-                     newSelection = userPreferences.defaultModel;
-                     console.log(`Using preferred default model: ${newSelection}`);
-                 } else {
-                     // Fall back to first enabled model
-                     newSelection = Object.keys(modelSettings).find(model => 
-                         modelSettings[model] && modelSettings[model].enabled
-                     );
-                     console.log(`Falling back to first enabled model: ${newSelection}`);
-                 }
-                 
-                 if (newSelection) {
-                     // Find the actual option element to set
-                     const targetOption = dropdown.querySelector(`option[value="${newSelection}"]`);
-                     if (targetOption) {
-                         dropdown.value = newSelection;
-                         console.log(`Set dropdown to: ${newSelection} (found option element)`);
-                     } else {
-                         console.error(`Could not find option element for value: ${newSelection}`);
-                     }
-                 }
-             } else {
-                 console.log(`Keeping current selection: ${currentValue}`);
-             }
+                                             // Always prioritize user's saved preference if available and enabled
+               if (userPreferences.defaultModel && modelSettings[userPreferences.defaultModel] && modelSettings[userPreferences.defaultModel].enabled) {
+                   // User has a saved preference and it's enabled - use it
+                   if (dropdown.value !== userPreferences.defaultModel) {
+                       dropdown.value = userPreferences.defaultModel;
+                       console.log(`Set dropdown to user's saved preference: ${userPreferences.defaultModel}`);
+                   }
+               } else if (!currentValue || (currentSettings && !currentSettings.enabled)) {
+                   // No current selection or current selection is disabled, and no saved preference
+                   // Only set a fallback if there's no current value at all
+                   if (!currentValue) {
+                       const newSelection = Object.keys(modelSettings).find(model => 
+                           modelSettings[model] && modelSettings[model].enabled
+                       );
+                       
+                       if (newSelection) {
+                           // Find the actual option element to set
+                           const targetOption = dropdown.querySelector(`option[value="${newSelection}"]`);
+                           if (targetOption) {
+                               dropdown.value = newSelection;
+                               console.log(`Set dropdown to first enabled model: ${newSelection}`);
+                           } else {
+                               console.error(`Could not find option element for value: ${newSelection}`);
+                           }
+                       }
+                   } else {
+                       console.log(`Current selection ${currentValue} is disabled, but keeping it to avoid unwanted changes`);
+                   }
+               } else {
+                   console.log(`Keeping current selection: ${currentValue}`);
+               }
          }
 
                  // Preferences management
@@ -1680,8 +1688,18 @@
              console.log('=== END DEBUG INFO ===');
          }
          
-         // Debug function to manually set dropdown value
-         function debugSetDropdownValue(value) {
+                   // Debug function to log current state
+          function debugCurrentState() {
+              console.log('=== CURRENT STATE DEBUG ===');
+              console.log('modelSettings:', modelSettings);
+              console.log('userPreferences:', userPreferences);
+              console.log('Current dropdown value:', document.getElementById('llm-model')?.value);
+              console.log('Current dropdown selected option:', document.getElementById('llm-model')?.selectedOptions[0]?.textContent);
+              console.log('=== END STATE DEBUG ===');
+          }
+          
+          // Debug function to manually set dropdown value
+          function debugSetDropdownValue(value) {
              const dropdown = document.getElementById('llm-model');
              if (!dropdown) {
                  console.error('Model dropdown not found');
@@ -1715,29 +1733,35 @@
                  document.getElementById('sidebar-settings-btn').style.display = 'flex';
              }
              
-             // Load model settings and update dropdown on page load
-             try {
-                 const response = await fetch('/api/model-settings');
-                 if (response.ok) {
-                     modelSettings = await response.json();
-                     console.log('Loaded modelSettings on page load:', modelSettings);
-                     // Update the dropdown to reflect saved settings
-                     updateModelDropdown();
-                     
-                     // Load user preferences
-                     try {
-                         const prefsResponse = await fetch('/api/preferences');
-                         if (prefsResponse.ok) {
-                             userPreferences = await prefsResponse.json();
-                             console.log('Loaded user preferences:', userPreferences);
-                         }
-                     } catch (error) {
-                         console.error('Failed to load preferences:', error);
-                     }
-                 }
-             } catch (error) {
-                 console.error('Failed to load model settings on page load:', error);
-             }
+                               // Load model settings and user preferences on page load
+              try {
+                  // Load both model settings and preferences in parallel
+                  const [modelResponse, prefsResponse] = await Promise.all([
+                      fetch('/api/model-settings'),
+                      fetch('/api/preferences')
+                  ]);
+                  
+                  if (modelResponse.ok) {
+                      modelSettings = await modelResponse.json();
+                      console.log('Loaded modelSettings on page load:', modelSettings);
+                  }
+                  
+                  if (prefsResponse.ok) {
+                      userPreferences = await prefsResponse.json();
+                      console.log('Loaded user preferences:', userPreferences);
+                  }
+                  
+                  // Now update the dropdown AFTER both are loaded
+                  updateModelDropdown();
+                  
+                  // Also ensure the preferences dropdown is populated if we're on the preferences section
+                  if (document.getElementById('preferences-section').classList.contains('active')) {
+                      populateDefaultModelSelect();
+                  }
+                  
+              } catch (error) {
+                  console.error('Failed to load data on page load:', error);
+              }
          });
     </script>
 </body>
