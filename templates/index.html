@@ -121,7 +121,7 @@
                             <optgroup label="Anthropic">
                                 <option value="claude-3.5-sonnet">Claude 3.5 Sonnet</option>
                                 <option value="claude-3-opus">Claude 3 Opus</option>
-                                <option value="claude-3-sonnet">Claude 3 Sonnet</option>
+                                <option value="claude-3-sonnet-v2">Claude 3 Sonnet</option>
                                 <option value="claude-3-haiku">Claude 3 Haiku</option>
                             </optgroup>
                             <optgroup label="Google">
@@ -405,6 +405,14 @@
                              <button class="btn-secondary" onclick="populateDefaultModelSelect()" style="margin-top: 10px; margin-left: 10px;">
                                  <i class="fas fa-refresh"></i>
                                  Refresh Models
+                             </button>
+                             <button class="btn-secondary" onclick="debugSetDropdownValue('claude-3-sonnet-v2')" style="margin-top: 10px; margin-left: 10px;">
+                                 <i class="fas fa-bug"></i>
+                                 Test Claude 3 Sonnet
+                             </button>
+                             <button class="btn-secondary" onclick="debugDropdownState()" style="margin-top: 10px; margin-left: 10px;">
+                                 <i class="fas fa-info-circle"></i>
+                                 Debug Dropdown State
                              </button>
                          </div>
                      </div>
@@ -1156,7 +1164,7 @@
             anthropic: [
                 { value: 'claude-3.5-sonnet', name: 'Claude 3.5 Sonnet', description: 'Latest high-performance Claude model' },
                 { value: 'claude-3-opus', name: 'Claude 3 Opus', description: 'Most capable Claude model' },
-                { value: 'claude-3-sonnet', name: 'Claude 3 Sonnet', description: 'Balanced performance and speed' },
+                { value: 'claude-3-sonnet-v2', name: 'Claude 3 Sonnet', description: 'Balanced performance and speed' },
                 { value: 'claude-3-haiku', name: 'Claude 3 Haiku', description: 'Fast and efficient Claude model' }
             ],
             google: [
@@ -1463,9 +1471,13 @@
                  }
              });
              
-             // Set the default model if no model is currently selected or if current selection is disabled
+                              // Set the default model if no model is currently selected or if current selection is disabled
              const currentValue = dropdown.value;
              const currentSettings = modelSettings[currentValue];
+             
+             console.log(`Current dropdown value: ${currentValue}`);
+             console.log(`Current settings for ${currentValue}:`, currentSettings);
+             console.log(`User preferred default: ${userPreferences.defaultModel}`);
              
              if (!currentValue || (currentSettings && !currentSettings.enabled)) {
                  // First try to use the user's preferred default model
@@ -1482,9 +1494,17 @@
                  }
                  
                  if (newSelection) {
-                     dropdown.value = newSelection;
-                     console.log(`Set dropdown to: ${newSelection}`);
+                     // Find the actual option element to set
+                     const targetOption = dropdown.querySelector(`option[value="${newSelection}"]`);
+                     if (targetOption) {
+                         dropdown.value = newSelection;
+                         console.log(`Set dropdown to: ${newSelection} (found option element)`);
+                     } else {
+                         console.error(`Could not find option element for value: ${newSelection}`);
+                     }
                  }
+             } else {
+                 console.log(`Keeping current selection: ${currentValue}`);
              }
          }
 
@@ -1521,8 +1541,23 @@
                      if (userPreferences.defaultModel) {
                          const mainDropdown = document.getElementById('llm-model');
                          if (mainDropdown) {
-                             mainDropdown.value = userPreferences.defaultModel;
-                             console.log('Updated main dropdown to default model:', userPreferences.defaultModel);
+                             console.log(`Attempting to set main dropdown to: ${userPreferences.defaultModel}`);
+                             console.log('Current dropdown value before:', mainDropdown.value);
+                             
+                             // Find the actual option element
+                             const targetOption = mainDropdown.querySelector(`option[value="${userPreferences.defaultModel}"]`);
+                             if (targetOption) {
+                                 mainDropdown.value = userPreferences.defaultModel;
+                                 console.log('Successfully updated main dropdown to default model:', userPreferences.defaultModel);
+                                 console.log('New dropdown value:', mainDropdown.value);
+                                 console.log('Selected option text:', targetOption.textContent);
+                             } else {
+                                 console.error(`Could not find option with value: ${userPreferences.defaultModel}`);
+                                 console.log('Available options:');
+                                 mainDropdown.querySelectorAll('option').forEach(option => {
+                                     console.log(`- ${option.value}: ${option.textContent}`);
+                                 });
+                             }
                          }
                      }
                      alert('Preferences saved successfully!');
@@ -1616,7 +1651,60 @@
             }
             
             console.log(`Populated preferences dropdown with ${enabledModelsCount} enabled models`);
-        }
+                 }
+         
+         // Debug function to check dropdown state
+         function debugDropdownState() {
+             const dropdown = document.getElementById('llm-model');
+             if (!dropdown) {
+                 console.error('Model dropdown not found');
+                 return;
+             }
+             
+             console.log('=== DROPDOWN DEBUG INFO ===');
+             console.log('Current dropdown value:', dropdown.value);
+             console.log('User preferences:', userPreferences);
+             console.log('Model settings:', modelSettings);
+             
+             const selectedOption = dropdown.querySelector(`option[value="${dropdown.value}"]`);
+             if (selectedOption) {
+                 console.log('Selected option text:', selectedOption.textContent);
+                 console.log('Selected option disabled:', selectedOption.disabled);
+                 console.log('Selected option display:', selectedOption.style.display);
+             }
+             
+             console.log('All options:');
+             dropdown.querySelectorAll('option').forEach(option => {
+                 console.log(`- ${option.value}: ${option.textContent} (disabled: ${option.disabled}, display: ${option.style.display})`);
+             });
+             console.log('=== END DEBUG INFO ===');
+         }
+         
+         // Debug function to manually set dropdown value
+         function debugSetDropdownValue(value) {
+             const dropdown = document.getElementById('llm-model');
+             if (!dropdown) {
+                 console.error('Model dropdown not found');
+                 return;
+             }
+             
+             console.log(`Attempting to set dropdown to: ${value}`);
+             
+             // Check if the option exists
+             const targetOption = dropdown.querySelector(`option[value="${value}"]`);
+             if (targetOption) {
+                 dropdown.value = value;
+                 console.log(`Successfully set dropdown to: ${value}`);
+                 console.log('Current dropdown value:', dropdown.value);
+                 console.log('Selected option:', targetOption.textContent);
+             } else {
+                 console.error(`Option with value "${value}" not found in dropdown`);
+                 console.log('Available options:');
+                 dropdown.querySelectorAll('option').forEach(option => {
+                     console.log(`- ${option.value}: ${option.textContent}`);
+                 });
+             }
+         }
          
          // Check auth status on load and show admin tab if authenticated
          document.addEventListener('DOMContentLoaded', async () => {
