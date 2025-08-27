@@ -1944,6 +1944,110 @@ def search_conversations():
         app.logger.error(f"Error searching conversations: {str(e)}")
         return jsonify({'success': False, 'error': 'Search failed'}), 500
 
+@app.route('/api/search/projects', methods=['GET'])
+def search_projects():
+    """Search projects by name"""
+    try:
+        query = request.args.get('query', '').strip()
+        limit = int(request.args.get('limit', 20))
+        
+        if not query:
+            return jsonify({'success': False, 'error': 'Query parameter is required'}), 400
+        
+        from models import Project
+        
+        # Search projects by name
+        projects = filter_projects_by_user(
+            db.session.query(Project).filter(Project.name.ilike(f'%{query}%'))
+        ).order_by(Project.created_at.desc()).limit(limit).all()
+        
+        # Format results
+        results = []
+        for proj in projects:
+            # Count conversations in this project
+            conversation_count = db.session.query(Conversation).filter(
+                Conversation.project_id == proj.id
+            ).count()
+            
+            results.append({
+                'id': str(proj.id),
+                'name': proj.name,
+                'description': proj.description,
+                'created_at': proj.created_at.isoformat(),
+                'updated_at': proj.updated_at.isoformat(),
+                'conversation_count': conversation_count
+            })
+        
+        return jsonify({
+            'success': True,
+            'query': query,
+            'total_results': len(results),
+            'projects': results
+        })
+        
+    except Exception as e:
+        app.logger.error(f"Error searching projects: {str(e)}")
+        return jsonify({'success': False, 'error': 'Search failed'}), 500
+
+@app.route('/api/search/context', methods=['GET'])
+def search_context():
+    """Search context items by filename and content"""
+    try:
+        query = request.args.get('query', '').strip()
+        limit = int(request.args.get('limit', 20))
+        
+        if not query:
+            return jsonify({'success': False, 'error': 'Query parameter is required'}), 400
+        
+        from models import ContextItem, Project
+        from sqlalchemy import or_
+        
+        # Search context items by filename and content
+        context_items = filter_context_items_by_user(
+            db.session.query(ContextItem).filter(
+                or_(
+                    ContextItem.filename.ilike(f'%{query}%'),
+                    ContextItem.content.ilike(f'%{query}%')
+                )
+            )
+        ).order_by(ContextItem.created_at.desc()).limit(limit).all()
+        
+        # Format results
+        results = []
+        for item in context_items:
+            # Get project name if available
+            project_name = None
+            if item.project_id:
+                project = db.session.get(Project, item.project_id)
+                if project:
+                    project_name = project.name
+            
+            # Create content preview
+            content_preview = item.content[:200] + "..." if len(item.content) > 200 else item.content
+            
+            results.append({
+                'id': str(item.id),
+                'filename': item.filename,
+                'content_type': item.content_type,
+                'content_preview': content_preview,
+                'conversation_id': str(item.conversation_id) if item.conversation_id else None,
+                'project_id': str(item.project_id) if item.project_id else None,
+                'project_name': project_name,
+                'created_at': item.created_at.isoformat(),
+                'updated_at': item.updated_at.isoformat()
+            })
+        
+        return jsonify({
+            'success': True,
+            'query': query,
+            'total_results': len(results),
+            'context_items': results
+        })
+        
+    except Exception as e:
+        app.logger.error(f"Error searching context items: {str(e)}")
+        return jsonify({'success': False, 'error': 'Search failed'}), 500
+
 # ==================== END SEARCH API ====================
 
 # ==================== TAG API ====================

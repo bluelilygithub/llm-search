@@ -1520,149 +1520,273 @@ class KnowledgeBaseApp {
         console.log('URL references:', this.urlReferences);
     }
 
-    // Search conversations
+    // Search conversations, projects, and context items
     async searchConversations() {
         const query = document.getElementById('conversation-search').value.trim();
         console.log(`DEBUG: searchConversations called with query: "${query}"`);
         
         if (!query) {
-            console.log('DEBUG: Empty query, reloading conversations');
-            // If empty query, reload normal conversations and clear highlights
-            this.loadConversations();
-            this.clearSearchHighlights();
+            console.log('DEBUG: Empty query, clearing search and restoring normal view');
+            this.clearSearchResults();
             return;
         }
         
-        // Use client-side filtering for all tag searches
-        // This preserves the tag display and highlighting
-        console.log(`DEBUG: Using client-side filtering for query: "${query}"`);
-        this.filterConversationsClientSide(query.toLowerCase());
-        return;
+        console.log(`DEBUG: Performing search for query: "${query}"`);
         
         try {
-            // Build search URL with project awareness
-            let searchUrl = `/api/search/conversations?query=${encodeURIComponent(query)}`;
-            if (this.currentProject && this.currentProject.id) {
-                searchUrl += `&project_id=${this.currentProject.id}`;
-            }
+            // Show loading state
+            this.showSearchLoading();
             
-            const response = await fetch(searchUrl);
-            const data = await response.json();
+            // Perform search across all content types
+            const searchResults = await this.performComprehensiveSearch(query);
             
-            if (data.success) {
-                this.renderSearchResults(data.conversations, query);
-            } else {
-                console.error('Search failed:', data.error);
-                this.showErrorNotification('Search failed: ' + data.error);
-            }
+            // Display search results
+            this.displaySearchResults(searchResults, query);
+            
         } catch (error) {
             console.error('Search error:', error);
-            this.showErrorNotification('Search failed');
+            this.showErrorNotification('Search failed: ' + error.message);
+            this.clearSearchResults();
         }
     }
     
-    filterConversationsClientSide(query) {
-        const items = document.querySelectorAll('.conversation-item');
-        console.log(`Filtering ${items.length} conversations for query: "${query}"`);
+    // Perform comprehensive search across conversations, projects, and context items
+    async performComprehensiveSearch(query) {
+        const results = {
+            conversations: [],
+            projects: [],
+            contextItems: []
+        };
         
-        items.forEach(item => {
-            const titleElem = item.querySelector('.conversation-title');
-            if (!titleElem) return; // Skip project items
-            
-            const title = titleElem.textContent.toLowerCase();
-            const tagsContainer = item.querySelector('.conversation-tags');
-            const tags = (tagsContainer?.textContent || '').toLowerCase();
-            
-            console.log(`Conversation: "${title}", Tags: "${tags}"`);
-            console.log(`Title match: ${title.includes(query)}, Tags match: ${tags.includes(query)}`);
-            
-            if (title.includes(query) || tags.includes(query)) {
-                console.log(`MATCH FOUND: Showing conversation "${title}"`);
-                item.style.display = 'block';
-                
-                // Highlight matching tags
-                if (tagsContainer && tags.includes(query)) {
-                    const tagElements = tagsContainer.querySelectorAll('.tag');
-                    tagElements.forEach(tagElem => {
-                        const tagText = tagElem.textContent.toLowerCase();
-                        if (tagText.includes(query)) {
-                            tagElem.classList.add('tag-match');
-                            // Add highlighting within the tag
-                            const originalText = tagElem.textContent;
-                            const regex = new RegExp(`(${query})`, 'gi');
-                            tagElem.innerHTML = originalText.replace(regex, '<mark>$1</mark>');
-                        } else {
-                            tagElem.classList.remove('tag-match');
-                            tagElem.innerHTML = tagElem.textContent; // Remove any existing highlights
-                        }
-                    });
+        try {
+            // Search conversations
+            const convResponse = await fetch(`/api/search/conversations?query=${encodeURIComponent(query)}`);
+            if (convResponse.ok) {
+                const convData = await convResponse.json();
+                if (convData.success) {
+                    results.conversations = convData.conversations || [];
                 }
-            } else {
-                item.style.display = 'none';
             }
-        });
-    }
-    
-    clearSearchHighlights() {
-        const tagElements = document.querySelectorAll('.conversation-tags .tag');
-        tagElements.forEach(tagElem => {
-            tagElem.classList.remove('tag-match');
-            // Remove any mark tags but preserve the text content
-            tagElem.innerHTML = tagElem.textContent;
-        });
-    }
-    
-    renderSearchResults(conversations, query) {
-        const container = document.querySelector('.conversations-list');
+        } catch (error) {
+            console.warn('Conversation search failed:', error);
+        }
         
-        if (conversations.length === 0) {
-            container.innerHTML = `
-                <div style="padding: 20px; text-align: center; color: #666; font-style: italic;">
-                    No conversations found for "${query}"
-                    ${this.currentProject ? ` in ${this.currentProject.name}` : ''}
+        try {
+            // Search projects
+            const projResponse = await fetch(`/api/search/projects?query=${encodeURIComponent(query)}`);
+            if (projResponse.ok) {
+                const projData = await projResponse.json();
+                if (projData.success) {
+                    results.projects = projData.projects || [];
+                }
+            }
+        } catch (error) {
+            console.warn('Project search failed:', error);
+        }
+        
+        try {
+            // Search context items
+            const contextResponse = await fetch(`/api/search/context?query=${encodeURIComponent(query)}`);
+            if (contextResponse.ok) {
+                const contextData = await contextResponse.json();
+                if (contextData.success) {
+                    results.contextItems = contextData.context_items || [];
+                }
+            }
+        } catch (error) {
+            console.warn('Context search failed:', error);
+        }
+        
+        return results;
+    }
+    
+    // Display comprehensive search results
+    displaySearchResults(results, query) {
+        const mainContent = document.getElementById('main-content');
+        const totalResults = results.conversations.length + results.projects.length + results.contextItems.length;
+        
+        if (totalResults === 0) {
+            mainContent.innerHTML = `
+                <div class="search-results-container">
+                    <div class="search-header">
+                        <h2>Search Results</h2>
+                        <div class="search-summary">No results found for "${query}"</div>
+                    </div>
+                    <div class="search-results-empty">
+                        <i class="fas fa-search"></i>
+                        <p>No conversations, projects, or context items match your search.</p>
+                        <button class="btn btn-primary" onclick="window.app.clearSearchResults()">
+                            <i class="fas fa-arrow-left"></i> Back to Normal View
+                        </button>
+                    </div>
                 </div>
             `;
             return;
         }
         
-        container.innerHTML = conversations.map(conv => {
-            const isActive = this.currentConversationId === conv.id;
-            
-            // Highlight matching tags and build tags display
-            const tags = conv.tags.length > 0 ? 
-                `<div class="conversation-tags">
-                    ${conv.tags.map(tag => {
-                        const isMatch = tag.toLowerCase().includes(query.toLowerCase());
-                        const highlightedTag = isMatch ? tag.replace(new RegExp(`(${query})`, 'gi'), '<mark>$1</mark>') : tag;
-                        return `<span class="tag${isMatch ? ' tag-match' : ''}">${highlightedTag}</span>`;
-                    }).join('')}
-                </div>` : '';
-            
-            // Show snippets with highlighted query terms
-            const snippets = conv.snippets.map(snippet => {
-                let content = snippet.content;
-                // Highlight search terms (simple highlighting)
-                const regex = new RegExp(`(${query})`, 'gi');
-                content = content.replace(regex, '<mark>$1</mark>');
-                
-                return `<div class="search-snippet" style="font-size: 11px; color: #666; margin-top: 4px; line-height: 1.3;">
-                    ${snippet.role === 'title' ? '<strong>Title:</strong> ' : 
-                      snippet.role === 'user' ? '<strong>You:</strong> ' : '<strong>AI:</strong> '}
-                    ${content}
-                </div>`;
-            }).join('');
-            
-            return `
-                <div class="conversation-item ${isActive ? 'active' : ''}" onclick="window.app.loadConversation('${conv.id}')">
-                    <div class="conversation-title">${conv.title}</div>
-                    <div class="conversation-meta">
-                        <span>${new Date(conv.updated_at).toLocaleDateString()}</span>
+        let resultsHtml = `
+            <div class="search-results-container">
+                <div class="search-header">
+                    <h2>Search Results</h2>
+                    <div class="search-summary">
+                        Found ${totalResults} result${totalResults !== 1 ? 's' : ''} for "${query}"
                     </div>
-                    ${tags}
-                    ${snippets}
+                    <button class="btn btn-secondary" onclick="window.app.clearSearchResults()">
+                        <i class="fas fa-arrow-left"></i> Back to Normal View
+                    </button>
+                </div>
+        `;
+        
+        // Display conversations
+        if (results.conversations.length > 0) {
+            resultsHtml += `
+                <div class="search-section">
+                    <h3><i class="fas fa-comments"></i> Conversations (${results.conversations.length})</h3>
+                    <div class="search-results-list">
+                        ${results.conversations.map(conv => this.renderSearchResultConversation(conv, query)).join('')}
+                    </div>
                 </div>
             `;
-        }).join('');
+        }
+        
+        // Display projects
+        if (results.projects.length > 0) {
+            resultsHtml += `
+                <div class="search-section">
+                    <h3><i class="fas fa-folder"></i> Projects (${results.projects.length})</h3>
+                    <div class="search-results-list">
+                        ${results.projects.map(proj => this.renderSearchResultProject(proj, query)).join('')}
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Display context items
+        if (results.contextItems.length > 0) {
+            resultsHtml += `
+                <div class="search-section">
+                    <h3><i class="fas fa-file-alt"></i> Context Items (${results.contextItems.length})</h3>
+                    <div class="search-results-list">
+                        ${results.contextItems.map(item => this.renderSearchResultContextItem(item, query)).join('')}
+                    </div>
+                </div>
+            `;
+        }
+        
+        resultsHtml += '</div>';
+        mainContent.innerHTML = resultsHtml;
+    }
+    
+    // Render individual search result conversation
+    renderSearchResultConversation(conv, query) {
+        const isActive = this.currentConversationId === conv.id;
+        const tags = conv.tags && conv.tags.length > 0 ? 
+            `<div class="search-result-tags">
+                ${conv.tags.map(tag => {
+                    const isMatch = tag.toLowerCase().includes(query.toLowerCase());
+                    const highlightedTag = isMatch ? tag.replace(new RegExp(`(${query})`, 'gi'), '<mark>$1</mark>') : tag;
+                    return `<span class="tag${isMatch ? ' tag-match' : ''}">${highlightedTag}</span>`;
+                }).join('')}
+            </div>` : '';
+        
+        return `
+            <div class="search-result-item conversation-result ${isActive ? 'active' : ''}" onclick="window.app.loadConversation('${conv.id}')">
+                <div class="search-result-icon">
+                    <i class="fas fa-comments"></i>
+                </div>
+                <div class="search-result-content">
+                    <div class="search-result-title">${this.highlightQuery(conv.title, query)}</div>
+                    <div class="search-result-meta">
+                        <span class="search-result-date">${new Date(conv.updated_at).toLocaleDateString()}</span>
+                        ${conv.project_name ? `<span class="search-result-project">in ${conv.project_name}</span>` : ''}
+                    </div>
+                    ${tags}
+                </div>
+            </div>
+        `;
+    }
+    
+    // Render individual search result project
+    renderSearchResultProject(proj, query) {
+        return `
+            <div class="search-result-item project-result" onclick="window.app.openProject('${proj.id}')">
+                <div class="search-result-icon">
+                    <i class="fas fa-folder"></i>
+                </div>
+                <div class="search-result-content">
+                    <div class="search-result-title">${this.highlightQuery(proj.name, query)}</div>
+                    <div class="search-result-meta">
+                        <span class="search-result-date">Created ${new Date(proj.created_at).toLocaleDateString()}</span>
+                        <span class="search-result-count">${proj.conversation_count || 0} conversations</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Render individual search result context item
+    renderSearchResultContextItem(item, query) {
+        return `
+            <div class="search-result-item context-result" onclick="window.app.loadConversation('${item.conversation_id}')">
+                <div class="search-result-icon">
+                    <i class="fas fa-file-alt"></i>
+                </div>
+                <div class="search-result-content">
+                    <div class="search-result-title">${this.highlightQuery(item.filename, query)}</div>
+                    <div class="search-result-meta">
+                        <span class="search-result-type">${item.content_type || 'Document'}</span>
+                        ${item.project_name ? `<span class="search-result-project">in ${item.project_name}</span>` : ''}
+                    </div>
+                    <div class="search-result-preview">${this.highlightQuery(item.content_preview || '', query)}</div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Highlight search query in text
+    highlightQuery(text, query) {
+        if (!text || !query) return text;
+        const regex = new RegExp(`(${query})`, 'gi');
+        return text.replace(regex, '<mark>$1</mark>');
+    }
+    
+    // Show search loading state
+    showSearchLoading() {
+        const mainContent = document.getElementById('main-content');
+        mainContent.innerHTML = `
+            <div class="search-results-container">
+                <div class="search-header">
+                    <h2>Search Results</h2>
+                    <div class="search-summary">Searching...</div>
+                </div>
+                <div class="search-loading">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Searching conversations, projects, and context items...</p>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Clear search results and restore normal view
+    clearSearchResults() {
+        const searchInput = document.getElementById('conversation-search');
+        if (searchInput) {
+            searchInput.value = '';
+        }
+        
+        // Restore normal view based on current state
+        if (this.currentView === 'projects') {
+            this.showProjectsView();
+        } else if (this.currentView === 'conversations') {
+            this.showConversationsView();
+        } else if (this.currentView === 'project-conversations') {
+            this.showProjectConversationsView(this.currentViewProject);
+        } else if (this.currentView === 'chat') {
+            this.showChatView();
+        } else {
+            // Default to home view
+            this.showHomeView();
+        }
     }
 
     // Input handling
@@ -3281,6 +3405,91 @@ KnowledgeBaseApp.prototype.loadConversation = function(conversationId) {
 
 // ==================== MAIN CONTENT VIEW METHODS ====================
 
+// Show home view in main content area
+KnowledgeBaseApp.prototype.showHomeView = function() {
+    this.currentView = 'home';
+    const container = document.getElementById('chat-messages');
+    
+    // Update top bar to hide context toggle
+    const contextToggle = document.getElementById('context-toggle-btn');
+    if (contextToggle) contextToggle.style.display = 'none';
+    
+    container.innerHTML = `
+        <div class="main-view">
+            <nav class="breadcrumb">
+                <span class="breadcrumb-item active">
+                    <i class="fas fa-home"></i>
+                    Home
+                </span>
+            </nav>
+            
+            <div class="view-header">
+                <div class="view-title">
+                    <i class="fas fa-home"></i>
+                    <h2>Welcome to Your Knowledge Base</h2>
+                </div>
+                <div class="view-actions">
+                    <button class="view-action-btn" onclick="window.app.startNewConversation()">
+                        <i class="fas fa-plus"></i>
+                        New Chat
+                    </button>
+                    <button class="view-action-btn" onclick="window.app.showProjectsView()">
+                        <i class="fas fa-folder"></i>
+                        View Projects
+                    </button>
+                </div>
+            </div>
+            
+            <div class="home-content">
+                <div class="home-stats">
+                    <div class="stat-card">
+                        <i class="fas fa-comments"></i>
+                        <div class="stat-info">
+                            <span class="stat-number" id="total-conversations">-</span>
+                            <span class="stat-label">Conversations</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-folder"></i>
+                        <div class="stat-info">
+                            <span class="stat-number" id="total-projects">-</span>
+                            <span class="stat-label">Projects</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-file-alt"></i>
+                        <div class="stat-info">
+                            <span class="stat-number" id="total-context-items">-</span>
+                            <span class="stat-label">Context Items</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="home-actions">
+                    <div class="action-card" onclick="window.app.startNewConversation()">
+                        <i class="fas fa-comments"></i>
+                        <h3>Start New Chat</h3>
+                        <p>Begin a new conversation or ask questions about your knowledge base</p>
+                    </div>
+                    <div class="action-card" onclick="window.app.showProjectsView()">
+                        <i class="fas fa-folder"></i>
+                        <h3>Manage Projects</h3>
+                        <p>Organize your conversations and context into projects</p>
+                    </div>
+                    <div class="action-card" onclick="window.app.showConversationsView()">
+                        <i class="fas fa-clock"></i>
+                        <h3>View All Conversations</h3>
+                        <p>Browse through your conversation history</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Load home statistics
+    this.loadHomeStats();
+};
+
 // Show conversations list view in main content area
 KnowledgeBaseApp.prototype.showConversationsView = function() {
     this.currentView = 'conversations';
@@ -3434,6 +3643,39 @@ KnowledgeBaseApp.prototype.loadConversationsGrid = async function() {
                 </button>
             </div>
         `;
+    }
+};
+
+// Load home statistics
+KnowledgeBaseApp.prototype.loadHomeStats = async function() {
+    try {
+        // Load conversations count
+        const convResponse = await fetch('/conversations');
+        const conversations = await convResponse.json();
+        const totalConversations = conversations.length;
+        
+        // Load projects count
+        const projResponse = await fetch('/projects');
+        const projects = await projResponse.json();
+        const totalProjects = projects.length;
+        
+        // Load context items count
+        const contextResponse = await fetch('/api/context');
+        const contextItems = await contextResponse.json();
+        const totalContextItems = contextItems.length;
+        
+        // Update the stats display
+        const convElement = document.getElementById('total-conversations');
+        const projElement = document.getElementById('total-projects');
+        const contextElement = document.getElementById('total-context-items');
+        
+        if (convElement) convElement.textContent = totalConversations;
+        if (projElement) projElement.textContent = totalProjects;
+        if (contextElement) contextElement.textContent = totalContextItems;
+        
+    } catch (error) {
+        console.error('Failed to load home stats:', error);
+        // Don't show error on home page, just log it
     }
 };
 
