@@ -4063,6 +4063,12 @@ KnowledgeBaseApp.prototype.showChatView = function() {
         // Ensure the main-content div has the proper CSS classes for chat layout
         container.className = 'main-content';
         
+        // Force the main-content div to have proper flexbox layout
+        container.style.display = 'flex';
+        container.style.flexDirection = 'column';
+        container.style.height = '100%';
+        container.style.minHeight = '100%';
+        
         // Debug the container properties
         console.log('DEBUG: main-content container:', {
             id: container.id,
@@ -4082,22 +4088,100 @@ KnowledgeBaseApp.prototype.showChatView = function() {
         
         container.appendChild(chatMessagesContainer);
         
+        // Hide any remaining search results that might be interfering with the layout
+        const searchResults = document.querySelector('.search-results-container');
+        if (searchResults) {
+            console.log('DEBUG: Hiding search results container');
+            searchResults.style.display = 'none';
+        }
+        
         // Ensure the bottom input container is visible and properly positioned
         const bottomInputContainer = document.querySelector('.bottom-input-container');
         if (bottomInputContainer) {
             console.log('DEBUG: Found bottom-input-container, making it visible');
-            bottomInputContainer.style.display = 'block';
+            
+            // Force the bottom input container to be visible
+            bottomInputContainer.style.display = 'block !important';
+            bottomInputContainer.style.visibility = 'visible !important';
+            bottomInputContainer.style.opacity = '1 !important';
+            bottomInputContainer.style.height = 'auto !important';
+            bottomInputContainer.style.minHeight = 'auto !important';
+            bottomInputContainer.style.overflow = 'visible !important';
+            
             // Remove any inline styles that might interfere with the layout
             bottomInputContainer.style.position = '';
             bottomInputContainer.style.bottom = '';
-            // Ensure it's visible and properly positioned
-            bottomInputContainer.style.visibility = 'visible';
-            bottomInputContainer.style.opacity = '1';
-        } else {
-            console.error('DEBUG: bottom-input-container not found!');
-        }
+            bottomInputContainer.style.top = '';
+            bottomInputContainer.style.left = '';
+            bottomInputContainer.style.right = '';
+            
+            // Check if any parent elements might be hiding it
+            let parent = bottomInputContainer.parentElement;
+            let depth = 0;
+            while (parent && depth < 5) {
+                const parentStyle = window.getComputedStyle(parent);
+                console.log(`DEBUG: Parent ${depth} (${parent.tagName}.${parent.className}):`, {
+                    display: parentStyle.display,
+                    visibility: parentStyle.visibility,
+                    opacity: parentStyle.opacity,
+                    height: parentStyle.height,
+                    overflow: parentStyle.overflow
+                });
+                
+                // If parent has overflow hidden, it might be hiding the bottom input
+                if (parentStyle.overflow === 'hidden') {
+                    console.log(`DEBUG: Parent ${depth} has overflow: hidden, this might be hiding the bottom input`);
+                }
+                
+                parent = parent.parentElement;
+                depth++;
+            }
+            
+                    // Log the computed styles to debug visibility issues
+        const computedStyle = window.getComputedStyle(bottomInputContainer);
+        console.log('DEBUG: bottom-input-container computed styles:', {
+            display: computedStyle.display,
+            visibility: computedStyle.visibility,
+            opacity: computedStyle.opacity,
+            height: computedStyle.height,
+            overflow: computedStyle.overflow,
+            position: computedStyle.position
+        });
+        
+        // If the bottom input container is still not visible, try moving it into the main content
+        setTimeout(() => {
+            const isVisible = bottomInputContainer.offsetHeight > 0 && 
+                            bottomInputContainer.offsetWidth > 0 && 
+                            window.getComputedStyle(bottomInputContainer).display !== 'none';
+            
+            if (!isVisible) {
+                console.log('DEBUG: Bottom input container is not visible, trying to move it into main content');
+                
+                // Create a clone of the bottom input container and place it in the main content
+                const clonedBottomInput = bottomInputContainer.cloneNode(true);
+                clonedBottomInput.id = 'cloned-bottom-input-container';
+                clonedBottomInput.style.marginTop = 'auto';
+                clonedBottomInput.style.flexShrink = '0';
+                
+                container.appendChild(clonedBottomInput);
+                
+                console.log('DEBUG: Added cloned bottom input container to main content');
+            }
+        }, 100);
+    } else {
+        console.error('DEBUG: bottom-input-container not found!');
+    }
         
         // Note: chat-interface element doesn't exist in HTML, so we skip that
+        
+        // Also ensure the overall page layout is correct for chat view
+        const appContainer = document.querySelector('.app-container');
+        if (appContainer) {
+            console.log('DEBUG: Ensuring app-container has proper layout');
+            appContainer.style.display = 'flex';
+            appContainer.style.height = '100vh';
+            appContainer.style.overflow = 'hidden';
+        }
     } else {
         // Show empty state or current conversation for normal chat view
         if (!this.currentConversationId) {
