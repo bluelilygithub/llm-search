@@ -1679,21 +1679,35 @@ class KnowledgeBaseApp {
         const totalResults = results.conversations.length + results.projects.length + results.contextItems.length;
         
         if (totalResults === 0) {
-            mainContent.innerHTML = `
-                <div class="search-results-container">
-                    <div class="search-header">
-                        <h2>Search Results</h2>
-                        <div class="search-summary">No results found for "${query}"</div>
-                    </div>
-                    <div class="search-results-empty">
-                        <i class="fas fa-search"></i>
-                        <p>No conversations, projects, or context items match your search.</p>
-                        <button class="btn btn-primary" onclick="window.app.clearSearchResults()">
-                            <i class="fas fa-arrow-left"></i> Back to Normal View
-                        </button>
-                    </div>
+            // Clear only the chat messages area, preserve top bar
+            const existingChatContainer = mainContent.querySelector('.chat-messages-container');
+            if (existingChatContainer) {
+                existingChatContainer.remove();
+            }
+            
+            const searchResultsContainer = document.createElement('div');
+            searchResultsContainer.className = 'search-results-container';
+            searchResultsContainer.innerHTML = `
+                <div class="search-header">
+                    <h2>Search Results</h2>
+                    <div class="search-summary">No results found for "${query}"</div>
+                </div>
+                <div class="search-results-empty">
+                    <i class="fas fa-search"></i>
+                    <p>No conversations, projects, or context items match your search.</p>
+                    <button class="btn btn-primary" onclick="window.app.clearSearchResults()">
+                        <i class="fas fa-arrow-left"></i> Back to Normal View
+                    </button>
                 </div>
             `;
+            
+            // Insert after the top bar
+            const topBar = mainContent.querySelector('.top-bar');
+            if (topBar) {
+                topBar.insertAdjacentElement('afterend', searchResultsContainer);
+            } else {
+                mainContent.appendChild(searchResultsContainer);
+            }
             return;
         }
         
@@ -1747,7 +1761,24 @@ class KnowledgeBaseApp {
         }
         
         resultsHtml += '</div>';
-        mainContent.innerHTML = resultsHtml;
+        
+        // Clear only the chat messages area, preserve top bar
+        const existingChatContainer = mainContent.querySelector('.chat-messages-container');
+        if (existingChatContainer) {
+            existingChatContainer.remove();
+        }
+        
+        const searchResultsContainer = document.createElement('div');
+        searchResultsContainer.className = 'search-results-container';
+        searchResultsContainer.innerHTML = resultsHtml;
+        
+        // Insert after the top bar
+        const topBar = mainContent.querySelector('.top-bar');
+        if (topBar) {
+            topBar.insertAdjacentElement('afterend', searchResultsContainer);
+        } else {
+            mainContent.appendChild(searchResultsContainer);
+        }
     }
     
     // Render individual search result conversation
@@ -1827,18 +1858,33 @@ class KnowledgeBaseApp {
     showSearchLoading() {
         this.currentView = 'search-results';
         const mainContent = document.getElementById('main-content');
-        mainContent.innerHTML = `
-            <div class="search-results-container">
-                <div class="search-header">
-                    <h2>Search Results</h2>
-                    <div class="search-summary">Searching...</div>
-                </div>
-                <div class="search-loading">
-                    <i class="fas fa-spinner fa-spin"></i>
-                    <p>Searching conversations, projects, and context items...</p>
-                </div>
+        
+        // Clear only the chat messages area, preserve top bar
+        const existingChatContainer = mainContent.querySelector('.chat-messages-container');
+        if (existingChatContainer) {
+            existingChatContainer.remove();
+        }
+        
+        const searchResultsContainer = document.createElement('div');
+        searchResultsContainer.className = 'search-results-container';
+        searchResultsContainer.innerHTML = `
+            <div class="search-header">
+                <h2>Search Results</h2>
+                <div class="search-summary">Searching...</div>
+            </div>
+            <div class="search-loading">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>Searching conversations, projects, and context items...</p>
             </div>
         `;
+        
+        // Insert after the top bar
+        const topBar = mainContent.querySelector('.top-bar');
+        if (topBar) {
+            topBar.insertAdjacentElement('afterend', searchResultsContainer);
+        } else {
+            mainContent.appendChild(searchResultsContainer);
+        }
     }
     
     // Open conversation from search results (switches to chat view first)
@@ -4057,25 +4103,17 @@ KnowledgeBaseApp.prototype.showChatView = function() {
     
     // If we're using main-content (coming from search), set up the chat interface
     if (isMainContent) {
-        // Clear the main content and set up proper chat layout
-        container.innerHTML = '';
+        // Preserve the top bar and only clear the chat messages area
+        const topBar = container.querySelector('.top-bar');
+        const existingChatContainer = container.querySelector('.chat-messages-container');
+        
+        // Clear only the chat messages area, not the entire main-content
+        if (existingChatContainer) {
+            existingChatContainer.remove();
+        }
         
         // Ensure the main-content div has the proper CSS classes for chat layout
         container.className = 'main-content';
-        
-        // Force the main-content div to have proper flexbox layout
-        container.style.display = 'flex';
-        container.style.flexDirection = 'column';
-        container.style.height = '100%';
-        container.style.minHeight = '100%';
-        
-        // Debug the container properties
-        console.log('DEBUG: main-content container:', {
-            id: container.id,
-            className: container.className,
-            style: container.style.cssText,
-            computedStyle: window.getComputedStyle(container)
-        });
         
         // Create the chat messages container structure
         const chatMessagesContainer = document.createElement('div');
@@ -4086,7 +4124,12 @@ KnowledgeBaseApp.prototype.showChatView = function() {
             </div>
         `;
         
-        container.appendChild(chatMessagesContainer);
+        // Insert after the top bar to maintain proper layout
+        if (topBar) {
+            topBar.insertAdjacentElement('afterend', chatMessagesContainer);
+        } else {
+            container.appendChild(chatMessagesContainer);
+        }
         
         // Hide any remaining search results that might be interfering with the layout
         const searchResults = document.querySelector('.search-results-container');
@@ -4096,10 +4139,24 @@ KnowledgeBaseApp.prototype.showChatView = function() {
         }
         
         // Ensure the bottom input container is visible and properly positioned
-        // Ensure the bottom input container is visible and properly positioned
         const bottomInputContainer = document.querySelector('.bottom-input-container');
         if (bottomInputContainer) {
             console.log('DEBUG: Found bottom-input-container, making it visible');
+            
+            // Debug the current positioning
+            const computedStyle = window.getComputedStyle(bottomInputContainer);
+            console.log('DEBUG: Bottom input container computed styles:', {
+                display: computedStyle.display,
+                visibility: computedStyle.visibility,
+                opacity: computedStyle.opacity,
+                position: computedStyle.position,
+                top: computedStyle.top,
+                left: computedStyle.left,
+                right: computedStyle.right,
+                bottom: computedStyle.bottom,
+                width: computedStyle.width,
+                height: computedStyle.height
+            });
             
             // Force the bottom input container to be visible
             bottomInputContainer.style.display = 'block';
@@ -4115,6 +4172,13 @@ KnowledgeBaseApp.prototype.showChatView = function() {
             bottomInputContainer.style.top = '';
             bottomInputContainer.style.left = '';
             bottomInputContainer.style.right = '';
+            
+            // Ensure it's positioned correctly in the layout
+            bottomInputContainer.style.order = '';
+            bottomInputContainer.style.flex = '';
+            bottomInputContainer.style.flexGrow = '';
+            bottomInputContainer.style.flexShrink = '';
+            bottomInputContainer.style.flexBasis = '';
             
             console.log('DEBUG: Bottom input container should now be visible');
         } else {
@@ -4156,15 +4220,6 @@ KnowledgeBaseApp.prototype.showChatView = function() {
         }
         
         // Note: chat-interface element doesn't exist in HTML, so we skip that
-        
-        // Also ensure the overall page layout is correct for chat view
-        const appContainer = document.querySelector('.app-container');
-        if (appContainer) {
-            console.log('DEBUG: Ensuring app-container has proper layout');
-            appContainer.style.display = 'flex';
-            appContainer.style.height = '100vh';
-            appContainer.style.overflow = 'hidden';
-        }
     } else {
         // Show empty state or current conversation for normal chat view
     if (!this.currentConversationId) {
