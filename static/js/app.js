@@ -273,9 +273,40 @@ class KnowledgeBaseApp {
             });
 
             if (response.ok) {
+                // Refresh both sidebar and main content area
                 this.loadConversations();
+                
+                // If we're currently viewing conversations, refresh the grid
+                if (this.currentView === 'conversations') {
+                    await this.loadConversationsGrid();
+                } else if (this.currentView === 'project-conversations') {
+                    // If viewing project conversations, refresh that view
+                    await this.loadProjectConversationsGrid(this.currentViewProject.id);
+                }
+                
+                // If we're currently viewing this conversation in chat, update the header
+                if (this.currentConversationId === conversationId && this.currentView === 'chat') {
+                    const conversationTitle = document.getElementById('conversation-title');
+                    if (conversationTitle) {
+                        conversationTitle.textContent = newTitle;
+                    }
+                }
+                
+                // If we're currently viewing search results, refresh them to show updated titles
+                if (this.currentView === 'search-results') {
+                    const searchInput = document.getElementById('conversation-search');
+                    if (searchInput && searchInput.value.trim()) {
+                        // Re-run the search to refresh results
+                        this.searchConversations();
+                    }
+                }
+                
+                // Show success notification
+                this.showSuccessNotification('Conversation title updated successfully!');
             } else {
-                console.error('Failed to update conversation title');
+                const errorData = await response.json();
+                console.error('Failed to update conversation title:', errorData.error);
+                this.showError(`Failed to update conversation title: ${errorData.error || 'Unknown error'}`);
             }
         } catch (error) {
             console.error('Error updating conversation title:', error);

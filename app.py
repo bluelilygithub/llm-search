@@ -429,6 +429,50 @@ def get_messages(conversation_id):
         } for msg in messages]
     })
 
+@app.route('/conversations/<conversation_id>', methods=['PUT'])
+@require_conversation_access
+def update_conversation(conversation_id):
+    """Update conversation details (title, etc.)"""
+    try:
+        conv_uuid = uuid.UUID(conversation_id)
+        
+        conversation = Conversation.query.get(conv_uuid)
+        if not conversation:
+            return jsonify({'error': 'Conversation not found'}), 404
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
+        # Update title if provided
+        if 'title' in data:
+            new_title = data['title'].strip()
+            if not new_title:
+                return jsonify({'error': 'Title cannot be empty'}), 400
+            conversation.title = new_title
+        
+        # Update timestamp
+        conversation.updated_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Conversation updated successfully',
+            'conversation': {
+                'id': str(conversation.id),
+                'title': conversation.title,
+                'updated_at': conversation.updated_at.isoformat()
+            }
+        }), 200
+        
+    except ValueError:
+        return jsonify({'error': 'Invalid conversation ID'}), 400
+    except Exception as e:
+        app.logger.error(f"Error updating conversation: {e}")
+        db.session.rollback()
+        return jsonify({'error': 'Failed to update conversation'}), 500
+
 @app.route('/conversations/<conversation_id>', methods=['DELETE'])
 @require_conversation_access
 def delete_conversation(conversation_id):
