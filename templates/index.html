@@ -328,7 +328,7 @@
                     <i class="fas fa-user"></i>
                     Account
                 </button>
-                <button class="settings-nav-btn" data-section="preferences" onclick="showSettingsSection('preferences')">
+                <button class="settings-nav-btn" data-section="preferences" onclick="showSettingsSection('preferences')" id="preferences-nav-btn">
                     <i class="fas fa-sliders-h"></i>
                     Preferences
                 </button>
@@ -365,7 +365,7 @@
                 </div>
 
                 <!-- Account Section -->
-                <div class="settings-section" id="account-section" style="display: none;">
+                <div class="settings-section" id="account-section">
                     <div class="section-header">
                         <h3>Account Information</h3>
                         <p>View your account details and usage statistics.</p>
@@ -376,7 +376,7 @@
                 </div>
 
                                  <!-- Preferences Section -->
-                 <div class="settings-section" id="preferences-section" style="display: none;">
+                 <div class="settings-section" id="preferences-section">
                      <div class="section-header">
                          <h3>User Preferences</h3>
                          <p>Customize your application experience.</p>
@@ -385,12 +385,26 @@
                          <div class="preference-item">
                              <label for="default-model-select"><strong>Default Model:</strong></label>
                              <p class="preference-description">Select the model that will be automatically chosen when you start a new conversation.</p>
+                             <div id="preferences-debug" style="background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px; font-family: monospace; font-size: 12px;">
+                                 <strong>Debug Info:</strong><br>
+                                 <span id="debug-modelSettings">Loading...</span><br>
+                                 <span id="debug-userPreferences">Loading...</span><br>
+                                 <span id="debug-dropdown-status">Loading...</span>
+                             </div>
+                             <div id="preferences-visibility-test" style="background: #e8f5e8; padding: 10px; margin: 10px 0; border-radius: 5px; border: 2px solid #4caf50;">
+                                 <strong>✓ Preferences Section is Visible!</strong><br>
+                                 This section is working correctly.
+                             </div>
                              <select id="default-model-select" onchange="updateDefaultModel()">
                                  <option value="">Loading models...</option>
                              </select>
                              <button class="btn-secondary" onclick="savePreferences()" style="margin-top: 10px;">
                                  <i class="fas fa-save"></i>
                                  Save Preferences
+                             </button>
+                             <button class="btn-secondary" onclick="populateDefaultModelSelect()" style="margin-top: 10px; margin-left: 10px;">
+                                 <i class="fas fa-refresh"></i>
+                                 Refresh Models
                              </button>
                          </div>
                      </div>
@@ -1075,26 +1089,57 @@
             panel.classList.remove('open');
         }
 
-                 function showSettingsSection(sectionName) {
-             // Hide all sections
-             document.querySelectorAll('.settings-section').forEach(section => {
-                 section.classList.remove('active');
-             });
-             
-             // Remove active from all nav buttons
-             document.querySelectorAll('.settings-nav-btn').forEach(btn => {
-                 btn.classList.remove('active');
-             });
-             
-             // Show selected section
-             document.getElementById(sectionName + '-section').classList.add('active');
-             document.querySelector(`[data-section="${sectionName}"]`).classList.add('active');
-             
-             // Populate preferences section if needed
-             if (sectionName === 'preferences') {
-                 populateDefaultModelSelect();
-             }
-         }
+                         async function showSettingsSection(sectionName) {
+            console.log(`showSettingsSection called with: ${sectionName}`);
+            
+            // Hide all sections
+            document.querySelectorAll('.settings-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // Remove active from all nav buttons
+            document.querySelectorAll('.settings-nav-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected section
+            const targetSection = document.getElementById(sectionName + '-section');
+            if (targetSection) {
+                targetSection.classList.add('active');
+                console.log(`Added 'active' class to ${sectionName}-section`);
+            } else {
+                console.error(`Section ${sectionName}-section not found`);
+            }
+            
+            const targetNavBtn = document.querySelector(`[data-section="${sectionName}"]`);
+            if (targetNavBtn) {
+                targetNavBtn.classList.add('active');
+                console.log(`Added 'active' class to nav button for ${sectionName}`);
+            } else {
+                console.error(`Nav button for ${sectionName} not found`);
+            }
+            
+            // Populate preferences section if needed
+            if (sectionName === 'preferences') {
+                console.log('Preferences section requested, loading model settings...');
+                // Ensure modelSettings is loaded before populating preferences
+                if (Object.keys(modelSettings).length === 0) {
+                    try {
+                        console.log('Loading model settings for preferences section...');
+                        const response = await fetch('/api/model-settings');
+                        if (response.ok) {
+                            modelSettings = await response.json();
+                            console.log('Loaded modelSettings for preferences:', modelSettings);
+                        } else {
+                            console.error('Failed to load model settings for preferences');
+                        }
+                    } catch (error) {
+                        console.error('Error loading model settings for preferences:', error);
+                    }
+                }
+                populateDefaultModelSelect();
+            }
+        }
 
         // Model management functions
         const availableModels = {
@@ -1496,42 +1541,82 @@
              }
          }
          
-         function populateDefaultModelSelect() {
-             const select = document.getElementById('default-model-select');
-             if (!select) return;
-             
-             // Clear existing options
-             select.innerHTML = '';
-             
-             // Add a default option
-             select.innerHTML = '<option value="">Select a default model...</option>';
-             
-             // Add options for each enabled model
-             Object.keys(modelSettings).forEach(modelValue => {
-                 const settings = modelSettings[modelValue];
-                 if (settings && settings.enabled) {
-                     // Find the model name from availableModels
-                     let modelName = modelValue;
-                     Object.keys(availableModels).forEach(provider => {
-                         const model = availableModels[provider].find(m => m.value === modelValue);
-                         if (model) {
-                             modelName = model.name;
-                         }
-                     });
-                     
-                     const option = document.createElement('option');
-                     option.value = modelValue;
-                     option.textContent = modelName;
-                     
-                     // Mark as selected if it's the current preference
-                     if (modelValue === userPreferences.defaultModel) {
-                         option.selected = true;
-                     }
-                     
-                     select.appendChild(option);
-                 }
-             });
-         }
+                 function populateDefaultModelSelect() {
+            const select = document.getElementById('default-model-select');
+            if (!select) {
+                console.error('Default model select element not found');
+                return;
+            }
+            
+            console.log('Populating default model select...');
+            console.log('Current modelSettings:', modelSettings);
+            console.log('Current userPreferences:', userPreferences);
+            
+            // Update debug info
+            const debugModelSettings = document.getElementById('debug-modelSettings');
+            const debugUserPreferences = document.getElementById('debug-userPreferences');
+            const debugDropdownStatus = document.getElementById('debug-dropdown-status');
+            
+            if (debugModelSettings) {
+                debugModelSettings.textContent = `modelSettings: ${Object.keys(modelSettings).length} models loaded`;
+            }
+            if (debugUserPreferences) {
+                debugUserPreferences.textContent = `userPreferences: ${userPreferences.defaultModel || 'none'}`;
+            }
+            
+            // Clear existing options
+            select.innerHTML = '';
+            
+            // Add a default option
+            select.innerHTML = '<option value="">Select a default model...</option>';
+            
+            // Check if modelSettings is loaded
+            if (Object.keys(modelSettings).length === 0) {
+                console.warn('modelSettings is empty, cannot populate preferences');
+                select.innerHTML = '<option value="">No models available - please load models first</option>';
+                if (debugDropdownStatus) {
+                    debugDropdownStatus.textContent = 'Status: No models available';
+                }
+                return;
+            }
+            
+            let enabledModelsCount = 0;
+            
+            // Add options for each enabled model
+            Object.keys(modelSettings).forEach(modelValue => {
+                const settings = modelSettings[modelValue];
+                if (settings && settings.enabled) {
+                    enabledModelsCount++;
+                    // Find the model name from availableModels
+                    let modelName = modelValue;
+                    Object.keys(availableModels).forEach(provider => {
+                        const model = availableModels[provider].find(m => m.value === modelValue);
+                        if (model) {
+                            modelName = model.name;
+                        }
+                    });
+                    
+                    const option = document.createElement('option');
+                    option.value = modelValue;
+                    option.textContent = modelName;
+                    
+                    // Mark as selected if it's the current preference
+                    if (modelValue === userPreferences.defaultModel) {
+                        option.selected = true;
+                        console.log(`Marked ${modelValue} as selected (user preference)`);
+                    }
+                    
+                    select.appendChild(option);
+                    console.log(`Added option: ${modelValue} - ${modelName}`);
+                }
+            });
+            
+            if (debugDropdownStatus) {
+                debugDropdownStatus.textContent = `Status: ${enabledModelsCount} models available`;
+            }
+            
+            console.log(`Populated preferences dropdown with ${enabledModelsCount} enabled models`);
+        }
          
          // Check auth status on load and show admin tab if authenticated
          document.addEventListener('DOMContentLoaded', async () => {
