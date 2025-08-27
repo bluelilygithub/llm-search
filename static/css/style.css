@@ -827,6 +827,38 @@ body {
     color: var(--primary-blue);
 }
 
+.chat-header-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-sm);
+}
+
+.chat-header-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    background: var(--gray-100);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-md);
+    color: var(--gray-700);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.chat-header-btn:hover {
+    background: var(--gray-200);
+    border-color: var(--gray-300);
+    color: var(--gray-800);
+}
+
+.chat-header-btn i {
+    font-size: var(--font-size-xs);
+}
+
 .chat-messages {
     flex: 1;
     overflow-y: auto;

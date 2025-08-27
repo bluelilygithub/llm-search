@@ -596,6 +596,10 @@ class KnowledgeBaseApp {
         }
     }
 
+    goToHome() {
+        this.clearProjectContext();
+    }
+
     renderMessages(messages) {
         const container = document.getElementById('chat-messages');
         container.innerHTML = '';
@@ -886,6 +890,11 @@ class KnowledgeBaseApp {
         // Clear input
         document.getElementById('message-input').value = '';
         this.autoResizeTextarea();
+        
+        // Preserve current project context if we're in a project view
+        if (this.currentViewProject) {
+            this.currentProject = this.currentViewProject;
+        }
     }
 
     updateModel() {
@@ -3616,12 +3625,23 @@ KnowledgeBaseApp.prototype.showChatView = function() {
     this.currentView = 'chat';
     const container = document.getElementById('chat-messages');
     
-    // Clear project context when switching to normal chat view
-    this.currentViewProject = null;
+    // Note: Project context is now preserved by the caller when needed
+    // Only clear if explicitly switching away from project context
     
-    // Hide chat header when not in project context
+    // Show/hide chat header based on project context
     const chatHeader = document.getElementById('chat-header');
-    if (chatHeader) chatHeader.style.display = 'none';
+    if (chatHeader) {
+        if (this.currentViewProject) {
+            // Show project context in header
+            chatHeader.style.display = 'block';
+            const projectName = document.getElementById('project-name');
+            const conversationTitle = document.getElementById('conversation-title');
+            if (projectName) projectName.textContent = this.currentViewProject.name;
+            if (conversationTitle) conversationTitle.textContent = 'New Conversation';
+        } else {
+            chatHeader.style.display = 'none';
+        }
+    }
     
     // Show context toggle again
     const contextToggle = document.getElementById('context-toggle-btn');
@@ -3642,9 +3662,25 @@ KnowledgeBaseApp.prototype.showChatView = function() {
     // If there's a current conversation, it will be loaded by the caller
 };
 
+// Clear project context and return to home view
+KnowledgeBaseApp.prototype.clearProjectContext = function() {
+    this.currentViewProject = null;
+    this.currentProject = null;
+    this.showChatView();
+};
+
 // Start new conversation (enhanced to work from any view)
 KnowledgeBaseApp.prototype.startNewConversation = function() {
+    // Preserve project context before showing chat view
+    const preserveProjectContext = this.currentViewProject;
     this.showChatView();
+    
+    // Restore project context if we had one
+    if (preserveProjectContext) {
+        this.currentViewProject = preserveProjectContext;
+        this.currentProject = preserveProjectContext;
+    }
+    
     this.startNewChat();
 };
 
