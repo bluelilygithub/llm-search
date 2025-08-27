@@ -2391,26 +2391,31 @@ def check_model_access():
             if model.startswith('gpt-') or model.startswith('o1-'):
                 # OpenAI models - check if API key is configured
                 openai_key = os.getenv('OPENAI_API_KEY')
+                app.logger.info(f"Checking OpenAI API key: {'configured' if openai_key and openai_key.strip() else 'not configured'}")
                 has_access = bool(openai_key and openai_key.strip())
                 
             elif model.startswith('claude-'):
                 # Anthropic models - check if API key is configured
                 anthropic_key = os.getenv('CLAUDE_API_KEY')
+                app.logger.info(f"Checking Claude API key: {'configured' if anthropic_key and anthropic_key.strip() else 'not configured'}")
                 has_access = bool(anthropic_key and anthropic_key.strip())
                 
             elif model.startswith('gemini-'):
                 # Google models - check if API key is configured
-                google_key = os.getenv('GOOGLE_API_KEY')
-                has_access = bool(google_key and google_key.strip())
+                gemini_key = os.getenv('GEMINI_API_KEY')
+                app.logger.info(f"Checking Gemini API key: {'configured' if gemini_key and gemini_key.strip() else 'not configured'}")
+                has_access = bool(gemini_key and gemini_key.strip())
                 
             elif model in ['llama2-70b', 'mixtral-8x7b', 'codellama-34b']:
                 # Hugging Face models - check if API key is configured
-                hf_key = os.getenv('HUGGINGFACE_API_KEY')
+                hf_key = os.getenv('HUGGING_FACE_API_KEY')
+                app.logger.info(f"Checking Hugging Face API key: {'configured' if hf_key and hf_key.strip() else 'not configured'}")
                 has_access = bool(hf_key and hf_key.strip())
                 
             elif model.startswith('stable-'):
                 # Stability AI models - check if API key is configured
                 stability_key = os.getenv('STABILITY_API_KEY')
+                app.logger.info(f"Checking Stability API key: {'configured' if stability_key and stability_key.strip() else 'not configured'}")
                 has_access = bool(stability_key and stability_key.strip())
                 
             else:
@@ -2428,10 +2433,33 @@ def check_model_access():
             has_access = False
         
         app.logger.info(f"Model {model} access check: {has_access}")
+        
+        # Add debug info to help troubleshoot
+        debug_info = {
+            'model': model,
+            'hasAccess': has_access,
+            'envVars': {}
+        }
+        
+        # Log environment variable status for debugging
+        if model.startswith('gpt-') or model.startswith('o1-'):
+            debug_info['envVars']['OPENAI_API_KEY'] = 'configured' if os.getenv('OPENAI_API_KEY') else 'not configured'
+        elif model.startswith('claude-'):
+            debug_info['envVars']['CLAUDE_API_KEY'] = 'configured' if os.getenv('CLAUDE_API_KEY') else 'not configured'
+        elif model.startswith('gemini-'):
+            debug_info['envVars']['GEMINI_API_KEY'] = 'configured' if os.getenv('GEMINI_API_KEY') else 'not configured'
+        elif model in ['llama2-70b', 'mixtral-8x7b', 'codellama-34b']:
+            debug_info['envVars']['HUGGING_FACE_API_KEY'] = 'configured' if os.getenv('HUGGING_FACE_API_KEY') else 'not configured'
+        elif model.startswith('stable-'):
+            debug_info['envVars']['STABILITY_API_KEY'] = 'configured' if os.getenv('STABILITY_API_KEY') else 'not configured'
+        
+        app.logger.info(f"Debug info for {model}: {debug_info}")
+        
         return jsonify({
             'success': True,
             'model': model,
-            'hasAccess': has_access
+            'hasAccess': has_access,
+            'debugInfo': debug_info
         })
     
     except Exception as e:

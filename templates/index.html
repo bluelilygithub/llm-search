@@ -354,6 +354,10 @@
                                      <i class="fas fa-bug"></i>
                                      Test Single Model
                                  </button>
+                                 <button class="btn-secondary" onclick="testEnvironmentVariables()" style="margin-left: 10px;">
+                                     <i class="fas fa-key"></i>
+                                     Check Env Vars
+                                 </button>
                                 <button class="btn-primary" onclick="saveModelSettings()">
                                     <i class="fas fa-save"></i>
                                     Save Changes
@@ -1643,6 +1647,53 @@
                 
             } catch (error) {
                 console.error('Test function error:', error);
+                alert(`Test error: ${error.message}`);
+            }
+        }
+        
+        // Test function to check environment variables
+        async function testEnvironmentVariables() {
+            try {
+                console.log('Testing environment variables...');
+                
+                // Test each API endpoint to see what's configured
+                const apis = [
+                    { name: 'OpenAI', endpoint: '/api/check-model-access', model: 'gpt-3.5-turbo' },
+                    { name: 'Claude', endpoint: '/api/check-model-access', model: 'claude-3-haiku' },
+                    { name: 'Gemini', endpoint: '/api/check-model-access', model: 'gemini-pro' },
+                    { name: 'Hugging Face', endpoint: '/api/check-model-access', model: 'llama2-70b' },
+                    { name: 'Stability', endpoint: '/api/check-model-access', model: 'stable-image-core' }
+                ];
+                
+                const results = [];
+                
+                for (const api of apis) {
+                    try {
+                        const response = await fetch(api.endpoint, {
+                            method: 'POST',
+                            headers: { 
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': window.csrfToken || ''
+                            },
+                            body: JSON.stringify({ model: api.model })
+                        });
+                        
+                        if (response.ok) {
+                            const result = await response.json();
+                            results.push(`${api.name}: ${result.hasAccess ? '✓ Configured' : '✗ Not configured'}`);
+                        } else {
+                            results.push(`${api.name}: ✗ Error ${response.status}`);
+                        }
+                    } catch (error) {
+                        results.push(`${api.name}: ✗ Network error`);
+                    }
+                }
+                
+                console.log('Environment variable check results:', results);
+                alert('Environment Variables Check:\n\n' + results.join('\n'));
+                
+            } catch (error) {
+                console.error('Environment variable test error:', error);
                 alert(`Test error: ${error.message}`);
             }
         }
