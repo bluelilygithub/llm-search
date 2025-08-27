@@ -206,17 +206,13 @@ class KnowledgeBaseApp {
 
         const conversation = await response.json();
         this.currentConversationId = conversation.id;
-        console.log('Created conversation ID:', this.currentConversationId);
         this.loadConversations(); // Refresh sidebar
     }
 
     async saveMessage(role, content) {
         if (!this.currentConversationId) {
-            console.log('No conversation ID - cannot save message');
             return;
         }
-        
-        console.log('Saving message:', role, 'to conversation:', this.currentConversationId);
 
         await fetch(`/conversations/${this.currentConversationId}/messages`, {
             method: 'POST',
@@ -378,7 +374,6 @@ class KnowledgeBaseApp {
         const tags = tagInput.split(',').map(tag => tag.trim()).filter(tag => tag);
         
         // Save tags to conversation (API call needed)
-        console.log('Saving tags:', tags);
         
         this.closeTagModal();
         this.loadConversations(); // Refresh to show new tags
@@ -467,7 +462,6 @@ class KnowledgeBaseApp {
 
     renderUploadedFiles() {
         // Implementation for showing uploaded files
-        console.log('Uploaded files:', this.uploadedFiles);
     }
 
     // Voice input functionality
@@ -582,7 +576,6 @@ class KnowledgeBaseApp {
 
     renderUrlReferences() {
         // Implementation for showing URL references
-        console.log('URL references:', this.urlReferences);
     }
 
     // Search conversations
@@ -624,7 +617,6 @@ class KnowledgeBaseApp {
 
     showSearchSuggestions(query) {
         // Placeholder for integrated search suggestions
-        console.log('Searching for:', query);
     }
 
     hideSearchSuggestions() {

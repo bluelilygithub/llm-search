@@ -397,8 +397,6 @@ class KnowledgeBaseApp {
             
             // Show success notification
             this.showSuccessNotification(`Project "${name}" created successfully!`);
-            
-            console.log('Created project:', name);
         } catch (error) {
             console.error('Failed to create project:', error);
         }
@@ -431,8 +429,6 @@ class KnowledgeBaseApp {
             
             // Show success notification
             this.showSuccessNotification(`Project renamed to "${newName}" successfully!`);
-            
-            console.log('Renamed project:', newName);
         } catch (error) {
             console.error('Failed to rename project:', error);
             alert('Failed to rename project. Please try again.');
@@ -479,13 +475,10 @@ class KnowledgeBaseApp {
             }
             const response = await fetch(url);
             const conversations = await response.json();
-            console.log('Current project:', this.currentProject);
-            console.log('Fetched conversations:', conversations);
             // Filter on frontend as a fallback (in case backend returns all)
             let filtered = conversations;
             if (this.currentProject && this.currentProject.id) {
                 filtered = conversations.filter(conv => conv.project_id === this.currentProject.id);
-                console.log('Filtered conversations:', filtered);
             }
             this.renderConversations(filtered);
         } catch (error) {
@@ -494,12 +487,10 @@ class KnowledgeBaseApp {
     }
 
     renderConversations(conversations) {
-        console.log('DEBUG: renderConversations called with:', conversations);
         const container = document.getElementById('conversations-list');
         container.innerHTML = '';
 
         conversations.forEach(conv => {
-            console.log(`DEBUG: Rendering conversation "${conv.title}" with tags:`, conv.tags);
             const item = document.createElement('div');
             item.className = 'conversation-item';
             item.onclick = () => this.loadConversation(conv.id);
@@ -512,7 +503,6 @@ class KnowledgeBaseApp {
                     </button>
                 </span>`
             ).join('');
-            console.log(`DEBUG: Generated tags HTML for "${conv.title}":`, tags);
             
             item.innerHTML = `
                 <div class="conversation-content">
@@ -540,9 +530,7 @@ class KnowledgeBaseApp {
 
     async loadConversation(conversationId) {
         try {
-            console.log('DEBUG: loadConversation called with ID:', conversationId);
             this.currentConversationId = conversationId;
-            console.log('DEBUG: currentConversationId set to:', this.currentConversationId);
             
             // Update active conversation in sidebar
             document.querySelectorAll('.conversation-item').forEach(item => {
@@ -653,8 +641,6 @@ class KnowledgeBaseApp {
             return;
         }
         
-        console.log('DEBUG: renderMessages - using container:', container.id);
-        
         container.innerHTML = '';
 
         // Safety check: ensure messages is an array
@@ -688,8 +674,6 @@ class KnowledgeBaseApp {
             console.error('No suitable container found for adding message');
             return;
         }
-        
-        console.log('DEBUG: addMessageToChat - using container:', container.id);
         
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${message.role} new`;
@@ -1270,8 +1254,6 @@ class KnowledgeBaseApp {
             });
             
             if (response.ok) {
-                console.log(`Successfully removed tag "${tag}" from conversation ${conversationId}`);
-                
                 // Optimistically update UI immediately
                 const tagElement = document.querySelector(`[onclick*="${conversationId}"][onclick*="${tag}"]`)?.closest('.tag');
                 if (tagElement) {
@@ -1325,7 +1307,6 @@ class KnowledgeBaseApp {
     async saveTags() {
         const tagInput = document.getElementById('tag-input').value;
         const tags = tagInput.split(',').map(tag => tag.trim()).filter(tag => tag);
-        console.log(`DEBUG: Saving tags:`, tags, `for conversation:`, this.currentConversationId);
         
         if (tags.length === 0) {
             this.showError('Please enter at least one tag');
@@ -1343,7 +1324,6 @@ class KnowledgeBaseApp {
             
             if (response.ok) {
                 const result = await response.json();
-                console.log(`DEBUG: Tags saved successfully:`, result);
                 this.showMessage(`Added ${tags.length} tag(s) successfully`, 'success');
                 this.closeTagModal();
                 this.loadConversations(); // Refresh to show new tags
@@ -1490,7 +1470,6 @@ class KnowledgeBaseApp {
         // Use Web Speech API for speech-to-text
         if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
             this.showError('Speech recognition is not supported in this browser.');
-            console.log('Speech recognition not supported in this browser.');
             return;
         }
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -1501,11 +1480,10 @@ class KnowledgeBaseApp {
             
             const voiceBtn = document.getElementById('voice-btn');
             voiceBtn.classList.add('recording');
-        console.log('Speech recognition started');
+
 
         recognition.onresult = (event) => {
             const transcript = event.results[0][0].transcript;
-            console.log('Speech recognition result:', transcript);
             const messageInput = document.getElementById('message-input');
             messageInput.value = transcript;
             messageInput.focus();
@@ -1515,7 +1493,6 @@ class KnowledgeBaseApp {
             this.showError('Speech recognition error: ' + event.error);
         };
         recognition.onend = () => {
-            console.log('Speech recognition ended');
                 voiceBtn.classList.remove('recording');
         };
         recognition.start();
@@ -1589,21 +1566,16 @@ class KnowledgeBaseApp {
 
     renderUrlReferences() {
         // Implementation for showing URL references
-        console.log('URL references:', this.urlReferences);
     }
 
     // Search conversations, projects, and context items
     async searchConversations() {
         const query = document.getElementById('conversation-search').value.trim();
-        console.log(`DEBUG: searchConversations called with query: "${query}"`);
         
         if (!query) {
-            console.log('DEBUG: Empty query, clearing search and restoring normal view');
             this.clearSearchResults();
             return;
         }
-        
-        console.log(`DEBUG: Performing search for query: "${query}"`);
         
         try {
             // Show loading state
@@ -1899,19 +1871,13 @@ class KnowledgeBaseApp {
     
     // Open conversation from search results (switches to chat view first)
     openConversationFromSearch(conversationId) {
-        console.log('DEBUG: openConversationFromSearch called with ID:', conversationId);
-        console.log('DEBUG: Current view before switch:', this.currentView);
-        
         // Switch to chat view first to ensure proper DOM structure
         this.showChatView();
-        
-        console.log('DEBUG: Current view after switch:', this.currentView);
         
         // Note: chat-interface element doesn't exist in HTML, so we skip that
         
         // Then load the conversation
         setTimeout(() => {
-            console.log('DEBUG: About to load conversation');
             this.loadConversation(conversationId);
         }, 100);
     }
@@ -1926,15 +1892,14 @@ class KnowledgeBaseApp {
         // Ensure we're working with the main-content div for view restoration
         const mainContent = document.getElementById('main-content');
         if (!mainContent) {
-            console.error('main-content div not found');
             return;
         }
         
         // Restore normal view based on current state
-        if (this.currentView === 'conversations') {
-            this.showConversationsView();
-        } else if (this.currentView === 'chat') {
+        if (this.currentView === 'chat') {
             this.showChatView();
+        } else if (this.currentView === 'conversations') {
+            this.showConversationsView();
         } else {
             // Default to home view
             this.showHomeView();
@@ -2093,10 +2058,7 @@ class KnowledgeBaseApp {
     }
 
     refreshDocumentDisplay() {
-        console.log('DEBUG: Refreshing document display for conversation:', this.currentConversationId);
-        
         if (!this.currentConversationId) {
-            console.error('DEBUG: No current conversation ID to refresh');
             return;
         }
         
@@ -2104,20 +2066,12 @@ class KnowledgeBaseApp {
         fetch(`/conversations/${this.currentConversationId}/messages`)
             .then(response => response.json())
             .then(data => {
-                console.log('DEBUG: Full response from backend:', data);
-                console.log('DEBUG: Conversation data:', data.conversation);
-                console.log('DEBUG: Context documents:', data.conversation?.context_documents);
-                console.log('DEBUG: Number of context documents:', data.conversation?.context_documents?.length || 0);
-                
                 if (data.conversation && data.conversation.context_documents) {
-                    console.log('DEBUG: Refreshing with documents:', data.conversation.context_documents);
                     this.renderContextDocuments(data.conversation.context_documents);
-                } else {
-                    console.warn('DEBUG: No context documents found in response');
                 }
             })
             .catch(error => {
-                console.error('DEBUG: Error refreshing document display:', error);
+                console.error('Error refreshing document display:', error);
             });
     }
 }
@@ -2700,11 +2654,8 @@ function saveTags() {
 
 KnowledgeBaseApp.prototype.handleContextUpload = async function(event) {
     const files = Array.from(event.target.files);
-    console.log('DEBUG: handleContextUpload called, currentConversationId:', this.currentConversationId);
-    console.log('DEBUG: this object:', this);
     
     if (!this.currentConversationId) {
-        console.error('DEBUG: No currentConversationId found, cannot upload');
         this.showError('Please start or select a conversation before uploading context.');
         return;
     }
@@ -3215,7 +3166,6 @@ KnowledgeBaseApp.prototype.removeContextFromConversation = async function(contex
 
 // Show context item details (placeholder)
 KnowledgeBaseApp.prototype.showContextItemDetails = function(contextItemId) {
-    console.log('Show details for context item:', contextItemId);
     // This will be implemented in later increments
 };
 
@@ -4120,30 +4070,12 @@ KnowledgeBaseApp.prototype.showChatView = function() {
         // Hide any remaining search results that might be interfering with the layout
         const searchResults = document.querySelector('.search-results-container');
         if (searchResults) {
-            console.log('DEBUG: Hiding search results container');
             searchResults.style.display = 'none';
         }
         
         // Ensure the bottom input container is visible and properly positioned
         const bottomInputContainer = document.querySelector('.bottom-input-container');
         if (bottomInputContainer) {
-            console.log('DEBUG: Found bottom-input-container, making it visible');
-            
-            // Debug the current positioning
-            const computedStyle = window.getComputedStyle(bottomInputContainer);
-            console.log('DEBUG: Bottom input container computed styles:', {
-                display: computedStyle.display,
-                visibility: computedStyle.visibility,
-                opacity: computedStyle.opacity,
-                position: computedStyle.position,
-                top: computedStyle.top,
-                left: computedStyle.left,
-                right: computedStyle.right,
-                bottom: computedStyle.bottom,
-                width: computedStyle.width,
-                height: computedStyle.height
-            });
-            
             // Force the bottom input container to be visible
             bottomInputContainer.style.display = 'block';
             bottomInputContainer.style.visibility = 'visible';
@@ -4165,10 +4097,7 @@ KnowledgeBaseApp.prototype.showChatView = function() {
             bottomInputContainer.style.flexGrow = '';
             bottomInputContainer.style.flexShrink = '';
             bottomInputContainer.style.flexBasis = '';
-            
-            console.log('DEBUG: Bottom input container should now be visible');
         } else {
-            console.error('DEBUG: bottom-input-container not found!');
             
             // Create a new bottom input container if it doesn't exist
             const newBottomInput = document.createElement('div');
@@ -4297,9 +4226,6 @@ KnowledgeBaseApp.prototype.showNotification = function(message, type = 'info') {
 
 // Render uploaded context documents
 KnowledgeBaseApp.prototype.renderContextDocuments = function(documents) {
-    console.log('DEBUG: renderContextDocuments called with:', documents);
-    console.log('DEBUG: Number of documents:', documents.length);
-    
     const container = document.getElementById('chat-messages');
     
     // Remove any existing context documents section
@@ -4313,7 +4239,6 @@ KnowledgeBaseApp.prototype.renderContextDocuments = function(documents) {
     
     // First, populate the document content map
     documents.forEach(doc => {
-        console.log('DEBUG: Storing document:', doc.filename, 'with content length:', doc.content ? doc.content.length : 0);
         this.documentContentMap.set(doc.filename, doc.content || '');
     });
     
@@ -4327,14 +4252,11 @@ KnowledgeBaseApp.prototype.renderContextDocuments = function(documents) {
         </div>
     `;
     
-    console.log('DEBUG: Final HTML generated:', docsSection.innerHTML);
-    
     // Insert at the top of the chat messages
     container.insertBefore(docsSection, container.firstChild);
 };
 
 KnowledgeBaseApp.prototype.renderDocumentItem = function(doc) {
-    console.log('DEBUG: renderDocumentItem called for:', doc.filename);
     const fileType = this.getFileTypeIcon(doc.filename);
     
     // Store the document content in our global map
@@ -4349,7 +4271,6 @@ KnowledgeBaseApp.prototype.renderDocumentItem = function(doc) {
         </span>
     `;
     
-    console.log('DEBUG: Generated HTML for document:', doc.filename, ':', html);
     return html;
 };
 
@@ -4380,8 +4301,6 @@ KnowledgeBaseApp.prototype.formatFileSize = function(bytes) {
 };
 
 KnowledgeBaseApp.prototype.viewDocument = function(filename, content) {
-    console.log('DEBUG: viewDocument called for:', filename, 'with content length:', content ? content.length : 0);
-    
     // Create a modal to view document content
     const modal = document.createElement('div');
     modal.className = 'document-modal';
@@ -4406,8 +4325,6 @@ KnowledgeBaseApp.prototype.viewDocument = function(filename, content) {
 };
 
 KnowledgeBaseApp.prototype.downloadDocument = function(filename, content) {
-    console.log('DEBUG: downloadDocument called for:', filename, 'with content length:', content ? content.length : 0);
-    
     // Create a blob and download the document
     const blob = new Blob([content], { type: 'text/plain' });
     const url = window.URL.createObjectURL(blob);
@@ -4422,8 +4339,6 @@ KnowledgeBaseApp.prototype.downloadDocument = function(filename, content) {
 
 KnowledgeBaseApp.prototype.handleDocumentClick = function(filename) {
     try {
-        console.log('DEBUG: handleDocumentClick called for filename:', filename);
-        
         // Remove any existing document menu
         const existingMenu = document.querySelector('.document-menu');
         if (existingMenu) {
@@ -4432,10 +4347,8 @@ KnowledgeBaseApp.prototype.handleDocumentClick = function(filename) {
         
         // Get the content from our global map
         const content = this.documentContentMap.get(filename) || '';
-        console.log('DEBUG: Retrieved content for', filename, ':', content ? `length: ${content.length}` : 'no content');
         
         if (!content) {
-            console.error('DEBUG: No content found for filename:', filename);
             return;
         }
         
