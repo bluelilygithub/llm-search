@@ -1679,10 +1679,15 @@ class KnowledgeBaseApp {
         const totalResults = results.conversations.length + results.projects.length + results.contextItems.length;
         
         if (totalResults === 0) {
-            // Clear only the chat messages area, preserve top bar
+            // Clear any existing search results or chat containers, preserve top bar
             const existingChatContainer = mainContent.querySelector('.chat-messages-container');
             if (existingChatContainer) {
                 existingChatContainer.remove();
+            }
+            
+            const existingSearchContainer = mainContent.querySelector('.search-results-container');
+            if (existingSearchContainer) {
+                existingSearchContainer.remove();
             }
             
             const searchResultsContainer = document.createElement('div');
@@ -1762,10 +1767,15 @@ class KnowledgeBaseApp {
         
         resultsHtml += '</div>';
         
-        // Clear only the chat messages area, preserve top bar
+        // Clear any existing search results or chat containers, preserve top bar
         const existingChatContainer = mainContent.querySelector('.chat-messages-container');
         if (existingChatContainer) {
             existingChatContainer.remove();
+        }
+        
+        const existingSearchContainer = mainContent.querySelector('.search-results-container');
+        if (existingSearchContainer) {
+            existingSearchContainer.remove();
         }
         
         const searchResultsContainer = document.createElement('div');
