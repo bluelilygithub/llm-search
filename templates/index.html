@@ -715,7 +715,7 @@
             const sidebarContent = document.getElementById('sidebar-content');
             const sidebarCollapsedContent = document.getElementById('sidebar-collapsed-content');
             const sidebarFooter = document.getElementById('sidebar-footer');
-            const projectsSection = document.getElementById('projects-section');
+            // projectsSection removed - no longer needed
             
             sidebar.classList.toggle('collapsed');
             
@@ -736,8 +736,7 @@
                 sidebarContent.style.display = 'block';
                 sidebarCollapsedContent.style.display = 'none';
                 sidebarFooter.querySelector('.settings-label').style.display = 'inline';
-                // Hide projects section in expanded content - recent conversations will take full space
-                projectsSection.style.display = 'none';
+                // Recent conversations will take full space in expanded content
             }
         }
 
@@ -1125,11 +1124,16 @@
             
             try {
                 // Load current model settings from server
+                console.log('Loading model configurations...');
                 const response = await fetch('/api/model-settings');
+                console.log('Response status:', response.status);
+                
                 if (response.ok) {
                     modelSettings = await response.json();
+                    console.log('Loaded modelSettings from server:', modelSettings);
                 } else {
                     // Initialize with default settings
+                    console.log('Response not OK, using default settings');
                     modelSettings = {};
                     Object.keys(availableModels).forEach(provider => {
                         availableModels[provider].forEach(model => {
@@ -1139,6 +1143,7 @@
                             };
                         });
                     });
+                    console.log('Initialized default modelSettings:', modelSettings);
                 }
                 
                 renderModelsList();
@@ -1152,6 +1157,8 @@
         function renderModelsList() {
             const modelsList = document.getElementById('models-list');
             let html = '';
+            
+            console.log('Rendering models list with modelSettings:', modelSettings);
             
             Object.keys(availableModels).forEach(provider => {
                 const providerName = provider.charAt(0).toUpperCase() + provider.slice(1);
@@ -1173,6 +1180,7 @@
                 
                 availableModels[provider].forEach(model => {
                     const settings = modelSettings[model.value] || { enabled: false, status: 'unknown' };
+                    console.log(`Model ${model.value}: settings =`, settings);
                     html += `
                         <div class="model-item">
                             <div class="model-info">
@@ -1207,6 +1215,7 @@
             });
             
             modelsList.innerHTML = html;
+            console.log('Models list rendered');
         }
 
         function getProviderIcon(provider) {
@@ -1236,6 +1245,8 @@
                 modelSettings[modelValue] = { enabled: false, status: 'unknown' };
             }
             modelSettings[modelValue].enabled = document.getElementById(`model-${modelValue}`).checked;
+            console.log(`Model ${modelValue} enabled: ${modelSettings[modelValue].enabled}`);
+            console.log('Current modelSettings:', modelSettings);
         }
 
         function toggleGroupModels(provider, enabled) {
@@ -1324,13 +1335,17 @@
                 saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
                 saveBtn.disabled = true;
                 
+                console.log('Saving model settings:', modelSettings);
+                
                 const response = await fetch('/api/model-settings', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(modelSettings)
                 });
                 
+                console.log('Response status:', response.status);
                 const result = await response.json();
+                console.log('Response result:', result);
                 
                 if (response.ok) {
                     // Update the model dropdown based on enabled models
@@ -1354,6 +1369,8 @@
             const dropdown = document.getElementById('llm-model');
             const options = dropdown.querySelectorAll('option');
             
+            console.log('Updating model dropdown with modelSettings:', modelSettings);
+            
             options.forEach(option => {
                 const modelValue = option.value;
                 const settings = modelSettings[modelValue];
@@ -1362,12 +1379,15 @@
                     // Show model only if it's enabled (ignore status - let admin decide via checkboxes)
                     if (settings.enabled) {
                         option.style.display = '';
+                        console.log(`Model ${modelValue}: showing (enabled)`);
                     } else {
                         option.style.display = 'none';
+                        console.log(`Model ${modelValue}: hiding (disabled)`);
                     }
                 } else {
                     // If no settings found, show by default (for backward compatibility)
                     option.style.display = '';
+                    console.log(`Model ${modelValue}: showing (no settings found)`);
                 }
             });
         }
