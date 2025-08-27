@@ -811,8 +811,13 @@
 
 
 
+        // Track if user has manually changed the model
+        let userManuallyChangedModel = false;
+        
         function updateModel() {
             if (window.app && window.app.updateModel) {
+                // Mark that user has manually changed the model
+                userManuallyChangedModel = true;
                 window.app.updateModel();
             }
         }
@@ -1437,103 +1442,95 @@
             }
         }
 
-                 function updateModelDropdown() {
-             const dropdown = document.getElementById('llm-model');
-             if (!dropdown) {
-                 console.error('Model dropdown not found');
-                 return;
-             }
-             
-             console.log('Updating model dropdown with modelSettings:', modelSettings);
-             
-             // Get all options, including those in optgroups
-             const allOptions = dropdown.querySelectorAll('option');
-             console.log('Found options:', allOptions.length);
-             
-             allOptions.forEach(option => {
-                 const modelValue = option.value;
-                 const settings = modelSettings[modelValue];
-                 
-                 console.log(`Processing option: ${modelValue}, settings:`, settings);
-                 
-                 if (settings) {
-                     // Show model only if it's enabled
-                     if (settings.enabled) {
-                         option.style.display = '';
-                         option.disabled = false;
-                         console.log(`Model ${modelValue}: showing (enabled)`);
-                     } else {
-                         option.style.display = 'none';
-                         option.disabled = true;
-                         console.log(`Model ${modelValue}: hiding (disabled)`);
-                     }
-                 } else {
-                     // If no settings found, show by default (for backward compatibility)
-                     option.style.display = '';
-                     option.disabled = false;
-                     console.log(`Model ${modelValue}: showing (no settings found)`);
-                 }
-             });
-             
-                              // Set the default model if no model is currently selected or if current selection is disabled
-             const currentValue = dropdown.value;
-             const currentSettings = modelSettings[currentValue];
-             
-             console.log(`Current dropdown value: ${currentValue}`);
-             console.log(`Current settings for ${currentValue}:`, currentSettings);
-             console.log(`User preferred default: ${userPreferences.defaultModel}`);
-             
-                                             // Always prioritize user's saved preference if available and enabled
-                               if (userPreferences.defaultModel && modelSettings[userPreferences.defaultModel] && modelSettings[userPreferences.defaultModel].enabled) {
-                    // User has a saved preference and it's enabled - use it
-                    if (dropdown.value !== userPreferences.defaultModel) {
+        function updateModelDropdown() {
+            const dropdown = document.getElementById('llm-model');
+            if (!dropdown) {
+                console.error('Model dropdown not found');
+                return;
+            }
+            
+            console.log('Updating model dropdown with modelSettings:', modelSettings);
+            
+            // Get all options, including those in optgroups
+            const allOptions = dropdown.querySelectorAll('option');
+            console.log('Found options:', allOptions.length);
+            
+            allOptions.forEach(option => {
+                const modelValue = option.value;
+                const settings = modelSettings[modelValue];
+                
+                console.log(`Processing option: ${modelValue}, settings:`, settings);
+                
+                if (settings) {
+                    // Show model only if it's enabled
+                    if (settings.enabled) {
+                        option.style.display = '';
+                        option.disabled = false;
+                        console.log(`Model ${modelValue}: showing (enabled)`);
+                    } else {
+                        option.style.display = 'none';
+                        option.disabled = true;
+                        console.log(`Model ${modelValue}: hiding (disabled)`);
+                    }
+                } else {
+                    // If no settings found, show by default (for backward compatibility)
+                    option.style.display = '';
+                    option.disabled = false;
+                    console.log(`Model ${modelValue}: showing (no settings found)`);
+                }
+            });
+            
+            // Only change the dropdown if there's no current selection or if current selection is invalid
+            const currentValue = dropdown.value;
+            const currentSettings = modelSettings[currentValue];
+            
+            console.log(`Current dropdown value: ${currentValue}`);
+            console.log(`Current settings for ${currentValue}:`, currentSettings);
+            console.log(`User preferred default: ${userPreferences.defaultModel}`);
+            console.log(`User manually changed model: ${userManuallyChangedModel}`);
+            
+            // Don't change the dropdown if user has manually selected a model and it's still valid
+            if (userManuallyChangedModel && currentValue && currentSettings && currentSettings.enabled) {
+                console.log(`Respecting user's manual selection: ${currentValue}`);
+                return;
+            }
+            
+            if (!currentValue || (currentSettings && !currentSettings.enabled)) {
+                // First try to use the user's saved preference if available and enabled
+                let newSelection = null;
+                if (userPreferences.defaultModel && modelSettings[userPreferences.defaultModel] && modelSettings[userPreferences.defaultModel].enabled) {
+                    newSelection = userPreferences.defaultModel;
+                    console.log(`Using user's saved preference: ${newSelection}`);
+                } else {
+                    // Fall back to first enabled model
+                    newSelection = Object.keys(modelSettings).find(model => 
+                        modelSettings[model] && modelSettings[model].enabled
+                    );
+                    console.log(`Falling back to first enabled model: ${newSelection}`);
+                }
+                
+                if (newSelection && dropdown.value !== newSelection) {
+                    // Find the actual option element to set
+                    const targetOption = dropdown.querySelector(`option[value="${newSelection}"]`);
+                    if (targetOption) {
                         // Remove 'selected' attribute from all options first
                         dropdown.querySelectorAll('option').forEach(option => {
                             option.removeAttribute('selected');
                         });
                         
                         // Set 'selected' attribute on the target option
-                        const targetOption = dropdown.querySelector(`option[value="${userPreferences.defaultModel}"]`);
-                        if (targetOption) {
-                            targetOption.setAttribute('selected', 'selected');
-                        }
+                        targetOption.setAttribute('selected', 'selected');
                         
-                        dropdown.value = userPreferences.defaultModel;
-                        console.log(`Set dropdown to user's saved preference: ${userPreferences.defaultModel}`);
+                        dropdown.value = newSelection;
+                        console.log(`Set dropdown to: ${newSelection}`);
+                    } else {
+                        console.error(`Could not find option element for value: ${newSelection}`);
                     }
-                } else if (!currentValue || (currentSettings && !currentSettings.enabled)) {
-                   // No current selection or current selection is disabled, and no saved preference
-                   // Only set a fallback if there's no current value at all
-                   if (!currentValue) {
-                       const newSelection = Object.keys(modelSettings).find(model => 
-                           modelSettings[model] && modelSettings[model].enabled
-                       );
-                       
-                                               if (newSelection) {
-                            // Find the actual option element to set
-                            const targetOption = dropdown.querySelector(`option[value="${newSelection}"]`);
-                            if (targetOption) {
-                                // Remove 'selected' attribute from all options first
-                                dropdown.querySelectorAll('option').forEach(option => {
-                                    option.removeAttribute('selected');
-                                });
-                                
-                                // Set 'selected' attribute on the target option
-                                targetOption.setAttribute('selected', 'selected');
-                                
-                                dropdown.value = newSelection;
-                                console.log(`Set dropdown to first enabled model: ${newSelection}`);
-                            } else {
-                                console.error(`Could not find option element for value: ${newSelection}`);
-                            }
-                        }
-                   } else {
-                       console.log(`Current selection ${currentValue} is disabled, but keeping it to avoid unwanted changes`);
-                   }
-               } else {
-                   console.log(`Keeping current selection: ${currentValue}`);
-               }
-         }
+                }
+            } else {
+                console.log(`Keeping current selection: ${currentValue}`);
+            }
+        }
 
                  // Preferences management
          let userPreferences = {
@@ -1783,6 +1780,9 @@
                   
                   // Now update the dropdown AFTER both are loaded
                   updateModelDropdown();
+                  
+                  // Reset the manual change flag on page load so preferences can be applied
+                  userManuallyChangedModel = false;
                   
                   // Also ensure the preferences dropdown is populated if we're on the preferences section
                   if (document.getElementById('preferences-section').classList.contains('active')) {
