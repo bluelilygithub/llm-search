@@ -704,6 +704,7 @@ body {
     overflow-y: auto;
     position: relative;
     z-index: 1;
+    min-height: 0;
 }
 
 .breadcrumb {
@@ -878,6 +879,7 @@ body {
     flex-direction: column;
     position: relative;
     z-index: 1;
+    min-height: 0;
 }
 
 /* Chat Header */

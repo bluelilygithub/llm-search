@@ -3979,25 +3979,40 @@ KnowledgeBaseApp.prototype.openProject = function(projectId) {
 KnowledgeBaseApp.prototype.showChatView = function() {
     this.currentView = 'chat';
     
-    // Determine which container to use based on current view state
-    let container = document.getElementById('chat-messages');
-    let isMainContent = false;
-    
-    // If we're coming from search results, use main-content
-    if (this.currentView === 'search-results' || !container) {
-        container = document.getElementById('main-content');
-        isMainContent = true;
-    }
-    
+    // Always use main-content container for chat view to ensure proper layout
+    const container = document.getElementById('main-content');
     if (!container) {
-        console.error('No suitable container found for chat view');
+        console.error('main-content container not found for chat view');
         return;
     }
     
-    console.log('DEBUG: showChatView - using container:', container.id, 'isMainContent:', isMainContent);
+    console.log('DEBUG: showChatView - using container:', container.id);
     
-    // Note: Project context is now preserved by the caller when needed
-    // Only clear if explicitly switching away from project context
+    // Clear any existing view content (conversations, projects, etc.)
+    const existingViewContent = container.querySelector('.main-view');
+    if (existingViewContent) {
+        existingViewContent.remove();
+    }
+    
+    // Ensure the main-content div has the proper CSS classes for chat layout
+    container.className = 'main-content';
+    
+    // Create the chat messages container structure
+    const chatMessagesContainer = document.createElement('div');
+    chatMessagesContainer.className = 'chat-messages-container';
+    chatMessagesContainer.innerHTML = `
+        <div class="chat-messages" id="chat-messages">
+            <!-- Messages will be loaded here -->
+        </div>
+    `;
+    
+    // Insert after the top bar to maintain proper layout
+    const topBar = container.querySelector('.top-bar');
+    if (topBar) {
+        topBar.insertAdjacentElement('afterend', chatMessagesContainer);
+    } else {
+        container.appendChild(chatMessagesContainer);
+    }
     
     // Show/hide chat header based on project context
     const chatHeader = document.getElementById('chat-header');
@@ -4018,118 +4033,54 @@ KnowledgeBaseApp.prototype.showChatView = function() {
     const contextToggle = document.getElementById('context-toggle-btn');
     if (contextToggle) contextToggle.style.display = 'block';
     
-    // If we're using main-content (coming from search), set up the chat interface
-    if (isMainContent) {
-        // Clear any existing view content (conversations, projects, etc.)
-        const existingViewContent = container.querySelector('.main-view');
-        if (existingViewContent) {
-            existingViewContent.remove();
-        }
+    // Hide any remaining search results that might be interfering with the layout
+    const searchResults = document.querySelector('.search-results-container');
+    if (searchResults) {
+        searchResults.style.display = 'none';
+    }
+    
+    // Ensure the bottom input container is visible and properly positioned
+    const bottomInputContainer = document.querySelector('.bottom-input-container');
+    if (bottomInputContainer) {
+        // Force the bottom input container to be visible
+        bottomInputContainer.style.display = 'block';
+        bottomInputContainer.style.visibility = 'visible';
+        bottomInputContainer.style.opacity = '1';
+        bottomInputContainer.style.height = 'auto';
+        bottomInputContainer.style.minHeight = 'auto';
+        bottomInputContainer.style.overflow = 'visible';
         
-        // Ensure the main-content div has the proper CSS classes for chat layout
-        container.className = 'main-content';
+        // Remove any inline styles that might interfere with the layout
+        bottomInputContainer.style.position = '';
+        bottomInputContainer.style.bottom = '';
+        bottomInputContainer.style.top = '';
+        bottomInputContainer.style.left = '';
+        bottomInputContainer.style.right = '';
         
-        // Create the chat messages container structure
-        const chatMessagesContainer = document.createElement('div');
-        chatMessagesContainer.className = 'chat-messages-container';
-        chatMessagesContainer.innerHTML = `
-            <div class="chat-messages" id="chat-messages">
-                <!-- Messages will be loaded here -->
-            </div>
-        `;
-        
-        // Insert after the top bar to maintain proper layout
-        const topBar = container.querySelector('.top-bar');
-        if (topBar) {
-            topBar.insertAdjacentElement('afterend', chatMessagesContainer);
-        } else {
-            container.appendChild(chatMessagesContainer);
-        }
-        
-        // Hide any remaining search results that might be interfering with the layout
-        const searchResults = document.querySelector('.search-results-container');
-        if (searchResults) {
-            searchResults.style.display = 'none';
-        }
-        
-        // Ensure the bottom input container is visible and properly positioned
-        const bottomInputContainer = document.querySelector('.bottom-input-container');
-        if (bottomInputContainer) {
-            // Force the bottom input container to be visible
-            bottomInputContainer.style.display = 'block';
-            bottomInputContainer.style.visibility = 'visible';
-            bottomInputContainer.style.opacity = '1';
-            bottomInputContainer.style.height = 'auto';
-            bottomInputContainer.style.minHeight = 'auto';
-            bottomInputContainer.style.overflow = 'visible';
-            
-            // Remove any inline styles that might interfere with the layout
-            bottomInputContainer.style.position = '';
-            bottomInputContainer.style.bottom = '';
-            bottomInputContainer.style.top = '';
-            bottomInputContainer.style.left = '';
-            bottomInputContainer.style.right = '';
-            
-            // Ensure it's positioned correctly in the layout
-            bottomInputContainer.style.order = '';
-            bottomInputContainer.style.flex = '';
-            bottomInputContainer.style.flexGrow = '';
-            bottomInputContainer.style.flexShrink = '';
-            bottomInputContainer.style.flexBasis = '';
-        } else {
-            
-            // Create a new bottom input container if it doesn't exist
-            const newBottomInput = document.createElement('div');
-            newBottomInput.className = 'bottom-input-container';
-            newBottomInput.innerHTML = `
-                <div class="input-area">
-                    <div class="input-controls-left">
-                        <button class="input-control-btn" onclick="triggerFileUpload()" title="Add attachment">
-                            <i class="fas fa-paperclip"></i>
-                        </button>
-                        <button class="input-control-btn" onclick="startVoiceInput()" title="Voice Input" id="voice-btn">
-                            <i class="fas fa-microphone"></i>
-                        </button>
-                    </div>
-                    
-                    <div class="message-input-container">
-                        <textarea id="message-input" placeholder="Ask a question or search knowledge base..." 
-                                rows="1" onkeydown="handleInputKeydown(event)" oninput="handleInputChange()"></textarea>
-                    </div>
-                    
-                    <button class="send-button" onclick="sendMessage()" id="send-btn">
-                        Send
-                    </button>
-                </div>
-                
-                <input type="file" id="file-input" multiple style="display: none;" onchange="window.app.handleContextUpload(event)">
-            `;
-            
-            // Append to the app container
-            const appContainer = document.querySelector('.app-container');
-            if (appContainer) {
-                appContainer.appendChild(newBottomInput);
-                console.log('DEBUG: Created and added new bottom input container');
-            }
-        }
-        
-        // Note: chat-interface element doesn't exist in HTML, so we skip that
-    } else {
-        // Show empty state or current conversation for normal chat view
+        // Ensure it's positioned correctly in the layout
+        bottomInputContainer.style.order = '';
+        bottomInputContainer.style.flex = '';
+        bottomInputContainer.style.flexGrow = '';
+        bottomInputContainer.style.flexShrink = '';
+        bottomInputContainer.style.flexBasis = '';
+    }
+    
+    // Show empty state for new conversation
     if (!this.currentConversationId) {
-            if (container) {
-        container.innerHTML = `
-            <div class="empty-state">
-                <div class="empty-state-icon">
-                    <i class="fas fa-comments"></i>
+        const chatMessages = document.getElementById('chat-messages');
+        if (chatMessages) {
+            chatMessages.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">
+                        <i class="fas fa-comments"></i>
+                    </div>
+                    <h2 class="empty-state-title">New Conversation</h2>
+                    <p class="empty-state-description">Start a conversation or search your knowledge base.</p>
                 </div>
-                <h2 class="empty-state-title">New Conversation</h2>
-                <p class="empty-state-description">Start a conversation or search your knowledge base.</p>
-            </div>
-        `;
-            }
+            `;
         }
     }
+    
     // If there's a current conversation, it will be loaded by the caller
 };
 
