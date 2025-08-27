@@ -1851,11 +1851,7 @@ class KnowledgeBaseApp {
         
         console.log('DEBUG: Current view after switch:', this.currentView);
         
-        // Ensure the chat interface is visible
-        const chatInterface = document.getElementById('chat-interface');
-        if (chatInterface) {
-            chatInterface.style.display = 'block';
-        }
+        // Note: chat-interface element doesn't exist in HTML, so we skip that
         
         // Then load the conversation
         setTimeout(() => {
@@ -4061,19 +4057,47 @@ KnowledgeBaseApp.prototype.showChatView = function() {
     
     // If we're using main-content (coming from search), set up the chat interface
     if (isMainContent) {
-        container.innerHTML = `
-            <div class="chat-view">
-                <div class="chat-messages" id="chat-messages">
-                    <!-- Messages will be loaded here -->
-                </div>
+        // Clear the main content and set up proper chat layout
+        container.innerHTML = '';
+        
+        // Ensure the main-content div has the proper CSS classes for chat layout
+        container.className = 'main-content';
+        
+        // Debug the container properties
+        console.log('DEBUG: main-content container:', {
+            id: container.id,
+            className: container.className,
+            style: container.style.cssText,
+            computedStyle: window.getComputedStyle(container)
+        });
+        
+        // Create the chat messages container structure
+        const chatMessagesContainer = document.createElement('div');
+        chatMessagesContainer.className = 'chat-messages-container';
+        chatMessagesContainer.innerHTML = `
+            <div class="chat-messages" id="chat-messages">
+                <!-- Messages will be loaded here -->
             </div>
         `;
         
-        // Also ensure the chat interface is visible
-        const chatInterface = document.getElementById('chat-interface');
-        if (chatInterface) {
-            chatInterface.style.display = 'block';
+        container.appendChild(chatMessagesContainer);
+        
+        // Ensure the bottom input container is visible and properly positioned
+        const bottomInputContainer = document.querySelector('.bottom-input-container');
+        if (bottomInputContainer) {
+            console.log('DEBUG: Found bottom-input-container, making it visible');
+            bottomInputContainer.style.display = 'block';
+            // Remove any inline styles that might interfere with the layout
+            bottomInputContainer.style.position = '';
+            bottomInputContainer.style.bottom = '';
+            // Ensure it's visible and properly positioned
+            bottomInputContainer.style.visibility = 'visible';
+            bottomInputContainer.style.opacity = '1';
+        } else {
+            console.error('DEBUG: bottom-input-container not found!');
         }
+        
+        // Note: chat-interface element doesn't exist in HTML, so we skip that
     } else {
         // Show empty state or current conversation for normal chat view
         if (!this.currentConversationId) {
