@@ -312,15 +312,16 @@ body {
 }
 
 .section-content.expanded {
-    max-height: 1000px;
+    max-height: calc(100vh - 150px);
 }
 
 /* Recent Conversations */
 .conversations-scroll-area {
     flex: 1;
     overflow-y: auto;
-    overflow-x: auto;
+    overflow-x: hidden;
     padding-right: var(--spacing-sm);
+    max-height: calc(100vh - 200px); /* Ensure it has a max height for scrolling */
 }
 
 .conversations-list {
@@ -358,8 +359,8 @@ body {
     color: var(--gray-900);
     margin-bottom: 2px;
     white-space: nowrap;
-    overflow: visible;
-    min-width: max-content;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .conversation-meta {
