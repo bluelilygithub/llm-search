@@ -237,7 +237,7 @@ class LLMService:
             raise Exception("Hugging Face API key not configured")
             
         try:
-            # Map model names to HF endpoints - using the most basic accessible models
+            # Map model names to HF endpoints - using the most basic, guaranteed working models
             model_mapping = {
                 'llama2-70b': 'sshleifer/tiny-gpt2',  # Tiny GPT-2 variant, guaranteed accessible
                 'mixtral-8x7b': 'sshleifer/tiny-gpt2',  # Tiny GPT-2 variant, guaranteed accessible
@@ -249,6 +249,20 @@ class LLMService:
             
             # Log which model we're actually using
             self.logger.info(f"Using Hugging Face model: {hf_model} (requested: {model})")
+            
+            # Test API key validity first
+            test_response = requests.get(
+                "https://api-inference.huggingface.co/models/gpt2",
+                headers=self.hf_headers,
+                timeout=10
+            )
+            
+            if test_response.status_code == 401:
+                raise Exception("Hugging Face API key is invalid or expired. Please check your API key.")
+            elif test_response.status_code == 403:
+                raise Exception("Hugging Face API key doesn't have permission to access models.")
+            elif test_response.status_code != 200:
+                self.logger.warning(f"API key test returned {test_response.status_code}, but continuing...")
             
             # Format conversation for HF
             conversation_text = ""

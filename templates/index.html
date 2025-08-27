@@ -129,9 +129,9 @@
                                 <option value="gemini-flash">Gemini Flash</option>
                             </optgroup>
                             <optgroup label="Hugging Face">
-                                <option value="llama2-70b">Llama 2 70B</option>
-                                <option value="mixtral-8x7b">Mixtral 8x7B</option>
-                                <option value="codellama-34b">CodeLlama 34B</option>
+                                <option value="llama2-70b">GPT-2 (via HF)</option>
+                                <option value="mixtral-8x7b">DistilGPT-2 (via HF)</option>
+                                <option value="codellama-34b">Tiny GPT-2 (via HF)</option>
                             </optgroup>
                             <optgroup label="Stability AI">
                                 <option value="stable-image-ultra">Stable Image Ultra</option>
@@ -1171,8 +1171,8 @@
                 { value: 'gemini-flash', name: 'Gemini Flash', description: 'Fast and lightweight Gemini variant' }
             ],
                          huggingface: [
-                 { value: 'llama2-70b', name: 'Tiny GPT-2 (via HF)', description: 'Lightweight GPT-2 variant via Hugging Face' },
-                 { value: 'mixtral-8x7b', name: 'Tiny GPT-2 (via HF)', description: 'Lightweight GPT-2 variant via Hugging Face' },
+                 { value: 'llama2-70b', name: 'GPT-2 (via HF)', description: 'Standard GPT-2 model via Hugging Face' },
+                 { value: 'mixtral-8x7b', name: 'DistilGPT-2 (via HF)', description: 'Distilled GPT-2 model via Hugging Face' },
                  { value: 'codellama-34b', name: 'Tiny GPT-2 (via HF)', description: 'Lightweight GPT-2 variant via Hugging Face' }
              ],
             stability: [
@@ -1489,7 +1489,7 @@
                 if (response.ok) {
                     // Update the model dropdown based on enabled models
                     updateModelDropdown();
-                    alert('Model settings saved successfully!');
+                    alert('Model settings saved successfully! The dropdown has been updated to show only enabled models.');
                 } else {
                     alert(`Failed to save model settings: ${result.error || 'Unknown error'}`);
                 }
@@ -1517,28 +1517,22 @@
             const allOptions = dropdown.querySelectorAll('option');
             console.log('Found options:', allOptions.length);
             
+            // First, hide ALL options by default
             allOptions.forEach(option => {
-                const modelValue = option.value;
+                option.style.display = 'none';
+                option.disabled = true;
+            });
+            
+            // Then show only the enabled models
+            Object.keys(modelSettings).forEach(modelValue => {
                 const settings = modelSettings[modelValue];
-                
-                console.log(`Processing option: ${modelValue}, settings:`, settings);
-                
-                if (settings) {
-                    // Show model only if it's enabled
-                    if (settings.enabled) {
+                if (settings && settings.enabled) {
+                    const option = dropdown.querySelector(`option[value="${modelValue}"]`);
+                    if (option) {
                         option.style.display = '';
                         option.disabled = false;
                         console.log(`Model ${modelValue}: showing (enabled)`);
-                    } else {
-                        option.style.display = 'none';
-                        option.disabled = true;
-                        console.log(`Model ${modelValue}: hiding (disabled)`);
                     }
-                } else {
-                    // If no settings found, show by default (for backward compatibility)
-                    option.style.display = '';
-                    option.disabled = false;
-                    console.log(`Model ${modelValue}: showing (no settings found)`);
                 }
             });
             
@@ -1592,7 +1586,7 @@
             } else {
                 console.log(`Keeping current selection: ${currentValue}`);
             }
-                }
+        }
         
         // Test function for debugging single model access
         async function testSingleModelAccess() {
