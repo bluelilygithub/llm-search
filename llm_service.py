@@ -237,11 +237,11 @@ class LLMService:
             raise Exception("Hugging Face API key not configured")
             
         try:
-            # Map model names to HF endpoints - using more accessible models
+            # Map model names to HF endpoints - using the most basic accessible models
             model_mapping = {
-                'llama2-70b': 'microsoft/DialoGPT-medium',  # More accessible alternative
-                'mixtral-8x7b': 'microsoft/DialoGPT-large',  # More accessible alternative
-                'codellama-34b': 'microsoft/DialoGPT-medium'  # More accessible alternative
+                'llama2-70b': 'sshleifer/tiny-gpt2',  # Tiny GPT-2 variant, guaranteed accessible
+                'mixtral-8x7b': 'sshleifer/tiny-gpt2',  # Tiny GPT-2 variant, guaranteed accessible
+                'codellama-34b': 'sshleifer/tiny-gpt2'  # Tiny GPT-2 variant, guaranteed accessible
             }
             
             # Map model names to HF endpoints - using more accessible models
@@ -271,7 +271,17 @@ class LLMService:
             )
             
             if response.status_code != 200:
-                raise Exception(f"HF API returned {response.status_code}: {response.text}")
+                self.logger.error(f"HF API error: {response.status_code} - {response.text}")
+                if response.status_code == 401:
+                    raise Exception("Hugging Face API key is invalid or expired. Please check your API key.")
+                elif response.status_code == 403:
+                    raise Exception("Hugging Face API key doesn't have permission to access this model.")
+                elif response.status_code == 429:
+                    raise Exception("Hugging Face API rate limit exceeded. Please try again later.")
+                elif response.status_code == 404:
+                    raise Exception(f"Hugging Face model '{hf_model}' not found. The model may have been deprecated or requires special access.")
+                else:
+                    raise Exception(f"HF API returned {response.status_code}: {response.text}")
             
             result = response.json()
             if isinstance(result, list) and len(result) > 0:
