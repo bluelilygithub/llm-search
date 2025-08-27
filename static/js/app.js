@@ -1755,13 +1755,13 @@ class KnowledgeBaseApp {
         const isActive = this.currentConversationId === conv.id;
         const tags = conv.tags && conv.tags.length > 0 ? 
             `<div class="search-result-tags">
-                ${conv.tags.map(tag => {
-                    const isMatch = tag.toLowerCase().includes(query.toLowerCase());
-                    const highlightedTag = isMatch ? tag.replace(new RegExp(`(${query})`, 'gi'), '<mark>$1</mark>') : tag;
-                    return `<span class="tag${isMatch ? ' tag-match' : ''}">${highlightedTag}</span>`;
-                }).join('')}
-            </div>` : '';
-        
+                    ${conv.tags.map(tag => {
+                        const isMatch = tag.toLowerCase().includes(query.toLowerCase());
+                        const highlightedTag = isMatch ? tag.replace(new RegExp(`(${query})`, 'gi'), '<mark>$1</mark>') : tag;
+                        return `<span class="tag${isMatch ? ' tag-match' : ''}">${highlightedTag}</span>`;
+                    }).join('')}
+                </div>` : '';
+            
         return `
             <div class="search-result-item conversation-result ${isActive ? 'active' : ''}" onclick="window.app.openConversationFromSearch('${conv.id}')">
                 <div class="search-result-icon">
@@ -1799,11 +1799,11 @@ class KnowledgeBaseApp {
     
     // Render individual search result context item
     renderSearchResultContextItem(item, query) {
-        return `
+            return `
             <div class="search-result-item context-result" onclick="window.app.openConversationFromSearch('${item.conversation_id}')">
                 <div class="search-result-icon">
                     <i class="fas fa-file-alt"></i>
-                </div>
+                    </div>
                 <div class="search-result-content">
                     <div class="search-result-title">${this.highlightQuery(item.filename, query)}</div>
                     <div class="search-result-meta">
@@ -1812,8 +1812,8 @@ class KnowledgeBaseApp {
                     </div>
                     <div class="search-result-preview">${this.highlightQuery(item.content_preview || '', query)}</div>
                 </div>
-            </div>
-        `;
+                </div>
+            `;
     }
     
     // Highlight search query in text
@@ -1959,7 +1959,7 @@ class KnowledgeBaseApp {
         }
         
         if (container) {
-            container.scrollTop = container.scrollHeight;
+        container.scrollTop = container.scrollHeight;
         }
     }
 
@@ -4167,17 +4167,17 @@ KnowledgeBaseApp.prototype.showChatView = function() {
         }
     } else {
         // Show empty state or current conversation for normal chat view
-        if (!this.currentConversationId) {
+    if (!this.currentConversationId) {
             if (container) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-state-icon">
-                            <i class="fas fa-comments"></i>
-                        </div>
-                        <h2 class="empty-state-title">New Conversation</h2>
-                        <p class="empty-state-description">Start a conversation or search your knowledge base.</p>
-                    </div>
-                `;
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">
+                    <i class="fas fa-comments"></i>
+                </div>
+                <h2 class="empty-state-title">New Conversation</h2>
+                <p class="empty-state-description">Start a conversation or search your knowledge base.</p>
+            </div>
+        `;
             }
         }
     }
