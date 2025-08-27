@@ -3977,6 +3977,7 @@ KnowledgeBaseApp.prototype.openProject = function(projectId) {
 
 // Show normal chat view
 KnowledgeBaseApp.prototype.showChatView = function() {
+    console.log('DEBUG: showChatView called - currentViewProject:', this.currentViewProject, 'currentProject:', this.currentProject);
     this.currentView = 'chat';
     
     // Always use main-content container for chat view to ensure proper layout
@@ -4015,9 +4016,11 @@ KnowledgeBaseApp.prototype.showChatView = function() {
     }
     
     // Show/hide chat header based on project context
+    console.log('DEBUG: showChatView - currentViewProject:', this.currentViewProject);
     const chatHeader = document.getElementById('chat-header');
     if (chatHeader) {
         if (this.currentViewProject) {
+            console.log('DEBUG: showChatView - Showing project context for:', this.currentViewProject.name);
             // Show project context in header
             chatHeader.style.display = 'block';
             const projectName = document.getElementById('project-name');
@@ -4025,8 +4028,11 @@ KnowledgeBaseApp.prototype.showChatView = function() {
             if (projectName) projectName.textContent = this.currentViewProject.name;
             if (conversationTitle) conversationTitle.textContent = 'New Conversation';
         } else {
+            console.log('DEBUG: showChatView - No project context, hiding chat header');
             chatHeader.style.display = 'none';
         }
+    } else {
+        console.log('DEBUG: showChatView - Chat header element not found');
     }
     
     // Show context toggle again
@@ -4042,6 +4048,8 @@ KnowledgeBaseApp.prototype.showChatView = function() {
     // Ensure the bottom input container is visible and properly positioned
     const bottomInputContainer = document.querySelector('.bottom-input-container');
     if (bottomInputContainer) {
+        console.log('DEBUG: showChatView - Found bottom input container, ensuring visibility');
+        
         // Force the bottom input container to be visible
         bottomInputContainer.style.display = 'block';
         bottomInputContainer.style.visibility = 'visible';
@@ -4063,6 +4071,10 @@ KnowledgeBaseApp.prototype.showChatView = function() {
         bottomInputContainer.style.flexGrow = '';
         bottomInputContainer.style.flexShrink = '';
         bottomInputContainer.style.flexBasis = '';
+        
+        console.log('DEBUG: showChatView - Bottom input container styles applied');
+    } else {
+        console.error('DEBUG: showChatView - Bottom input container not found!');
     }
     
     // Show empty state for new conversation
@@ -4103,12 +4115,29 @@ KnowledgeBaseApp.prototype.startNewConversation = function() {
         this.currentProject = preserveProjectContext;
     }
     
-    this.startNewChat();
+    // Clear current conversation ID for new conversation
+    this.currentConversationId = null;
+    
+    // Clear input
+    const messageInput = document.getElementById('message-input');
+    if (messageInput) {
+        messageInput.value = '';
+        this.autoResizeTextarea();
+    }
+    
+    // Clear active conversation styling
+    document.querySelectorAll('.conversation-item').forEach(item => {
+        item.classList.remove('active');
+    });
 };
 
 // Start new conversation in specific project
 KnowledgeBaseApp.prototype.startNewConversationInProject = function(projectId) {
+    console.log('DEBUG: startNewConversationInProject called with projectId:', projectId);
     this.currentProject = this.projects.find(p => p.id === projectId);
+    console.log('DEBUG: Found project:', this.currentProject);
+    this.currentViewProject = this.currentProject; // Set the view project context
+    console.log('DEBUG: Set currentViewProject to:', this.currentViewProject);
     this.startNewConversation();
 };
 
