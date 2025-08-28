@@ -3702,28 +3702,40 @@ KnowledgeBaseApp.prototype.showProjectConversationsView = function(project) {
         return;
     }
     
-    container.innerHTML = `
-        <div class="main-view">
-            <nav class="breadcrumb">
-                <span class="breadcrumb-item" onclick="window.app.showProjectsView()">
-                    <i class="fas fa-folder-open"></i>
-                    Projects
-                </span>
-                <span class="breadcrumb-separator"><i class="fas fa-chevron-right"></i></span>
-                <span class="breadcrumb-item active">
-                    ${project.name}
-                </span>
-            </nav>
-            
-            <div class="view-header">
-                <div class="view-title">
-                    <i class="fas fa-folder-open"></i>
-                    <h2>${project.name}</h2>
-                </div>
-                <div class="view-actions">
-                    <button class="view-action-btn" onclick="window.app.startNewConversationInProject('${project.id}')">
-                        <i class="fas fa-plus"></i>
-                        New Chat
+    // Preserve the top bar and bottom input container
+    const topBar = container.querySelector('.top-bar');
+    const bottomInput = container.querySelector('.bottom-input-container');
+    
+    // Clear only the chat messages area, not the entire container
+    const chatMessagesContainer = container.querySelector('.chat-messages-container');
+    if (chatMessagesContainer) {
+        chatMessagesContainer.remove();
+    }
+    
+    // Create the project conversations view content
+    const projectContent = document.createElement('div');
+    projectContent.className = 'main-view';
+    projectContent.innerHTML = `
+        <nav class="breadcrumb">
+            <span class="breadcrumb-item" onclick="window.app.showProjectsView()">
+                <i class="fas fa-folder-open"></i>
+                Projects
+            </span>
+            <span class="breadcrumb-separator"><i class="fas fa-chevron-right"></i></span>
+            <span class="breadcrumb-item active">
+                ${project.name}
+            </span>
+        </nav>
+        
+        <div class="view-header">
+            <div class="view-title">
+                <i class="fas fa-folder-open"></i>
+                <h2>${project.name}</h2>
+            </div>
+            <div class="view-actions">
+                <button class="view-action-btn" onclick="window.app.startNewConversationInProject('${project.id}')">
+                    <i class="fas fa-plus"></i>
+                    New Chat
                     </button>
                     <button class="view-action-btn secondary" onclick="window.app.editProject('${project.id}', '${project.name.replace(/'/g, "\\'")}')">
                         <i class="fas fa-edit"></i>
@@ -3740,6 +3752,13 @@ KnowledgeBaseApp.prototype.showProjectConversationsView = function(project) {
             </div>
         </div>
     `;
+    
+    // Insert after the top bar to maintain proper layout
+    if (topBar) {
+        topBar.insertAdjacentElement('afterend', projectContent);
+    } else {
+        container.appendChild(projectContent);
+    }
     
     this.loadProjectConversationsGrid(project.id);
 };
@@ -3995,21 +4014,25 @@ KnowledgeBaseApp.prototype.showChatView = function() {
     // Ensure the main-content div has the proper CSS classes for chat layout
     container.className = 'main-content';
     
-    // Create the chat messages container structure
-    const chatMessagesContainer = document.createElement('div');
-    chatMessagesContainer.className = 'chat-messages-container';
-    chatMessagesContainer.innerHTML = `
-        <div class="chat-messages" id="chat-messages">
-            <!-- Messages will be loaded here -->
-        </div>
-    `;
-    
-    // Insert after the top bar to maintain proper layout
-    const topBar = container.querySelector('.top-bar');
-    if (topBar) {
-        topBar.insertAdjacentElement('afterend', chatMessagesContainer);
-    } else {
-        container.appendChild(chatMessagesContainer);
+    // Find the existing chat-messages-container instead of creating a new one
+    let chatMessagesContainer = container.querySelector('.chat-messages-container');
+    if (!chatMessagesContainer) {
+        // Only create if it doesn't exist
+        chatMessagesContainer = document.createElement('div');
+        chatMessagesContainer.className = 'chat-messages-container';
+        chatMessagesContainer.innerHTML = `
+            <div class="chat-messages" id="chat-messages">
+                <!-- Messages will be loaded here -->
+            </div>
+        `;
+        
+        // Insert after the top bar to maintain proper layout
+        const topBar = container.querySelector('.top-bar');
+        if (topBar) {
+            topBar.insertAdjacentElement('afterend', chatMessagesContainer);
+        } else {
+            container.appendChild(chatMessagesContainer);
+        }
     }
     
     // Show/hide chat header based on project context
@@ -4065,12 +4088,17 @@ KnowledgeBaseApp.prototype.clearProjectContext = function() {
 
 // Start new conversation (enhanced to work from any view)
 KnowledgeBaseApp.prototype.startNewConversation = function() {
+    // Preserve the current view project context
+    if (this.currentProject && !this.currentViewProject) {
+        this.currentViewProject = this.currentProject;
+    }
     this.startNewChat();
 };
 
 // Start new conversation in specific project
 KnowledgeBaseApp.prototype.startNewConversationInProject = function(projectId) {
     this.currentProject = this.projects.find(p => p.id === projectId);
+    this.currentViewProject = this.currentProject; // Set the view project context
     this.startNewConversation();
 };
 
