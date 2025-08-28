@@ -100,8 +100,6 @@ body {
     display: flex;
     height: 100vh;
     overflow: hidden;
-    flex-direction: column;
-    min-height: 100vh;
 }
 
 /* ==================== SIDEBAR ==================== */
@@ -1019,12 +1017,6 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    display: block !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    height: auto !important;
-    min-height: auto !important;
-    overflow: visible !important;
 }
 
 .input-area {
