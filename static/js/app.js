@@ -1006,6 +1006,9 @@ class KnowledgeBaseApp {
     startNewChat() {
         this.currentConversationId = null;
         
+        // Show the chat view FIRST to ensure proper layout and chat-messages container exists
+        this.showChatView();
+        
         // Re-enable model selector for new conversations
         const llmModelElement = document.getElementById('llm-model');
         if (llmModelElement) {
@@ -1019,13 +1022,17 @@ class KnowledgeBaseApp {
             }
         }
         
-        document.getElementById('chat-messages').innerHTML = `
-            <div class="welcome-message">
-                <h3 id="new-conversation-title">New Conversation</h3>
-                <p>Start a conversation or search your knowledge base.</p>
-            </div>
-        `;
-        this.updateNewConversationTitle();
+        // Now safely update the chat messages since the container exists
+        const chatMessages = document.getElementById('chat-messages');
+        if (chatMessages) {
+            chatMessages.innerHTML = `
+                <div class="welcome-message">
+                    <h3 id="new-conversation-title">New Conversation</h3>
+                    <p>Start a conversation or search your knowledge base.</p>
+                </div>
+            `;
+            this.updateNewConversationTitle();
+        }
         
         // Clear active conversation
         document.querySelectorAll('.conversation-item').forEach(item => {
@@ -1033,32 +1040,44 @@ class KnowledgeBaseApp {
         });
         
         // Clear input
-        document.getElementById('message-input').value = '';
-        this.autoResizeTextarea();
+        const messageInput = document.getElementById('message-input');
+        if (messageInput) {
+            messageInput.value = '';
+            this.autoResizeTextarea();
+        }
         
         // Preserve current project context if we're in a project view
         if (this.currentViewProject) {
             this.currentProject = this.currentViewProject;
         }
-        
-        // Show the chat view to ensure proper layout
-        this.showChatView();
     }
 
     // Start new conversation (enhanced to work from any view)
     startNewConversation() {
-        // Preserve the current view project context
-        if (this.currentProject && !this.currentViewProject) {
-            this.currentViewProject = this.currentProject;
+        try {
+            // Preserve the current view project context
+            if (this.currentProject && !this.currentViewProject) {
+                this.currentViewProject = this.currentProject;
+            }
+            this.startNewChat();
+        } catch (error) {
+            console.error('Error starting new conversation:', error);
+            // Fallback: try to show chat view directly
+            this.showChatView();
         }
-        this.startNewChat();
     }
 
     // Start new conversation in specific project
     startNewConversationInProject(projectId) {
-        this.currentProject = this.projects.find(p => p.id === projectId);
-        this.currentViewProject = this.currentProject; // Set the view project context
-        this.startNewConversation();
+        try {
+            this.currentProject = this.projects.find(p => p.id === projectId);
+            this.currentViewProject = this.currentProject; // Set the view project context
+            this.startNewConversation();
+        } catch (error) {
+            console.error('Error starting new conversation in project:', error);
+            // Fallback: try to show chat view directly
+            this.showChatView();
+        }
     }
 
     // Show normal chat view
@@ -1127,21 +1146,7 @@ class KnowledgeBaseApp {
             searchResults.style.display = 'none';
         }
         
-        // Show empty state for new conversation
-        if (!this.currentConversationId) {
-            const chatMessages = document.getElementById('chat-messages');
-            if (chatMessages) {
-                chatMessages.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-state-icon">
-                            <i class="fas fa-comments"></i>
-                        </div>
-                        <h2 class="empty-state-title">New Conversation</h2>
-                        <p class="empty-state-description">Start a conversation or search your knowledge base.</p>
-                    </div>
-                `;
-            }
-        }
+        // Empty state will be set by startNewChat() method
         
         // If there's a current conversation, it will be loaded by the caller
     }
