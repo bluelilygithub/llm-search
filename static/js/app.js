@@ -568,9 +568,6 @@ class KnowledgeBaseApp {
         projectName.textContent = project.name;
         conversationTitle.textContent = 'Loading conversation...';
         chatHeader.style.display = 'block';
-        
-        // Ensure chat messages container exists and is properly positioned
-        this.ensureChatMessagesContainer();
     }
 
     ensureChatMessagesContainer() {
@@ -602,6 +599,94 @@ class KnowledgeBaseApp {
         
         // Ensure the chat messages container is visible
         chatMessagesContainer.style.display = 'block';
+        
+        // Ensure the bottom input container is visible
+        const bottomInputContainer = document.querySelector('.bottom-input-container');
+        if (bottomInputContainer) {
+            bottomInputContainer.style.display = 'block';
+        }
+        
+        // Set up proper scrolling for the chat messages
+        const chatMessages = document.getElementById('chat-messages');
+        if (chatMessages) {
+            chatMessages.style.maxHeight = 'calc(100vh - 300px)'; // Adjust height to account for headers
+            chatMessages.style.overflowY = 'auto';
+            chatMessages.style.padding = '20px';
+        }
+    }
+
+    showChatViewWithProjectContext(project) {
+        this.currentView = 'chat';
+        
+        // Always use main-content container for chat view to ensure proper layout
+        const container = document.getElementById('main-content');
+        if (!container) {
+            console.error('main-content container not found for chat view');
+            return;
+        }
+        
+        // Clear any existing view content (conversations, projects, etc.)
+        const existingViewContent = container.querySelector('.main-view');
+        if (existingViewContent) {
+            existingViewContent.remove();
+        }
+        
+        // Ensure the main-content div has the proper CSS classes for chat layout
+        container.className = 'main-content';
+        
+        // Create a new chat-messages-container with project context header
+        let chatMessagesContainer = container.querySelector('.chat-messages-container');
+        if (chatMessagesContainer) {
+            chatMessagesContainer.remove();
+        }
+        
+        chatMessagesContainer = document.createElement('div');
+        chatMessagesContainer.className = 'chat-messages-container';
+        chatMessagesContainer.innerHTML = `
+            <!-- Chat Header with Project Context -->
+            <div class="chat-header" id="chat-header" style="display: block;">
+                <div class="chat-breadcrumb">
+                    <span class="breadcrumb-item breadcrumb-clickable" onclick="window.app.goBackToProject()">
+                        <i class="fas fa-folder-open"></i>
+                        <span id="project-name">${project.name}</span>
+                    </span>
+                    <span class="breadcrumb-separator"><i class="fas fa-chevron-right"></i></span>
+                    <span class="breadcrumb-item active">
+                        <i class="fas fa-comment"></i>
+                        <span id="conversation-title">Loading conversation...</span>
+                    </span>
+                </div>
+                <div class="chat-header-actions">
+                    <button class="chat-header-btn" onclick="window.app.goToHome()" title="Go to Home">
+                        <i class="fas fa-home"></i>
+                        <span>Home</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Chat Messages Area -->
+            <div class="chat-messages" id="chat-messages">
+                <!-- Messages will be loaded here -->
+            </div>
+        `;
+        
+        // Insert after the top bar to maintain proper layout
+        const topBar = container.querySelector('.top-bar');
+        if (topBar) {
+            topBar.insertAdjacentElement('afterend', chatMessagesContainer);
+        } else {
+            container.appendChild(chatMessagesContainer);
+        }
+        
+        // Ensure the bottom input container is visible
+        const bottomInputContainer = document.querySelector('.bottom-input-container');
+        if (bottomInputContainer) {
+            bottomInputContainer.style.display = 'block';
+        }
+        
+        // Show context toggle again
+        const contextToggle = document.getElementById('context-toggle-btn');
+        if (contextToggle) contextToggle.style.display = 'block';
     }
 
     goBackToProject() {
@@ -4030,14 +4115,13 @@ KnowledgeBaseApp.prototype.openConversationFromGrid = function(conversationId) {
     const preserveProjectContext = this.currentViewProject;
     
     if (preserveProjectContext) {
-        // If we're in a project view, don't call showChatView() - just load the conversation
-        // This preserves the breadcrumb and project title rows
+        // If we're in a project view, we need to show the chat view but preserve project context
         this.currentViewProject = preserveProjectContext;
         
-        // Update the chat header to show project context
-        this.updateChatHeaderForProject(preserveProjectContext);
+        // Show chat view but preserve project context
+        this.showChatViewWithProjectContext(preserveProjectContext);
         
-        // Load the conversation directly
+        // Load the conversation
         if (this && typeof this.loadConversation === 'function') {
             this.loadConversation(conversationId);
         } else {
