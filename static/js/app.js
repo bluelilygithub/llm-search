@@ -568,6 +568,40 @@ class KnowledgeBaseApp {
         projectName.textContent = project.name;
         conversationTitle.textContent = 'Loading conversation...';
         chatHeader.style.display = 'block';
+        
+        // Ensure chat messages container exists and is properly positioned
+        this.ensureChatMessagesContainer();
+    }
+
+    ensureChatMessagesContainer() {
+        // Find or create the chat messages container
+        let chatMessagesContainer = document.querySelector('.chat-messages-container');
+        
+        if (!chatMessagesContainer) {
+            // Create the chat messages container
+            chatMessagesContainer = document.createElement('div');
+            chatMessagesContainer.className = 'chat-messages-container';
+            chatMessagesContainer.innerHTML = `
+                <div class="chat-messages" id="chat-messages">
+                    <!-- Messages will be loaded here -->
+                </div>
+            `;
+            
+            // Insert after the main-view (which contains breadcrumb and project title)
+            const mainView = document.querySelector('.main-view');
+            if (mainView) {
+                mainView.insertAdjacentElement('afterend', chatMessagesContainer);
+            } else {
+                // Fallback: insert after top bar
+                const topBar = document.querySelector('.top-bar');
+                if (topBar) {
+                    topBar.insertAdjacentElement('afterend', chatMessagesContainer);
+                }
+            }
+        }
+        
+        // Ensure the chat messages container is visible
+        chatMessagesContainer.style.display = 'block';
     }
 
     goBackToProject() {
@@ -3995,27 +4029,35 @@ KnowledgeBaseApp.prototype.openConversationFromGrid = function(conversationId) {
     // Preserve project context when opening conversation from project view
     const preserveProjectContext = this.currentViewProject;
     
-    // Switch back to chat view and load the conversation
-    this.showChatView();
-    
-    // Restore project context if we came from a project view
     if (preserveProjectContext) {
+        // If we're in a project view, don't call showChatView() - just load the conversation
+        // This preserves the breadcrumb and project title rows
         this.currentViewProject = preserveProjectContext;
         
         // Update the chat header to show project context
         this.updateChatHeaderForProject(preserveProjectContext);
-    }
-    
-    // Ensure we're using the correct 'this' context
-    if (this && typeof this.loadConversation === 'function') {
-        this.loadConversation(conversationId);
-    } else {
-        // Fallback to window.app if 'this' context is lost
-        console.warn('Lost context in openConversationFromGrid, using window.app fallback');
-        if (window.app && typeof window.app.loadConversation === 'function') {
-            window.app.loadConversation(conversationId);
+        
+        // Load the conversation directly
+        if (this && typeof this.loadConversation === 'function') {
+            this.loadConversation(conversationId);
         } else {
             console.error('Cannot load conversation: loadConversation method not found');
+        }
+    } else {
+        // If not in project view, use normal chat view
+        this.showChatView();
+        
+        // Ensure we're using the correct 'this' context
+        if (this && typeof this.loadConversation === 'function') {
+            this.loadConversation(conversationId);
+        } else {
+            // Fallback to window.app if 'this' context is lost
+            console.warn('Lost context in openConversationFromGrid, using window.app fallback');
+            if (window.app && typeof window.app.loadConversation === 'function') {
+                window.app.loadConversation(conversationId);
+            } else {
+                console.error('Cannot load conversation: loadConversation method not found');
+            }
         }
     }
 };
