@@ -487,6 +487,9 @@ class KnowledgeBaseApp {
             
             const data = await response.json();
             
+            // Debug: Log the conversation data
+            console.log('Conversation data received:', data);
+            
             // Safety checks for API response
             if (!data || !data.messages) {
                 console.warn('Invalid API response:', data);
@@ -540,7 +543,9 @@ class KnowledgeBaseApp {
             if (project) {
                 // Show header with project context
                 projectName.textContent = project.name;
-                conversationTitle.textContent = conversation.title;
+                // Use conversation title if available, otherwise use a default
+                const title = conversation.title || conversation.name || 'Untitled Conversation';
+                conversationTitle.textContent = title;
                 chatHeader.style.display = 'block';
                 return;
             }
@@ -548,6 +553,21 @@ class KnowledgeBaseApp {
         
         // Hide header if no project context
         chatHeader.style.display = 'none';
+    }
+
+    updateChatHeaderForProject(project) {
+        const chatHeader = document.getElementById('chat-header');
+        const projectName = document.getElementById('project-name');
+        const conversationTitle = document.getElementById('conversation-title');
+        
+        if (!chatHeader || !projectName || !conversationTitle) {
+            return;
+        }
+        
+        // Show header with project context
+        projectName.textContent = project.name;
+        conversationTitle.textContent = 'Loading conversation...';
+        chatHeader.style.display = 'block';
     }
 
     goBackToProject() {
@@ -3981,6 +4001,9 @@ KnowledgeBaseApp.prototype.openConversationFromGrid = function(conversationId) {
     // Restore project context if we came from a project view
     if (preserveProjectContext) {
         this.currentViewProject = preserveProjectContext;
+        
+        // Update the chat header to show project context
+        this.updateChatHeaderForProject(preserveProjectContext);
     }
     
     // Ensure we're using the correct 'this' context
