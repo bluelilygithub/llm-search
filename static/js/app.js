@@ -504,6 +504,16 @@ class KnowledgeBaseApp {
                 const llmModelElement = document.getElementById('llm-model');
                 if (llmModelElement) {
                     llmModelElement.value = this.selectedModel;
+                    // Disable model selector for active conversations
+                    llmModelElement.disabled = true;
+                    // Add visual indication that model is locked
+                    llmModelElement.title = 'Model is locked for this conversation';
+                    
+                    // Show lock icon
+                    const lockIcon = document.getElementById('model-lock-icon');
+                    if (lockIcon) {
+                        lockIcon.style.display = 'inline-block';
+                    }
                 }
             }
             
@@ -1007,6 +1017,20 @@ class KnowledgeBaseApp {
 
     startNewChat() {
         this.currentConversationId = null;
+        
+        // Re-enable model selector for new conversations
+        const llmModelElement = document.getElementById('llm-model');
+        if (llmModelElement) {
+            llmModelElement.disabled = false;
+            llmModelElement.title = 'Select LLM model for this conversation';
+            
+            // Hide lock icon
+            const lockIcon = document.getElementById('model-lock-icon');
+            if (lockIcon) {
+                lockIcon.style.display = 'none';
+            }
+        }
+        
         document.getElementById('chat-messages').innerHTML = `
             <div class="welcome-message">
                 <h3 id="new-conversation-title">New Conversation</h3>
@@ -1031,8 +1055,39 @@ class KnowledgeBaseApp {
     }
 
     updateModel() {
+        // Only allow model changes if no conversation is active
+        if (this.currentConversationId) {
+            // Model is locked for active conversations
+            console.log('Model cannot be changed during an active conversation');
+            this.showModelChangeWarning();
+            return;
+        }
+        
         this.selectedModel = document.getElementById('llm-model').value;
         // No longer showing model instructions automatically
+    }
+
+    showModelChangeWarning() {
+        // Show warning that model cannot be changed during active conversation
+        const warningDiv = document.createElement('div');
+        warningDiv.className = 'model-change-warning';
+        warningDiv.innerHTML = `
+            <div class="warning-content">
+                <i class="fas fa-lock"></i>
+                <span>Model is locked for this conversation. Start a new conversation to use a different model.</span>
+                <button class="close-warning" onclick="this.parentElement.parentElement.remove()">×</button>
+            </div>
+        `;
+        
+        // Add to page
+        document.body.appendChild(warningDiv);
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            if (warningDiv.parentElement) {
+                warningDiv.remove();
+            }
+        }, 5000);
     }
 
     showModelInstructions() {

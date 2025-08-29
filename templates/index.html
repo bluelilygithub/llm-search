@@ -107,7 +107,9 @@
             <div class="top-bar">
                 <div class="top-bar-left">
                     <div class="model-selector-container">
-                        <select class="model-selector" id="llm-model" onchange="updateModel()">
+                        <div class="model-selector-wrapper">
+                            <select class="model-selector" id="llm-model" onchange="updateModel()">
+                            <i class="fas fa-lock model-lock-icon" id="model-lock-icon" style="display: none;" title="Model is locked for this conversation"></i>
                             <optgroup label="OpenAI">
                                 <option value="gpt-3.5-turbo" selected>GPT-3.5 Turbo</option>
                                 <option value="gpt-4">GPT-4</option>
@@ -140,6 +142,7 @@
                                 <option value="stable-audio-2">Stable Audio 2</option>
                             </optgroup>
                         </select>
+                        </div>
                     </div>
                 </div>
                 
