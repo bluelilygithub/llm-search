@@ -172,19 +172,7 @@ class KnowledgeBaseApp {
     showNewProjectPrompt() { /* no-op, replaced by inline input */ }
 
     // Methods called from the new HTML structure
-    startNewConversation() {
-        this.currentConversationId = null;
-        document.getElementById('chat-messages').innerHTML = `
-            <div class="empty-state" id="empty-state">
-                <div class="empty-state-icon">
-                    <i class="fas fa-comments"></i>
-                </div>
-                <h2 class="empty-state-title" id="new-conversation-title">New Conversation</h2>
-                <p class="empty-state-description">Start a conversation or search your knowledge base.</p>
-            </div>
-        `;
-        this.updateNewConversationTitle();
-    }
+    // startNewConversation method moved to prototype for better project context handling
 
     createNewProject(name) {
         if (!name.trim()) return;
