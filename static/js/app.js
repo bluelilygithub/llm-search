@@ -3714,6 +3714,10 @@ KnowledgeBaseApp.prototype.showProjectConversationsView = function(project) {
     const topBar = container.querySelector('.top-bar');
     const bottomInput = container.querySelector('.bottom-input-container');
     
+    // Remove any existing main-view elements to prevent appending
+    const existingMainViews = container.querySelectorAll('.main-view');
+    existingMainViews.forEach(view => view.remove());
+    
     // Clear only the chat messages area, not the entire container
     const chatMessagesContainer = container.querySelector('.chat-messages-container');
     if (chatMessagesContainer) {
