@@ -1040,6 +1040,110 @@ class KnowledgeBaseApp {
         if (this.currentViewProject) {
             this.currentProject = this.currentViewProject;
         }
+        
+        // Show the chat view to ensure proper layout
+        this.showChatView();
+    }
+
+    // Start new conversation (enhanced to work from any view)
+    startNewConversation() {
+        // Preserve the current view project context
+        if (this.currentProject && !this.currentViewProject) {
+            this.currentViewProject = this.currentProject;
+        }
+        this.startNewChat();
+    }
+
+    // Start new conversation in specific project
+    startNewConversationInProject(projectId) {
+        this.currentProject = this.projects.find(p => p.id === projectId);
+        this.currentViewProject = this.currentProject; // Set the view project context
+        this.startNewConversation();
+    }
+
+    // Show normal chat view
+    showChatView() {
+        this.currentView = 'chat';
+        
+        // Always use main-content container for chat view to ensure proper layout
+        const container = document.getElementById('main-content');
+        if (!container) {
+            console.error('main-content container not found for chat view');
+            return;
+        }
+        
+        // Clear any existing view content (conversations, projects, etc.)
+        const existingViewContent = container.querySelector('.main-view');
+        if (existingViewContent) {
+            existingViewContent.remove();
+        }
+        
+        // Ensure the main-content div has the proper CSS classes for chat layout
+        container.className = 'main-content';
+        
+        // Find the existing chat-messages-container instead of creating a new one
+        let chatMessagesContainer = container.querySelector('.chat-messages-container');
+        if (!chatMessagesContainer) {
+            // Only create if it doesn't exist
+            chatMessagesContainer = document.createElement('div');
+            chatMessagesContainer.className = 'chat-messages-container';
+            chatMessagesContainer.innerHTML = `
+                <div class="chat-messages" id="chat-messages">
+                    <!-- Messages will be loaded here -->
+                </div>
+            `;
+            
+            // Insert after the top bar to maintain proper layout
+            const topBar = container.querySelector('.top-bar');
+            if (topBar) {
+                topBar.insertAdjacentElement('afterend', chatMessagesContainer);
+            } else {
+                container.appendChild(chatMessagesContainer);
+            }
+        }
+        
+        // Show/hide chat header based on project context
+        const chatHeader = document.getElementById('chat-header');
+        if (chatHeader) {
+            if (this.currentViewProject) {
+                // Show project context in header
+                chatHeader.style.display = 'block';
+                const projectName = document.getElementById('project-name');
+                const conversationTitle = document.getElementById('conversation-title');
+                if (projectName) projectName.textContent = this.currentViewProject.name;
+                if (conversationTitle) conversationTitle.textContent = 'New Conversation';
+            } else {
+                chatHeader.style.display = 'none';
+            }
+        }
+        
+        // Show context toggle again
+        const contextToggle = document.getElementById('context-toggle-btn');
+        if (contextToggle) contextToggle.style.display = 'block';
+        
+        // Hide any remaining search results that might be interfering with the layout
+        const searchResults = document.querySelector('.search-results-container');
+        if (searchResults) {
+            searchResults.style.display = 'none';
+        }
+        
+        // Show empty state for new conversation
+        if (!this.currentConversationId) {
+            const chatMessages = document.getElementById('chat-messages');
+            if (chatMessages) {
+                chatMessages.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">
+                            <i class="fas fa-comments"></i>
+                        </div>
+                        <h2 class="empty-state-title">New Conversation</h2>
+                        <p class="empty-state-description">Start a conversation or search your knowledge base.</p>
+                    </div>
+                `;
+            }
+        }
+        
+        // If there's a current conversation, it will be loaded by the caller
     }
 
     updateModel() {
@@ -4198,90 +4302,7 @@ KnowledgeBaseApp.prototype.openProject = function(projectId) {
     }
 };
 
-// Show normal chat view
-KnowledgeBaseApp.prototype.showChatView = function() {
-    this.currentView = 'chat';
-    
-    // Always use main-content container for chat view to ensure proper layout
-    const container = document.getElementById('main-content');
-    if (!container) {
-        console.error('main-content container not found for chat view');
-        return;
-    }
-    
-    // Clear any existing view content (conversations, projects, etc.)
-    const existingViewContent = container.querySelector('.main-view');
-    if (existingViewContent) {
-        existingViewContent.remove();
-    }
-    
-    // Ensure the main-content div has the proper CSS classes for chat layout
-    container.className = 'main-content';
-    
-    // Find the existing chat-messages-container instead of creating a new one
-    let chatMessagesContainer = container.querySelector('.chat-messages-container');
-    if (!chatMessagesContainer) {
-        // Only create if it doesn't exist
-        chatMessagesContainer = document.createElement('div');
-        chatMessagesContainer.className = 'chat-messages-container';
-        chatMessagesContainer.innerHTML = `
-            <div class="chat-messages" id="chat-messages">
-                <!-- Messages will be loaded here -->
-            </div>
-        `;
-        
-        // Insert after the top bar to maintain proper layout
-        const topBar = container.querySelector('.top-bar');
-        if (topBar) {
-            topBar.insertAdjacentElement('afterend', chatMessagesContainer);
-        } else {
-            container.appendChild(chatMessagesContainer);
-        }
-    }
-    
-    // Show/hide chat header based on project context
-    const chatHeader = document.getElementById('chat-header');
-    if (chatHeader) {
-        if (this.currentViewProject) {
-            // Show project context in header
-            chatHeader.style.display = 'block';
-            const projectName = document.getElementById('project-name');
-            const conversationTitle = document.getElementById('conversation-title');
-            if (projectName) projectName.textContent = this.currentViewProject.name;
-            if (conversationTitle) conversationTitle.textContent = 'New Conversation';
-        } else {
-            chatHeader.style.display = 'none';
-        }
-    }
-    
-    // Show context toggle again
-    const contextToggle = document.getElementById('context-toggle-btn');
-    if (contextToggle) contextToggle.style.display = 'block';
-    
-    // Hide any remaining search results that might be interfering with the layout
-    const searchResults = document.querySelector('.search-results-container');
-    if (searchResults) {
-        searchResults.style.display = 'none';
-    }
-    
-    // Show empty state for new conversation
-    if (!this.currentConversationId) {
-        const chatMessages = document.getElementById('chat-messages');
-        if (chatMessages) {
-            chatMessages.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-state-icon">
-                        <i class="fas fa-comments"></i>
-                    </div>
-                    <h2 class="empty-state-title">New Conversation</h2>
-                    <p class="empty-state-description">Start a conversation or search your knowledge base.</p>
-                </div>
-            `;
-        }
-    }
-    
-    // If there's a current conversation, it will be loaded by the caller
-};
+// showChatView method moved to class definition
 
 // Clear project context and return to home view
 KnowledgeBaseApp.prototype.clearProjectContext = function() {
@@ -4290,21 +4311,7 @@ KnowledgeBaseApp.prototype.clearProjectContext = function() {
     this.showChatView();
 };
 
-// Start new conversation (enhanced to work from any view)
-KnowledgeBaseApp.prototype.startNewConversation = function() {
-    // Preserve the current view project context
-    if (this.currentProject && !this.currentViewProject) {
-        this.currentViewProject = this.currentProject;
-    }
-    this.startNewChat();
-};
-
-// Start new conversation in specific project
-KnowledgeBaseApp.prototype.startNewConversationInProject = function(projectId) {
-    this.currentProject = this.projects.find(p => p.id === projectId);
-    this.currentViewProject = this.currentProject; // Set the view project context
-    this.startNewConversation();
-};
+// startNewConversation and startNewConversationInProject methods moved to class definition
 
 // Prompt for new project creation
 KnowledgeBaseApp.prototype.promptCreateNewProject = function() {
