@@ -23,20 +23,37 @@ def get_user_identity():
         session_id = request.cookies.get('session_id')
         security_logger.info(f"Session cookie value: {session_id}")
         
+        # Also check Flask's built-in session
+        from flask import session
+        flask_session_id = session.get('free_session_id')
+        security_logger.info(f"Flask session free_session_id: {flask_session_id}")
+        
         if not session_id:
             # Import FreeAccessManager locally to avoid circular imports
             try:
                 from auth import FreeAccessManager
+                security_logger.info("Successfully imported FreeAccessManager")
                 session_id = FreeAccessManager.get_session_id()
-                security_logger.info(f"Generated new session ID: {session_id}")
+                security_logger.info(f"Generated new session ID via FreeAccessManager: {session_id}")
             except ImportError as e:
                 security_logger.warning(f"Could not import FreeAccessManager: {e}")
                 # Fallback: generate a simple session ID
                 import uuid
                 session_id = str(uuid.uuid4())
                 security_logger.info(f"Generated fallback session ID: {session_id}")
+            except Exception as e:
+                security_logger.error(f"Error calling FreeAccessManager.get_session_id(): {e}")
+                # Fallback: generate a simple session ID
+                import uuid
+                session_id = str(uuid.uuid4())
+                security_logger.info(f"Generated fallback session ID after error: {session_id}")
         
-        security_logger.info(f"User identity - type: free, session_id: {session_id}")
+        # If we still don't have a session_id, try to use Flask's session
+        if not session_id and flask_session_id:
+            session_id = flask_session_id
+            security_logger.info(f"Using Flask session ID: {session_id}")
+        
+        security_logger.info(f"Final user identity - type: free, session_id: {session_id}")
         
         return {
             'type': 'free',
@@ -45,6 +62,8 @@ def get_user_identity():
         }
     except Exception as e:
         security_logger.error(f"Error in get_user_identity: {e}")
+        import traceback
+        security_logger.error(f"Traceback: {traceback.format_exc()}")
         # Return a safe fallback with a generated session ID
         import uuid
         fallback_session_id = str(uuid.uuid4())
@@ -206,13 +225,25 @@ def require_conversation_access(f):
             if not conversation_id and hasattr(request, 'form'):
                 conversation_id = request.form.get('conversation_id')
             
+            # If still not found, check URL parameters (for GET requests)
+            if not conversation_id and hasattr(request, 'args'):
+                conversation_id = request.args.get('conversation_id')
+            
+            # If still not found, check the first positional argument (for route parameters)
+            if not conversation_id and args:
+                conversation_id = args[0]
+            
             if not conversation_id:
+                security_logger.error(f"Could not find conversation_id in decorator. kwargs: {kwargs}, args: {args}")
                 return jsonify({'error': 'Conversation ID required'}), 400
             
+            security_logger.info(f"Checking access for conversation_id: {conversation_id}")
             has_access, message = check_conversation_access(conversation_id)
             if not has_access:
+                security_logger.warning(f"Access denied for conversation {conversation_id}: {message}")
                 return jsonify({'error': message}), 403
             
+            security_logger.info(f"Access granted for conversation {conversation_id}")
             return f(*args, **kwargs)
         except Exception as e:
             security_logger.error(f"Error in require_conversation_access decorator: {e}")

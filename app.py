@@ -430,8 +430,18 @@ def get_conversations():
     
     # Set session cookie for free users
     if identity['type'] == 'free' and identity['session_id'] and not request.cookies.get('session_id'):
-        response.set_cookie('session_id', identity['session_id'], max_age=30*24*60*60)  # 30 days
-        app.logger.info(f"Set session cookie: {identity['session_id']}")
+        # Set session cookie for free users with proper domain handling
+        cookie_domain = None  # Let browser set the domain automatically
+        if request.host and 'localhost' not in request.host and '127.0.0.1' not in request.host:
+            # For production domains, set the domain
+            cookie_domain = request.host.split(':')[0]  # Remove port if present
+        
+        response.set_cookie('session_id', identity['session_id'], 
+                          max_age=30*24*60*60, path='/', secure=False, httponly=False, 
+                          domain=cookie_domain)  # 30 days
+        app.logger.info(f"Set session cookie: {identity['session_id']} with domain: {cookie_domain}")
+    else:
+        app.logger.info(f"Session cookie not set - identity type: {identity['type']}, session_id: {identity['session_id']}, existing cookie: {request.cookies.get('session_id')}")
     
     return response
 
@@ -473,7 +483,18 @@ def create_conversation():
         
         # Set session cookie for free users
         if identity['type'] == 'free' and identity['session_id'] and not request.cookies.get('session_id'):
-            response.set_cookie('session_id', identity['session_id'], max_age=30*24*60*60)  # 30 days
+            # Set session cookie for free users with proper domain handling
+            cookie_domain = None  # Let browser set the domain automatically
+            if request.host and 'localhost' not in request.host and '127.0.0.1' not in request.host:
+                # For production domains, set the domain
+                cookie_domain = request.host.split(':')[0]  # Remove port if present
+            
+            response.set_cookie('session_id', identity['session_id'], 
+                              max_age=30*24*60*60, path='/', secure=False, httponly=False, 
+                              domain=cookie_domain)  # 30 days
+            app.logger.info(f"Set session cookie in create_conversation: {identity['session_id']} with domain: {cookie_domain}")
+        else:
+            app.logger.info(f"Session cookie not set in create_conversation - identity type: {identity['type']}, session_id: {identity['session_id']}, existing cookie: {request.cookies.get('session_id')}")
         
         return response, 201
     except Exception as e:
@@ -487,6 +508,10 @@ def get_messages(conversation_id):
     """Get messages for a conversation"""
     try:
         app.logger.info(f"Getting messages for conversation: {conversation_id}")
+        app.logger.info(f"All cookies received: {dict(request.cookies)}")
+        app.logger.info(f"Session cookie value: {request.cookies.get('session_id')}")
+        app.logger.info(f"User identity: {get_user_identity()}")
+        
         conv_uuid = uuid.UUID(conversation_id)
     except ValueError:
         app.logger.warning(f"Invalid conversation ID format: {conversation_id}")
@@ -494,6 +519,7 @@ def get_messages(conversation_id):
     
     conversation = Conversation.query.get_or_404(conv_uuid)
     app.logger.info(f"Found conversation: {conversation.title}")
+    app.logger.info(f"Conversation user_id: {conversation.user_id}, session_id: {conversation.session_id}")
     
     messages = Message.query.filter_by(conversation_id=conv_uuid).order_by(Message.timestamp.asc()).all()
     app.logger.info(f"Found {len(messages)} messages for conversation {conversation_id}")
