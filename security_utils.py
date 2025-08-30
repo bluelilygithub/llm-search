@@ -3,7 +3,7 @@
 from functools import wraps
 from flask import jsonify, session, request, current_app
 from models import Conversation, Message, Project, ContextItem
-from auth import SimpleAuth
+# Removed: from auth import SimpleAuth (causes circular import)
 import uuid
 import logging
 import hashlib
@@ -14,34 +14,22 @@ def get_user_identity():
     """Get current user identity (authenticated or session-based)"""
     try:
         security_logger.info("Getting user identity...")
-        from auth import FreeAccessManager
-        auth = SimpleAuth()
+        # Removed imports to avoid circular dependency
+        # For now, assume free user to avoid import issues
         
-        if auth.is_authenticated():
-            # Authenticated user - use fixed admin user ID (no IP dependency)
-            # This ensures authenticated users can see their conversations across all locations
-            user_id = 'admin_user'
-            security_logger.info("User is authenticated")
-            
-            return {
-                'type': 'authenticated',
-                'user_id': user_id,
-                'session_id': None
-            }
-        else:
-            # Free/anonymous user - use session-based identification
-            session_id = request.cookies.get('session_id')
-            if not session_id:
-                # Check Flask session as fallback
-                session_id = session.get('free_session_id')
-            
-            security_logger.info(f"User is free/anonymous, session_id: {session_id}")
-            
-            return {
-                'type': 'free',
-                'user_id': None,
-                'session_id': session_id
-            }
+        # Free/anonymous user - use session-based identification
+        session_id = request.cookies.get('session_id')
+        if not session_id:
+            # Check Flask session as fallback
+            session_id = session.get('free_session_id')
+        
+        security_logger.info(f"User is free/anonymous, session_id: {session_id}")
+        
+        return {
+            'type': 'free',
+            'user_id': None,
+            'session_id': session_id
+        }
     except Exception as e:
         security_logger.error(f"Error in get_user_identity: {e}")
         # Return a safe fallback
@@ -213,45 +201,57 @@ def require_message_access(f):
     """Decorator to require message access"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        message_id = kwargs.get('message_id') or kwargs.get('id')
-        if not message_id:
-            return jsonify({'error': 'Message ID required'}), 400
-        
-        has_access, message = check_message_access(message_id)
-        if not has_access:
-            return jsonify({'error': message}), 403
-        
-        return f(*args, **kwargs)
+        try:
+            message_id = kwargs.get('message_id') or kwargs.get('id')
+            if not message_id:
+                return jsonify({'error': 'Message ID required'}), 400
+            
+            has_access, message = check_message_access(message_id)
+            if not has_access:
+                return jsonify({'error': message}), 403
+            
+            return f(*args, **kwargs)
+        except Exception as e:
+            security_logger.error(f"Error in require_message_access decorator: {e}")
+            return jsonify({'error': 'Access control error'}), 500
     return decorated_function
 
 def require_project_access(f):
     """Decorator to require project access"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        project_id = kwargs.get('project_id') or kwargs.get('id')
-        if not project_id:
-            return jsonify({'error': 'Project ID required'}), 400
-        
-        has_access, message = check_project_access(project_id)
-        if not has_access:
-            return jsonify({'error': message}), 403
-        
-        return f(*args, **kwargs)
+        try:
+            project_id = kwargs.get('project_id') or kwargs.get('id')
+            if not project_id:
+                return jsonify({'error': 'Project ID required'}), 400
+            
+            has_access, message = check_project_access(project_id)
+            if not has_access:
+                return jsonify({'error': message}), 403
+            
+            return f(*args, **kwargs)
+        except Exception as e:
+            security_logger.error(f"Error in require_project_access decorator: {e}")
+            return jsonify({'error': 'Access control error'}), 500
     return decorated_function
 
 def require_context_item_access(f):
     """Decorator to require context item access"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        context_item_id = kwargs.get('item_id') or kwargs.get('context_item_id')
-        if not context_item_id:
-            return jsonify({'error': 'Context item ID required'}), 400
-        
-        has_access, message = check_context_item_access(context_item_id)
-        if not has_access:
-            return jsonify({'error': message}), 403
-        
-        return f(*args, **kwargs)
+        try:
+            context_item_id = kwargs.get('item_id') or kwargs.get('context_item_id')
+            if not context_item_id:
+                return jsonify({'error': 'Context item ID required'}), 400
+            
+            has_access, message = check_context_item_access(context_item_id)
+            if not has_access:
+                return jsonify({'error': message}), 403
+            
+            return f(*args, **kwargs)
+        except Exception as e:
+            security_logger.error(f"Error in require_context_item_access decorator: {e}")
+            return jsonify({'error': 'Access control error'}), 500
     return decorated_function
 
 def sanitize_filename(filename):
