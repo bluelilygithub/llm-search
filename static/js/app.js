@@ -353,19 +353,29 @@ class KnowledgeBaseApp {
     }
 
     editConversationTitle(conversationId, currentTitle) {
-        this.showPromptModal(
-            'Enter a new title for this conversation:',
-            'Edit Conversation Title',
-            currentTitle,
-            (newTitle) => {
-                if (newTitle && newTitle !== currentTitle) {
-                    this.updateConversationTitle(conversationId, newTitle);
+        console.log('editConversationTitle called with:', conversationId, currentTitle);
+        console.log('this context:', this);
+        console.log('showPromptModal available:', typeof this.showPromptModal);
+        
+        try {
+            this.showPromptModal(
+                'Enter a new title for this conversation:',
+                'Edit Conversation Title',
+                currentTitle,
+                (newTitle) => {
+                    console.log('Prompt confirmed with:', newTitle);
+                    if (newTitle && newTitle !== currentTitle) {
+                        this.updateConversationTitle(conversationId, newTitle);
+                    }
+                },
+                () => {
+                    console.log('Prompt cancelled');
+                    // User cancelled
                 }
-            },
-            () => {
-                // User cancelled
-            }
-        );
+            );
+        } catch (error) {
+            console.error('Error in editConversationTitle:', error);
+        }
     }
 
     async updateConversationTitle(conversationId, newTitle) {
@@ -422,16 +432,26 @@ class KnowledgeBaseApp {
     }
 
     deleteConversation(conversationId) {
-        this.showConfirmModal(
-            'Are you sure you want to delete this conversation? This action cannot be undone.',
-            'Delete Conversation',
-            () => {
-                this.deleteConversationById(conversationId);
-            },
-            () => {
-                // User cancelled
-            }
-        );
+        console.log('deleteConversation called with:', conversationId);
+        console.log('this context:', this);
+        console.log('showConfirmModal available:', typeof this.showConfirmModal);
+        
+        try {
+            this.showConfirmModal(
+                'Are you sure you want to delete this conversation? This action cannot be undone.',
+                'Delete Conversation',
+                () => {
+                    console.log('Delete confirmed for:', conversationId);
+                    this.deleteConversationById(conversationId);
+                },
+                () => {
+                    console.log('Delete cancelled for:', conversationId);
+                    // User cancelled
+                }
+            );
+        } catch (error) {
+            console.error('Error in deleteConversation:', error);
+        }
     }
 
     async deleteConversationById(conversationId) {
@@ -646,10 +666,10 @@ class KnowledgeBaseApp {
                     <div class="conversation-tags">${tags}</div>
                 </div>
                 <div class="conversation-actions">
-                    <button class="conversation-action-btn" onclick="event.stopPropagation(); window.app.editConversationTitle(${conv.id}, '${conv.title.replace(/'/g, '\\\'')}')" title="Edit">
+                    <button class="conversation-action-btn" onclick="event.stopPropagation(); console.log('Edit button clicked for conv:', ${conv.id}); console.log('window.app available:', !!window.app); if (window.app) { window.app.editConversationTitle(${conv.id}, '${conv.title.replace(/'/g, '\\\'')}'); } else { console.error('window.app not available'); }" title="Edit">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="conversation-action-btn" onclick="event.stopPropagation(); window.app.deleteConversation(${conv.id})" title="Delete">
+                    <button class="conversation-action-btn" onclick="event.stopPropagation(); console.log('Delete button clicked for conv:', ${conv.id}); console.log('window.app available:', !!window.app); if (window.app) { window.app.deleteConversation(${conv.id}); } else { console.error('window.app not available'); }" title="Delete">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
