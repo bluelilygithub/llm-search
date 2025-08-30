@@ -1936,8 +1936,113 @@
                   
               } catch (error) {
                   console.error('Failed to load data on page load:', error);
+                  showNotification('Failed to load initial data', 'error');
               }
          });
+         
+         // Global error handler for unhandled errors
+         window.addEventListener('error', function(event) {
+             console.error('Global error caught:', event.error);
+             showNotification('An unexpected error occurred', 'error');
+             
+             // Log to backend if possible
+             try {
+                 fetch('/api/log-error', {
+                     method: 'POST',
+                     headers: {
+                         'Content-Type': 'application/json',
+                         'X-CSRFToken': getCSRFToken()
+                     },
+                     body: JSON.stringify({
+                         type: 'javascript_error',
+                         message: event.error?.message || 'Unknown error',
+                         url: window.location.href,
+                         userAgent: navigator.userAgent
+                     })
+                 }).catch(e => console.error('Failed to log error to backend:', e));
+             } catch (e) {
+                 console.error('Failed to send error to backend:', e);
+             }
+         });
+         
+         // Global promise rejection handler
+         window.addEventListener('unhandledrejection', function(event) {
+             console.error('Unhandled promise rejection:', event.reason);
+             showNotification('A network request failed', 'error');
+             
+             // Log to backend if possible
+             try {
+                 fetch('/api/log-error', {
+                     method: 'POST',
+                     headers: {
+                         'Content-Type': 'application/json',
+                         'X-CSRFToken': getCSRFToken()
+                     },
+                     body: JSON.stringify({
+                         type: 'promise_rejection',
+                         message: event.reason?.message || 'Unknown promise rejection',
+                         url: window.location.href,
+                         userAgent: navigator.userAgent
+                     })
+                 }).catch(e => console.error('Failed to log error to backend:', e));
+             } catch (e) {
+                 console.error('Failed to send error to backend:', e);
+             }
+         });
+         
+         // Helper function to show notifications
+         function showNotification(message, type = 'info') {
+             // Create notification element
+             const notification = document.createElement('div');
+             notification.className = `notification notification-${type}`;
+             notification.textContent = message;
+             
+             // Style the notification
+             notification.style.cssText = `
+                 position: fixed;
+                 top: 20px;
+                 right: 20px;
+                 padding: 12px 20px;
+                 border-radius: 4px;
+                 color: white;
+                 font-weight: 500;
+                 z-index: 10000;
+                 max-width: 300px;
+                 word-wrap: break-word;
+                 box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                 transition: all 0.3s ease;
+             `;
+             
+             // Set background color based on type
+             switch(type) {
+                 case 'error':
+                     notification.style.backgroundColor = '#dc3545';
+                     break;
+                 case 'success':
+                     notification.style.backgroundColor = '#28a745';
+                     break;
+                 case 'warning':
+                     notification.style.backgroundColor = '#ffc107';
+                     notification.style.color = '#212529';
+                     break;
+                 default:
+                     notification.style.backgroundColor = '#17a2b8';
+             }
+             
+             // Add to page
+             document.body.appendChild(notification);
+             
+             // Remove after 5 seconds
+             setTimeout(() => {
+                 notification.style.opacity = '0';
+                 notification.style.transform = 'translateX(100%)';
+                 setTimeout(() => {
+                     if (notification.parentNode) {
+                         notification.parentNode.removeChild(notification);
+                     }
+                 }, 300);
+             }, 5000);
+         }
     </script>
 </body>
 </html>

@@ -153,8 +153,53 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 def allowed_file(filename):
     """Check if file extension is allowed"""
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+    if not filename or '.' not in filename:
+        return False
+    ext = filename.rsplit('.', 1)[1].lower()
+    return ext in ALLOWED_EXTENSIONS
+
+def validate_file_content(file):
+    """Validate file content by checking MIME type and first few bytes"""
+    try:
+        # Check MIME type
+        if file.content_type:
+            # Basic MIME type validation
+            allowed_mime_types = {
+                'text/plain', 'text/csv', 'text/markdown',
+                'application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'application/msword', 'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+                'audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/flac'
+            }
+            if file.content_type not in allowed_mime_types:
+                return False
+        
+        # Check file header for common file types
+        file.seek(0)
+        header = file.read(8)
+        file.seek(0)
+        
+        # PDF magic number
+        if header.startswith(b'%PDF'):
+            return True
+        # ZIP-based formats (DOCX, etc.)
+        if header.startswith(b'PK\x03\x04'):
+            return True
+        # Text files
+        if header.startswith(b'\xef\xbb\xbf') or header.startswith(b'\xff\xfe') or header.startswith(b'\xfe\xff'):
+            return True
+        # Plain text (ASCII)
+        if all(32 <= b <= 126 or b in (9, 10, 13) for b in header):
+            return True
+        # Image files
+        if header.startswith(b'\xff\xd8\xff') or header.startswith(b'\x89PNG') or header.startswith(b'GIF8'):
+            return True
+        # Audio files
+        if header.startswith(b'ID3') or header.startswith(b'RIFF') or header.startswith(b'OggS'):
+            return True
+            
+        return True  # Allow if we can't determine type
+    except Exception:
+        return False
 
 def validate_file_size(file):
     """Validate file size"""
@@ -252,23 +297,28 @@ def get_projects():
 
 @app.route('/projects', methods=['POST'])
 def create_project():
-    from models import Project
-    data = request.get_json()
-    if not data or not data.get('name'):
-        return jsonify({'error': 'Project name is required'}), 400
-    project = Project(
-        name=data['name'],
-        description=data.get('description', '')
-    )
-    db.session.add(project)
-    db.session.commit()
-    return jsonify({
-        'id': str(project.id),
-        'name': project.name,
-        'description': project.description,
-        'created_at': project.created_at.isoformat(),
-        'updated_at': project.updated_at.isoformat() if project.updated_at else None
-    }), 201
+    try:
+        from models import Project
+        data = request.get_json()
+        if not data or not data.get('name'):
+            return jsonify({'error': 'Project name is required'}), 400
+        project = Project(
+            name=data['name'],
+            description=data.get('description', '')
+        )
+        db.session.add(project)
+        db.session.commit()
+        return jsonify({
+            'id': str(project.id),
+            'name': project.name,
+            'description': project.description,
+            'created_at': project.created_at.isoformat(),
+            'updated_at': project.updated_at.isoformat() if project.updated_at else None
+        }), 201
+    except Exception as e:
+        app.logger.error(f"Error creating project: {e}")
+        db.session.rollback()
+        return jsonify({'error': 'Failed to create project'}), 500
 
 @csrf.exempt
 @app.route('/projects/<project_id>', methods=['DELETE'])
@@ -366,41 +416,46 @@ def get_conversations():
 @app.route('/conversations', methods=['POST'])
 def create_conversation():
     """Create a new conversation with proper user ownership"""
-    data = request.get_json()
-    if not data or not data.get('title') or not data.get('llm_model'):
-        return jsonify({'error': 'Title and llm_model are required'}), 400
-    
-    # Get user identity for ownership
-    identity = get_user_identity()
-    
-    from models import Conversation
-    conversation = Conversation(
-        title=data['title'],
-        llm_model=data['llm_model'],
-        tags=data.get('tags', []),
-        project_id=data.get('project_id'),
-        user_id=identity['user_id'],
-        session_id=identity['session_id'],
-        ip_address=None  # IP address not needed for access control with unified identity system
-    )
-    db.session.add(conversation)
-    db.session.commit()
-    
-    response_data = {
-        'id': str(conversation.id),
-        'title': conversation.title,
-        'llm_model': conversation.llm_model,
-        'created_at': conversation.created_at.isoformat(),
-        'tags': conversation.tags
-    }
-    
-    response = jsonify(response_data)
-    
-    # Set session cookie for free users
-    if identity['type'] == 'free' and identity['session_id'] and not request.cookies.get('session_id'):
-        response.set_cookie('session_id', identity['session_id'], max_age=30*24*60*60)  # 30 days
-    
-    return response, 201
+    try:
+        data = request.get_json()
+        if not data or not data.get('title') or not data.get('llm_model'):
+            return jsonify({'error': 'Title and llm_model are required'}), 400
+        
+        # Get user identity for ownership
+        identity = get_user_identity()
+        
+        from models import Conversation
+        conversation = Conversation(
+            title=data['title'],
+            llm_model=data['llm_model'],
+            tags=data.get('tags', []),
+            project_id=data.get('project_id'),
+            user_id=identity['user_id'],
+            session_id=identity['session_id'],
+            ip_address=None  # IP address not needed for access control with unified identity system
+        )
+        db.session.add(conversation)
+        db.session.commit()
+        
+        response_data = {
+            'id': str(conversation.id),
+            'title': conversation.title,
+            'llm_model': conversation.llm_model,
+            'created_at': conversation.created_at.isoformat(),
+            'tags': conversation.tags
+        }
+        
+        response = jsonify(response_data)
+        
+        # Set session cookie for free users
+        if identity['type'] == 'free' and identity['session_id'] and not request.cookies.get('session_id'):
+            response.set_cookie('session_id', identity['session_id'], max_age=30*24*60*60)  # 30 days
+        
+        return response, 201
+    except Exception as e:
+        app.logger.error(f"Error creating conversation: {e}")
+        db.session.rollback()
+        return jsonify({'error': 'Failed to create conversation'}), 500
 
 @app.route('/conversations/<conversation_id>/messages', methods=['GET'])
 @require_conversation_access
@@ -506,32 +561,42 @@ def add_message(conversation_id):
     except ValueError:
         return jsonify({'error': 'Invalid conversation ID'}), 400
     
-    conversation = Conversation.query.get_or_404(conv_uuid)
-    data = request.get_json()
-    
-    if not data or not data.get('role') or not data.get('content'):
-        return jsonify({'error': 'Role and content are required'}), 400
-    
-    if data['role'] not in ['user', 'assistant']:
-        return jsonify({'error': 'Role must be user or assistant'}), 400
-    
-    message = Message(
-        conversation_id=conv_uuid,
-        role=data['role'],
-        content=data['content']
-    )
-    
-    conversation.updated_at = datetime.utcnow()
-    
-    db.session.add(message)
-    db.session.commit()
-    
-    return jsonify({
-        'id': str(message.id),
-        'role': message.role,
-        'content': message.content,
-        'timestamp': message.timestamp.isoformat()
-    }), 201
+    try:
+        conversation = Conversation.query.get_or_404(conv_uuid)
+        data = request.get_json()
+        
+        if not data or not data.get('role') or not data.get('content'):
+            return jsonify({'error': 'Role and content are required'}), 400
+        
+        if data['role'] not in ['user', 'assistant']:
+            return jsonify({'error': 'Role must be user or assistant'}), 400
+        
+        # Add content length validation
+        content = data['content']
+        if len(content) > 100000:  # 100KB limit
+            return jsonify({'error': 'Message content too long. Maximum 100KB allowed.'}), 400
+        
+        message = Message(
+            conversation_id=conv_uuid,
+            role=data['role'],
+            content=content
+        )
+        
+        conversation.updated_at = datetime.utcnow()
+        
+        db.session.add(message)
+        db.session.commit()
+        
+        return jsonify({
+            'id': str(message.id),
+            'role': message.role,
+            'content': message.content,
+            'timestamp': message.timestamp.isoformat()
+        }), 201
+    except Exception as e:
+        app.logger.error(f"Error adding message: {e}")
+        db.session.rollback()
+        return jsonify({'error': 'Failed to add message'}), 500
 
 @csrf.exempt
 @app.route('/chat', methods=['POST'])
@@ -547,6 +612,20 @@ def chat():
         conversation_id = data.get('conversation_id')
         user_message = data['message']
         model = data['model']
+        
+        # Input validation
+        if not isinstance(user_message, str) or len(user_message.strip()) == 0:
+            return jsonify({'error': 'Message cannot be empty'}), 400
+        
+        if len(user_message) > 100000:  # 100KB limit
+            return jsonify({'error': 'Message too long. Maximum 100KB allowed.'}), 400
+        
+        if not isinstance(model, str) or len(model.strip()) == 0:
+            return jsonify({'error': 'Model cannot be empty'}), 400
+        
+        # Sanitize inputs
+        user_message = user_message.strip()
+        model = model.strip()
         
         # Handle free tier access
         if getattr(request, 'access_type', None) == 'free_tier':
@@ -759,6 +838,9 @@ def upload_attachments(conversation_id):
             
             if not allowed_file(file.filename):
                 return jsonify({'error': f'File type not allowed. Allowed: {", ".join(ALLOWED_EXTENSIONS)}'}), 400
+            
+            if not validate_file_content(file):
+                return jsonify({'error': 'File content validation failed. File may be corrupted or contain malicious content.'}), 400
             
             if not validate_file_size(file):
                 return jsonify({'error': f'File too large. Maximum size: {MAX_FILE_SIZE // (1024*1024)}MB'}), 400
@@ -1922,16 +2004,34 @@ def search_conversations():
         # Get conversations ordered by most recent (no DISTINCT needed with EXISTS)
         conversations = base_query.order_by(Conversation.updated_at.desc()).limit(limit).all()
         
+        # Get all matching messages in a single query to avoid N+1 problem
+        conversation_ids = [conv.id for conv in conversations]
+        if conversation_ids:
+            # Single query to get all matching messages for all conversations
+            all_matching_messages = db.session.query(Message).filter(
+                and_(
+                    Message.conversation_id.in_(conversation_ids),
+                    Message.content.ilike(f'%{query}%')
+                )
+            ).order_by(Message.conversation_id, Message.timestamp.desc()).all()
+            
+            # Group messages by conversation_id for efficient lookup
+            messages_by_conversation = {}
+            for msg in all_matching_messages:
+                conv_id = str(msg.conversation_id)
+                if conv_id not in messages_by_conversation:
+                    messages_by_conversation[conv_id] = []
+                messages_by_conversation[conv_id].append(msg)
+        else:
+            messages_by_conversation = {}
+        
         # Format results with matching message snippets
         results = []
         for conv in conversations:
-            # Find matching messages in this conversation
-            matching_messages = Message.query.filter(
-                and_(
-                    Message.conversation_id == conv.id,
-                    Message.content.ilike(f'%{query}%')
-                )
-            ).order_by(Message.timestamp.desc()).limit(3).all()
+            conv_id_str = str(conv.id)
+            
+            # Get matching messages for this conversation from our grouped results
+            matching_messages = messages_by_conversation.get(conv_id_str, [])[:3]
             
             # Create snippets from matching messages
             snippets = []
