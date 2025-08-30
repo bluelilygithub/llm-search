@@ -14,16 +14,24 @@ def get_user_identity():
     """Get current user identity (authenticated or session-based)"""
     try:
         security_logger.info("Getting user identity...")
-        # Removed imports to avoid circular dependency
-        # For now, assume free user to avoid import issues
         
-        # Free/anonymous user - use session-based identification
+        # Check for existing session cookie first
         session_id = request.cookies.get('session_id')
-        if not session_id:
-            # Check Flask session as fallback
-            session_id = session.get('free_session_id')
         
-        security_logger.info(f"User is free/anonymous, session_id: {session_id}")
+        if not session_id:
+            # Import FreeAccessManager locally to avoid circular imports
+            try:
+                from auth import FreeAccessManager
+                session_id = FreeAccessManager.get_session_id()
+                security_logger.info(f"Generated new session ID: {session_id}")
+            except ImportError as e:
+                security_logger.warning(f"Could not import FreeAccessManager: {e}")
+                # Fallback: generate a simple session ID
+                import uuid
+                session_id = str(uuid.uuid4())
+                security_logger.info(f"Generated fallback session ID: {session_id}")
+        
+        security_logger.info(f"User identity - type: free, session_id: {session_id}")
         
         return {
             'type': 'free',
@@ -32,11 +40,14 @@ def get_user_identity():
         }
     except Exception as e:
         security_logger.error(f"Error in get_user_identity: {e}")
-        # Return a safe fallback
+        # Return a safe fallback with a generated session ID
+        import uuid
+        fallback_session_id = str(uuid.uuid4())
+        security_logger.info(f"Using fallback session ID: {fallback_session_id}")
         return {
             'type': 'free',
             'user_id': None,
-            'session_id': None
+            'session_id': fallback_session_id
         }
 
 def validate_uuid(uuid_string):

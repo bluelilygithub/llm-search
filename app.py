@@ -135,10 +135,26 @@ def filter_conversations_by_user(query):
         # Authenticated user: only show conversations with their specific user_id
         return query.filter(Conversation.user_id == identity['user_id'])
     else:
-        # Free user: only show conversations that:
+        # Free user: show conversations that:
         # 1. Have the same session_id (primary match)
-        # 2. OR have same IP but NO user_id (legacy free conversations)
-        return query.filter(Conversation.session_id == identity['session_id'])
+        # 2. OR have no user_id (legacy free conversations)
+        # 3. OR have no session_id (very old conversations)
+        if identity['session_id']:
+            return query.filter(
+                db.or_(
+                    Conversation.session_id == identity['session_id'],
+                    Conversation.user_id.is_(None),
+                    Conversation.session_id.is_(None)
+                )
+            )
+        else:
+            # If no session_id, show legacy conversations
+            return query.filter(
+                db.or_(
+                    Conversation.user_id.is_(None),
+                    Conversation.session_id.is_(None)
+                )
+            )
 
 # File upload configuration
 UPLOAD_FOLDER = os.path.join(os.getcwd(), 'uploads')
@@ -378,6 +394,10 @@ def get_conversations():
     """Get conversations filtered by current user (authenticated or free user)"""
     project_id = request.args.get('project_id')
     
+    # Get user identity for debugging
+    identity = get_user_identity()
+    app.logger.info(f"Getting conversations for user: {identity}")
+    
     # Start with base query filtered by user
     query = filter_conversations_by_user(Conversation.query)
     
@@ -385,10 +405,13 @@ def get_conversations():
     if project_id:
         query = query.filter_by(project_id=project_id)
     
+    # Log the SQL query for debugging
+    app.logger.info(f"SQL Query: {query}")
+    
     conversations = query.order_by(Conversation.updated_at.desc()).all()
+    app.logger.info(f"Found {len(conversations)} conversations")
     
     # Set session cookie for free users if needed
-    identity = get_user_identity()
     response_data = [
         {
             'id': str(conv.id),
@@ -408,6 +431,7 @@ def get_conversations():
     # Set session cookie for free users
     if identity['type'] == 'free' and identity['session_id'] and not request.cookies.get('session_id'):
         response.set_cookie('session_id', identity['session_id'], max_age=30*24*60*60)  # 30 days
+        app.logger.info(f"Set session cookie: {identity['session_id']}")
     
     return response
 
