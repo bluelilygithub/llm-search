@@ -114,6 +114,179 @@ class KnowledgeBaseApp {
         }, 4000);
     }
 
+    // ==================== MODAL SYSTEM ====================
+    
+    // Show a simple alert modal
+    showAlertModal(message, title = 'Information', type = 'info') {
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+        modal.id = 'alert-modal';
+        
+        let icon, buttonClass;
+        switch(type) {
+            case 'success':
+                icon = 'fas fa-check-circle';
+                buttonClass = 'btn btn-primary';
+                break;
+            case 'warning':
+                icon = 'fas fa-exclamation-triangle';
+                buttonClass = 'btn btn-warning';
+                break;
+            case 'error':
+                icon = 'fas fa-times-circle';
+                buttonClass = 'btn btn-danger';
+                break;
+            case 'info':
+            default:
+                icon = 'fas fa-info-circle';
+                buttonClass = 'btn btn-primary';
+                break;
+        }
+        
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="${icon}"></i> ${title}</h3>
+                    <button class="close" onclick="this.closest('.modal').remove()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p>${message}</p>
+                </div>
+                <div class="modal-footer" style="padding: var(--spacing-xl); text-align: right; border-top: 1px solid var(--gray-200);">
+                    <button class="${buttonClass}" onclick="this.closest('.modal').remove()">OK</button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Focus the OK button
+        setTimeout(() => {
+            const okButton = modal.querySelector('button');
+            if (okButton) okButton.focus();
+        }, 100);
+        
+        return modal;
+    }
+    
+    // Show a confirmation modal
+    showConfirmModal(message, title = 'Confirm Action', onConfirm, onCancel) {
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+        modal.id = 'confirm-modal';
+        
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-question-circle"></i> ${title}</h3>
+                    <button class="close" onclick="this.closest('.modal').remove()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p>${message}</p>
+                </div>
+                <div class="modal-footer" style="padding: var(--spacing-xl); text-align: right; border-top: 1px solid var(--gray-200);">
+                    <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">Cancel</button>
+                    <button class="btn btn-primary" onclick="this.closest('.modal').remove()">Confirm</button>
+                </div>
+            </div>
+        `;
+        
+        // Add event listeners
+        const confirmBtn = modal.querySelector('.btn-primary');
+        const cancelBtn = modal.querySelector('.btn-secondary');
+        const closeBtn = modal.querySelector('.close');
+        
+        confirmBtn.addEventListener('click', () => {
+            modal.remove();
+            if (onConfirm) onConfirm();
+        });
+        
+        cancelBtn.addEventListener('click', () => {
+            modal.remove();
+            if (onCancel) onCancel();
+        });
+        
+        closeBtn.addEventListener('click', () => {
+            modal.remove();
+            if (onCancel) onCancel();
+        });
+        
+        document.body.appendChild(modal);
+        
+        // Focus the confirm button
+        setTimeout(() => {
+            confirmBtn.focus();
+        }, 100);
+        
+        return modal;
+    }
+    
+    // Show a prompt modal for text input
+    showPromptModal(message, title = 'Enter Information', defaultValue = '', onConfirm, onCancel) {
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+        modal.id = 'prompt-modal';
+        
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-edit"></i> ${title}</h3>
+                    <button class="close" onclick="this.closest('.modal').remove()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p>${message}</p>
+                    <div class="form-group" style="margin-top: var(--spacing-lg);">
+                        <input type="text" id="prompt-input" value="${defaultValue}" placeholder="Enter your response..." style="width: 100%; padding: var(--spacing-md); border: 1px solid var(--gray-300); border-radius: var(--radius-md); font-size: var(--font-size-base);">
+                    </div>
+                </div>
+                <div class="modal-footer" style="padding: var(--spacing-xl); text-align: right; border-top: 1px solid var(--gray-200);">
+                    <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">Cancel</button>
+                    <button class="btn btn-primary" onclick="this.closest('.modal').remove()">OK</button>
+                </div>
+            </div>
+        `;
+        
+        // Add event listeners
+        const confirmBtn = modal.querySelector('.btn-primary');
+        const cancelBtn = modal.querySelector('.btn-secondary');
+        const closeBtn = modal.querySelector('.close');
+        const input = modal.querySelector('#prompt-input');
+        
+        const handleConfirm = () => {
+            const value = input.value.trim();
+            modal.remove();
+            if (onConfirm) onConfirm(value);
+        };
+        
+        const handleCancel = () => {
+            modal.remove();
+            if (onCancel) onCancel();
+        };
+        
+        confirmBtn.addEventListener('click', handleConfirm);
+        cancelBtn.addEventListener('click', handleCancel);
+        closeBtn.addEventListener('click', handleCancel);
+        
+        // Handle Enter key
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                handleConfirm();
+            } else if (e.key === 'Escape') {
+                handleCancel();
+            }
+        });
+        
+        document.body.appendChild(modal);
+        
+        // Focus the input
+        setTimeout(() => {
+            input.focus();
+            input.select();
+        }, 100);
+        
+        return modal;
+    }
+
     async logErrorToServer(type, error, context) {
         try {
             await fetch('/api/log-error', {
@@ -180,10 +353,19 @@ class KnowledgeBaseApp {
     }
 
     editConversationTitle(conversationId, currentTitle) {
-        const newTitle = prompt('Edit conversation title:', currentTitle);
-        if (newTitle && newTitle !== currentTitle) {
-            this.updateConversationTitle(conversationId, newTitle);
-        }
+        this.showPromptModal(
+            'Enter a new title for this conversation:',
+            'Edit Conversation Title',
+            currentTitle,
+            (newTitle) => {
+                if (newTitle && newTitle !== currentTitle) {
+                    this.updateConversationTitle(conversationId, newTitle);
+                }
+            },
+            () => {
+                // User cancelled
+            }
+        );
     }
 
     async updateConversationTitle(conversationId, newTitle) {
@@ -240,9 +422,16 @@ class KnowledgeBaseApp {
     }
 
     deleteConversation(conversationId) {
-        if (confirm('Are you sure you want to delete this conversation?')) {
-            this.deleteConversationById(conversationId);
-        }
+        this.showConfirmModal(
+            'Are you sure you want to delete this conversation? This action cannot be undone.',
+            'Delete Conversation',
+            () => {
+                this.deleteConversationById(conversationId);
+            },
+            () => {
+                // User cancelled
+            }
+        );
     }
 
     async deleteConversationById(conversationId) {
@@ -265,43 +454,59 @@ class KnowledgeBaseApp {
     }
 
     editProject(projectId, currentName) {
-        const newName = prompt('Edit project name:', currentName);
-        if (newName && newName !== currentName) {
-            this.renameProject({ id: projectId }, newName);
-        }
+        this.showPromptModal(
+            'Enter a new name for this project:',
+            'Edit Project Name',
+            currentName,
+            (newName) => {
+                if (newName && newName !== currentName) {
+                    this.renameProject({ id: projectId }, newName);
+                }
+            },
+            () => {
+                // User cancelled
+            }
+        );
     }
 
     async deleteProject(projectId) {
-        if (confirm('Are you sure you want to delete this project?')) {
-            try {
-                const response = await fetch(`/projects/${projectId}`, {
-                    method: 'DELETE'
-                });
+        this.showConfirmModal(
+            'Are you sure you want to delete this project? This action cannot be undone and will also delete all conversations within this project.',
+            'Delete Project',
+            async () => {
+                try {
+                    const response = await fetch(`/projects/${projectId}`, {
+                        method: 'DELETE'
+                    });
 
-                if (response.ok) {
-                    if (this.currentProject && this.currentProject.id === projectId) {
-                        this.currentProject = null;
+                    if (response.ok) {
+                        if (this.currentProject && this.currentProject.id === projectId) {
+                            this.currentProject = null;
+                        }
+                        this.loadProjects();
+                        this.loadConversations();
+                        
+                        // If currently viewing projects page, refresh the main content area too
+                        if (this.currentView === 'projects') {
+                            await this.loadProjectsGrid();
+                        }
+                        
+                        // Show success notification
+                        this.showSuccessNotification('Project deleted successfully!');
+                    } else {
+                        const errorData = await response.json();
+                        console.error('Failed to delete project:', errorData.error);
+                        this.showAlertModal(`Failed to delete project: ${errorData.error || 'Unknown error'}`, 'Error', 'error');
                     }
-                    this.loadProjects();
-                    this.loadConversations();
-                    
-                    // If currently viewing projects page, refresh the main content area too
-                    if (this.currentView === 'projects') {
-                        await this.loadProjectsGrid();
-                    }
-                    
-                    // Show success notification
-                    this.showSuccessNotification('Project deleted successfully!');
-                } else {
-                    const errorData = await response.json();
-                    console.error('Failed to delete project:', errorData.error);
-                    alert(`Failed to delete project: ${errorData.error || 'Unknown error'}`);
+                } catch (error) {
+                    console.error('Error deleting project:', error);
+                    this.showAlertModal('Failed to delete project. Please try again.', 'Error', 'error');
                 }
-            } catch (error) {
-                console.error('Error deleting project:', error);
-                alert('Failed to delete project. Please try again.');
+            },
+            () => {
+                // User cancelled
             }
-        }
+        );
     }
 
     async createProject(name) {
@@ -341,7 +546,7 @@ class KnowledgeBaseApp {
             if (!response.ok) {
                 const errorData = await response.json();
                 console.error('Failed to rename project:', errorData.error);
-                alert(`Failed to rename project: ${errorData.error || 'Unknown error'}`);
+                this.showAlertModal(`Failed to rename project: ${errorData.error || 'Unknown error'}`, 'Error', 'error');
                 return;
             }
             
@@ -357,7 +562,7 @@ class KnowledgeBaseApp {
             this.showSuccessNotification(`Project renamed to "${newName}" successfully!`);
         } catch (error) {
             console.error('Failed to rename project:', error);
-            alert('Failed to rename project. Please try again.');
+            this.showAlertModal('Failed to rename project. Please try again.', 'Error', 'error');
         }
     }
 
@@ -1496,11 +1701,11 @@ class KnowledgeBaseApp {
             } else {
                 const errorData = await response.json();
                 console.error('Failed to remove tag:', errorData);
-                alert(`Failed to remove tag: ${errorData.error || 'Unknown error'}`);
+                this.showAlertModal(`Failed to remove tag: ${errorData.error || 'Unknown error'}`, 'Error', 'error');
             }
         } catch (error) {
             console.error('Error removing tag from conversation:', error);
-            alert('Failed to remove tag: Network error');
+            this.showAlertModal('Failed to remove tag: Network error', 'Error', 'error');
         }
     }
 
@@ -1694,7 +1899,6 @@ class KnowledgeBaseApp {
     }
 
     async startVoiceInput() {
-        alert('Mic button pressed!');
         console.log('Class startVoiceInput called');
         // Use Web Speech API for speech-to-text
         if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
@@ -1733,24 +1937,37 @@ class KnowledgeBaseApp {
 
     // URL reference functionality
     async addUrlReference() {
-        let url = prompt('Enter URL to extract content from:');
-        if (!url) return;
-        
-        // Auto-add https if no protocol specified
-        if (!url.match(/^https?:\/\//)) {
-            url = 'https://' + url;
-        }
-        
-        if (!this.isValidUrl(url)) {
-            this.showError('Invalid URL format. Please check the URL and try again.');
-            return;
-        }
-        
-        if (!this.currentConversationId) {
-            this.showError('Please start or select a conversation before adding URL content.');
-            return;
-        }
-        
+        this.showPromptModal(
+            'Enter URL to extract content from:',
+            'Add URL Reference',
+            '',
+            (url) => {
+                if (!url) return;
+                
+                // Auto-add https if no protocol specified
+                if (!url.match(/^https?:\/\//)) {
+                    url = 'https://' + url;
+                }
+                
+                if (!this.isValidUrl(url)) {
+                    this.showError('Invalid URL format. Please check the URL and try again.');
+                    return;
+                }
+                
+                if (!this.currentConversationId) {
+                    this.showError('Please start or select a conversation before adding URL content.');
+                    return;
+                }
+                
+                this.extractUrlContent(url);
+            },
+            () => {
+                // User cancelled
+            }
+        );
+    }
+    
+    async extractUrlContent(url) {
         try {
             const response = await fetch('/extract-url', {
                 method: 'POST',
@@ -1758,7 +1975,7 @@ class KnowledgeBaseApp {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                url: url,
+                    url: url,
                     conversation_id: this.currentConversationId,
                     task_type: 'reference'  // Can be made configurable
                 })
@@ -3498,7 +3715,7 @@ function submitEditContext() {
     const contextId = formData.get('context_id');
     
     if (!name || !contentType || !contentText || !contextId) {
-        alert('Please fill in all required fields');
+        window.app.showAlertModal('Please fill in all required fields', 'Validation Error', 'warning');
         return;
     }
     
@@ -3544,7 +3761,7 @@ function submitEditContext() {
     })
     .catch(error => {
         console.error('Error updating context item:', error);
-        alert('Error updating context item: ' + error.message);
+        window.app.showAlertModal('Error updating context item: ' + error.message, 'Error', 'error');
         
         // Reset button
         submitBtn.textContent = originalText;
@@ -3703,7 +3920,7 @@ function submitNewContext() {
     const contentText = formData.get('content_text').trim();
     
     if (!name || !contentType || !contentText) {
-        alert('Please fill in all required fields');
+        window.app.showAlertModal('Please fill in all required fields', 'Validation Error', 'warning');
         return;
     }
     
@@ -3749,7 +3966,7 @@ function submitNewContext() {
     })
     .catch(error => {
         console.error('Error creating context item:', error);
-        alert('Error creating context item: ' + error.message);
+        window.app.showAlertModal('Error creating context item: ' + error.message, 'Error', 'error');
         
         // Reset button
         submitBtn.textContent = originalText;
@@ -4320,10 +4537,19 @@ KnowledgeBaseApp.prototype.clearProjectContext = function() {
 
 // Prompt for new project creation
 KnowledgeBaseApp.prototype.promptCreateNewProject = function() {
-    const name = prompt('Enter project name:');
-    if (name && name.trim()) {
-        this.createNewProject(name.trim());
-    }
+    this.showPromptModal(
+        'Enter a name for the new project:',
+        'Create New Project',
+        '',
+        (name) => {
+            if (name && name.trim()) {
+                this.createNewProject(name.trim());
+            }
+        },
+        () => {
+            // User cancelled
+        }
+    );
 };
 
 // Show success notification
@@ -4356,7 +4582,7 @@ KnowledgeBaseApp.prototype.showNotification = function(message, type = 'info') {
     } else if (type === 'error') {
         this.showErrorNotification(message);
     } else {
-        alert(message);
+        this.showAlertModal(message, 'Information', 'info');
     }
 };
 
@@ -4557,7 +4783,7 @@ function submitEditContext() {
     const contextId = formData.get('context_id');
     
     if (!name || !contentType || !contentText || !contextId) {
-        alert('Please fill in all required fields');
+        window.app.showAlertModal('Please fill in all required fields', 'Validation Error', 'warning');
         return;
     }
     
@@ -4603,7 +4829,7 @@ function submitEditContext() {
     })
     .catch(error => {
         console.error('Error updating context item:', error);
-        alert('Error updating context item: ' + error.message);
+        window.app.showAlertModal('Error updating context item: ' + error.message, 'Error', 'error');
         
         // Reset button
         submitBtn.textContent = originalText;
