@@ -15,8 +15,13 @@ def get_user_identity():
     try:
         security_logger.info("Getting user identity...")
         
+        # Log all cookies for debugging
+        all_cookies = dict(request.cookies)
+        security_logger.info(f"All cookies received: {all_cookies}")
+        
         # Check for existing session cookie first
         session_id = request.cookies.get('session_id')
+        security_logger.info(f"Session cookie value: {session_id}")
         
         if not session_id:
             # Import FreeAccessManager locally to avoid circular imports
@@ -86,16 +91,22 @@ def check_conversation_access(conversation_id, user_identity=None):
                     security_logger.info("Access granted for authenticated user")
                     return True, "Access granted"
             else:
-                # Free users check session_id
-                if conversation.session_id == user_identity['session_id']:
+                # Free users check session_id OR legacy conversations (None values)
+                security_logger.info(f"Checking free user access - conversation.user_id: {conversation.user_id}, conversation.session_id: {conversation.session_id}, user_identity.session_id: {user_identity['session_id']}")
+                
+                if (conversation.session_id == user_identity['session_id'] or 
+                    (conversation.user_id is None and conversation.session_id is None)):
                     security_logger.info("Access granted for free user")
                     return True, "Access granted"
             
-            # Log unauthorized access attempt
+            # Log unauthorized access attempt with detailed information
             security_logger.warning(
                 f"Unauthorized conversation access attempt: "
                 f"conversation_id={conversation_id}, "
                 f"user_identity={user_identity['type']}, "
+                f"user_session_id={user_identity['session_id']}, "
+                f"conversation.user_id={conversation.user_id}, "
+                f"conversation.session_id={conversation.session_id}, "
                 f"ip={request.remote_addr}"
             )
             

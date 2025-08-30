@@ -484,13 +484,19 @@ def create_conversation():
 @app.route('/conversations/<conversation_id>/messages', methods=['GET'])
 @require_conversation_access
 def get_messages(conversation_id):
+    """Get messages for a conversation"""
     try:
+        app.logger.info(f"Getting messages for conversation: {conversation_id}")
         conv_uuid = uuid.UUID(conversation_id)
     except ValueError:
+        app.logger.warning(f"Invalid conversation ID format: {conversation_id}")
         return jsonify({'error': 'Invalid conversation ID'}), 400
     
     conversation = Conversation.query.get_or_404(conv_uuid)
+    app.logger.info(f"Found conversation: {conversation.title}")
+    
     messages = Message.query.filter_by(conversation_id=conv_uuid).order_by(Message.timestamp.asc()).all()
+    app.logger.info(f"Found {len(messages)} messages for conversation {conversation_id}")
     
     return jsonify({
         'conversation': {
