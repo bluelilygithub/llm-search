@@ -12,30 +12,43 @@ security_logger = logging.getLogger('security')
 
 def get_user_identity():
     """Get current user identity (authenticated or session-based)"""
-    from auth import FreeAccessManager
-    auth = SimpleAuth()
-    
-    if auth.is_authenticated():
-        # Authenticated user - use fixed admin user ID (no IP dependency)
-        # This ensures authenticated users can see their conversations across all locations
-        user_id = 'admin_user'
+    try:
+        security_logger.info("Getting user identity...")
+        from auth import FreeAccessManager
+        auth = SimpleAuth()
         
-        return {
-            'type': 'authenticated',
-            'user_id': user_id,
-            'session_id': None
-        }
-    else:
-        # Free/anonymous user - use session-based identification
-        session_id = request.cookies.get('session_id')
-        if not session_id:
-            # Check Flask session as fallback
-            session_id = session.get('free_session_id')
-        
+        if auth.is_authenticated():
+            # Authenticated user - use fixed admin user ID (no IP dependency)
+            # This ensures authenticated users can see their conversations across all locations
+            user_id = 'admin_user'
+            security_logger.info("User is authenticated")
+            
+            return {
+                'type': 'authenticated',
+                'user_id': user_id,
+                'session_id': None
+            }
+        else:
+            # Free/anonymous user - use session-based identification
+            session_id = request.cookies.get('session_id')
+            if not session_id:
+                # Check Flask session as fallback
+                session_id = session.get('free_session_id')
+            
+            security_logger.info(f"User is free/anonymous, session_id: {session_id}")
+            
+            return {
+                'type': 'free',
+                'user_id': None,
+                'session_id': session_id
+            }
+    except Exception as e:
+        security_logger.error(f"Error in get_user_identity: {e}")
+        # Return a safe fallback
         return {
             'type': 'free',
             'user_id': None,
-            'session_id': session_id
+            'session_id': None
         }
 
 def validate_uuid(uuid_string):
@@ -48,39 +61,52 @@ def validate_uuid(uuid_string):
 
 def check_conversation_access(conversation_id, user_identity=None):
     """Check if user has access to conversation"""
-    if not validate_uuid(conversation_id):
-        return False, "Invalid conversation ID format"
-    
-    if not user_identity:
-        user_identity = get_user_identity()
-    
     try:
-        conversation = Conversation.query.get(conversation_id)
-        if not conversation:
-            return False, "Conversation not found"
+        security_logger.info(f"Checking access for conversation: {conversation_id}")
         
-        # Check ownership based on user type
-        if user_identity['type'] == 'authenticated':
-            # Authenticated users check user_id
-            if conversation.user_id == user_identity['user_id']:
-                return True, "Access granted"
-        else:
-            # Free users check session_id
-            if conversation.session_id == user_identity['session_id']:
-                return True, "Access granted"
+        if not validate_uuid(conversation_id):
+            security_logger.warning(f"Invalid UUID format: {conversation_id}")
+            return False, "Invalid conversation ID format"
         
-        # Log unauthorized access attempt
-        security_logger.warning(
-            f"Unauthorized conversation access attempt: "
-            f"conversation_id={conversation_id}, "
-            f"user_identity={user_identity['type']}, "
-            f"ip={request.remote_addr}"
-        )
+        if not user_identity:
+            user_identity = get_user_identity()
+            security_logger.info(f"Generated user identity: {user_identity['type']}")
         
-        return False, "Access denied"
-        
+        try:
+            conversation = Conversation.query.get(conversation_id)
+            if not conversation:
+                security_logger.warning(f"Conversation not found: {conversation_id}")
+                return False, "Conversation not found"
+            
+            security_logger.info(f"Found conversation: {conversation.title}")
+            
+            # Check ownership based on user type
+            if user_identity['type'] == 'authenticated':
+                # Authenticated users check user_id
+                if conversation.user_id == user_identity['user_id']:
+                    security_logger.info("Access granted for authenticated user")
+                    return True, "Access granted"
+            else:
+                # Free users check session_id
+                if conversation.session_id == user_identity['session_id']:
+                    security_logger.info("Access granted for free user")
+                    return True, "Access granted"
+            
+            # Log unauthorized access attempt
+            security_logger.warning(
+                f"Unauthorized conversation access attempt: "
+                f"conversation_id={conversation_id}, "
+                f"user_identity={user_identity['type']}, "
+                f"ip={request.remote_addr}"
+            )
+            
+            return False, "Access denied"
+            
+        except Exception as e:
+            security_logger.error(f"Error checking conversation access: {e}")
+            return False, "Access check failed"
     except Exception as e:
-        security_logger.error(f"Error checking conversation access: {e}")
+        security_logger.error(f"Error in check_conversation_access: {e}")
         return False, "Access check failed"
 
 def check_message_access(message_id, user_identity=None):
@@ -162,21 +188,25 @@ def require_conversation_access(f):
     """Decorator to require conversation access"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # Check function arguments first
-        conversation_id = kwargs.get('conversation_id') or kwargs.get('id')
-        
-        # If not in arguments, check request form data (for POST requests)
-        if not conversation_id and hasattr(request, 'form'):
-            conversation_id = request.form.get('conversation_id')
-        
-        if not conversation_id:
-            return jsonify({'error': 'Conversation ID required'}), 400
-        
-        has_access, message = check_conversation_access(conversation_id)
-        if not has_access:
-            return jsonify({'error': message}), 403
-        
-        return f(*args, **kwargs)
+        try:
+            # Check function arguments first
+            conversation_id = kwargs.get('conversation_id') or kwargs.get('id')
+            
+            # If not in arguments, check request form data (for POST requests)
+            if not conversation_id and hasattr(request, 'form'):
+                conversation_id = request.form.get('conversation_id')
+            
+            if not conversation_id:
+                return jsonify({'error': 'Conversation ID required'}), 400
+            
+            has_access, message = check_conversation_access(conversation_id)
+            if not has_access:
+                return jsonify({'error': message}), 403
+            
+            return f(*args, **kwargs)
+        except Exception as e:
+            security_logger.error(f"Error in require_conversation_access decorator: {e}")
+            return jsonify({'error': 'Access control error'}), 500
     return decorated_function
 
 def require_message_access(f):

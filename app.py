@@ -528,27 +528,36 @@ def update_conversation(conversation_id):
         db.session.rollback()
         return jsonify({'error': 'Failed to update conversation'}), 500
 
+@csrf.exempt
 @app.route('/conversations/<conversation_id>', methods=['DELETE'])
 @require_conversation_access
 def delete_conversation(conversation_id):
     """Delete a conversation and all its messages"""
     try:
+        app.logger.info(f"Attempting to delete conversation: {conversation_id}")
         conv_uuid = uuid.UUID(conversation_id)
         
         conversation = Conversation.query.get(conv_uuid)
         if not conversation:
+            app.logger.warning(f"Conversation not found: {conversation_id}")
             return jsonify({'error': 'Conversation not found'}), 404
+        
+        app.logger.info(f"Found conversation: {conversation.title}, deleting...")
         
         # Delete associated messages and attachments (cascade should handle this)
         db.session.delete(conversation)
         db.session.commit()
         
+        app.logger.info(f"Successfully deleted conversation: {conversation_id}")
         return jsonify({'success': True, 'message': 'Conversation deleted'}), 200
         
-    except ValueError:
+    except ValueError as e:
+        app.logger.error(f"Invalid conversation ID format: {conversation_id}, error: {e}")
         return jsonify({'error': 'Invalid conversation ID'}), 400
     except Exception as e:
-        app.logger.error(f"Error deleting conversation: {e}")
+        app.logger.error(f"Error deleting conversation {conversation_id}: {e}")
+        app.logger.error(f"Exception type: {type(e).__name__}")
+        app.logger.error(f"Exception details: {str(e)}")
         db.session.rollback()
         return jsonify({'error': 'Failed to delete conversation'}), 500
 
