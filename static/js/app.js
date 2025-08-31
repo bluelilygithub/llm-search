@@ -381,7 +381,20 @@ class KnowledgeBaseApp {
         this.loadConversations();
         if (isNewProject) {
             this.currentConversationId = null;
-            document.getElementById('chat-messages').innerHTML = `
+            
+            // Ensure chat container exists before setting innerHTML
+            const chatContainer = document.getElementById('chat-messages');
+            if (!chatContainer) {
+                console.warn('selectProject: Chat container not found, attempting to restore');
+                this.showChatView();
+                const retryContainer = document.getElementById('chat-messages');
+                if (!retryContainer) {
+                    console.error('selectProject: Still cannot find chat container');
+                    return;
+                }
+            }
+            
+            chatContainer.innerHTML = `
                 <div class="welcome-message">
                     <h3 id="new-conversation-title">New Conversation</h3>
                     <p>Start a conversation or search your knowledge base.</p>
@@ -647,7 +660,15 @@ class KnowledgeBaseApp {
         const chatContainer = document.getElementById('chat-messages');
         if (!chatContainer) {
             console.warn('Not in chat context, cannot send message');
-            return;
+            console.log('Current view:', this.currentView);
+            console.log('Chat container not found, attempting to restore chat view');
+            this.showChatView();
+            // Try again after restoring
+            const retryContainer = document.getElementById('chat-messages');
+            if (!retryContainer) {
+                console.error('Still cannot find chat container after showChatView');
+                return;
+            }
         }
         
         const input = document.getElementById('message-input');
@@ -837,6 +858,16 @@ class KnowledgeBaseApp {
 
     showImageEditingComplete() {
         const container = document.getElementById('chat-messages');
+        if (!container) {
+            console.warn('showImageEditingComplete: Chat container not found, attempting to restore');
+            this.showChatView();
+            const retryContainer = document.getElementById('chat-messages');
+            if (!retryContainer) {
+                console.error('showImageEditingComplete: Still cannot find chat container');
+                return;
+            }
+        }
+        
         const messageDiv = document.createElement('div');
         messageDiv.className = 'message system';
         messageDiv.innerHTML = `
@@ -880,7 +911,20 @@ class KnowledgeBaseApp {
 
     startNewChat() {
         this.currentConversationId = null;
-        document.getElementById('chat-messages').innerHTML = `
+        
+        // Ensure chat container exists before setting innerHTML
+        const chatContainer = document.getElementById('chat-messages');
+        if (!chatContainer) {
+            console.warn('startNewChat: Chat container not found, attempting to restore');
+            this.showChatView();
+            const retryContainer = document.getElementById('chat-messages');
+            if (!retryContainer) {
+                console.error('startNewChat: Still cannot find chat container');
+                return;
+            }
+        }
+        
+        chatContainer.innerHTML = `
             <div class="welcome-message">
                 <h3 id="new-conversation-title">New Conversation</h3>
                 <p>Start a conversation or search your knowledge base.</p>
@@ -1392,6 +1436,16 @@ class KnowledgeBaseApp {
 
     addAttachmentToChat(attachment) {
         const container = document.getElementById('chat-messages');
+        if (!container) {
+            console.warn('addAttachmentToChat: Chat container not found, attempting to restore');
+            this.showChatView();
+            const retryContainer = document.getElementById('chat-messages');
+            if (!retryContainer) {
+                console.error('addAttachmentToChat: Still cannot find chat container');
+                return;
+            }
+        }
+        
         const messageDiv = document.createElement('div');
         messageDiv.className = 'message user new';
         // Extract just the filename for the /uploads route
@@ -2683,6 +2737,16 @@ KnowledgeBaseApp.prototype.handleContextUpload = async function(event) {
 
 KnowledgeBaseApp.prototype.showContextUploadMessage = function(filename, preview, fileType, wordCount, taskType) {
     const container = document.getElementById('chat-messages');
+    if (!container) {
+        console.warn('showContextUploadMessage: Chat container not found, attempting to restore');
+        this.showChatView();
+        const retryContainer = document.getElementById('chat-messages');
+        if (!retryContainer) {
+            console.error('showContextUploadMessage: Still cannot find chat container');
+            return;
+        }
+    }
+    
     const messageDiv = document.createElement('div');
     messageDiv.className = 'message user new';
     
@@ -2720,6 +2784,16 @@ KnowledgeBaseApp.prototype.showContextUploadMessage = function(filename, preview
 
 KnowledgeBaseApp.prototype.showUrlUploadMessage = function(url, title, preview, wordCount, taskType) {
     const container = document.getElementById('chat-messages');
+    if (!container) {
+        console.warn('showUrlUploadMessage: Chat container not found, attempting to restore');
+        this.showChatView();
+        const retryContainer = document.getElementById('chat-messages');
+        if (!retryContainer) {
+            console.error('showUrlUploadMessage: Still cannot find chat container');
+            return;
+        }
+    }
+    
     const messageDiv = document.createElement('div');
     messageDiv.className = 'message user new';
     
@@ -4040,7 +4114,10 @@ KnowledgeBaseApp.prototype.showChatView = function() {
     
     // Find the existing chat-messages-container instead of creating a new one
     let chatMessagesContainer = container.querySelector('.chat-messages-container');
+    console.log('showChatView: Looking for existing chat container:', chatMessagesContainer);
+    
     if (!chatMessagesContainer) {
+        console.log('showChatView: Chat container not found, creating new one');
         // Only create if it doesn't exist
         chatMessagesContainer = document.createElement('div');
         chatMessagesContainer.className = 'chat-messages-container';
@@ -4053,10 +4130,15 @@ KnowledgeBaseApp.prototype.showChatView = function() {
         // Insert after the top bar to maintain proper layout
         const topBar = container.querySelector('.top-bar');
         if (topBar) {
+            console.log('showChatView: Inserting after top bar');
             topBar.insertAdjacentElement('afterend', chatMessagesContainer);
         } else {
+            console.log('showChatView: No top bar found, appending to container');
             container.appendChild(chatMessagesContainer);
         }
+        console.log('showChatView: Chat container created and inserted');
+    } else {
+        console.log('showChatView: Existing chat container found');
     }
     
     // Show/hide chat header based on project context
@@ -4129,14 +4211,22 @@ KnowledgeBaseApp.prototype.startNewConversationInProject = function(projectId) {
     
     // Switch to chat view first, then start new conversation
     this.showChatView();
-    this.startNewConversation();
+    
+    // Use requestAnimationFrame to ensure DOM is updated before proceeding
+    requestAnimationFrame(() => {
+        this.startNewConversation();
+    });
 };
 
 // Start new conversation from conversations view
 KnowledgeBaseApp.prototype.startNewConversationFromConversations = function() {
     // Switch to chat view first, then start new conversation
     this.showChatView();
-    this.startNewConversation();
+    
+    // Use requestAnimationFrame to ensure DOM is updated before proceeding
+    requestAnimationFrame(() => {
+        this.startNewConversation();
+    });
 };
 
 // Prompt for new project creation
@@ -4184,6 +4274,15 @@ KnowledgeBaseApp.prototype.showNotification = function(message, type = 'info') {
 // Render uploaded context documents
 KnowledgeBaseApp.prototype.renderContextDocuments = function(documents) {
     const container = document.getElementById('chat-messages');
+    if (!container) {
+        console.warn('renderContextDocuments: Chat container not found, attempting to restore');
+        this.showChatView();
+        const retryContainer = document.getElementById('chat-messages');
+        if (!retryContainer) {
+            console.error('renderContextDocuments: Still cannot find chat container');
+            return;
+        }
+    }
     
     // Remove any existing context documents section
     const existingSection = container.querySelector('.context-documents-section');
