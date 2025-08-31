@@ -386,12 +386,24 @@ class KnowledgeBaseApp {
             const chatContainer = document.getElementById('chat-messages');
             if (!chatContainer) {
                 console.warn('selectProject: Chat container not found, attempting to restore');
+                
+                // Preserve project context before restoring
+                const preserveProject = this.currentProject;
+                const preserveViewProject = this.currentViewProject;
+                
                 this.showChatView();
+                
+                // Restore project context after restoring chat view
+                if (preserveProject) this.currentProject = preserveProject;
+                if (preserveViewProject) this.currentViewProject = preserveViewProject;
+                
                 const retryContainer = document.getElementById('chat-messages');
                 if (!retryContainer) {
                     console.error('selectProject: Still cannot find chat container');
                     return;
                 }
+                // Use the restored container
+                chatContainer = retryContainer;
             }
             
             chatContainer.innerHTML = `
@@ -661,14 +673,28 @@ class KnowledgeBaseApp {
         if (!chatContainer) {
             console.warn('Not in chat context, cannot send message');
             console.log('Current view:', this.currentView);
+            console.log('Current project context:', this.currentProject);
+            console.log('Current view project context:', this.currentViewProject);
             console.log('Chat container not found, attempting to restore chat view');
+            
+            // Preserve project context before restoring
+            const preserveProject = this.currentProject;
+            const preserveViewProject = this.currentViewProject;
+            
             this.showChatView();
+            
+            // Restore project context after restoring chat view
+            if (preserveProject) this.currentProject = preserveProject;
+            if (preserveViewProject) this.currentViewProject = preserveViewProject;
+            
             // Try again after restoring
             const retryContainer = document.getElementById('chat-messages');
             if (!retryContainer) {
                 console.error('Still cannot find chat container after showChatView');
                 return;
             }
+            // Use the restored container
+            chatContainer = retryContainer;
         }
         
         const input = document.getElementById('message-input');
@@ -860,12 +886,24 @@ class KnowledgeBaseApp {
         const container = document.getElementById('chat-messages');
         if (!container) {
             console.warn('showImageEditingComplete: Chat container not found, attempting to restore');
+            
+            // Preserve project context before restoring
+            const preserveProject = this.currentProject;
+            const preserveViewProject = this.currentViewProject;
+            
             this.showChatView();
+            
+            // Restore project context after restoring chat view
+            if (preserveProject) this.currentProject = preserveProject;
+            if (preserveViewProject) this.currentViewProject = preserveViewProject;
+            
             const retryContainer = document.getElementById('chat-messages');
             if (!retryContainer) {
                 console.error('showImageEditingComplete: Still cannot find chat container');
                 return;
             }
+            // Use the restored container
+            container = retryContainer;
         }
         
         const messageDiv = document.createElement('div');
@@ -916,12 +954,24 @@ class KnowledgeBaseApp {
         const chatContainer = document.getElementById('chat-messages');
         if (!chatContainer) {
             console.warn('startNewChat: Chat container not found, attempting to restore');
+            
+            // Preserve project context before restoring
+            const preserveProject = this.currentProject;
+            const preserveViewProject = this.currentViewProject;
+            
             this.showChatView();
+            
+            // Restore project context after restoring chat view
+            if (preserveProject) this.currentProject = preserveProject;
+            if (preserveViewProject) this.currentViewProject = preserveViewProject;
+            
             const retryContainer = document.getElementById('chat-messages');
             if (!retryContainer) {
                 console.error('startNewChat: Still cannot find chat container');
                 return;
             }
+            // Use the restored container
+            chatContainer = retryContainer;
         }
         
         chatContainer.innerHTML = `
@@ -1438,12 +1488,24 @@ class KnowledgeBaseApp {
         const container = document.getElementById('chat-messages');
         if (!container) {
             console.warn('addAttachmentToChat: Chat container not found, attempting to restore');
+            
+            // Preserve project context before restoring
+            const preserveProject = this.currentProject;
+            const preserveViewProject = this.currentViewProject;
+            
             this.showChatView();
+            
+            // Restore project context after restoring chat view
+            if (preserveProject) this.currentProject = preserveProject;
+            if (preserveViewProject) this.currentViewProject = preserveViewProject;
+            
             const retryContainer = document.getElementById('chat-messages');
             if (!retryContainer) {
                 console.error('addAttachmentToChat: Still cannot find chat container');
                 return;
             }
+            // Use the restored container
+            container = retryContainer;
         }
         
         const messageDiv = document.createElement('div');
@@ -2739,12 +2801,24 @@ KnowledgeBaseApp.prototype.showContextUploadMessage = function(filename, preview
     const container = document.getElementById('chat-messages');
     if (!container) {
         console.warn('showContextUploadMessage: Chat container not found, attempting to restore');
+        
+        // Preserve project context before restoring
+        const preserveProject = this.currentProject;
+        const preserveViewProject = this.currentViewProject;
+        
         this.showChatView();
+        
+        // Restore project context after restoring chat view
+        if (preserveProject) this.currentProject = preserveProject;
+        if (preserveViewProject) this.currentViewProject = preserveViewProject;
+        
         const retryContainer = document.getElementById('chat-messages');
         if (!retryContainer) {
             console.error('showContextUploadMessage: Still cannot find chat container');
             return;
         }
+        // Use the restored container
+        container = retryContainer;
     }
     
     const messageDiv = document.createElement('div');
@@ -2786,12 +2860,23 @@ KnowledgeBaseApp.prototype.showUrlUploadMessage = function(url, title, preview, 
     const container = document.getElementById('chat-messages');
     if (!container) {
         console.warn('showUrlUploadMessage: Chat container not found, attempting to restore');
+        
+        // Preserve project context before restoring
+        const preserveProject = this.currentProject;
+        const preserveViewProject = this.currentViewProject;
+        
         this.showChatView();
+        
+        // Restore project context after restoring chat view
+        if (preserveProject) this.currentProject = preserveProject;
+        if (preserveViewProject) this.currentViewProject = preserveViewProject;
+        
         const retryContainer = document.getElementById('chat-messages');
         if (!retryContainer) {
             console.error('showUrlUploadMessage: Still cannot find chat container');
             return;
         }
+        container = retryContainer;
     }
     
     const messageDiv = document.createElement('div');
@@ -4276,12 +4361,23 @@ KnowledgeBaseApp.prototype.renderContextDocuments = function(documents) {
     const container = document.getElementById('chat-messages');
     if (!container) {
         console.warn('renderContextDocuments: Chat container not found, attempting to restore');
+        
+        // Preserve project context before restoring
+        const preserveProject = this.currentProject;
+        const preserveViewProject = this.currentViewProject;
+        
         this.showChatView();
+        
+        // Restore project context after restoring chat view
+        if (preserveProject) this.currentProject = preserveProject;
+        if (preserveViewProject) this.currentViewProject = preserveViewProject;
+        
         const retryContainer = document.getElementById('chat-messages');
         if (!retryContainer) {
             console.error('renderContextDocuments: Still cannot find chat container');
             return;
         }
+        container = retryContainer;
     }
     
     // Remove any existing context documents section
