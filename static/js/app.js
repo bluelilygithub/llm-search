@@ -174,15 +174,7 @@ class KnowledgeBaseApp {
     // Methods called from the new HTML structure
     startNewConversation() {
         this.currentConversationId = null;
-        
-        // CRITICAL FIX: Ensure chat container exists before proceeding
-        let container = this.ensureChatContainer();
-        if (!container) {
-            console.error('Failed to ensure chat container exists in startNewConversation');
-            return;
-        }
-        
-        container.innerHTML = `
+        document.getElementById('chat-messages').innerHTML = `
             <div class="empty-state" id="empty-state">
                 <div class="empty-state-icon">
                     <i class="fas fa-comments"></i>
@@ -389,15 +381,7 @@ class KnowledgeBaseApp {
         this.loadConversations();
         if (isNewProject) {
             this.currentConversationId = null;
-            
-            // CRITICAL FIX: Ensure chat container exists before proceeding
-            let container = this.ensureChatContainer();
-            if (!container) {
-                console.error('Failed to ensure chat container exists in selectProject');
-                return;
-            }
-            
-            container.innerHTML = `
+            document.getElementById('chat-messages').innerHTML = `
                 <div class="welcome-message">
                     <h3 id="new-conversation-title">New Conversation</h3>
                     <p>Start a conversation or search your knowledge base.</p>
@@ -845,13 +829,7 @@ class KnowledgeBaseApp {
     }
 
     showImageEditingComplete() {
-        // CRITICAL FIX: Ensure chat container exists before proceeding
-        let container = this.ensureChatContainer();
-        if (!container) {
-            console.error('Failed to ensure chat container exists in showImageEditingComplete');
-            return;
-        }
-        
+        const container = document.getElementById('chat-messages');
         const messageDiv = document.createElement('div');
         messageDiv.className = 'message system';
         messageDiv.innerHTML = `
@@ -866,13 +844,7 @@ class KnowledgeBaseApp {
     }
 
     showTypingIndicator() {
-        // CRITICAL FIX: Ensure chat container exists before proceeding
-        let container = this.ensureChatContainer();
-        if (!container) {
-            console.error('Failed to ensure chat container exists in showTypingIndicator');
-            return;
-        }
-        
+        const container = document.getElementById('chat-messages');
         const indicator = document.createElement('div');
         indicator.className = 'message assistant';
         indicator.id = 'typing-indicator';
@@ -896,15 +868,7 @@ class KnowledgeBaseApp {
 
     startNewChat() {
         this.currentConversationId = null;
-        
-        // CRITICAL FIX: Ensure chat container exists before proceeding
-        let container = this.ensureChatContainer();
-        if (!container) {
-            console.error('Failed to ensure chat container exists in startNewChat');
-            return;
-        }
-        
-        container.innerHTML = `
+        document.getElementById('chat-messages').innerHTML = `
             <div class="welcome-message">
                 <h3 id="new-conversation-title">New Conversation</h3>
                 <p>Start a conversation or search your knowledge base.</p>
@@ -1036,13 +1000,7 @@ class KnowledgeBaseApp {
     }
 
     async showImageForEditing(imageFile) {
-        // CRITICAL FIX: Ensure chat container exists before proceeding
-        let container = this.ensureChatContainer();
-        if (!container) {
-            console.error('Failed to ensure chat container exists in showImageForEditing');
-            return;
-        }
-        
+        const container = document.getElementById('chat-messages');
         const messageDiv = document.createElement('div');
         messageDiv.className = 'message user new stability-image-upload';
         
@@ -2712,13 +2670,7 @@ KnowledgeBaseApp.prototype.handleContextUpload = async function(event) {
 };
 
 KnowledgeBaseApp.prototype.showContextUploadMessage = function(filename, preview, fileType, wordCount, taskType) {
-    // CRITICAL FIX: Ensure chat container exists before proceeding
-    let container = this.ensureChatContainer();
-    if (!container) {
-        console.error('Failed to ensure chat container exists in showContextUploadMessage');
-        return;
-    }
-    
+    const container = document.getElementById('chat-messages');
     const messageDiv = document.createElement('div');
     messageDiv.className = 'message user new';
     
@@ -2755,13 +2707,7 @@ KnowledgeBaseApp.prototype.showContextUploadMessage = function(filename, preview
 };
 
 KnowledgeBaseApp.prototype.showUrlUploadMessage = function(url, title, preview, wordCount, taskType) {
-    // CRITICAL FIX: Ensure chat container exists before proceeding
-    let container = this.ensureChatContainer();
-    if (!container) {
-        console.error('Failed to ensure chat container exists in showUrlUploadMessage');
-        return;
-    }
-    
+    const container = document.getElementById('chat-messages');
     const messageDiv = document.createElement('div');
     messageDiv.className = 'message user new';
     
@@ -4145,52 +4091,7 @@ KnowledgeBaseApp.prototype.showChatView = function() {
     // If there's a current conversation, it will be loaded by the caller
 };
 
-// Helper method to ensure chat container exists without changing the view
-KnowledgeBaseApp.prototype.ensureChatContainer = function() {
-    // First try to find existing chat container
-    let chatMessages = document.getElementById('chat-messages');
-    if (chatMessages) {
-        return chatMessages;
-    }
-    
-    // If no chat container exists, we need to create it in the appropriate place
-    const mainContent = document.getElementById('main-content');
-    if (!mainContent) {
-        console.error('main-content container not found');
-        return null;
-    }
-    
-    // Check if we're in a view that should have chat infrastructure
-    if (this.currentView === 'chat' || this.currentView === 'home') {
-        // We're in chat view, so create the container properly
-        let chatMessagesContainer = mainContent.querySelector('.chat-messages-container');
-        if (!chatMessagesContainer) {
-            chatMessagesContainer = document.createElement('div');
-            chatMessagesContainer.className = 'chat-messages-container';
-            chatMessagesContainer.innerHTML = `
-                <div class="chat-messages" id="chat-messages">
-                    <!-- Messages will be loaded here -->
-                </div>
-            `;
-            
-            // Insert after the top bar to maintain proper layout
-            const topBar = mainContent.querySelector('.top-bar');
-            if (topBar) {
-                topBar.insertAdjacentElement('afterend', chatMessagesContainer);
-            } else {
-                mainContent.appendChild(chatMessagesContainer);
-            }
-        }
-        
-        chatMessages = document.getElementById('chat-messages');
-        return chatMessages;
-    } else {
-        // We're in a different view (projects, conversations, etc.)
-        // Don't create chat infrastructure here - just return null
-        // The calling method should handle this case appropriately
-        return null;
-    }
-};
+
 
 // Clear project context and return to home view
 KnowledgeBaseApp.prototype.clearProjectContext = function() {
@@ -4214,21 +4115,15 @@ KnowledgeBaseApp.prototype.startNewConversationInProject = function(projectId) {
     this.currentProject = this.projects.find(p => p.id === projectId);
     this.currentViewProject = this.currentProject; // Set the view project context
     
-    // CRITICAL FIX: Restore chat view infrastructure before starting new conversation
-    // This ensures the chat-messages container exists when startNewConversation() is called
+    // Switch to chat view first, then start new conversation
     this.showChatView();
-    
-    // Now start the new conversation with proper chat infrastructure in place
     this.startNewConversation();
 };
 
 // Start new conversation from conversations view
 KnowledgeBaseApp.prototype.startNewConversationFromConversations = function() {
-    // CRITICAL FIX: Restore chat view infrastructure before starting new conversation
-    // This ensures the chat-messages container exists when startNewConversation() is called
+    // Switch to chat view first, then start new conversation
     this.showChatView();
-    
-    // Now start the new conversation with proper chat infrastructure in place
     this.startNewConversation();
 };
 
@@ -4276,12 +4171,7 @@ KnowledgeBaseApp.prototype.showNotification = function(message, type = 'info') {
 
 // Render uploaded context documents
 KnowledgeBaseApp.prototype.renderContextDocuments = function(documents) {
-    // CRITICAL FIX: Ensure chat container exists before proceeding
-    let container = this.ensureChatContainer();
-    if (!container) {
-        console.error('Failed to ensure chat container exists in renderContextDocuments');
-        return;
-    }
+    const container = document.getElementById('chat-messages');
     
     // Remove any existing context documents section
     const existingSection = container.querySelector('.context-documents-section');
