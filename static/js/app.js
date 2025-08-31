@@ -649,13 +649,6 @@ class KnowledgeBaseApp {
         
         if (!content) return;
         
-        // CRITICAL FIX: Check if chat container exists before proceeding
-        const chatContainer = document.getElementById('chat-messages');
-        if (!chatContainer) {
-            // If we're not in chat view, restore it first
-            this.showChatView();
-        }
-        
         // Disable input and send button during API call
         input.disabled = true;
         sendBtn.disabled = true;
@@ -836,20 +829,7 @@ class KnowledgeBaseApp {
     }
 
     showImageEditingComplete() {
-        // CRITICAL FIX: Ensure chat container exists before proceeding
-        let container = document.getElementById('chat-messages');
-        if (!container) {
-            // If chat container doesn't exist, restore chat view first
-            this.showChatView();
-            // Get the container again after restoration
-            container = document.getElementById('chat-messages');
-            // Final safety check - if still null, we can't proceed
-            if (!container) {
-                console.error('Failed to restore chat container in showImageEditingComplete');
-                return;
-            }
-        }
-        
+        const container = document.getElementById('chat-messages');
         const messageDiv = document.createElement('div');
         messageDiv.className = 'message system';
         messageDiv.innerHTML = `
@@ -864,20 +844,7 @@ class KnowledgeBaseApp {
     }
 
     showTypingIndicator() {
-        // CRITICAL FIX: Ensure chat container exists before proceeding
-        let container = document.getElementById('chat-messages');
-        if (!container) {
-            // If chat container doesn't exist, restore chat view first
-            this.showChatView();
-            // Get the container again after restoration
-            container = document.getElementById('chat-messages');
-            // Final safety check - if still null, we can't proceed
-            if (!container) {
-                console.error('Failed to restore chat container in showTypingIndicator');
-                return;
-            }
-        }
-        
+        const container = document.getElementById('chat-messages');
         const indicator = document.createElement('div');
         indicator.className = 'message assistant';
         indicator.id = 'typing-indicator';
@@ -897,28 +864,11 @@ class KnowledgeBaseApp {
         if (indicator) {
             indicator.remove();
         }
-        // Note: No safety check needed here as we're only removing an element
-        // If the indicator doesn't exist, that's fine - nothing to hide
     }
 
     startNewChat() {
         this.currentConversationId = null;
-        
-        // CRITICAL FIX: Ensure chat container exists before proceeding
-        let container = document.getElementById('chat-messages');
-        if (!container) {
-            // If chat container doesn't exist, restore chat view first
-            this.showChatView();
-            // Get the container again after restoration
-            container = document.getElementById('chat-messages');
-            // Final safety check - if still null, we can't proceed
-            if (!container) {
-                console.error('Failed to restore chat container in startNewChat');
-                return;
-            }
-        }
-        
-        container.innerHTML = `
+        document.getElementById('chat-messages').innerHTML = `
             <div class="welcome-message">
                 <h3 id="new-conversation-title">New Conversation</h3>
                 <p>Start a conversation or search your knowledge base.</p>
