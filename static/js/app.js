@@ -3603,7 +3603,7 @@ KnowledgeBaseApp.prototype.showConversationsView = function() {
                 <h2>Recent Conversations</h2>
             </div>
             <div class="view-actions">
-                <button class="view-action-btn" onclick="window.app.startNewConversation()">
+                <button class="view-action-btn" onclick="window.app.startNewConversationFromConversations()">
                     <i class="fas fa-plus"></i>
                     New Chat
                 </button>
@@ -4113,6 +4113,16 @@ KnowledgeBaseApp.prototype.startNewConversationInProject = function(projectId) {
     this.currentProject = this.projects.find(p => p.id === projectId);
     this.currentViewProject = this.currentProject; // Set the view project context
     
+    // CRITICAL FIX: Restore chat view infrastructure before starting new conversation
+    // This ensures the chat-messages container exists when startNewConversation() is called
+    this.showChatView();
+    
+    // Now start the new conversation with proper chat infrastructure in place
+    this.startNewConversation();
+};
+
+// Start new conversation from conversations view
+KnowledgeBaseApp.prototype.startNewConversationFromConversations = function() {
     // CRITICAL FIX: Restore chat view infrastructure before starting new conversation
     // This ensures the chat-messages container exists when startNewConversation() is called
     this.showChatView();
