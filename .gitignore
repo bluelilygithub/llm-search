@@ -44,6 +44,10 @@ htmlcov/
 *.db
 *.sqlite
 *.sqlite3
+*.sql
+*.dump
+*.backup
+*.bak
 uploads/
 static/generated_images/
 *.log

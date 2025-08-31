@@ -114,179 +114,6 @@ class KnowledgeBaseApp {
         }, 4000);
     }
 
-    // ==================== MODAL SYSTEM ====================
-    
-    // Show a simple alert modal
-    showAlertModal(message, title = 'Information', type = 'info') {
-        const modal = document.createElement('div');
-        modal.className = 'modal';
-        modal.id = 'alert-modal';
-        
-        let icon, buttonClass;
-        switch(type) {
-            case 'success':
-                icon = 'fas fa-check-circle';
-                buttonClass = 'btn btn-primary';
-                break;
-            case 'warning':
-                icon = 'fas fa-exclamation-triangle';
-                buttonClass = 'btn btn-warning';
-                break;
-            case 'error':
-                icon = 'fas fa-times-circle';
-                buttonClass = 'btn btn-danger';
-                break;
-            case 'info':
-            default:
-                icon = 'fas fa-info-circle';
-                buttonClass = 'btn btn-primary';
-                break;
-        }
-        
-        modal.innerHTML = `
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3><i class="${icon}"></i> ${title}</h3>
-                    <button class="close" onclick="this.closest('.modal').remove()">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <p>${message}</p>
-                </div>
-                <div class="modal-footer" style="padding: var(--spacing-xl); text-align: right; border-top: 1px solid var(--gray-200);">
-                    <button class="${buttonClass}" onclick="this.closest('.modal').remove()">OK</button>
-                </div>
-            </div>
-        `;
-        
-        document.body.appendChild(modal);
-        
-        // Focus the OK button
-        setTimeout(() => {
-            const okButton = modal.querySelector('button');
-            if (okButton) okButton.focus();
-        }, 100);
-        
-        return modal;
-    }
-    
-    // Show a confirmation modal
-    showConfirmModal(message, title = 'Confirm Action', onConfirm, onCancel) {
-        const modal = document.createElement('div');
-        modal.className = 'modal';
-        modal.id = 'confirm-modal';
-        
-        modal.innerHTML = `
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3><i class="fas fa-question-circle"></i> ${title}</h3>
-                    <button class="close" onclick="this.closest('.modal').remove()">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <p>${message}</p>
-                </div>
-                <div class="modal-footer" style="padding: var(--spacing-xl); text-align: right; border-top: 1px solid var(--gray-200);">
-                    <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">Cancel</button>
-                    <button class="btn btn-primary" onclick="this.closest('.modal').remove()">Confirm</button>
-                </div>
-            </div>
-        `;
-        
-        // Add event listeners
-        const confirmBtn = modal.querySelector('.btn-primary');
-        const cancelBtn = modal.querySelector('.btn-secondary');
-        const closeBtn = modal.querySelector('.close');
-        
-        confirmBtn.addEventListener('click', () => {
-            modal.remove();
-            if (onConfirm) onConfirm();
-        });
-        
-        cancelBtn.addEventListener('click', () => {
-            modal.remove();
-            if (onCancel) onCancel();
-        });
-        
-        closeBtn.addEventListener('click', () => {
-            modal.remove();
-            if (onCancel) onCancel();
-        });
-        
-        document.body.appendChild(modal);
-        
-        // Focus the confirm button
-        setTimeout(() => {
-            confirmBtn.focus();
-        }, 100);
-        
-        return modal;
-    }
-    
-    // Show a prompt modal for text input
-    showPromptModal(message, title = 'Enter Information', defaultValue = '', onConfirm, onCancel) {
-        const modal = document.createElement('div');
-        modal.className = 'modal';
-        modal.id = 'prompt-modal';
-        
-        modal.innerHTML = `
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3><i class="fas fa-edit"></i> ${title}</h3>
-                    <button class="close" onclick="this.closest('.modal').remove()">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <p>${message}</p>
-                    <div class="form-group" style="margin-top: var(--spacing-lg);">
-                        <input type="text" id="prompt-input" value="${defaultValue}" placeholder="Enter your response..." style="width: 100%; padding: var(--spacing-md); border: 1px solid var(--gray-300); border-radius: var(--radius-md); font-size: var(--font-size-base);">
-                    </div>
-                </div>
-                <div class="modal-footer" style="padding: var(--spacing-xl); text-align: right; border-top: 1px solid var(--gray-200);">
-                    <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">Cancel</button>
-                    <button class="btn btn-primary" onclick="this.closest('.modal').remove()">OK</button>
-                </div>
-            </div>
-        `;
-        
-        // Add event listeners
-        const confirmBtn = modal.querySelector('.btn-primary');
-        const cancelBtn = modal.querySelector('.btn-secondary');
-        const closeBtn = modal.querySelector('.close');
-        const input = modal.querySelector('#prompt-input');
-        
-        const handleConfirm = () => {
-            const value = input.value.trim();
-            modal.remove();
-            if (onConfirm) onConfirm(value);
-        };
-        
-        const handleCancel = () => {
-            modal.remove();
-            if (onCancel) onCancel();
-        };
-        
-        confirmBtn.addEventListener('click', handleConfirm);
-        cancelBtn.addEventListener('click', handleCancel);
-        closeBtn.addEventListener('click', handleCancel);
-        
-        // Handle Enter key
-        input.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                handleConfirm();
-            } else if (e.key === 'Escape') {
-                handleCancel();
-            }
-        });
-        
-        document.body.appendChild(modal);
-        
-        // Focus the input
-        setTimeout(() => {
-            input.focus();
-            input.select();
-        }, 100);
-        
-        return modal;
-    }
-
     async logErrorToServer(type, error, context) {
         try {
             await fetch('/api/log-error', {
@@ -345,7 +172,19 @@ class KnowledgeBaseApp {
     showNewProjectPrompt() { /* no-op, replaced by inline input */ }
 
     // Methods called from the new HTML structure
-    // startNewConversation method moved to prototype for better project context handling
+    startNewConversation() {
+        this.currentConversationId = null;
+        document.getElementById('chat-messages').innerHTML = `
+            <div class="empty-state" id="empty-state">
+                <div class="empty-state-icon">
+                    <i class="fas fa-comments"></i>
+                </div>
+                <h2 class="empty-state-title" id="new-conversation-title">New Conversation</h2>
+                <p class="empty-state-description">Start a conversation or search your knowledge base.</p>
+            </div>
+        `;
+        this.updateNewConversationTitle();
+    }
 
     createNewProject(name) {
         if (!name.trim()) return;
@@ -353,28 +192,9 @@ class KnowledgeBaseApp {
     }
 
     editConversationTitle(conversationId, currentTitle) {
-        console.log('editConversationTitle called with:', conversationId, currentTitle);
-        console.log('this context:', this);
-        console.log('showPromptModal available:', typeof this.showPromptModal);
-        
-        try {
-            this.showPromptModal(
-                'Enter a new title for this conversation:',
-                'Edit Conversation Title',
-                currentTitle,
-                (newTitle) => {
-                    console.log('Prompt confirmed with:', newTitle);
-                    if (newTitle && newTitle !== currentTitle) {
-                        this.updateConversationTitle(conversationId, newTitle);
-                    }
-                },
-                () => {
-                    console.log('Prompt cancelled');
-                    // User cancelled
-                }
-            );
-        } catch (error) {
-            console.error('Error in editConversationTitle:', error);
+        const newTitle = prompt('Edit conversation title:', currentTitle);
+        if (newTitle && newTitle !== currentTitle) {
+            this.updateConversationTitle(conversationId, newTitle);
         }
     }
 
@@ -432,25 +252,8 @@ class KnowledgeBaseApp {
     }
 
     deleteConversation(conversationId) {
-        console.log('deleteConversation called with:', conversationId);
-        console.log('this context:', this);
-        console.log('showConfirmModal available:', typeof this.showConfirmModal);
-        
-        try {
-            this.showConfirmModal(
-                'Are you sure you want to delete this conversation? This action cannot be undone.',
-                'Delete Conversation',
-                () => {
-                    console.log('Delete confirmed for:', conversationId);
-                    this.deleteConversationById(conversationId);
-                },
-                () => {
-                    console.log('Delete cancelled for:', conversationId);
-                    // User cancelled
-                }
-            );
-        } catch (error) {
-            console.error('Error in deleteConversation:', error);
+        if (confirm('Are you sure you want to delete this conversation?')) {
+            this.deleteConversationById(conversationId);
         }
     }
 
@@ -474,59 +277,43 @@ class KnowledgeBaseApp {
     }
 
     editProject(projectId, currentName) {
-        this.showPromptModal(
-            'Enter a new name for this project:',
-            'Edit Project Name',
-            currentName,
-            (newName) => {
-                if (newName && newName !== currentName) {
-                    this.renameProject({ id: projectId }, newName);
-                }
-            },
-            () => {
-                // User cancelled
-            }
-        );
+        const newName = prompt('Edit project name:', currentName);
+        if (newName && newName !== currentName) {
+            this.renameProject({ id: projectId }, newName);
+        }
     }
 
     async deleteProject(projectId) {
-        this.showConfirmModal(
-            'Are you sure you want to delete this project? This action cannot be undone and will also delete all conversations within this project.',
-            'Delete Project',
-            async () => {
-                try {
-                    const response = await fetch(`/projects/${projectId}`, {
-                        method: 'DELETE'
-                    });
+        if (confirm('Are you sure you want to delete this project?')) {
+            try {
+                const response = await fetch(`/projects/${projectId}`, {
+                    method: 'DELETE'
+                });
 
-                    if (response.ok) {
-                        if (this.currentProject && this.currentProject.id === projectId) {
-                            this.currentProject = null;
-                        }
-                        this.loadProjects();
-                        this.loadConversations();
-                        
-                        // If currently viewing projects page, refresh the main content area too
-                        if (this.currentView === 'projects') {
-                            await this.loadProjectsGrid();
-                        }
-                        
-                        // Show success notification
-                        this.showSuccessNotification('Project deleted successfully!');
-                    } else {
-                        const errorData = await response.json();
-                        console.error('Failed to delete project:', errorData.error);
-                        this.showAlertModal(`Failed to delete project: ${errorData.error || 'Unknown error'}`, 'Error', 'error');
+                if (response.ok) {
+                    if (this.currentProject && this.currentProject.id === projectId) {
+                        this.currentProject = null;
                     }
-                } catch (error) {
-                    console.error('Error deleting project:', error);
-                    this.showAlertModal('Failed to delete project. Please try again.', 'Error', 'error');
+                    this.loadProjects();
+                    this.loadConversations();
+                    
+                    // If currently viewing projects page, refresh the main content area too
+                    if (this.currentView === 'projects') {
+                        await this.loadProjectsGrid();
+                    }
+                    
+                    // Show success notification
+                    this.showSuccessNotification('Project deleted successfully!');
+                } else {
+                    const errorData = await response.json();
+                    console.error('Failed to delete project:', errorData.error);
+                    alert(`Failed to delete project: ${errorData.error || 'Unknown error'}`);
                 }
-            },
-            () => {
-                // User cancelled
+            } catch (error) {
+                console.error('Error deleting project:', error);
+                alert('Failed to delete project. Please try again.');
             }
-        );
+        }
     }
 
     async createProject(name) {
@@ -566,7 +353,7 @@ class KnowledgeBaseApp {
             if (!response.ok) {
                 const errorData = await response.json();
                 console.error('Failed to rename project:', errorData.error);
-                this.showAlertModal(`Failed to rename project: ${errorData.error || 'Unknown error'}`, 'Error', 'error');
+                alert(`Failed to rename project: ${errorData.error || 'Unknown error'}`);
                 return;
             }
             
@@ -582,7 +369,7 @@ class KnowledgeBaseApp {
             this.showSuccessNotification(`Project renamed to "${newName}" successfully!`);
         } catch (error) {
             console.error('Failed to rename project:', error);
-            this.showAlertModal('Failed to rename project. Please try again.', 'Error', 'error');
+            alert('Failed to rename project. Please try again.');
         }
     }
 
@@ -666,10 +453,10 @@ class KnowledgeBaseApp {
                     <div class="conversation-tags">${tags}</div>
                 </div>
                 <div class="conversation-actions">
-                    <button class="conversation-action-btn" onclick="event.stopPropagation(); console.log('Edit button clicked for conv:', ${conv.id}); console.log('window.app available:', !!window.app); if (window.app) { window.app.editConversationTitle(${conv.id}, '${conv.title.replace(/'/g, '\\\'')}'); } else { console.error('window.app not available'); }" title="Edit">
+                    <button class="conversation-action-btn" onclick="event.stopPropagation(); window.app.editConversationTitle(${conv.id}, '${conv.title.replace(/'/g, '\\\'')}')" title="Edit">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="conversation-action-btn" onclick="event.stopPropagation(); console.log('Delete button clicked for conv:', ${conv.id}); console.log('window.app available:', !!window.app); if (window.app) { window.app.deleteConversation(${conv.id}); } else { console.error('window.app not available'); }" title="Delete">
+                    <button class="conversation-action-btn" onclick="event.stopPropagation(); window.app.deleteConversation(${conv.id})" title="Delete">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
@@ -700,9 +487,6 @@ class KnowledgeBaseApp {
             
             const data = await response.json();
             
-            // Debug: Log the conversation data
-            console.log('Conversation data received:', data);
-            
             // Safety checks for API response
             if (!data || !data.messages) {
                 console.warn('Invalid API response:', data);
@@ -717,16 +501,6 @@ class KnowledgeBaseApp {
                 const llmModelElement = document.getElementById('llm-model');
                 if (llmModelElement) {
                     llmModelElement.value = this.selectedModel;
-                    // Disable model selector for active conversations
-                    llmModelElement.disabled = true;
-                    // Add visual indication that model is locked
-                    llmModelElement.title = 'Model is locked for this conversation';
-                    
-                    // Show lock icon
-                    const lockIcon = document.getElementById('model-lock-icon');
-                    if (lockIcon) {
-                        lockIcon.style.display = 'inline-block';
-                    }
                 }
             }
             
@@ -766,9 +540,7 @@ class KnowledgeBaseApp {
             if (project) {
                 // Show header with project context
                 projectName.textContent = project.name;
-                // Use conversation title if available, otherwise use a default
-                const title = conversation.title || conversation.name || 'Untitled Conversation';
-                conversationTitle.textContent = title;
+                conversationTitle.textContent = conversation.title;
                 chatHeader.style.display = 'block';
                 return;
             }
@@ -776,140 +548,6 @@ class KnowledgeBaseApp {
         
         // Hide header if no project context
         chatHeader.style.display = 'none';
-    }
-
-    updateChatHeaderForProject(project) {
-        const chatHeader = document.getElementById('chat-header');
-        const projectName = document.getElementById('project-name');
-        const conversationTitle = document.getElementById('conversation-title');
-        
-        if (!chatHeader || !projectName || !conversationTitle) {
-            return;
-        }
-        
-        // Show header with project context
-        projectName.textContent = project.name;
-        conversationTitle.textContent = 'Loading conversation...';
-        chatHeader.style.display = 'block';
-    }
-
-    ensureChatMessagesContainer() {
-        // Find or create the chat messages container
-        let chatMessagesContainer = document.querySelector('.chat-messages-container');
-        
-        if (!chatMessagesContainer) {
-            // Create the chat messages container
-            chatMessagesContainer = document.createElement('div');
-            chatMessagesContainer.className = 'chat-messages-container';
-            chatMessagesContainer.innerHTML = `
-                <div class="chat-messages" id="chat-messages">
-                    <!-- Messages will be loaded here -->
-                </div>
-            `;
-            
-            // Insert after the main-view (which contains breadcrumb and project title)
-            const mainView = document.querySelector('.main-view');
-            if (mainView) {
-                mainView.insertAdjacentElement('afterend', chatMessagesContainer);
-            } else {
-                // Fallback: insert after top bar
-                const topBar = document.querySelector('.top-bar');
-                if (topBar) {
-                    topBar.insertAdjacentElement('afterend', chatMessagesContainer);
-                }
-            }
-        }
-        
-        // Ensure the chat messages container is visible
-        chatMessagesContainer.style.display = 'block';
-        
-        // Ensure the bottom input container is visible
-        const bottomInputContainer = document.querySelector('.bottom-input-container');
-        if (bottomInputContainer) {
-            bottomInputContainer.style.display = 'block';
-        }
-        
-        // Set up proper scrolling for the chat messages
-        const chatMessages = document.getElementById('chat-messages');
-        if (chatMessages) {
-            chatMessages.style.maxHeight = 'calc(100vh - 300px)'; // Adjust height to account for headers
-            chatMessages.style.overflowY = 'auto';
-            chatMessages.style.padding = '20px';
-        }
-    }
-
-    showChatViewWithProjectContext(project) {
-        this.currentView = 'chat';
-        
-        // Always use main-content container for chat view to ensure proper layout
-        const container = document.getElementById('main-content');
-        if (!container) {
-            console.error('main-content container not found for chat view');
-            return;
-        }
-        
-        // Clear any existing view content (conversations, projects, etc.)
-        const existingViewContent = container.querySelector('.main-view');
-        if (existingViewContent) {
-            existingViewContent.remove();
-        }
-        
-        // Ensure the main-content div has the proper CSS classes for chat layout
-        container.className = 'main-content';
-        
-        // Create a new chat-messages-container with project context header
-        let chatMessagesContainer = container.querySelector('.chat-messages-container');
-        if (chatMessagesContainer) {
-            chatMessagesContainer.remove();
-        }
-        
-        chatMessagesContainer = document.createElement('div');
-        chatMessagesContainer.className = 'chat-messages-container';
-        chatMessagesContainer.innerHTML = `
-            <!-- Chat Header with Project Context -->
-            <div class="chat-header" id="chat-header" style="display: block;">
-                <div class="chat-breadcrumb">
-                    <span class="breadcrumb-item breadcrumb-clickable" onclick="window.app.goBackToProject()">
-                        <i class="fas fa-folder-open"></i>
-                        <span id="project-name">${project.name}</span>
-                    </span>
-                    <span class="breadcrumb-separator"><i class="fas fa-chevron-right"></i></span>
-                    <span class="breadcrumb-item active">
-                        <i class="fas fa-comment"></i>
-                        <span id="conversation-title">Loading conversation...</span>
-                    </span>
-                </div>
-                <div class="chat-header-actions">
-                    <button class="chat-header-btn" onclick="window.app.goToHome()" title="Go to Home">
-                        <i class="fas fa-home"></i>
-                        <span>Home</span>
-                    </button>
-                </div>
-            </div>
-            
-            <!-- Chat Messages Area -->
-            <div class="chat-messages" id="chat-messages">
-                <!-- Messages will be loaded here -->
-            </div>
-        `;
-        
-        // Insert after the top bar to maintain proper layout
-        const topBar = container.querySelector('.top-bar');
-        if (topBar) {
-            topBar.insertAdjacentElement('afterend', chatMessagesContainer);
-        } else {
-            container.appendChild(chatMessagesContainer);
-        }
-        
-        // Ensure the bottom input container is visible
-        const bottomInputContainer = document.querySelector('.bottom-input-container');
-        if (bottomInputContainer) {
-            bottomInputContainer.style.display = 'block';
-        }
-        
-        // Show context toggle again
-        const contextToggle = document.getElementById('context-toggle-btn');
-        if (contextToggle) contextToggle.style.display = 'block';
     }
 
     goBackToProject() {
@@ -1230,34 +868,13 @@ class KnowledgeBaseApp {
 
     startNewChat() {
         this.currentConversationId = null;
-        
-        // Show the chat view FIRST to ensure proper layout and chat-messages container exists
-        this.showChatView();
-        
-        // Re-enable model selector for new conversations
-        const llmModelElement = document.getElementById('llm-model');
-        if (llmModelElement) {
-            llmModelElement.disabled = false;
-            llmModelElement.title = 'Select LLM model for this conversation';
-            
-            // Hide lock icon
-            const lockIcon = document.getElementById('model-lock-icon');
-            if (lockIcon) {
-                lockIcon.style.display = 'none';
-            }
-        }
-        
-        // Now safely update the chat messages since the container exists
-        const chatMessages = document.getElementById('chat-messages');
-        if (chatMessages) {
-            chatMessages.innerHTML = `
-                <div class="welcome-message">
-                    <h3 id="new-conversation-title">New Conversation</h3>
-                    <p>Start a conversation or search your knowledge base.</p>
-                </div>
-            `;
-            this.updateNewConversationTitle();
-        }
+        document.getElementById('chat-messages').innerHTML = `
+            <div class="welcome-message">
+                <h3 id="new-conversation-title">New Conversation</h3>
+                <p>Start a conversation or search your knowledge base.</p>
+            </div>
+        `;
+        this.updateNewConversationTitle();
         
         // Clear active conversation
         document.querySelectorAll('.conversation-item').forEach(item => {
@@ -1265,11 +882,8 @@ class KnowledgeBaseApp {
         });
         
         // Clear input
-        const messageInput = document.getElementById('message-input');
-        if (messageInput) {
-            messageInput.value = '';
-            this.autoResizeTextarea();
-        }
+        document.getElementById('message-input').value = '';
+        this.autoResizeTextarea();
         
         // Preserve current project context if we're in a project view
         if (this.currentViewProject) {
@@ -1277,139 +891,9 @@ class KnowledgeBaseApp {
         }
     }
 
-    // Start new conversation (enhanced to work from any view)
-    startNewConversation() {
-        try {
-            // Preserve the current view project context
-            if (this.currentProject && !this.currentViewProject) {
-                this.currentViewProject = this.currentProject;
-            }
-            this.startNewChat();
-        } catch (error) {
-            console.error('Error starting new conversation:', error);
-            // Fallback: try to show chat view directly
-            this.showChatView();
-        }
-    }
-
-    // Start new conversation in specific project
-    startNewConversationInProject(projectId) {
-        try {
-            this.currentProject = this.projects.find(p => p.id === projectId);
-            this.currentViewProject = this.currentProject; // Set the view project context
-            this.startNewConversation();
-        } catch (error) {
-            console.error('Error starting new conversation in project:', error);
-            // Fallback: try to show chat view directly
-            this.showChatView();
-        }
-    }
-
-    // Show normal chat view
-    showChatView() {
-        this.currentView = 'chat';
-        
-        // Always use main-content container for chat view to ensure proper layout
-        const container = document.getElementById('main-content');
-        if (!container) {
-            console.error('main-content container not found for chat view');
-            return;
-        }
-        
-        // Clear any existing view content (conversations, projects, etc.)
-        const existingViewContent = container.querySelector('.main-view');
-        if (existingViewContent) {
-            existingViewContent.remove();
-        }
-        
-        // Ensure the main-content div has the proper CSS classes for chat layout
-        container.className = 'main-content';
-        
-        // Find the existing chat-messages-container instead of creating a new one
-        let chatMessagesContainer = container.querySelector('.chat-messages-container');
-        if (!chatMessagesContainer) {
-            // Only create if it doesn't exist
-            chatMessagesContainer = document.createElement('div');
-            chatMessagesContainer.className = 'chat-messages-container';
-            chatMessagesContainer.innerHTML = `
-                <div class="chat-messages" id="chat-messages">
-                    <!-- Messages will be loaded here -->
-                </div>
-            `;
-            
-            // Insert after the top bar to maintain proper layout
-            const topBar = container.querySelector('.top-bar');
-            if (topBar) {
-                topBar.insertAdjacentElement('afterend', chatMessagesContainer);
-            } else {
-                container.appendChild(chatMessagesContainer);
-            }
-        }
-        
-        // Show/hide chat header based on project context
-        const chatHeader = document.getElementById('chat-header');
-        if (chatHeader) {
-            if (this.currentViewProject) {
-                // Show project context in header
-                chatHeader.style.display = 'block';
-                const projectName = document.getElementById('project-name');
-                const conversationTitle = document.getElementById('conversation-title');
-                if (projectName) projectName.textContent = this.currentViewProject.name;
-                if (conversationTitle) conversationTitle.textContent = 'New Conversation';
-            } else {
-                chatHeader.style.display = 'none';
-            }
-        }
-        
-        // Show context toggle again
-        const contextToggle = document.getElementById('context-toggle-btn');
-        if (contextToggle) contextToggle.style.display = 'block';
-        
-        // Hide any remaining search results that might be interfering with the layout
-        const searchResults = document.querySelector('.search-results-container');
-        if (searchResults) {
-            searchResults.style.display = 'none';
-        }
-        
-        // Empty state will be set by startNewChat() method
-        
-        // If there's a current conversation, it will be loaded by the caller
-    }
-
     updateModel() {
-        // Only allow model changes if no conversation is active
-        if (this.currentConversationId) {
-            // Model is locked for active conversations
-            console.log('Model cannot be changed during an active conversation');
-            this.showModelChangeWarning();
-            return;
-        }
-        
         this.selectedModel = document.getElementById('llm-model').value;
         // No longer showing model instructions automatically
-    }
-
-    showModelChangeWarning() {
-        // Show warning that model cannot be changed during active conversation
-        const warningDiv = document.createElement('div');
-        warningDiv.className = 'model-change-warning';
-        warningDiv.innerHTML = `
-            <div class="warning-content">
-                <i class="fas fa-lock"></i>
-                <span>Model is locked for this conversation. Start a new conversation to use a different model.</span>
-                <button class="close-warning" onclick="this.parentElement.parentElement.remove()">×</button>
-            </div>
-        `;
-        
-        // Add to page
-        document.body.appendChild(warningDiv);
-        
-        // Auto-remove after 5 seconds
-        setTimeout(() => {
-            if (warningDiv.parentElement) {
-                warningDiv.remove();
-            }
-        }, 5000);
     }
 
     showModelInstructions() {
@@ -1721,11 +1205,11 @@ class KnowledgeBaseApp {
             } else {
                 const errorData = await response.json();
                 console.error('Failed to remove tag:', errorData);
-                this.showAlertModal(`Failed to remove tag: ${errorData.error || 'Unknown error'}`, 'Error', 'error');
+                alert(`Failed to remove tag: ${errorData.error || 'Unknown error'}`);
             }
         } catch (error) {
             console.error('Error removing tag from conversation:', error);
-            this.showAlertModal('Failed to remove tag: Network error', 'Error', 'error');
+            alert('Failed to remove tag: Network error');
         }
     }
 
@@ -1919,6 +1403,7 @@ class KnowledgeBaseApp {
     }
 
     async startVoiceInput() {
+        alert('Mic button pressed!');
         console.log('Class startVoiceInput called');
         // Use Web Speech API for speech-to-text
         if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
@@ -1957,37 +1442,24 @@ class KnowledgeBaseApp {
 
     // URL reference functionality
     async addUrlReference() {
-        this.showPromptModal(
-            'Enter URL to extract content from:',
-            'Add URL Reference',
-            '',
-            (url) => {
-                if (!url) return;
-                
-                // Auto-add https if no protocol specified
-                if (!url.match(/^https?:\/\//)) {
-                    url = 'https://' + url;
-                }
-                
-                if (!this.isValidUrl(url)) {
-                    this.showError('Invalid URL format. Please check the URL and try again.');
-                    return;
-                }
-                
-                if (!this.currentConversationId) {
-                    this.showError('Please start or select a conversation before adding URL content.');
-                    return;
-                }
-                
-                this.extractUrlContent(url);
-            },
-            () => {
-                // User cancelled
-            }
-        );
-    }
-    
-    async extractUrlContent(url) {
+        let url = prompt('Enter URL to extract content from:');
+        if (!url) return;
+        
+        // Auto-add https if no protocol specified
+        if (!url.match(/^https?:\/\//)) {
+            url = 'https://' + url;
+        }
+        
+        if (!this.isValidUrl(url)) {
+            this.showError('Invalid URL format. Please check the URL and try again.');
+            return;
+        }
+        
+        if (!this.currentConversationId) {
+            this.showError('Please start or select a conversation before adding URL content.');
+            return;
+        }
+        
         try {
             const response = await fetch('/extract-url', {
                 method: 'POST',
@@ -1995,7 +1467,7 @@ class KnowledgeBaseApp {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    url: url,
+                url: url,
                     conversation_id: this.currentConversationId,
                     task_type: 'reference'  // Can be made configurable
                 })
@@ -3735,7 +3207,7 @@ function submitEditContext() {
     const contextId = formData.get('context_id');
     
     if (!name || !contentType || !contentText || !contextId) {
-        window.app.showAlertModal('Please fill in all required fields', 'Validation Error', 'warning');
+        alert('Please fill in all required fields');
         return;
     }
     
@@ -3781,7 +3253,7 @@ function submitEditContext() {
     })
     .catch(error => {
         console.error('Error updating context item:', error);
-        window.app.showAlertModal('Error updating context item: ' + error.message, 'Error', 'error');
+        alert('Error updating context item: ' + error.message);
         
         // Reset button
         submitBtn.textContent = originalText;
@@ -3940,7 +3412,7 @@ function submitNewContext() {
     const contentText = formData.get('content_text').trim();
     
     if (!name || !contentType || !contentText) {
-        window.app.showAlertModal('Please fill in all required fields', 'Validation Error', 'warning');
+        alert('Please fill in all required fields');
         return;
     }
     
@@ -3986,7 +3458,7 @@ function submitNewContext() {
     })
     .catch(error => {
         console.error('Error creating context item:', error);
-        window.app.showAlertModal('Error creating context item: ' + error.message, 'Error', 'error');
+        alert('Error creating context item: ' + error.message);
         
         // Reset button
         submitBtn.textContent = originalText;
@@ -4503,34 +3975,24 @@ KnowledgeBaseApp.prototype.openConversationFromGrid = function(conversationId) {
     // Preserve project context when opening conversation from project view
     const preserveProjectContext = this.currentViewProject;
     
+    // Switch back to chat view and load the conversation
+    this.showChatView();
+    
+    // Restore project context if we came from a project view
     if (preserveProjectContext) {
-        // If we're in a project view, we need to show the chat view but preserve project context
         this.currentViewProject = preserveProjectContext;
-        
-        // Show chat view but preserve project context
-        this.showChatViewWithProjectContext(preserveProjectContext);
-        
-        // Load the conversation
-        if (this && typeof this.loadConversation === 'function') {
-            this.loadConversation(conversationId);
+    }
+    
+    // Ensure we're using the correct 'this' context
+    if (this && typeof this.loadConversation === 'function') {
+        this.loadConversation(conversationId);
+    } else {
+        // Fallback to window.app if 'this' context is lost
+        console.warn('Lost context in openConversationFromGrid, using window.app fallback');
+        if (window.app && typeof window.app.loadConversation === 'function') {
+            window.app.loadConversation(conversationId);
         } else {
             console.error('Cannot load conversation: loadConversation method not found');
-        }
-    } else {
-        // If not in project view, use normal chat view
-        this.showChatView();
-        
-        // Ensure we're using the correct 'this' context
-        if (this && typeof this.loadConversation === 'function') {
-            this.loadConversation(conversationId);
-        } else {
-            // Fallback to window.app if 'this' context is lost
-            console.warn('Lost context in openConversationFromGrid, using window.app fallback');
-            if (window.app && typeof window.app.loadConversation === 'function') {
-                window.app.loadConversation(conversationId);
-            } else {
-                console.error('Cannot load conversation: loadConversation method not found');
-            }
         }
     }
 };
@@ -4544,7 +4006,90 @@ KnowledgeBaseApp.prototype.openProject = function(projectId) {
     }
 };
 
-// showChatView method moved to class definition
+// Show normal chat view
+KnowledgeBaseApp.prototype.showChatView = function() {
+    this.currentView = 'chat';
+    
+    // Always use main-content container for chat view to ensure proper layout
+    const container = document.getElementById('main-content');
+    if (!container) {
+        console.error('main-content container not found for chat view');
+        return;
+    }
+    
+    // Clear any existing view content (conversations, projects, etc.)
+    const existingViewContent = container.querySelector('.main-view');
+    if (existingViewContent) {
+        existingViewContent.remove();
+    }
+    
+    // Ensure the main-content div has the proper CSS classes for chat layout
+    container.className = 'main-content';
+    
+    // Find the existing chat-messages-container instead of creating a new one
+    let chatMessagesContainer = container.querySelector('.chat-messages-container');
+    if (!chatMessagesContainer) {
+        // Only create if it doesn't exist
+        chatMessagesContainer = document.createElement('div');
+        chatMessagesContainer.className = 'chat-messages-container';
+        chatMessagesContainer.innerHTML = `
+            <div class="chat-messages" id="chat-messages">
+                <!-- Messages will be loaded here -->
+            </div>
+        `;
+        
+        // Insert after the top bar to maintain proper layout
+        const topBar = container.querySelector('.top-bar');
+        if (topBar) {
+            topBar.insertAdjacentElement('afterend', chatMessagesContainer);
+        } else {
+            container.appendChild(chatMessagesContainer);
+        }
+    }
+    
+    // Show/hide chat header based on project context
+    const chatHeader = document.getElementById('chat-header');
+    if (chatHeader) {
+        if (this.currentViewProject) {
+            // Show project context in header
+            chatHeader.style.display = 'block';
+            const projectName = document.getElementById('project-name');
+            const conversationTitle = document.getElementById('conversation-title');
+            if (projectName) projectName.textContent = this.currentViewProject.name;
+            if (conversationTitle) conversationTitle.textContent = 'New Conversation';
+        } else {
+            chatHeader.style.display = 'none';
+        }
+    }
+    
+    // Show context toggle again
+    const contextToggle = document.getElementById('context-toggle-btn');
+    if (contextToggle) contextToggle.style.display = 'block';
+    
+    // Hide any remaining search results that might be interfering with the layout
+    const searchResults = document.querySelector('.search-results-container');
+    if (searchResults) {
+        searchResults.style.display = 'none';
+    }
+    
+    // Show empty state for new conversation
+    if (!this.currentConversationId) {
+        const chatMessages = document.getElementById('chat-messages');
+        if (chatMessages) {
+            chatMessages.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">
+                        <i class="fas fa-comments"></i>
+                    </div>
+                    <h2 class="empty-state-title">New Conversation</h2>
+                    <p class="empty-state-description">Start a conversation or search your knowledge base.</p>
+                </div>
+            `;
+        }
+    }
+    
+    // If there's a current conversation, it will be loaded by the caller
+};
 
 // Clear project context and return to home view
 KnowledgeBaseApp.prototype.clearProjectContext = function() {
@@ -4553,23 +4098,35 @@ KnowledgeBaseApp.prototype.clearProjectContext = function() {
     this.showChatView();
 };
 
-// startNewConversation and startNewConversationInProject methods moved to class definition
+// Start new conversation (enhanced to work from any view)
+KnowledgeBaseApp.prototype.startNewConversation = function() {
+    // Preserve the current view project context
+    if (this.currentProject && !this.currentViewProject) {
+        this.currentViewProject = this.currentProject;
+    }
+    this.startNewChat();
+};
+
+// Start new conversation in specific project
+KnowledgeBaseApp.prototype.startNewConversationInProject = function(projectId) {
+    // Find and set the project context
+    this.currentProject = this.projects.find(p => p.id === projectId);
+    this.currentViewProject = this.currentProject; // Set the view project context
+    
+    // CRITICAL FIX: Restore chat view infrastructure before starting new conversation
+    // This ensures the chat-messages container exists when startNewConversation() is called
+    this.showChatView();
+    
+    // Now start the new conversation with proper chat infrastructure in place
+    this.startNewConversation();
+};
 
 // Prompt for new project creation
 KnowledgeBaseApp.prototype.promptCreateNewProject = function() {
-    this.showPromptModal(
-        'Enter a name for the new project:',
-        'Create New Project',
-        '',
-        (name) => {
-            if (name && name.trim()) {
-                this.createNewProject(name.trim());
-            }
-        },
-        () => {
-            // User cancelled
-        }
-    );
+    const name = prompt('Enter project name:');
+    if (name && name.trim()) {
+        this.createNewProject(name.trim());
+    }
 };
 
 // Show success notification
@@ -4602,7 +4159,7 @@ KnowledgeBaseApp.prototype.showNotification = function(message, type = 'info') {
     } else if (type === 'error') {
         this.showErrorNotification(message);
     } else {
-        this.showAlertModal(message, 'Information', 'info');
+        alert(message);
     }
 };
 
@@ -4803,7 +4360,7 @@ function submitEditContext() {
     const contextId = formData.get('context_id');
     
     if (!name || !contentType || !contentText || !contextId) {
-        window.app.showAlertModal('Please fill in all required fields', 'Validation Error', 'warning');
+        alert('Please fill in all required fields');
         return;
     }
     
@@ -4849,7 +4406,7 @@ function submitEditContext() {
     })
     .catch(error => {
         console.error('Error updating context item:', error);
-        window.app.showAlertModal('Error updating context item: ' + error.message, 'Error', 'error');
+        alert('Error updating context item: ' + error.message);
         
         // Reset button
         submitBtn.textContent = originalText;
