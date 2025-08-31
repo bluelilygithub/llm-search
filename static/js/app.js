@@ -643,6 +643,13 @@ class KnowledgeBaseApp {
     }
 
     async sendMessage() {
+        // Check if we're in a chat context
+        const chatContainer = document.getElementById('chat-messages');
+        if (!chatContainer) {
+            console.warn('Not in chat context, cannot send message');
+            return;
+        }
+        
         const input = document.getElementById('message-input');
         const sendBtn = document.getElementById('send-btn');
         const content = input.value.trim();
@@ -845,6 +852,11 @@ class KnowledgeBaseApp {
 
     showTypingIndicator() {
         const container = document.getElementById('chat-messages');
+        if (!container) {
+            console.warn('Chat container not found, cannot show typing indicator');
+            return;
+        }
+        
         const indicator = document.createElement('div');
         indicator.className = 'message assistant';
         indicator.id = 'typing-indicator';
