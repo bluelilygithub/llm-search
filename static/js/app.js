@@ -176,17 +176,10 @@ class KnowledgeBaseApp {
         this.currentConversationId = null;
         
         // CRITICAL FIX: Ensure chat container exists before proceeding
-        let container = document.getElementById('chat-messages');
+        let container = this.ensureChatContainer();
         if (!container) {
-            // If chat container doesn't exist, restore chat view first
-            this.showChatView();
-            // Get the container again after restoration
-            container = document.getElementById('chat-messages');
-            // Final safety check - if still null, we can't proceed
-            if (!container) {
-                console.error('Failed to restore chat container in startNewConversation');
-                return;
-            }
+            console.error('Failed to ensure chat container exists in startNewConversation');
+            return;
         }
         
         container.innerHTML = `
@@ -398,17 +391,10 @@ class KnowledgeBaseApp {
             this.currentConversationId = null;
             
             // CRITICAL FIX: Ensure chat container exists before proceeding
-            let container = document.getElementById('chat-messages');
+            let container = this.ensureChatContainer();
             if (!container) {
-                // If chat container doesn't exist, restore chat view first
-                this.showChatView();
-                // Get the container again after restoration
-                container = document.getElementById('chat-messages');
-                // Final safety check - if still null, we can't proceed
-                if (!container) {
-                    console.error('Failed to restore chat container in selectProject');
-                    return;
-                }
+                console.error('Failed to ensure chat container exists in selectProject');
+                return;
             }
             
             container.innerHTML = `
@@ -860,17 +846,10 @@ class KnowledgeBaseApp {
 
     showImageEditingComplete() {
         // CRITICAL FIX: Ensure chat container exists before proceeding
-        let container = document.getElementById('chat-messages');
+        let container = this.ensureChatContainer();
         if (!container) {
-            // If chat container doesn't exist, restore chat view first
-            this.showChatView();
-            // Get the container again after restoration
-            container = document.getElementById('chat-messages');
-            // Final safety check - if still null, we can't proceed
-            if (!container) {
-                console.error('Failed to restore chat container in showImageEditingComplete');
-                return;
-            }
+            console.error('Failed to ensure chat container exists in showImageEditingComplete');
+            return;
         }
         
         const messageDiv = document.createElement('div');
@@ -888,17 +867,10 @@ class KnowledgeBaseApp {
 
     showTypingIndicator() {
         // CRITICAL FIX: Ensure chat container exists before proceeding
-        let container = document.getElementById('chat-messages');
+        let container = this.ensureChatContainer();
         if (!container) {
-            // If chat container doesn't exist, restore chat view first
-            this.showChatView();
-            // Get the container again after restoration
-            container = document.getElementById('chat-messages');
-            // Final safety check - if still null, we can't proceed
-            if (!container) {
-                console.error('Failed to restore chat container in showTypingIndicator');
-                return;
-            }
+            console.error('Failed to ensure chat container exists in showTypingIndicator');
+            return;
         }
         
         const indicator = document.createElement('div');
@@ -926,17 +898,10 @@ class KnowledgeBaseApp {
         this.currentConversationId = null;
         
         // CRITICAL FIX: Ensure chat container exists before proceeding
-        let container = document.getElementById('chat-messages');
+        let container = this.ensureChatContainer();
         if (!container) {
-            // If chat container doesn't exist, restore chat view first
-            this.showChatView();
-            // Get the container again after restoration
-            container = document.getElementById('chat-messages');
-            // Final safety check - if still null, we can't proceed
-            if (!container) {
-                console.error('Failed to restore chat container in startNewChat');
-                return;
-            }
+            console.error('Failed to ensure chat container exists in startNewChat');
+            return;
         }
         
         container.innerHTML = `
@@ -1072,17 +1037,10 @@ class KnowledgeBaseApp {
 
     async showImageForEditing(imageFile) {
         // CRITICAL FIX: Ensure chat container exists before proceeding
-        let container = document.getElementById('chat-messages');
+        let container = this.ensureChatContainer();
         if (!container) {
-            // If chat container doesn't exist, restore chat view first
-            this.showChatView();
-            // Get the container again after restoration
-            container = document.getElementById('chat-messages');
-            // Final safety check - if still null, we can't proceed
-            if (!container) {
-                console.error('Failed to restore chat container in showImageForEditing');
-                return;
-            }
+            console.error('Failed to ensure chat container exists in showImageForEditing');
+            return;
         }
         
         const messageDiv = document.createElement('div');
@@ -2755,17 +2713,10 @@ KnowledgeBaseApp.prototype.handleContextUpload = async function(event) {
 
 KnowledgeBaseApp.prototype.showContextUploadMessage = function(filename, preview, fileType, wordCount, taskType) {
     // CRITICAL FIX: Ensure chat container exists before proceeding
-    let container = document.getElementById('chat-messages');
+    let container = this.ensureChatContainer();
     if (!container) {
-        // If chat container doesn't exist, restore chat view first
-        this.showChatView();
-        // Get the container again after restoration
-        container = document.getElementById('chat-messages');
-        // Final safety check - if still null, we can't proceed
-        if (!container) {
-            console.error('Failed to restore chat container in showContextUploadMessage');
-            return;
-        }
+        console.error('Failed to ensure chat container exists in showContextUploadMessage');
+        return;
     }
     
     const messageDiv = document.createElement('div');
@@ -2805,17 +2756,10 @@ KnowledgeBaseApp.prototype.showContextUploadMessage = function(filename, preview
 
 KnowledgeBaseApp.prototype.showUrlUploadMessage = function(url, title, preview, wordCount, taskType) {
     // CRITICAL FIX: Ensure chat container exists before proceeding
-    let container = document.getElementById('chat-messages');
+    let container = this.ensureChatContainer();
     if (!container) {
-        // If chat container doesn't exist, restore chat view first
-        this.showChatView();
-        // Get the container again after restoration
-        container = document.getElementById('chat-messages');
-        // Final safety check - if still null, we can't proceed
-        if (!container) {
-            console.error('Failed to restore chat container in showUrlUploadMessage');
-            return;
-        }
+        console.error('Failed to ensure chat container exists in showUrlUploadMessage');
+        return;
     }
     
     const messageDiv = document.createElement('div');
@@ -4201,6 +4145,53 @@ KnowledgeBaseApp.prototype.showChatView = function() {
     // If there's a current conversation, it will be loaded by the caller
 };
 
+// Helper method to ensure chat container exists without changing the view
+KnowledgeBaseApp.prototype.ensureChatContainer = function() {
+    // First try to find existing chat container
+    let chatMessages = document.getElementById('chat-messages');
+    if (chatMessages) {
+        return chatMessages;
+    }
+    
+    // If no chat container exists, we need to create it in the appropriate place
+    const mainContent = document.getElementById('main-content');
+    if (!mainContent) {
+        console.error('main-content container not found');
+        return null;
+    }
+    
+    // Check if we're in a view that should have chat infrastructure
+    if (this.currentView === 'chat' || this.currentView === 'home') {
+        // We're in chat view, so create the container properly
+        let chatMessagesContainer = mainContent.querySelector('.chat-messages-container');
+        if (!chatMessagesContainer) {
+            chatMessagesContainer = document.createElement('div');
+            chatMessagesContainer.className = 'chat-messages-container';
+            chatMessagesContainer.innerHTML = `
+                <div class="chat-messages" id="chat-messages">
+                    <!-- Messages will be loaded here -->
+                </div>
+            `;
+            
+            // Insert after the top bar to maintain proper layout
+            const topBar = mainContent.querySelector('.top-bar');
+            if (topBar) {
+                topBar.insertAdjacentElement('afterend', chatMessagesContainer);
+            } else {
+                mainContent.appendChild(chatMessagesContainer);
+            }
+        }
+        
+        chatMessages = document.getElementById('chat-messages');
+        return chatMessages;
+    } else {
+        // We're in a different view (projects, conversations, etc.)
+        // Don't create chat infrastructure here - just return null
+        // The calling method should handle this case appropriately
+        return null;
+    }
+};
+
 // Clear project context and return to home view
 KnowledgeBaseApp.prototype.clearProjectContext = function() {
     this.currentViewProject = null;
@@ -4286,17 +4277,10 @@ KnowledgeBaseApp.prototype.showNotification = function(message, type = 'info') {
 // Render uploaded context documents
 KnowledgeBaseApp.prototype.renderContextDocuments = function(documents) {
     // CRITICAL FIX: Ensure chat container exists before proceeding
-    let container = document.getElementById('chat-messages');
+    let container = this.ensureChatContainer();
     if (!container) {
-        // If chat container doesn't exist, restore chat view first
-        this.showChatView();
-        // Get the container again after restoration
-        container = document.getElementById('chat-messages');
-        // Final safety check - if still null, we can't proceed
-        if (!container) {
-            console.error('Failed to restore chat container in renderContextDocuments');
-            return;
-        }
+        console.error('Failed to ensure chat container exists in renderContextDocuments');
+        return;
     }
     
     // Remove any existing context documents section
