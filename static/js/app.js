@@ -649,6 +649,13 @@ class KnowledgeBaseApp {
         
         if (!content) return;
         
+        // CRITICAL FIX: Check if chat container exists before proceeding
+        const chatContainer = document.getElementById('chat-messages');
+        if (!chatContainer) {
+            // If we're not in chat view, restore it first
+            this.showChatView();
+        }
+        
         // Disable input and send button during API call
         input.disabled = true;
         sendBtn.disabled = true;
