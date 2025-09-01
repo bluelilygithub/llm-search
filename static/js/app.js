@@ -4319,13 +4319,13 @@ KnowledgeBaseApp.prototype.showChatView = function() {
     // Ensure the main-content div has the proper CSS classes for chat layout
     container.className = 'main-content';
     
-    // Find the existing chat-messages-container instead of creating a new one
+    // Find the existing chat-messages-container in the template
     let chatMessagesContainer = container.querySelector('.chat-messages-container');
     console.log('showChatView: Looking for existing chat container:', chatMessagesContainer);
     
     if (!chatMessagesContainer) {
-        console.log('showChatView: Chat container not found, creating new one');
-        // Only create if it doesn't exist
+        console.log('showChatView: Chat container not found in template, creating new one');
+        // Only create if it doesn't exist in the template
         chatMessagesContainer = document.createElement('div');
         chatMessagesContainer.className = 'chat-messages-container';
         chatMessagesContainer.innerHTML = `
@@ -4334,18 +4334,31 @@ KnowledgeBaseApp.prototype.showChatView = function() {
             </div>
         `;
         
-        // Insert after the top bar to maintain proper layout
-        const topBar = container.querySelector('.top-bar');
-        if (topBar) {
-            console.log('showChatView: Inserting after top bar');
-            topBar.insertAdjacentElement('afterend', chatMessagesContainer);
+        // Insert after the chat header to maintain proper layout
+        const chatHeader = container.querySelector('.chat-header');
+        if (chatHeader) {
+            console.log('showChatView: Inserting after chat header');
+            chatHeader.insertAdjacentElement('afterend', chatMessagesContainer);
         } else {
-            console.log('showChatView: No top bar found, appending to container');
-            container.appendChild(chatMessagesContainer);
+            // Fallback: insert after the top bar if chat header not found
+            const topBar = container.querySelector('.top-bar');
+            if (topBar) {
+                console.log('showChatView: Chat header not found, inserting after top bar');
+                topBar.insertAdjacentElement('afterend', chatMessagesContainer);
+            } else {
+                console.log('showChatView: No top bar found, appending to container');
+                container.appendChild(chatMessagesContainer);
+            }
         }
         console.log('showChatView: Chat container created and inserted');
     } else {
-        console.log('showChatView: Existing chat container found');
+        console.log('showChatView: Existing chat container found in template');
+        // Ensure the existing container is in the right place
+        const chatHeader = container.querySelector('.chat-header');
+        if (chatHeader && chatMessagesContainer.previousElementSibling !== chatHeader) {
+            console.log('showChatView: Moving existing chat container to correct position');
+            chatHeader.insertAdjacentElement('afterend', chatMessagesContainer);
+        }
     }
     
     // Show/hide chat header based on project context

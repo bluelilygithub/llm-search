@@ -695,6 +695,24 @@ body {
     overflow: hidden;
 }
 
+/* Ensure proper ordering of elements in main-content */
+.main-content > .top-bar {
+    order: 0;
+}
+
+.main-content > .chat-header {
+    order: 1;
+}
+
+.main-content > .content-area {
+    order: 2;
+    flex: 1;
+}
+
+.main-content > .bottom-input-container {
+    order: 3;
+}
+
 /* Main view styles for conversations and projects */
 .main-view {
     flex: 1;
