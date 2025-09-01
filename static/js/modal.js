@@ -388,6 +388,10 @@ class ModalManager {
         });
     }
 
+    info(message, title = 'Information') {
+        return this.alert(message, title, 'info');
+    }
+
     confirm(message, title = 'Confirm') {
         return this.show({
             type: 'confirm',
