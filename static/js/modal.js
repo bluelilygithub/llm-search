@@ -39,7 +39,6 @@ class ModalManager {
                 align-items: center;
                 justify-content: center;
                 background: rgba(0, 0, 0, 0.5);
-                backdrop-filter: blur(4px);
                 padding: 20px;
                 box-sizing: border-box;
             }
@@ -49,16 +48,16 @@ class ModalManager {
             }
 
             .modal {
-                background: white;
-                border-radius: 12px;
-                box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-                max-width: 500px;
-                width: 100%;
-                max-height: 80vh;
-                min-height: auto;
-                overflow: hidden;
+                background-color: white;
+                padding: 24px;
+                border-radius: 8px;
+                max-width: 600px;
+                width: 90%;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                box-sizing: border-box;
+                max-height: 90vh;
+                overflow-y: auto;
                 animation: modalSlideIn 0.3s ease-out;
-                margin: auto;
             }
 
             @keyframes modalSlideIn {
@@ -73,10 +72,12 @@ class ModalManager {
             }
 
             .modal-header {
-                padding: 20px 24px 0;
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
+                margin-bottom: 16px;
+                padding-bottom: 16px;
+                border-bottom: 1px solid #e5e7eb;
             }
 
             .modal-title {
@@ -103,7 +104,7 @@ class ModalManager {
             }
 
             .modal-body {
-                padding: 16px 24px 20px;
+                margin-bottom: 16px;
             }
 
             .modal-message {
@@ -115,8 +116,8 @@ class ModalManager {
             .modal-input {
                 width: 100%;
                 padding: 12px 16px;
-                border: 2px solid #e5e7eb;
-                border-radius: 8px;
+                border: 1px solid #d1d5db;
+                border-radius: 6px;
                 font-size: 14px;
                 transition: border-color 0.2s;
                 box-sizing: border-box;
@@ -129,16 +130,17 @@ class ModalManager {
             }
 
             .modal-footer {
-                padding: 0 24px 20px;
                 display: flex;
                 gap: 12px;
                 justify-content: flex-end;
+                padding-top: 16px;
+                border-top: 1px solid #e5e7eb;
             }
 
             .modal-btn {
-                padding: 10px 20px;
-                border: none;
-                border-radius: 8px;
+                padding: 8px 16px;
+                border: 1px solid transparent;
+                border-radius: 6px;
                 font-size: 14px;
                 font-weight: 500;
                 cursor: pointer;
@@ -149,28 +151,34 @@ class ModalManager {
             .modal-btn-primary {
                 background: #3b82f6;
                 color: white;
+                border-color: #3b82f6;
             }
 
             .modal-btn-primary:hover {
                 background: #2563eb;
+                border-color: #2563eb;
             }
 
             .modal-btn-secondary {
-                background: #f3f4f6;
+                background: #f9fafb;
                 color: #374151;
+                border-color: #d1d5db;
             }
 
             .modal-btn-secondary:hover {
-                background: #e5e7eb;
+                background: #f3f4f6;
+                border-color: #9ca3af;
             }
 
             .modal-btn-danger {
                 background: #ef4444;
                 color: white;
+                border-color: #ef4444;
             }
 
             .modal-btn-danger:hover {
                 background: #dc2626;
+                border-color: #dc2626;
             }
 
             .modal-icon {
@@ -182,7 +190,7 @@ class ModalManager {
                 background: #fef2f2;
                 padding: 12px 16px;
                 margin-bottom: 16px;
-                border-radius: 0 8px 8px 0;
+                border-radius: 0 6px 6px 0;
             }
 
             .modal-success {
@@ -190,7 +198,7 @@ class ModalManager {
                 background: #f0fdf4;
                 padding: 12px 16px;
                 margin-bottom: 16px;
-                border-radius: 0 8px 8px 0;
+                border-radius: 0 6px 6px 0;
             }
 
             .modal-warning {
@@ -198,7 +206,7 @@ class ModalManager {
                 background: #fffbeb;
                 padding: 12px 16px;
                 margin-bottom: 16px;
-                border-radius: 0 8px 8px 0;
+                border-radius: 0 6px 6px 0;
             }
         `;
         document.head.appendChild(style);
