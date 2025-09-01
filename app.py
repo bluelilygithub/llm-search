@@ -181,7 +181,11 @@ def index():
     has_access, access_type, free_info = auth.has_access()
     if not has_access:
         return redirect(url_for('login_page'))
-    return render_template('app_main.html')
+    try:
+        return render_template('app_main.html')
+    except Exception as e:
+        app.logger.exception('Template render failed for app_main.html')
+        return f"Template render error: {type(e).__name__}: {e}", 500
 
 # Test routes removed - main route now uses new template structure
 
