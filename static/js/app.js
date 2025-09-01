@@ -1012,7 +1012,7 @@ class KnowledgeBaseApp {
         this.currentConversationId = null;
         
         // Ensure chat container exists before setting innerHTML
-        const chatContainer = document.getElementById('chat-messages');
+        let chatContainer = document.getElementById('chat-messages');
         if (!chatContainer) {
             console.warn('startNewChat: Chat container not found, attempting to restore');
             
@@ -1064,6 +1064,21 @@ class KnowledgeBaseApp {
         if (bottomInput) {
             bottomInput.style.display = 'block';
             bottomInput.classList.remove('hidden-in-projects');
+        }
+        
+        // Ensure breadcrumb is visible if we're in a project context
+        if (this.currentViewProject) {
+            const chatHeader = document.getElementById('chat-header');
+            if (chatHeader) {
+                chatHeader.style.display = 'block';
+                const projectName = document.getElementById('project-name');
+                const conversationTitle = document.getElementById('conversation-title');
+                if (projectName) projectName.textContent = this.currentViewProject.name;
+                if (conversationTitle) conversationTitle.textContent = 'New Conversation';
+                console.log('startNewChat: Breadcrumb displayed for project:', this.currentViewProject.name);
+            } else {
+                console.warn('startNewChat: Chat header not found');
+            }
         }
     }
 
@@ -4343,9 +4358,13 @@ KnowledgeBaseApp.prototype.showChatView = function() {
             const conversationTitle = document.getElementById('conversation-title');
             if (projectName) projectName.textContent = this.currentViewProject.name;
             if (conversationTitle) conversationTitle.textContent = 'New Conversation';
+            console.log('showChatView: Breadcrumb displayed for project:', this.currentViewProject.name);
         } else {
             chatHeader.style.display = 'none';
+            console.log('showChatView: Breadcrumb hidden - no project context');
         }
+    } else {
+        console.warn('showChatView: Chat header not found');
     }
     
     // Show context toggle again
