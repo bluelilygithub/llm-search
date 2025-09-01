@@ -4493,3 +4493,8 @@ mark {
 .projects-list {
     margin-top: var(--spacing-sm);
 }
+
+/* Hide bottom input container in projects view */
+.bottom-input-container.hidden-in-projects {
+    display: none !important;
+}

@@ -1063,6 +1063,7 @@ class KnowledgeBaseApp {
         const bottomInput = document.querySelector('.bottom-input-container');
         if (bottomInput) {
             bottomInput.style.display = 'block';
+            bottomInput.classList.remove('hidden-in-projects');
         }
     }
 
@@ -3798,6 +3799,7 @@ KnowledgeBaseApp.prototype.showHomeView = function() {
     const bottomInput = document.querySelector('.bottom-input-container');
     if (bottomInput) {
         bottomInput.style.display = 'block';
+        bottomInput.classList.remove('hidden-in-projects');
     }
     
     // Load home statistics
@@ -3874,6 +3876,7 @@ KnowledgeBaseApp.prototype.showConversationsView = function() {
     // Show the bottom input in conversations view
     if (bottomInput) {
         bottomInput.style.display = 'block';
+        bottomInput.classList.remove('hidden-in-projects');
     }
     
     this.loadConversationsGrid();
@@ -3947,12 +3950,26 @@ KnowledgeBaseApp.prototype.showProjectsView = function() {
         container.appendChild(projectsContent);
     }
     
-    // Show the bottom input in projects view
+    // Hide the bottom input in projects view
     if (bottomInput) {
-        bottomInput.style.display = 'block';
+        bottomInput.style.display = 'none';
+        bottomInput.classList.add('hidden-in-projects');
+        console.log('showProjectsView: Hidden bottom input container');
+    } else {
+        console.log('showProjectsView: Bottom input container not found');
     }
     
     this.loadProjectsGrid();
+    
+    // Double-check that bottom input is still hidden after loading projects
+    setTimeout(() => {
+        const bottomInput = document.querySelector('.bottom-input-container');
+        if (bottomInput && bottomInput.style.display !== 'none') {
+            console.log('showProjectsView: Bottom input became visible again, re-hiding...');
+            bottomInput.style.display = 'none';
+            bottomInput.classList.add('hidden-in-projects');
+        }
+    }, 100);
 };
 
 // Show project conversations view
@@ -4363,6 +4380,7 @@ KnowledgeBaseApp.prototype.showChatView = function() {
     const bottomInput = container.querySelector('.bottom-input-container');
     if (bottomInput) {
         bottomInput.style.display = 'block';
+        bottomInput.classList.remove('hidden-in-projects');
     }
     
     // If there's a current conversation, it will be loaded by the caller
