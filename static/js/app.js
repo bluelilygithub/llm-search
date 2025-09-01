@@ -413,44 +413,12 @@ class KnowledgeBaseApp {
         // Update the UI to show which project is selected
         this.updateProjectSelectionUI(project);
         
-        this.loadProjects();
-        this.loadConversations();
-        if (isNewProject) {
-            this.currentConversationId = null;
-            
-            // Ensure chat container exists before setting innerHTML
-            const chatContainer = document.getElementById('chat-messages');
-            if (!chatContainer) {
-                console.warn('selectProject: Chat container not found, attempting to restore');
-                
-                // Preserve project context before restoring
-                const preserveProject = this.currentProject;
-                const preserveViewProject = this.currentViewProject;
-                
-                this.showChatView();
-                
-                // Restore project context after restoring chat view
-                if (preserveProject) this.currentProject = preserveProject;
-                if (preserveViewProject) this.currentViewProject = preserveViewProject;
-                
-                const retryContainer = document.getElementById('chat-messages');
-                if (!retryContainer) {
-                    console.error('selectProject: Still cannot find chat container');
-                    return;
-                }
-                // Use the restored container
-                chatContainer = retryContainer;
-            }
-            
-            chatContainer.innerHTML = `
-                <div class="welcome-message">
-                    <h3 id="new-conversation-title">New Conversation</h3>
-                    <p>Start a conversation or search your knowledge base.</p>
-                </div>
-            `;
-            this.updateNewConversationTitle();
-            document.getElementById('message-input').value = '';
-            this.autoResizeTextarea();
+        if (project) {
+            // Show project conversations view when a project is selected
+            this.showProjectConversationsView(project);
+        } else {
+            // Show home view when "No Project" is selected
+            this.showHomeView();
         }
     }
 
