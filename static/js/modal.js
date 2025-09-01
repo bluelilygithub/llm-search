@@ -14,7 +14,8 @@ class ModalManager {
         if (!document.getElementById('modal-container')) {
             const container = document.createElement('div');
             container.id = 'modal-container';
-            container.className = 'modal-container';
+            container.className = 'modal fade';
+            container.setAttribute('tabindex', '-1');
             document.body.appendChild(container);
         }
 
@@ -28,95 +29,153 @@ class ModalManager {
         const style = document.createElement('style');
         style.id = 'modal-styles';
         style.textContent = `
-            .modal-container {
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                z-index: 9999;
-                display: none;
-                align-items: center;
-                justify-content: center;
-                background: rgba(0, 0, 0, 0.5);
-                padding: 1rem;
-                box-sizing: border-box;
-            }
-
-            .modal-container.show {
-                display: flex;
+            .modal-open {
+                overflow: hidden;
             }
 
             .modal {
-                background-color: white;
-                border-radius: 0.375rem;
-                box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-                max-width: 500px;
+                --bs-modal-zindex: 1055;
+                --bs-modal-width: 500px;
+                --bs-modal-padding: 1rem;
+                --bs-modal-margin: 0.5rem;
+                --bs-modal-bg: #fff;
+                --bs-modal-border-color: #dee2e6;
+                --bs-modal-border-width: 1px;
+                --bs-modal-border-radius: 0.5rem;
+                --bs-modal-box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+                --bs-modal-inner-border-radius: calc(0.5rem - 1px);
+                --bs-modal-header-padding: 1rem 1rem;
+                --bs-modal-header-border-color: #dee2e6;
+                --bs-modal-header-border-width: 1px;
+                --bs-modal-title-line-height: 1.5;
+                --bs-modal-footer-gap: 0.5rem;
+                --bs-modal-footer-bg: ;
+                --bs-modal-footer-border-color: #dee2e6;
+                --bs-modal-footer-border-width: 1px;
+
+                position: fixed;
+                top: 0;
+                left: 0;
+                z-index: var(--bs-modal-zindex);
+                display: none;
                 width: 100%;
-                margin: 1.75rem auto;
+                height: 100%;
+                overflow-x: hidden;
+                overflow-y: auto;
+                outline: 0;
+            }
+
+            .modal.show {
+                display: block;
+            }
+
+            .modal-dialog {
+                position: relative;
+                width: auto;
+                margin: var(--bs-modal-margin);
+                pointer-events: none;
+            }
+
+            .modal.fade .modal-dialog {
+                transition: transform 0.3s ease-out;
+                transform: translate(0, -50px);
+            }
+
+            .modal.show .modal-dialog {
+                transform: none;
+            }
+
+            .modal-dialog-centered {
+                display: flex;
+                align-items: center;
+                min-height: calc(100% - var(--bs-modal-margin) * 2);
+            }
+
+            .modal-content {
                 position: relative;
                 display: flex;
                 flex-direction: column;
-                max-height: calc(100% - 3.5rem);
-                overflow: hidden;
-                animation: modalSlideIn 0.3s ease-out;
+                width: 100%;
+                color: var(--bs-body-color);
+                pointer-events: auto;
+                background-color: var(--bs-modal-bg);
+                background-clip: padding-box;
+                border: var(--bs-modal-border-width) solid var(--bs-modal-border-color);
+                border-radius: var(--bs-modal-border-radius);
+                outline: 0;
+                box-shadow: var(--bs-modal-box-shadow);
             }
 
-            @keyframes modalSlideIn {
-                from {
-                    opacity: 0;
-                    transform: scale(0.9) translateY(-20px);
-                }
-                to {
-                    opacity: 1;
-                    transform: scale(1) translateY(0);
-                }
+            .modal-backdrop {
+                position: fixed;
+                top: 0;
+                left: 0;
+                z-index: 1050;
+                width: 100vw;
+                height: 100vh;
+                background-color: #000;
+            }
+
+            .modal-backdrop.fade {
+                opacity: 0;
+            }
+
+            .modal-backdrop.show {
+                opacity: 0.5;
             }
 
             .modal-header {
                 display: flex;
+                flex-shrink: 0;
                 align-items: center;
                 justify-content: space-between;
-                padding: 1rem;
-                border-bottom: 1px solid #dee2e6;
-                border-top-left-radius: calc(0.375rem - 1px);
-                border-top-right-radius: calc(0.375rem - 1px);
+                padding: var(--bs-modal-header-padding);
+                border-bottom: var(--bs-modal-header-border-width) solid var(--bs-modal-header-border-color);
+                border-top-left-radius: var(--bs-modal-inner-border-radius);
+                border-top-right-radius: var(--bs-modal-inner-border-radius);
+            }
+
+            .modal-header .btn-close {
+                padding: calc(var(--bs-modal-header-padding) * .5);
+                margin-right: calc(var(--bs-modal-header-padding) * -.5);
             }
 
             .modal-title {
-                font-size: 1.25rem;
-                font-weight: 500;
-                color: #212529;
-                margin: 0;
-                line-height: 1.5;
-            }
-
-            .modal-close {
-                background: transparent;
-                border: 0;
-                font-size: 1.5rem;
-                font-weight: 700;
-                line-height: 1;
-                color: #000;
-                text-shadow: 0 1px 0 #fff;
-                opacity: 0.5;
-                cursor: pointer;
-                padding: 0;
-                margin: 0;
-                transition: opacity 0.15s;
-            }
-
-            .modal-close:hover {
-                opacity: 0.75;
+                margin-bottom: 0;
+                line-height: var(--bs-modal-title-line-height);
             }
 
             .modal-body {
                 position: relative;
                 flex: 1 1 auto;
-                padding: 1rem;
-                overflow-y: auto;
+                padding: var(--bs-modal-padding);
             }
 
+            .modal-footer {
+                display: flex;
+                flex-wrap: wrap;
+                flex-shrink: 0;
+                align-items: center;
+                justify-content: flex-end;
+                padding: calc(var(--bs-modal-padding) - var(--bs-modal-footer-gap) * .5);
+                border-top: var(--bs-modal-footer-border-width) solid var(--bs-modal-footer-border-color);
+                border-bottom-right-radius: var(--bs-modal-inner-border-radius);
+                border-bottom-left-radius: var(--bs-modal-inner-border-radius);
+            }
+
+            .modal-sm {
+                --bs-modal-width: 300px;
+            }
+
+            .modal-lg, .modal-xl {
+                --bs-modal-width: 800px;
+            }
+
+            .modal-xl {
+                --bs-modal-width: 1140px;
+            }
+
+            /* Custom styles for our modal system */
             .modal-message {
                 color: #212529;
                 line-height: 1.5;
@@ -138,16 +197,6 @@ class ModalManager {
                 outline: 0;
                 border-color: #86b7fe;
                 box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-            }
-
-            .modal-footer {
-                display: flex;
-                gap: 0.5rem;
-                justify-content: flex-end;
-                padding: 0.75rem;
-                border-top: 1px solid #dee2e6;
-                border-bottom-right-radius: calc(0.375rem - 1px);
-                border-bottom-left-radius: calc(0.375rem - 1px);
             }
 
             .modal-btn {
@@ -243,26 +292,29 @@ class ModalManager {
 
     createModal(config, resolve) {
         const modal = document.createElement('div');
-        modal.className = 'modal';
+        modal.className = 'modal fade';
+        modal.setAttribute('tabindex', '-1');
         
         const icon = config.icon || this.getDefaultIcon(config.type);
         const title = config.title || this.getDefaultTitle(config.type);
         
         modal.innerHTML = `
-            <div class="modal-header">
-                <h3 class="modal-title">
-                    <i class="fas ${icon} modal-icon"></i>
-                    ${title}
-                </h3>
-                <button class="modal-close" onclick="window.modalManager.close()">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="modal-body">
-                ${this.createModalContent(config)}
-            </div>
-            <div class="modal-footer">
-                ${this.createModalButtons(config, resolve)}
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas ${icon} modal-icon"></i>
+                            ${title}
+                        </h5>
+                        <button type="button" class="btn-close" onclick="window.modalManager.close()" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        ${this.createModalContent(config)}
+                    </div>
+                    <div class="modal-footer">
+                        ${this.createModalButtons(config, resolve)}
+                    </div>
+                </div>
             </div>
         `;
 
@@ -325,7 +377,15 @@ class ModalManager {
         const container = document.getElementById('modal-container');
         container.innerHTML = '';
         container.appendChild(modal.element);
+        
+        // Add backdrop
+        const backdrop = document.createElement('div');
+        backdrop.className = 'modal-backdrop fade show';
+        document.body.appendChild(backdrop);
+        
+        // Show modal
         container.classList.add('show');
+        document.body.classList.add('modal-open');
         this.activeModal = modal;
 
         // Focus input if present
@@ -384,6 +444,14 @@ class ModalManager {
     hideModal() {
         const container = document.getElementById('modal-container');
         container.classList.remove('show');
+        document.body.classList.remove('modal-open');
+        
+        // Remove backdrop
+        const backdrop = document.querySelector('.modal-backdrop');
+        if (backdrop) {
+            backdrop.remove();
+        }
+        
         this.activeModal = null;
         this.modalStack.pop();
     }
