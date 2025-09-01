@@ -40,6 +40,8 @@ class ModalManager {
                 justify-content: center;
                 background: rgba(0, 0, 0, 0.5);
                 backdrop-filter: blur(4px);
+                padding: 20px;
+                box-sizing: border-box;
             }
 
             .modal-container.show {
@@ -51,10 +53,11 @@ class ModalManager {
                 border-radius: 12px;
                 box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
                 max-width: 500px;
-                width: 90%;
-                max-height: 90vh;
+                width: 100%;
+                max-height: calc(100vh - 40px);
                 overflow: hidden;
                 animation: modalSlideIn 0.3s ease-out;
+                margin: auto;
             }
 
             @keyframes modalSlideIn {
