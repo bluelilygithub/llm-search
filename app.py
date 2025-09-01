@@ -172,20 +172,9 @@ def index():
     has_access, access_type, free_info = auth.has_access()
     if not has_access:
         return redirect(url_for('login_page'))
-    return render_template('index.html')
-
-@app.route('/new-template')
-def new_template():
-    """Test route for the new template structure"""
-    has_access, access_type, free_info = auth.has_access()
-    if not has_access:
-        return redirect(url_for('login_page'))
     return render_template('app_main.html')
 
-@app.route('/test-template')
-def test_template():
-    """Test route for template inheritance"""
-    return render_template('test_template.html')
+# Test routes removed - main route now uses new template structure
 
 @app.route('/login')
 def login_page():
