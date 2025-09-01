@@ -228,8 +228,8 @@ class KnowledgeBaseApp {
         this.createProject(name.trim());
     }
 
-    editConversationTitle(conversationId, currentTitle) {
-        const newTitle = prompt('Edit conversation title:', currentTitle);
+    async editConversationTitle(conversationId, currentTitle) {
+        const newTitle = await window.modalManager.prompt('Edit conversation title:', currentTitle);
         if (newTitle && newTitle !== currentTitle) {
             this.updateConversationTitle(conversationId, newTitle);
         }
@@ -288,8 +288,9 @@ class KnowledgeBaseApp {
         }
     }
 
-    deleteConversation(conversationId) {
-        if (confirm('Are you sure you want to delete this conversation?')) {
+    async deleteConversation(conversationId) {
+        const confirmed = await window.modalManager.confirm('Are you sure you want to delete this conversation?');
+        if (confirmed) {
             this.deleteConversationById(conversationId);
         }
     }
@@ -313,15 +314,16 @@ class KnowledgeBaseApp {
         }
     }
 
-    editProject(projectId, currentName) {
-        const newName = prompt('Edit project name:', currentName);
+    async editProject(projectId, currentName) {
+        const newName = await window.modalManager.prompt('Edit project name:', currentName);
         if (newName && newName !== currentName) {
             this.renameProject({ id: projectId }, newName);
         }
     }
 
     async deleteProject(projectId) {
-        if (confirm('Are you sure you want to delete this project?')) {
+        const confirmed = await window.modalManager.confirm('Are you sure you want to delete this project?');
+        if (confirmed) {
             try {
                 const response = await fetch(`/projects/${projectId}`, {
                     method: 'DELETE'
@@ -344,11 +346,11 @@ class KnowledgeBaseApp {
                 } else {
                     const errorData = await response.json();
                     console.error('Failed to delete project:', errorData.error);
-                    alert(`Failed to delete project: ${errorData.error || 'Unknown error'}`);
+                    await window.modalManager.error(`Failed to delete project: ${errorData.error || 'Unknown error'}`);
                 }
             } catch (error) {
                 console.error('Error deleting project:', error);
-                alert('Failed to delete project. Please try again.');
+                await window.modalManager.error('Failed to delete project. Please try again.');
             }
         }
     }
@@ -390,7 +392,7 @@ class KnowledgeBaseApp {
             if (!response.ok) {
                 const errorData = await response.json();
                 console.error('Failed to rename project:', errorData.error);
-                alert(`Failed to rename project: ${errorData.error || 'Unknown error'}`);
+                await window.modalManager.error(`Failed to rename project: ${errorData.error || 'Unknown error'}`);
                 return;
             }
             
@@ -406,7 +408,7 @@ class KnowledgeBaseApp {
             this.showSuccessNotification(`Project renamed to "${newName}" successfully!`);
         } catch (error) {
             console.error('Failed to rename project:', error);
-            alert('Failed to rename project. Please try again.');
+            await window.modalManager.error('Failed to rename project. Please try again.');
         }
     }
 
@@ -1405,11 +1407,11 @@ class KnowledgeBaseApp {
             } else {
                 const errorData = await response.json();
                 console.error('Failed to remove tag:', errorData);
-                alert(`Failed to remove tag: ${errorData.error || 'Unknown error'}`);
+                await window.modalManager.error(`Failed to remove tag: ${errorData.error || 'Unknown error'}`);
             }
         } catch (error) {
             console.error('Error removing tag from conversation:', error);
-            alert('Failed to remove tag: Network error');
+            await window.modalManager.error('Failed to remove tag: Network error');
         }
     }
 
@@ -1625,7 +1627,7 @@ class KnowledgeBaseApp {
     }
 
     async startVoiceInput() {
-        alert('Mic button pressed!');
+        await window.modalManager.info('Mic button pressed!');
         console.log('Class startVoiceInput called');
         // Use Web Speech API for speech-to-text
         if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
@@ -1664,7 +1666,7 @@ class KnowledgeBaseApp {
 
     // URL reference functionality
     async addUrlReference() {
-        let url = prompt('Enter URL to extract content from:');
+        let url = await window.modalManager.prompt('Enter URL to extract content from:');
         if (!url) return;
         
         // Auto-add https if no protocol specified
@@ -3430,8 +3432,8 @@ KnowledgeBaseApp.prototype.startNewConversationFromConversations = function() {
 };
 
 // Prompt for new project creation
-KnowledgeBaseApp.prototype.promptCreateNewProject = function() {
-    const name = prompt('Enter project name:');
+KnowledgeBaseApp.prototype.promptCreateNewProject = async function() {
+            const name = await window.modalManager.prompt('Enter project name:');
     if (name && name.trim()) {
         this.createNewProject(name.trim());
     }
@@ -3460,14 +3462,14 @@ KnowledgeBaseApp.prototype.showSuccessNotification = function(message) {
 };
 
 // Show notification with type
-KnowledgeBaseApp.prototype.showNotification = function(message, type = 'info') {
+KnowledgeBaseApp.prototype.showNotification = async function(message, type = 'info') {
     // Simple notification for now - can be enhanced later
     if (type === 'success') {
         this.showSuccessNotification(message);
     } else if (type === 'error') {
         this.showErrorNotification(message);
     } else {
-        alert(message);
+        await window.modalManager.info(message);
     }
 };
 

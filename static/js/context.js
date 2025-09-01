@@ -478,7 +478,7 @@ class ContextManager {
         const contextId = formData.get('context_id');
         
         if (!name || !contentType || !contentText || !contextId) {
-            alert('Please fill in all required fields');
+            await window.modalManager.warning('Please fill in all required fields');
             return;
         }
         
@@ -525,7 +525,7 @@ class ContextManager {
             }
         } catch (error) {
             console.error('Error updating context item:', error);
-            alert('Error updating context item: ' + error.message);
+            await window.modalManager.error('Error updating context item: ' + error.message);
         } finally {
             // Reset button
             submitBtn.textContent = originalText;
@@ -684,7 +684,7 @@ class ContextManager {
         const contentText = formData.get('content_text').trim();
         
         if (!name || !contentType || !contentText) {
-            alert('Please fill in all required fields');
+            await window.modalManager.warning('Please fill in all required fields');
             return;
         }
         
@@ -731,7 +731,7 @@ class ContextManager {
             }
         } catch (error) {
             console.error('Error creating context item:', error);
-            alert('Error creating context item: ' + error.message);
+            await window.modalManager.error('Error creating context item: ' + error.message);
         } finally {
             // Reset button
             submitBtn.textContent = originalText;

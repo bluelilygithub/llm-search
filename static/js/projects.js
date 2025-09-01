@@ -127,7 +127,7 @@ class ProjectManager {
 
     // Edit project name
     async editProject(projectId, currentName) {
-        const newName = prompt('Enter new project name:', currentName);
+        const newName = await window.modalManager.prompt('Enter new project name:', currentName);
         if (!newName || newName.trim() === currentName) return;
 
         try {
@@ -169,7 +169,8 @@ class ProjectManager {
 
     // Delete a project
     async deleteProject(projectId) {
-        if (!confirm('Are you sure you want to delete this project? This action cannot be undone.')) {
+        const confirmed = await window.modalManager.confirm('Are you sure you want to delete this project? This action cannot be undone.');
+        if (!confirmed) {
             return;
         }
 
