@@ -1,0 +1,84 @@
+<!-- Improved Sidebar -->
+<div class="sidebar" id="sidebar">
+    <!-- Header -->
+    <div class="sidebar-header">
+        <div class="sidebar-header-content">
+            <div class="sidebar-logo">
+                <div class="logo-icon">
+                    <i class="fas fa-comments"></i>
+                </div>
+                <div class="logo-text" id="logo-text">
+                    <h1>AI Knowledge Base</h1>
+                </div>
+            </div>
+            <button class="inline-flex items-center justify-center relative shrink-0 can-focus select-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none disabled:drop-shadow-none text-text-300 border-transparent transition font-ui tracking-tight duration-300 ease-[cubic-bezier(0.165,0.85,0.45,1)] hover:bg-bg-300 aria-checked:bg-bg-400 aria-expanded:bg-bg-400 hover:text-text-100 aria-pressed:text-text-100 aria-checked:text-text-100 aria-expanded:text-text-100 h-8 w-8 rounded-md active:scale-95 text-text-400/60 hover:text-text-200 sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()" type="button">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256" id="toggle-icon">
+                    <path d="M232,128a8,8,0,0,1-8,8H91.31l58.35,58.34a8,8,0,0,1-11.32,11.32l-72-72a8,8,0,0,1,0-11.32l72-72a8,8,0,0,1,11.32,11.32L91.31,120H224A8,8,0,0,1,232,128ZM40,32a8,8,0,0,0-8,8V216a8,8,0,0,0,16,0V40A8,8,0,0,0,40,32Z"></path>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Search & New Chat (Visible when expanded) -->
+    <div class="sidebar-main-actions" id="sidebar-main-actions">
+        <div class="search-container">
+            <div class="search-input-wrapper">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" id="conversation-search" placeholder="Search everything..." oninput="debouncedSearchConversations()">
+            </div>
+        </div>
+
+        <div class="new-chat-container">
+            <button class="new-chat-btn" id="new-chat-btn" onclick="startNewChat()">
+                <i class="fas fa-plus"></i>
+                <span>New Chat</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Navigation Content -->
+    <div class="sidebar-content" id="sidebar-content">
+        <!-- Recent Conversations Section -->
+        <div class="nav-section">
+            <button class="section-header" onclick="toggleSection('recent')" id="recent-header">
+                <div class="section-header-content">
+                    <div class="section-title">
+                        <i class="fas fa-clock"></i>
+                        <span class="section-label">Recent</span>
+                    </div>
+                    <div class="section-toggle">
+                        <i class="fas fa-minus" id="recent-toggle"></i>
+                    </div>
+                </div>
+            </button>
+            
+            <div class="section-content expanded" id="recent-content">
+                <div class="conversations-scroll-area">
+                    <div class="conversations-list" id="conversations-list">
+                        <!-- Recent conversations will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Collapsed Sidebar Icons -->
+    <div class="sidebar-collapsed-content" id="sidebar-collapsed-content" style="display: none;">
+        <div class="collapsed-nav-icons">
+            <button class="collapsed-nav-btn" onclick="toggleSection('recent')" title="Recent">
+                <i class="fas fa-clock"></i>
+            </button>
+            <button class="collapsed-nav-btn" onclick="toggleSection('projects')" title="Projects">
+                <i class="fas fa-folder"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Bottom Settings -->
+    <div class="sidebar-footer" id="sidebar-footer">
+        <button class="settings-btn" id="sidebar-settings-btn" onclick="openSettingsPanel()" title="Settings" style="display: none;">
+            <i class="fas fa-cog"></i>
+            <span class="settings-label">Settings</span>
+        </button>
+    </div>
+</div>

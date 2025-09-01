@@ -1,0 +1,110 @@
+<!-- Settings Slide-Out Panel -->
+<div class="settings-panel" id="settings-panel">
+    <div class="settings-panel-overlay" onclick="closeSettingsPanel()"></div>
+    <div class="settings-panel-content">
+        <!-- Settings Header -->
+        <div class="settings-header">
+            <div class="settings-title">
+                <i class="fas fa-cog"></i>
+                <h2>Settings</h2>
+            </div>
+            <button class="settings-close-btn" onclick="closeSettingsPanel()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <!-- Settings Navigation -->
+        <div class="settings-nav">
+            <button class="settings-nav-btn active" data-section="models" onclick="showSettingsSection('models')">
+                <i class="fas fa-robot"></i>
+                Models
+            </button>
+            <button class="settings-nav-btn" data-section="account" onclick="showSettingsSection('account')">
+                <i class="fas fa-user"></i>
+                Account
+            </button>
+            <button class="settings-nav-btn" data-section="preferences" onclick="showSettingsSection('preferences')" id="preferences-nav-btn">
+                <i class="fas fa-sliders-h"></i>
+                Preferences
+            </button>
+        </div>
+
+        <!-- Settings Content -->
+        <div class="settings-content">
+            <!-- Models Section -->
+            <div class="settings-section active" id="models-section">
+                <div class="section-header">
+                    <h3>Model Configuration</h3>
+                    <p>Manage which models are available in the dropdown and check their access status.</p>
+                </div>
+
+                <div class="models-container">
+                    <div class="models-header">
+                        <div class="models-actions">
+                            <button class="btn-secondary" onclick="checkAllModelsAccess()">
+                                <i class="fas fa-sync"></i>
+                                Check All Access
+                            </button>
+
+                            <button class="btn-primary" onclick="saveModelSettings()">
+                                <i class="fas fa-save"></i>
+                                Save Changes
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="models-list" id="models-list">
+                        <!-- Models will be populated by JavaScript -->
+                        <div class="loading-models">Loading model configurations...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Account Section -->
+            <div class="settings-section" id="account-section">
+                <div class="section-header">
+                    <h3>Account Information</h3>
+                    <p>View your account details and usage statistics.</p>
+                </div>
+                <div class="account-info">
+                    <p>Account settings coming soon...</p>
+                </div>
+            </div>
+
+            <!-- Preferences Section -->
+            <div class="settings-section" id="preferences-section">
+                <div class="section-header">
+                    <h3>User Preferences</h3>
+                    <p>Customize your application experience.</p>
+                </div>
+                <div class="preferences-info">
+                    <div class="preference-item">
+                        <label for="default-model-select"><strong>Default Model:</strong></label>
+                        <p class="preference-description">Select the model that will be automatically chosen when you start a new conversation.</p>
+                        <div id="preferences-debug" style="background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px; font-family: monospace; font-size: 12px;">
+                            <strong>Debug Info:</strong><br>
+                            <span id="debug-modelSettings">Loading...</span><br>
+                            <span id="debug-userPreferences">Loading...</span><br>
+                            <span id="debug-dropdown-status">Loading...</span>
+                        </div>
+                        <div id="preferences-visibility-test" style="background: #e8f5e8; padding: 10px; margin: 10px 0; border-radius: 5px; border: 2px solid #4caf50;">
+                            <strong>✓ Preferences Section is Visible!</strong><br>
+                            This section is working correctly.
+                        </div>
+                        <select id="default-model-select" onchange="updateDefaultModel()">
+                            <option value="">Loading models...</option>
+                        </select>
+                        <button class="btn-secondary" onclick="savePreferences()" style="margin-top: 10px;">
+                            <i class="fas fa-save"></i>
+                            Save Preferences
+                        </button>
+                        <button class="btn-secondary" onclick="populateDefaultModelSelect()" style="margin-top: 10px; margin-left: 10px;">
+                            <i class="fas fa-refresh"></i>
+                            Refresh Models
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

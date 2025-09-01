@@ -1,0 +1,28 @@
+<!-- Bottom Input -->
+<div class="bottom-input-container">
+    <div class="kb-search-results" id="kb-search-results" style="display: none;">
+        <!-- Knowledge base search results will appear here -->
+    </div>
+    
+    <div class="input-area">
+        <div class="input-controls-left">
+            <button class="input-control-btn" onclick="triggerFileUpload()" title="Add attachment">
+                <i class="fas fa-paperclip"></i>
+            </button>
+            <button class="input-control-btn" onclick="startVoiceInput()" title="Voice Input" id="voice-btn">
+                <i class="fas fa-microphone"></i>
+            </button>
+        </div>
+        
+        <div class="message-input-container">
+            <textarea id="message-input" placeholder="Ask a question or search knowledge base..." 
+                    rows="1" onkeydown="handleInputKeydown(event)" oninput="handleInputChange()"></textarea>
+        </div>
+        
+        <button class="send-button" onclick="sendMessage()" id="send-btn">
+            Send
+        </button>
+    </div>
+    
+    <input type="file" id="file-input" multiple style="display: none;" onchange="window.app.handleContextUpload(event)">
+</div>
