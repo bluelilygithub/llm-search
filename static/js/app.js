@@ -726,7 +726,7 @@ class KnowledgeBaseApp {
 
     async sendMessage() {
         // Check if we're in a chat context
-        const chatContainer = document.getElementById('chat-messages');
+        let chatContainer = document.getElementById('chat-messages');
         if (!chatContainer) {
             console.warn('Not in chat context, cannot send message');
             console.log('Current view:', this.currentView);
