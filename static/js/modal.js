@@ -72,7 +72,8 @@ class ModalManager {
             .modal-dialog {
                 position: relative;
                 width: auto;
-                margin: var(--bs-modal-margin);
+                max-width: var(--bs-modal-width);
+                margin: var(--bs-modal-margin) auto;
                 pointer-events: none;
             }
 
