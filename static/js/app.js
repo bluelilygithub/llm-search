@@ -1090,6 +1090,12 @@ class KnowledgeBaseApp {
         if (this.currentViewProject) {
             this.currentProject = this.currentViewProject;
         }
+        
+        // Ensure the bottom input is visible when starting a new chat
+        const bottomInput = document.querySelector('.bottom-input-container');
+        if (bottomInput) {
+            bottomInput.style.display = 'block';
+        }
     }
 
     updateModel() {
@@ -3820,6 +3826,12 @@ KnowledgeBaseApp.prototype.showHomeView = function() {
         </div>
     `;
     
+    // Show the bottom input in home view
+    const bottomInput = document.querySelector('.bottom-input-container');
+    if (bottomInput) {
+        bottomInput.style.display = 'block';
+    }
+    
     // Load home statistics
     this.loadHomeStats();
 };
@@ -3889,6 +3901,11 @@ KnowledgeBaseApp.prototype.showConversationsView = function() {
         topBar.insertAdjacentElement('afterend', conversationsContent);
     } else {
         container.appendChild(conversationsContent);
+    }
+    
+    // Show the bottom input in conversations view
+    if (bottomInput) {
+        bottomInput.style.display = 'block';
     }
     
     this.loadConversationsGrid();
@@ -3962,6 +3979,11 @@ KnowledgeBaseApp.prototype.showProjectsView = function() {
         container.appendChild(projectsContent);
     }
     
+    // Show the bottom input in projects view
+    if (bottomInput) {
+        bottomInput.style.display = 'block';
+    }
+    
     this.loadProjectsGrid();
 };
 
@@ -3980,7 +4002,10 @@ KnowledgeBaseApp.prototype.showProjectConversationsView = function(project) {
     const topBar = container.querySelector('.top-bar');
     const bottomInput = container.querySelector('.bottom-input-container');
     
-
+    // Hide the bottom input when in project view
+    if (bottomInput) {
+        bottomInput.style.display = 'none';
+    }
     
     // Remove any existing main-view elements to prevent appending
     const existingMainViews = container.querySelectorAll('.main-view');
@@ -4365,6 +4390,12 @@ KnowledgeBaseApp.prototype.showChatView = function() {
     }
     
 
+    
+    // Show the bottom input when in chat view
+    const bottomInput = container.querySelector('.bottom-input-container');
+    if (bottomInput) {
+        bottomInput.style.display = 'block';
+    }
     
     // If there's a current conversation, it will be loaded by the caller
 };
