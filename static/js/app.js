@@ -772,6 +772,12 @@ class KnowledgeBaseApp {
                 if (conversationTitle) conversationTitle.textContent = 'New Conversation';
             }
             
+            // Show the bottom input when automatically restoring chat view
+            const bottomInput = document.querySelector('.bottom-input-container');
+            if (bottomInput) {
+                bottomInput.classList.remove('hidden');
+            }
+            
             // Try again after restoring
             const retryContainer = document.getElementById('chat-messages');
             if (!retryContainer) {
@@ -1060,6 +1066,8 @@ class KnowledgeBaseApp {
             // Use the restored container
             chatContainer = retryContainer;
         }
+        
+
         
         chatContainer.innerHTML = `
             <div class="welcome-message">
@@ -3972,6 +3980,8 @@ KnowledgeBaseApp.prototype.showProjectConversationsView = function(project) {
     const topBar = container.querySelector('.top-bar');
     const bottomInput = container.querySelector('.bottom-input-container');
     
+
+    
     // Remove any existing main-view elements to prevent appending
     const existingMainViews = container.querySelectorAll('.main-view');
     existingMainViews.forEach(view => view.remove());
@@ -4354,6 +4364,8 @@ KnowledgeBaseApp.prototype.showChatView = function() {
         }
     }
     
+
+    
     // If there's a current conversation, it will be loaded by the caller
 };
 
@@ -4383,6 +4395,8 @@ KnowledgeBaseApp.prototype.startNewConversationInProject = function(projectId) {
     
     // Switch to chat view first, then start new conversation
     this.showChatView();
+    
+
     
     // Use requestAnimationFrame to ensure DOM is updated before proceeding
     requestAnimationFrame(() => {
