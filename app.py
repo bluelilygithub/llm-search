@@ -65,6 +65,15 @@ def validate_csrf_for_api():
             return jsonify({'error': 'CSRF token required'}), 403
     return None
 
+# Ensure CSRF token is available to all templates as a simple string
+@app.context_processor
+def inject_csrf_token():
+    try:
+        token = generate_csrf()
+    except Exception:
+        token = ''
+    return {'csrf_token': token}
+
 # CSRF protection is enabled globally
 # Individual routes can be exempted using @csrf.exempt decorator
 
