@@ -748,6 +748,30 @@ class KnowledgeBaseApp {
                 console.log('Restored project context:', this.currentProject);
             }
             
+            // Set up the chat view properly for new conversation
+            const chatMessages = document.getElementById('chat-messages');
+            if (chatMessages) {
+                chatMessages.innerHTML = `
+                    <div class="welcome-message">
+                        <h3 id="new-conversation-title">New Conversation</h3>
+                        <p>Start a conversation or search your knowledge base.</p>
+                    </div>
+                `;
+            }
+            
+            // Update conversation title and header to show project context
+            this.updateNewConversationTitle();
+            
+            // Update the chat header to show project context (breadcrumb)
+            const chatHeader = document.getElementById('chat-header');
+            if (chatHeader && this.currentProject) {
+                chatHeader.style.display = 'block';
+                const projectName = document.getElementById('project-name');
+                const conversationTitle = document.getElementById('conversation-title');
+                if (projectName) projectName.textContent = this.currentProject.name;
+                if (conversationTitle) conversationTitle.textContent = 'New Conversation';
+            }
+            
             // Try again after restoring
             const retryContainer = document.getElementById('chat-messages');
             if (!retryContainer) {
