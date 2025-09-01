@@ -39,7 +39,7 @@ class ModalManager {
                 align-items: center;
                 justify-content: center;
                 background: rgba(0, 0, 0, 0.5);
-                padding: 20px;
+                padding: 1rem;
                 box-sizing: border-box;
             }
 
@@ -49,14 +49,16 @@ class ModalManager {
 
             .modal {
                 background-color: white;
-                padding: 24px;
-                border-radius: 8px;
-                max-width: 600px;
-                width: 90%;
-                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-                box-sizing: border-box;
-                max-height: 90vh;
-                overflow-y: auto;
+                border-radius: 0.375rem;
+                box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+                max-width: 500px;
+                width: 100%;
+                margin: 1.75rem auto;
+                position: relative;
+                display: flex;
+                flex-direction: column;
+                max-height: calc(100% - 3.5rem);
+                overflow: hidden;
                 animation: modalSlideIn 0.3s ease-out;
             }
 
@@ -75,110 +77,129 @@ class ModalManager {
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
-                margin-bottom: 16px;
-                padding-bottom: 16px;
-                border-bottom: 1px solid #e5e7eb;
+                padding: 1rem;
+                border-bottom: 1px solid #dee2e6;
+                border-top-left-radius: calc(0.375rem - 1px);
+                border-top-right-radius: calc(0.375rem - 1px);
             }
 
             .modal-title {
-                font-size: 18px;
-                font-weight: 600;
-                color: #1f2937;
+                font-size: 1.25rem;
+                font-weight: 500;
+                color: #212529;
                 margin: 0;
+                line-height: 1.5;
             }
 
             .modal-close {
-                background: none;
-                border: none;
-                font-size: 20px;
-                color: #6b7280;
+                background: transparent;
+                border: 0;
+                font-size: 1.5rem;
+                font-weight: 700;
+                line-height: 1;
+                color: #000;
+                text-shadow: 0 1px 0 #fff;
+                opacity: 0.5;
                 cursor: pointer;
-                padding: 4px;
-                border-radius: 4px;
-                transition: all 0.2s;
+                padding: 0;
+                margin: 0;
+                transition: opacity 0.15s;
             }
 
             .modal-close:hover {
-                background: #f3f4f6;
-                color: #374151;
+                opacity: 0.75;
             }
 
             .modal-body {
-                margin-bottom: 16px;
+                position: relative;
+                flex: 1 1 auto;
+                padding: 1rem;
+                overflow-y: auto;
             }
 
             .modal-message {
-                color: #374151;
-                line-height: 1.6;
-                margin-bottom: 16px;
+                color: #212529;
+                line-height: 1.5;
+                margin-bottom: 1rem;
             }
 
             .modal-input {
                 width: 100%;
-                padding: 12px 16px;
-                border: 1px solid #d1d5db;
-                border-radius: 6px;
-                font-size: 14px;
-                transition: border-color 0.2s;
+                padding: 0.375rem 0.75rem;
+                border: 1px solid #ced4da;
+                border-radius: 0.375rem;
+                font-size: 1rem;
+                line-height: 1.5;
+                transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
                 box-sizing: border-box;
             }
 
             .modal-input:focus {
-                outline: none;
-                border-color: #3b82f6;
-                box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+                outline: 0;
+                border-color: #86b7fe;
+                box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
             }
 
             .modal-footer {
                 display: flex;
-                gap: 12px;
+                gap: 0.5rem;
                 justify-content: flex-end;
-                padding-top: 16px;
-                border-top: 1px solid #e5e7eb;
+                padding: 0.75rem;
+                border-top: 1px solid #dee2e6;
+                border-bottom-right-radius: calc(0.375rem - 1px);
+                border-bottom-left-radius: calc(0.375rem - 1px);
             }
 
             .modal-btn {
-                padding: 8px 16px;
-                border: 1px solid transparent;
-                border-radius: 6px;
-                font-size: 14px;
-                font-weight: 500;
+                display: inline-block;
+                font-weight: 400;
+                line-height: 1.5;
+                text-align: center;
+                text-decoration: none;
+                vertical-align: middle;
                 cursor: pointer;
-                transition: all 0.2s;
-                min-width: 80px;
+                user-select: none;
+                border: 1px solid transparent;
+                padding: 0.375rem 0.75rem;
+                font-size: 1rem;
+                border-radius: 0.375rem;
+                transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
             }
 
             .modal-btn-primary {
-                background: #3b82f6;
-                color: white;
-                border-color: #3b82f6;
+                color: #fff;
+                background-color: #0d6efd;
+                border-color: #0d6efd;
             }
 
             .modal-btn-primary:hover {
-                background: #2563eb;
-                border-color: #2563eb;
+                color: #fff;
+                background-color: #0b5ed7;
+                border-color: #0a58ca;
             }
 
             .modal-btn-secondary {
-                background: #f9fafb;
-                color: #374151;
-                border-color: #d1d5db;
+                color: #fff;
+                background-color: #6c757d;
+                border-color: #6c757d;
             }
 
             .modal-btn-secondary:hover {
-                background: #f3f4f6;
-                border-color: #9ca3af;
+                color: #fff;
+                background-color: #5c636a;
+                border-color: #565e64;
             }
 
             .modal-btn-danger {
-                background: #ef4444;
-                color: white;
-                border-color: #ef4444;
+                color: #fff;
+                background-color: #dc3545;
+                border-color: #dc3545;
             }
 
             .modal-btn-danger:hover {
-                background: #dc2626;
-                border-color: #dc2626;
+                color: #fff;
+                background-color: #bb2d3b;
+                border-color: #b02a37;
             }
 
             .modal-icon {
