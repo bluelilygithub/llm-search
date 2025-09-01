@@ -20,6 +20,10 @@ class KnowledgeBaseApp {
         this.loadConversations();
         this.setupEventListeners();
         this.autoResizeTextarea();
+        
+        // Set "No Project" as active by default
+        this.updateProjectSelectionUI(null);
+        
         // No longer showing model instructions automatically
     }
 
@@ -165,8 +169,36 @@ class KnowledgeBaseApp {
     }
 
     renderProjects(projects) {
-        // Projects section removed - no longer needed
-            return;
+        const projectsList = document.getElementById('projects-list');
+        if (!projectsList) return;
+        
+        // Clear existing projects
+        projectsList.innerHTML = '';
+        
+        // Render each project
+        projects.forEach(project => {
+            const projectItem = document.createElement('div');
+            projectItem.className = 'project-item';
+            projectItem.setAttribute('data-project-id', project.id);
+            projectItem.onclick = () => this.selectProject(project);
+            
+            projectItem.innerHTML = `
+                <div class="project-content">
+                    <div class="project-icon">
+                        <i class="fas fa-folder"></i>
+                    </div>
+                    <div class="project-info">
+                        <div class="project-title">${project.name}</div>
+                        <div class="project-description">${project.description || 'No description'}</div>
+                    </div>
+                </div>
+            `;
+            
+            projectsList.appendChild(projectItem);
+        });
+        
+        // Update the active state based on current project
+        this.updateProjectSelectionUI(this.currentProject);
     }
 
     showNewProjectPrompt() { /* no-op, replaced by inline input */ }
@@ -377,6 +409,10 @@ class KnowledgeBaseApp {
         // Only trigger if changing project
         const isNewProject = !this.currentProject || !project || this.currentProject.id !== project.id;
         this.currentProject = project;
+        
+        // Update the UI to show which project is selected
+        this.updateProjectSelectionUI(project);
+        
         this.loadProjects();
         this.loadConversations();
         if (isNewProject) {
@@ -426,6 +462,27 @@ class KnowledgeBaseApp {
             titleElement.textContent = `New Conversation - ${this.currentProject.name}`;
         } else {
             titleElement.textContent = 'New Conversation - All Conversations';
+        }
+    }
+
+    updateProjectSelectionUI(selectedProject) {
+        // Remove active class from all project items
+        document.querySelectorAll('.project-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        
+        // Add active class to selected project or "No Project"
+        if (selectedProject) {
+            const projectItem = document.querySelector(`[data-project-id="${selectedProject.id}"]`);
+            if (projectItem) {
+                projectItem.classList.add('active');
+            }
+        } else {
+            // "No Project" is selected
+            const noProjectItem = document.getElementById('no-project-item');
+            if (noProjectItem) {
+                noProjectItem.classList.add('active');
+            }
         }
     }
 

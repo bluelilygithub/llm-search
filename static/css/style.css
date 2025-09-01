@@ -4419,3 +4419,75 @@ mark {
     border-radius: var(--radius-sm);
     font-weight: 500;
 }
+
+.project-item.active {
+    background-color: var(--primary-blue-light);
+    border-left: 3px solid var(--primary-blue);
+}
+
+/* No Project Option */
+.project-item.no-project {
+    border: 1px solid var(--gray-200);
+    background-color: var(--gray-50);
+}
+
+.project-item.no-project:hover {
+    background-color: var(--gray-100);
+    border-color: var(--gray-300);
+}
+
+.project-item.no-project.active {
+    background-color: var(--primary-blue-light);
+    border-color: var(--primary-blue);
+    border-left: 3px solid var(--primary-blue);
+}
+
+.project-item.no-project .project-icon {
+    background-color: var(--gray-200);
+}
+
+.project-item.no-project .project-icon i {
+    color: var(--gray-600);
+}
+
+.project-item.no-project.active .project-icon {
+    background-color: var(--primary-blue-light);
+}
+
+.project-item.no-project.active .project-icon i {
+    color: var(--primary-blue);
+}
+
+.project-content {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    flex: 1;
+    min-width: 0;
+}
+
+.project-title {
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    color: var(--gray-900);
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.project-description {
+    font-size: var(--font-size-xs);
+    color: var(--gray-500);
+}
+
+/* Projects Section in Sidebar */
+.projects-scroll-area {
+    max-height: 300px;
+    overflow-y: auto;
+    padding: var(--spacing-xs);
+}
+
+.projects-list {
+    margin-top: var(--spacing-sm);
+}

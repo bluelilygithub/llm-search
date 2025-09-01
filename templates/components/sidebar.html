@@ -60,6 +60,41 @@
                 </div>
             </div>
         </div>
+
+        <!-- Projects Section -->
+        <div class="nav-section">
+            <button class="section-header" onclick="toggleSection('projects')" id="projects-header">
+                <div class="section-header-content">
+                    <div class="section-title">
+                        <i class="fas fa-folder"></i>
+                        <span class="section-label">Projects</span>
+                    </div>
+                    <div class="section-toggle">
+                        <i class="fas fa-plus" id="projects-toggle"></i>
+                    </div>
+                </div>
+            </button>
+            
+            <div class="section-content" id="projects-content">
+                <div class="projects-scroll-area">
+                    <!-- No Project Option -->
+                    <div class="project-item no-project" id="no-project-item" onclick="selectNoProject()">
+                        <div class="project-content">
+                            <div class="project-icon">
+                                <i class="fas fa-globe"></i>
+                            </div>
+                            <div class="project-title">No Project</div>
+                            <div class="project-description">Global conversations</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Projects list will be loaded here -->
+                    <div class="projects-list" id="projects-list">
+                        <!-- Projects will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Collapsed Sidebar Icons -->

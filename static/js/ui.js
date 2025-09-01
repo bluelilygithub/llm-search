@@ -56,6 +56,26 @@ window.toggleSection = function toggleSection(sectionName) {
     }
 };
 
+window.selectNoProject = function selectNoProject() {
+    if (window.app) {
+        // Clear current project selection
+        window.app.currentProject = null;
+        window.app.currentViewProject = null;
+        
+        // Update UI to show "No Project" as selected
+        window.app.updateProjectSelectionUI(null);
+        
+        // Refresh conversations to show all (no project filter)
+        window.app.loadConversations();
+        
+        // Update new conversation title
+        window.app.updateNewConversationTitle();
+        
+        // Show chat view
+        window.app.showChatView();
+    }
+};
+
 window.startNewChat = function startNewChat() {
     if (window.app?.startNewConversation) {
         window.app.startNewConversation();
