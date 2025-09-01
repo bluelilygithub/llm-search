@@ -734,15 +734,19 @@ class KnowledgeBaseApp {
             console.log('Current view project context:', this.currentViewProject);
             console.log('Chat container not found, attempting to restore chat view');
             
-            // Preserve project context before restoring
-            const preserveProject = this.currentProject;
-            const preserveViewProject = this.currentViewProject;
+            // Determine the correct project context to preserve
+            // Use currentViewProject if currentProject is null but we're in a project context
+            const projectToPreserve = this.currentProject || this.currentViewProject;
+            console.log('Project context to preserve:', projectToPreserve);
             
             this.showChatView();
             
-            // Restore project context after restoring chat view
-            if (preserveProject) this.currentProject = preserveProject;
-            if (preserveViewProject) this.currentViewProject = preserveViewProject;
+            // Restore the correct project context after restoring chat view
+            if (projectToPreserve) {
+                this.currentProject = projectToPreserve;
+                this.currentViewProject = projectToPreserve;
+                console.log('Restored project context:', this.currentProject);
+            }
             
             // Try again after restoring
             const retryContainer = document.getElementById('chat-messages');
@@ -824,8 +828,10 @@ class KnowledgeBaseApp {
             llm_model: this.selectedModel,
             tags: []
         };
-        if (this.currentProject && this.currentProject.id) {
-            body.project_id = this.currentProject.id;
+        // Check both project contexts to ensure we capture the correct project
+        const projectToUse = this.currentProject || this.currentViewProject;
+        if (projectToUse && projectToUse.id) {
+            body.project_id = projectToUse.id;
         }
         const response = await fetch('/conversations', {
             method: 'POST',
