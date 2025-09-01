@@ -291,14 +291,10 @@ class ModalManager {
     }
 
     createModal(config, resolve) {
-        const modal = document.createElement('div');
-        modal.className = 'modal fade';
-        modal.setAttribute('tabindex', '-1');
-        
         const icon = config.icon || this.getDefaultIcon(config.type);
         const title = config.title || this.getDefaultTitle(config.type);
         
-        modal.innerHTML = `
+        const modalHTML = `
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
                     <div class="modal-header">
@@ -318,7 +314,7 @@ class ModalManager {
             </div>
         `;
 
-        return { element: modal, config, resolve };
+        return { html: modalHTML, config, resolve };
     }
 
     createModalContent(config) {
@@ -375,8 +371,7 @@ class ModalManager {
 
     showModal(modal) {
         const container = document.getElementById('modal-container');
-        container.innerHTML = '';
-        container.appendChild(modal.element);
+        container.innerHTML = modal.html;
         
         // Add backdrop
         const backdrop = document.createElement('div');
@@ -389,7 +384,7 @@ class ModalManager {
         this.activeModal = modal;
 
         // Focus input if present
-        const input = modal.element.querySelector('#modal-input');
+        const input = container.querySelector('#modal-input');
         if (input) {
             setTimeout(() => input.focus(), 100);
         }
