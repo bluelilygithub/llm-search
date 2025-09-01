@@ -9,6 +9,11 @@ class KnowledgeBaseApp {
         this.currentProject = null; // Added for project management
         this.projects = []; // Initialize projects array
         
+        // Initialize modular managers
+        this.settingsManager = new SettingsManager(this);
+        this.contextManager = new ContextManager(this);
+        this.viewManager = new ViewManager(this);
+        
         // Setup global error handling
         this.setupGlobalErrorHandling();
         
@@ -2247,20 +2252,7 @@ KnowledgeBaseApp.prototype.toggleProjects = function() {
 };
 
 KnowledgeBaseApp.prototype.openSettingsModal = async function() {
-    const modal = document.getElementById('settings-modal');
-    modal.style.display = 'flex';
-    try {
-        // Load all dashboard data in parallel
-        await Promise.all([
-            this.renderQuickStats(),
-            this.renderUsageChart(),
-            this.renderActivityTimelineChart(),
-            this.renderModelPerformanceTable(),
-            this.renderActivityLog()
-        ]);
-    } catch (e) {
-        console.error('Error loading dashboard data:', e);
-    }
+    this.settingsManager.openSettingsModal();
 };
 
 // New dashboard rendering functions
@@ -2708,7 +2700,7 @@ KnowledgeBaseApp.prototype.renderSessionTokenChart = async function() {
 };
 
 KnowledgeBaseApp.prototype.closeSettingsModal = function() {
-    document.getElementById('settings-modal').style.display = 'none';
+    this.settingsManager.closeSettingsModal();
 };
 
 // Initialize the app when DOM is loaded
@@ -3002,728 +2994,122 @@ KnowledgeBaseApp.prototype.documentContentMap = new Map();
 
 // Toggle context panel visibility
 function toggleContextPanel() {
-    const panel = document.getElementById('context-panel');
-    const toggleBtn = document.getElementById('context-toggle-btn');
-    
-    if (window.app.contextPanelOpen) {
-        panel.style.display = 'none';
-        toggleBtn.classList.remove('active');
-        window.app.contextPanelOpen = false;
-    } else {
-        panel.style.display = 'flex';
-        toggleBtn.classList.add('active');
-        window.app.contextPanelOpen = true;
-        window.app.loadContextData();
-    }
+    window.app.contextManager.toggleContextPanel();
 }
 
 // Load all context data
 KnowledgeBaseApp.prototype.loadContextData = async function() {
-    try {
-        // Load user context items
-        await this.loadContextItems();
-        
-        // Load context stats
-        await this.loadContextStats();
-        
-        // Load conversation context if we have a current conversation
-        if (this.currentConversationId) {
-            await this.loadConversationContext();
-        }
-        
-    } catch (error) {
-        console.error('Error loading context data:', error);
-        this.showErrorNotification('Failed to load context data');
-    }
+    await this.contextManager.loadContextData();
 };
 
 // Load user context items
 KnowledgeBaseApp.prototype.loadContextItems = async function() {
-    try {
-        const response = await fetch('/api/context');
-        const data = await response.json();
-        
-        if (data.success) {
-            this.contextItems = data.items;
-            this.renderContextItems();
-        } else {
-            throw new Error(data.error || 'Failed to load context items');
-        }
-    } catch (error) {
-        console.error('Error loading context items:', error);
-        document.getElementById('context-items-list').innerHTML = 
-            '<div class="empty-context">Failed to load context items</div>';
-    }
+    await this.contextManager.loadContextItems();
 };
 
 // Load context statistics
 KnowledgeBaseApp.prototype.loadContextStats = async function() {
-    try {
-        const response = await fetch('/api/context/stats');
-        const data = await response.json();
-        
-        if (data.success) {
-            this.contextStats = data.stats;
-            this.renderContextStats();
-        }
-    } catch (error) {
-        console.error('Error loading context stats:', error);
-    }
+    await this.contextManager.loadContextStats();
 };
 
 // Load conversation context
 KnowledgeBaseApp.prototype.loadConversationContext = async function() {
-    if (!this.currentConversationId) return;
-    
-    try {
-        const response = await fetch(`/api/conversation/${this.currentConversationId}/context`);
-        const data = await response.json();
-        
-        if (data.success) {
-            this.conversationContext = data.context;
-            this.renderConversationContext();
-            
-            // Show conversation context section
-            const section = document.getElementById('context-conversation-section');
-            section.style.display = data.context.length > 0 ? 'block' : 'none';
-        }
-    } catch (error) {
-        console.error('Error loading conversation context:', error);
-    }
+    await this.contextManager.loadConversationContext();
 };
 
 // Render context items list
 KnowledgeBaseApp.prototype.renderContextItems = function() {
-    const container = document.getElementById('context-items-list');
-    
-    if (this.contextItems.length === 0) {
-        container.innerHTML = '<div class="empty-context">No context items found. Add some context to get started!</div>';
-        return;
-    }
-    
-    const contextInConversation = new Set(this.conversationContext.map(c => c.item_id));
-    
-    container.innerHTML = this.contextItems.map(item => `
-        <div class="context-item-card ${contextInConversation.has(item.id) ? 'in-conversation' : ''}"
-             onclick="window.app.showContextItemDetails('${item.id}')">
-            <div class="context-item-header">
-                <div class="context-item-name">${item.name}</div>
-                <div class="context-item-type">${item.content_type}</div>
-                ${item.project_name ? `<div class="context-item-project">📁 ${item.project_name}</div>` : ''}
-            </div>
-            ${item.description ? `<div class="context-item-description">${item.description}</div>` : ''}
-            <div class="context-item-meta">
-                <div class="context-item-tokens">${item.token_count} tokens</div>
-                <div class="context-item-actions">
-                    ${contextInConversation.has(item.id) 
-                        ? `<button class="context-item-action remove" onclick="event.stopPropagation(); window.app.removeContextFromConversation('${item.id}')" title="Remove from conversation">
-                             <i class="fas fa-minus-circle"></i>
-                           </button>`
-                        : `<button class="context-item-action add" onclick="event.stopPropagation(); window.app.addContextToConversation('${item.id}')" title="Add to conversation">
-                             <i class="fas fa-plus-circle"></i>
-                           </button>`
-                    }
-                    <button class="context-item-action" onclick="event.stopPropagation(); window.app.editContextItem('${item.id}')" title="Edit">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-    `).join('');
-    
-    // Update section counts
-    this.updateSectionCounts();
+    this.contextManager.renderContextItems();
 };
 
 // Render conversation context
 KnowledgeBaseApp.prototype.renderConversationContext = function() {
-    const container = document.getElementById('conversation-context-list');
-    
-    if (this.conversationContext.length === 0) {
-        container.innerHTML = '<div class="empty-context">No context items added to this conversation yet.</div>';
-        return;
-    }
-    
-    container.innerHTML = this.conversationContext.map(context => `
-        <div class="context-item-card in-conversation">
-            <div class="context-item-header">
-                <div class="context-item-name">${context.name}</div>
-                <div class="context-item-type">${context.content_type}</div>
-            </div>
-            ${context.description ? `<div class="context-item-description">${context.description}</div>` : ''}
-            <div class="context-item-meta">
-                <div class="context-item-tokens">${context.token_count} tokens</div>
-                <div class="context-item-actions">
-                    <button class="context-item-action remove" onclick="window.app.removeContextFromConversation('${context.item_id}')" title="Remove from conversation">
-                        <i class="fas fa-minus-circle"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-    `).join('');
-    
-    // Update conversation context count
-    this.updateSectionCounts();
+    this.contextManager.renderConversationContext();
 };
 
 // Render context stats
 KnowledgeBaseApp.prototype.renderContextStats = function() {
-    document.getElementById('total-context-items').textContent = this.contextStats.total_items || 0;
-    document.getElementById('total-context-tokens').textContent = this.contextStats.total_tokens || 0;
-    
-    // Update section counts
-    this.updateSectionCounts();
+    this.contextManager.renderContextStats();
 };
 
 // Update section counts
 KnowledgeBaseApp.prototype.updateSectionCounts = function() {
-    const conversationCount = document.getElementById('conversation-context-count');
-    const availableCount = document.getElementById('available-context-count');
-    
-    if (conversationCount) {
-        conversationCount.textContent = `${this.conversationContext.length} item${this.conversationContext.length !== 1 ? 's' : ''}`;
-    }
-    
-    if (availableCount) {
-        availableCount.textContent = `${this.contextItems.length} item${this.contextItems.length !== 1 ? 's' : ''}`;
-    }
+    this.contextManager.updateSectionCounts();
 };
 
 // Render filtered context items (used by search)
 KnowledgeBaseApp.prototype.renderFilteredContextItems = function(filteredItems, searchTerm) {
-    const container = document.getElementById('context-items-list');
-    
-    if (filteredItems.length === 0) {
-        container.innerHTML = `<div class="empty-context">No context items found for "${searchTerm}"</div>`;
-        return;
-    }
-    
-    const contextInConversation = new Set(this.conversationContext.map(c => c.item_id));
-    
-    // Use same rendering logic but with filtered items
-    container.innerHTML = filteredItems.map(item => `
-        <div class="context-item-card ${contextInConversation.has(item.id) ? 'in-conversation' : ''}"
-             onclick="window.app.showContextItemDetails('${item.id}')">
-            <div class="context-item-header">
-                <div class="context-item-name">${this.highlightSearchTerm(item.name, searchTerm)}</div>
-                <div class="context-item-type">${item.content_type}</div>
-                ${item.project_name ? `<div class="context-item-project">📁 ${item.project_name}</div>` : ''}
-            </div>
-            ${item.description ? `<div class="context-item-description">${this.highlightSearchTerm(item.description, searchTerm)}</div>` : ''}
-            <div class="context-item-meta">
-                <div class="context-item-tokens">${item.token_count} tokens</div>
-                <div class="context-item-actions">
-                    ${contextInConversation.has(item.id) 
-                        ? `<button class="context-item-action remove" onclick="event.stopPropagation(); window.app.removeContextFromConversation('${item.id}')" title="Remove from conversation">
-                             <i class="fas fa-minus-circle"></i>
-                           </button>`
-                        : `<button class="context-item-action add" onclick="event.stopPropagation(); window.app.addContextToConversation('${item.id}')" title="Add to conversation">
-                             <i class="fas fa-plus-circle"></i>
-                           </button>`
-                    }
-                    <button class="context-item-action" onclick="event.stopPropagation(); window.app.editContextItem('${item.id}')" title="Edit">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-    `).join('');
-    
-    // Update section counts for filtered results
-    this.updateSectionCounts();
+    this.contextManager.renderFilteredContextItems(filteredItems, searchTerm);
 };
 
 // Search through context content using API
 KnowledgeBaseApp.prototype.searchContextContentAPI = async function(searchTerm) {
-    try {
-        const response = await fetch(`/api/context/suggestions?query=${encodeURIComponent(searchTerm)}&limit=10`);
-        const data = await response.json();
-        
-        if (data.success && data.suggestions.length > 0) {
-            // Show API search results with content matching
-            this.renderContentSearchResults(data.suggestions, searchTerm);
-        } else {
-            // Show no results message
-            document.getElementById('context-items-list').innerHTML = 
-                `<div class="empty-context">No context items found for "${searchTerm}"</div>`;
-        }
-    } catch (error) {
-        console.error('Content search error:', error);
-        document.getElementById('context-items-list').innerHTML = 
-            '<div class="empty-context">Search failed. Please try again.</div>';
-    }
+    await this.contextManager.searchContextContentAPI(searchTerm);
 };
 
 // Render content search results
 KnowledgeBaseApp.prototype.renderContentSearchResults = function(suggestions, searchTerm) {
-    const container = document.getElementById('context-items-list');
-    const contextInConversation = new Set(this.conversationContext.map(c => c.item_id));
-    
-    container.innerHTML = suggestions.map(item => `
-        <div class="context-item-card ${contextInConversation.has(item.item_id) ? 'in-conversation' : ''}"
-             onclick="window.app.showContextItemDetails('${item.item_id}')">
-            <div class="context-item-header">
-                <div class="context-item-name">${this.highlightSearchTerm(item.name, searchTerm)}</div>
-                <div class="context-item-type">${item.content_type}</div>
-            </div>
-            ${item.description ? `<div class="context-item-description">${this.highlightSearchTerm(item.description, searchTerm)}</div>` : ''}
-            <div class="search-relevance" style="font-size: 11px; color: #2563eb; margin: 4px 0;">
-                Relevance: ${Math.round(item.relevance_score * 100) / 100} | Used: ${item.usage_count} times
-            </div>
-            <div class="context-item-meta">
-                <div class="context-item-tokens">${item.token_count} tokens</div>
-                <div class="context-item-actions">
-                    ${contextInConversation.has(item.item_id) 
-                        ? `<button class="context-item-action remove" onclick="event.stopPropagation(); window.app.removeContextFromConversation('${item.item_id}')" title="Remove from conversation">
-                             <i class="fas fa-minus-circle"></i>
-                           </button>`
-                        : `<button class="context-item-action add" onclick="event.stopPropagation(); window.app.addContextToConversation('${item.item_id}')" title="Add to conversation">
-                             <i class="fas fa-plus-circle"></i>
-                           </button>`
-                    }
-                    <button class="context-item-action" onclick="event.stopPropagation(); window.app.editContextItem('${item.item_id}')" title="Edit">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-    `).join('');
-    
-    // Update section counts for search results
-    this.updateSectionCounts();
+    this.contextManager.renderContentSearchResults(suggestions, searchTerm);
 };
 
 // Highlight search terms in text
 KnowledgeBaseApp.prototype.highlightSearchTerm = function(text, searchTerm) {
-    if (!text || !searchTerm) return text || '';
-    
-    const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-    return text.replace(regex, '<mark style="background: #fff3cd; padding: 1px 2px; border-radius: 2px;">$1</mark>');
+    return this.contextManager.highlightSearchTerm(text, searchTerm);
 };
 
 // Escape HTML to prevent XSS
 KnowledgeBaseApp.prototype.escapeHtml = function(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+    return this.contextManager.escapeHtml(text);
 };
 
 // Add context item to conversation
 KnowledgeBaseApp.prototype.addContextToConversation = async function(contextItemId) {
-    if (!this.currentConversationId) {
-        this.showErrorNotification('Please start a conversation first');
-        return;
-    }
-    
-    try {
-        const response = await fetch(`/api/conversation/${this.currentConversationId}/context/${contextItemId}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ relevance_score: 1.0 })
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            // Reload context data to update UI
-            await this.loadConversationContext();
-            this.renderContextItems(); // Re-render to update button states
-            
-            this.showSuccessNotification('Context added to conversation');
-        } else {
-            throw new Error(data.error || 'Failed to add context');
-        }
-    } catch (error) {
-        console.error('Error adding context to conversation:', error);
-        this.showErrorNotification('Failed to add context to conversation');
-    }
+    await this.contextManager.addContextToConversation(contextItemId);
 };
 
 // Remove context item from conversation
 KnowledgeBaseApp.prototype.removeContextFromConversation = async function(contextItemId) {
-    if (!this.currentConversationId) return;
-    
-    try {
-        const response = await fetch(`/api/conversation/${this.currentConversationId}/context/${contextItemId}`, {
-            method: 'DELETE'
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            // Reload context data to update UI
-            await this.loadConversationContext();
-            this.renderContextItems(); // Re-render to update button states
-            
-            this.showSuccessNotification('Context removed from conversation');
-        } else {
-            throw new Error(data.error || 'Failed to remove context');
-        }
-    } catch (error) {
-        console.error('Error removing context from conversation:', error);
-        this.showErrorNotification('Failed to remove context from conversation');
-    }
+    await this.contextManager.removeContextFromConversation(contextItemId);
 };
 
 // Show context item details (placeholder)
 KnowledgeBaseApp.prototype.showContextItemDetails = function(contextItemId) {
-    // This will be implemented in later increments
+    this.contextManager.showContextItemDetails(contextItemId);
 };
 
 // Edit context item
 KnowledgeBaseApp.prototype.editContextItem = function(contextItemId) {
-    // Find the context item to edit
-    const contextItem = this.contextItems.find(item => item.id === contextItemId);
-    if (!contextItem) {
-        console.error('Context item not found:', contextItemId);
-        return;
-    }
-    
-    // Create modal for editing context
-    const modal = document.createElement('div');
-    modal.className = 'modal-overlay';
-    modal.innerHTML = `
-        <div class="modal-content context-modal">
-            <div class="modal-header">
-                <h3><i class="fas fa-edit"></i> Edit Context Item</h3>
-                <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="modal-body">
-                <form id="edit-context-form">
-                    <div class="form-group">
-                        <label for="edit-context-name">Context Name *</label>
-                        <input type="text" id="edit-context-name" name="name" required 
-                               value="${this.escapeHtml(contextItem.name)}"
-                               placeholder="Enter a descriptive name for this context">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="edit-context-description">Description</label>
-                        <textarea id="edit-context-description" name="description" rows="3"
-                                  placeholder="Describe what this context contains or its purpose">${this.escapeHtml(contextItem.description || '')}</textarea>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="edit-context-type">Content Type *</label>
-                        <select id="edit-context-type" name="content_type" required>
-                            <option value="document" ${contextItem.content_type === 'document' ? 'selected' : ''}>Document</option>
-                            <option value="instructions" ${contextItem.content_type === 'instructions' ? 'selected' : ''}>Instructions</option>
-                            <option value="notes" ${contextItem.content_type === 'notes' ? 'selected' : ''}>Notes</option>
-                            <option value="reference" ${contextItem.content_type === 'reference' ? 'selected' : ''}>Reference</option>
-                            <option value="template" ${contextItem.content_type === 'template' ? 'selected' : ''}>Template</option>
-                            <option value="other" ${contextItem.content_type === 'other' ? 'selected' : ''}>Other</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="edit-context-content">Content Text *</label>
-                        <textarea id="edit-context-content" name="content_text" rows="6" required
-                                  placeholder="Enter the actual content or text for this context item">${this.escapeHtml(contextItem.content_text || '')}</textarea>
-                        <div class="form-help">This text will be used for AI context and search</div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="edit-context-project">Associate with Project (Optional)</label>
-                        <select id="edit-context-project" name="project_id">
-                            <option value="">No project association</option>
-                            ${this.projects ? this.projects.map(p => 
-                                `<option value="${p.id}" ${contextItem.project_id === p.id ? 'selected' : ''}>${p.name}</option>`
-                            ).join('') : ''}
-                        </select>
-                    </div>
-                    
-                    <input type="hidden" name="context_id" value="${contextItemId}">
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
-                <button class="btn btn-primary" onclick="submitEditContext()">Update Context</button>
-            </div>
-        </div>
-    `;
-    
-    document.body.appendChild(modal);
-    
-    // Focus on first input
-    setTimeout(() => {
-        document.getElementById('edit-context-name').focus();
-    }, 100);
+    this.contextManager.editContextItem(contextItemId);
 };
 
 // Submit edit context form
 function submitEditContext() {
-    const form = document.getElementById('edit-context-form');
-    const formData = new FormData(form);
-    
-    // Validate required fields
-    const name = formData.get('name').trim();
-    const contentType = formData.get('content_type');
-    const contentText = formData.get('content_text').trim();
-    const contextId = formData.get('context_id');
-    
-    if (!name || !contentType || !contentText || !contextId) {
-        alert('Please fill in all required fields');
-        return;
-    }
-    
-    // Prepare data for API
-    const contextData = {
-        name: name,
-        description: formData.get('description').trim() || null,
-        content_type: contentType,
-        content_text: contentText,
-        project_id: formData.get('project_id') || null
-    };
-    
-    // Show loading state
-    const submitBtn = document.querySelector('.context-modal .btn-primary');
-    const originalText = submitBtn.textContent;
-    submitBtn.textContent = 'Updating...';
-    submitBtn.disabled = true;
-    
-    // Call API to update context item
-    fetch(`/api/context/${contextId}`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(contextData)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Close modal
-            document.querySelector('.modal-overlay').remove();
-            
-            // Refresh context panel
-            if (window.app.contextPanelOpen) {
-                window.app.loadContextData();
-            }
-            
-            // Show success message
-            window.app.showNotification('Context item updated successfully!', 'success');
-        } else {
-            throw new Error(data.error || 'Failed to update context item');
-        }
-    })
-    .catch(error => {
-        console.error('Error updating context item:', error);
-        alert('Error updating context item: ' + error.message);
-        
-        // Reset button
-        submitBtn.textContent = originalText;
-        submitBtn.disabled = false;
-    });
+    window.app.contextManager.submitEditContext();
 }
 
 // Search context items through content
 function searchContextItems() {
-    const searchTerm = document.getElementById('context-search').value.trim();
-    const clearBtn = document.getElementById('search-clear-btn');
-    
-    // Show/hide clear button based on search content
-    if (searchTerm) {
-        clearBtn.style.display = 'block';
-    } else {
-        clearBtn.style.display = 'none';
-        // If empty search, show all items
-        window.app.renderContextItems();
-        return;
-    }
-    
-    // Filter context items based on search term
-    const filteredItems = window.app.contextItems.filter(item => {
-        const searchLower = searchTerm.toLowerCase();
-        
-        // Search through multiple fields
-        const name = (item.name || '').toLowerCase();
-        const description = (item.description || '').toLowerCase();
-        const contentType = (item.content_type || '').toLowerCase();
-        const filename = (item.original_filename || '').toLowerCase();
-        
-        // Basic text matching
-        if (name.includes(searchLower) || 
-            description.includes(searchLower) || 
-            contentType.includes(searchLower) || 
-            filename.includes(searchLower)) {
-            return true;
-        }
-        
-        return false;
-    });
-    
-    // If no items match basic fields, search through content text
-    if (filteredItems.length === 0 && searchTerm.length >= 3) {
-        window.app.searchContextContentAPI(searchTerm);
-    } else {
-        // Render filtered results
-        window.app.renderFilteredContextItems(filteredItems, searchTerm);
-    }
+    window.app.contextManager.searchContextItems();
 }
 
 // Clear context search and show all items
 function clearContextSearch() {
-    const searchInput = document.getElementById('context-search');
-    const clearBtn = document.getElementById('search-clear-btn');
-    
-    searchInput.value = '';
-    clearBtn.style.display = 'none';
-    
-    // Show all context items
-    window.app.renderContextItems();
-    
-    // Focus back to search input
-    searchInput.focus();
+    window.app.contextManager.clearContextSearch();
 }
 
 // Refresh context panel
 function refreshContextPanel() {
-    if (window.app.contextPanelOpen) {
-        window.app.loadContextData();
-    }
+    window.app.contextManager.refreshContextPanel();
 }
 
 // Add new context
 function addNewContext() {
-    // Create modal for adding new context
-    const modal = document.createElement('div');
-    modal.className = 'modal-overlay';
-    modal.innerHTML = `
-        <div class="modal-content context-modal">
-            <div class="modal-header">
-                <h3><i class="fas fa-plus"></i> Add New Context</h3>
-                <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="modal-body">
-                <form id="new-context-form">
-                    <div class="form-group">
-                        <label for="context-name">Context Name *</label>
-                        <input type="text" id="context-name" name="name" required 
-                               placeholder="Enter a descriptive name for this context">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="context-description">Description</label>
-                        <textarea id="context-description" name="description" rows="3"
-                                  placeholder="Describe what this context contains or its purpose"></textarea>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="context-type">Content Type *</label>
-                        <select id="context-type" name="content_type" required>
-                            <option value="">Select content type</option>
-                            <option value="document">Document</option>
-                            <option value="instructions">Instructions</option>
-                            <option value="notes">Notes</option>
-                            <option value="reference">Reference</option>
-                            <option value="template">Template</option>
-                            <option value="other">Other</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="context-content">Content Text *</label>
-                        <textarea id="context-content" name="content_text" rows="6" required
-                                  placeholder="Enter the actual content or text for this context item"></textarea>
-                        <div class="form-help">This text will be used for AI context and search</div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="context-project">Associate with Project (Optional)</label>
-                        <select id="context-project" name="project_id">
-                            <option value="">No project association</option>
-                            ${window.app.projects ? window.app.projects.map(p => 
-                                `<option value="${p.id}">${p.name}</option>`
-                            ).join('') : ''}
-                        </select>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
-                <button class="btn btn-primary" onclick="submitNewContext()">Create Context</button>
-            </div>
-        </div>
-    `;
-    
-    document.body.appendChild(modal);
-    
-    // Focus on first input
-    setTimeout(() => {
-        document.getElementById('context-name').focus();
-    }, 100);
+    window.app.contextManager.addNewContext();
 }
 
 // Submit new context form
 function submitNewContext() {
-    const form = document.getElementById('new-context-form');
-    const formData = new FormData(form);
-    
-    // Validate required fields
-    const name = formData.get('name').trim();
-    const contentType = formData.get('content_type');
-    const contentText = formData.get('content_text').trim();
-    
-    if (!name || !contentType || !contentText) {
-        alert('Please fill in all required fields');
-        return;
-    }
-    
-    // Prepare data for API
-    const contextData = {
-        name: name,
-        description: formData.get('description').trim() || null,
-        content_type: contentType,
-        content_text: contentText,
-        project_id: formData.get('project_id') || null
-    };
-    
-    // Show loading state
-    const submitBtn = document.querySelector('.context-modal .btn-primary');
-    const originalText = submitBtn.textContent;
-    submitBtn.textContent = 'Creating...';
-    submitBtn.disabled = true;
-    
-    // Call API to create context item
-    fetch('/api/context', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(contextData)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Close modal
-            document.querySelector('.modal-overlay').remove();
-            
-            // Refresh context panel
-            if (window.app.contextPanelOpen) {
-                window.app.loadContextData();
-            }
-            
-            // Show success message
-            window.app.showNotification('Context item created successfully!', 'success');
-        } else {
-            throw new Error(data.error || 'Failed to create context item');
-        }
-    })
-    .catch(error => {
-        console.error('Error creating context item:', error);
-        alert('Error creating context item: ' + error.message);
-        
-        // Reset button
-        submitBtn.textContent = originalText;
-        submitBtn.disabled = false;
-    });
+    window.app.contextManager.submitNewContext();
 }
 
 // Override loadConversation to update context panel
@@ -3743,333 +3129,22 @@ KnowledgeBaseApp.prototype.loadConversation = function(conversationId) {
 
 // Show home view in main content area
 KnowledgeBaseApp.prototype.showHomeView = function() {
-    this.currentView = 'home';
-    const container = document.getElementById('main-content');
-    
-    // Update top bar to hide context toggle
-    const contextToggle = document.getElementById('context-toggle-btn');
-    if (contextToggle) contextToggle.style.display = 'none';
-    
-    if (!container) {
-        console.error('main-content div not found');
-        return;
-    }
-    
-    container.innerHTML = `
-        <div class="main-view">
-            <nav class="breadcrumb">
-                <span class="breadcrumb-item active">
-                    <i class="fas fa-home"></i>
-                    Home
-                </span>
-            </nav>
-            
-            <div class="view-header">
-                <div class="view-title">
-                    <i class="fas fa-home"></i>
-                    <h2>Welcome to Your Knowledge Base</h2>
-                </div>
-                <div class="view-actions">
-                    <button class="view-action-btn" onclick="window.app.startNewConversation()">
-                        <i class="fas fa-plus"></i>
-                        New Chat
-                    </button>
-
-                </div>
-            </div>
-            
-            <div class="home-content">
-                <div class="home-stats">
-                    <div class="stat-card">
-                        <i class="fas fa-comments"></i>
-                        <div class="stat-info">
-                            <span class="stat-number" id="total-conversations">-</span>
-                            <span class="stat-label">Conversations</span>
-                        </div>
-                    </div>
-
-                    <div class="stat-card">
-                        <i class="fas fa-file-alt"></i>
-                        <div class="stat-info">
-                            <span class="stat-number" id="total-context-items">-</span>
-                            <span class="stat-label">Context Items</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="home-actions">
-                    <div class="action-card" onclick="window.app.startNewConversation()">
-                        <i class="fas fa-comments"></i>
-                        <h3>Start New Chat</h3>
-                        <p>Begin a new conversation or ask questions about your knowledge base</p>
-                    </div>
-
-                    <div class="action-card" onclick="window.app.showConversationsView()">
-                        <i class="fas fa-clock"></i>
-                        <h3>View All Conversations</h3>
-                        <p>Browse through your conversation history</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    // Show the bottom input in home view
-    const bottomInput = document.querySelector('.bottom-input-container');
-    if (bottomInput) {
-        bottomInput.style.display = 'block';
-        bottomInput.classList.remove('hidden-in-projects');
-    }
-    
-    // Load home statistics
-    this.loadHomeStats();
+    this.viewManager.showHomeView();
 };
 
 // Show conversations list view in main content area
 KnowledgeBaseApp.prototype.showConversationsView = function() {
-    this.currentView = 'conversations';
-    const container = document.getElementById('main-content');
-    
-    // Update top bar to hide context toggle
-    const contextToggle = document.getElementById('context-toggle-btn');
-    if (contextToggle) contextToggle.style.display = 'none';
-    
-    if (!container) {
-        console.error('main-content div not found');
-        return;
-    }
-    
-    // Preserve the top bar and bottom input container
-    const topBar = container.querySelector('.top-bar');
-    const bottomInput = container.querySelector('.bottom-input-container');
-    
-    // Remove any existing main-view elements to prevent appending
-    const existingMainViews = container.querySelectorAll('.main-view');
-    existingMainViews.forEach(view => view.remove());
-    
-    // Clear only the chat messages area, not the entire container
-    const chatMessagesContainer = container.querySelector('.chat-messages-container');
-    if (chatMessagesContainer) {
-        chatMessagesContainer.remove();
-    }
-    
-    // Create the conversations view content
-    const conversationsContent = document.createElement('div');
-    conversationsContent.className = 'main-view';
-    conversationsContent.innerHTML = `
-        <nav class="breadcrumb">
-            <span class="breadcrumb-item active">
-                <i class="fas fa-clock"></i>
-                All Conversations
-            </span>
-        </nav>
-        
-        <div class="view-header">
-            <div class="view-title">
-                <i class="fas fa-clock"></i>
-                <h2>Recent Conversations</h2>
-            </div>
-            <div class="view-actions">
-                <button class="view-action-btn" onclick="window.app.startNewConversationFromConversations()">
-                    <i class="fas fa-plus"></i>
-                    New Chat
-                </button>
-            </div>
-        </div>
-        
-        <div id="conversations-grid" class="conversations-grid">
-            <div class="empty-state-large">
-                <i class="fas fa-spinner fa-spin"></i>
-                <h3>Loading conversations...</h3>
-            </div>
-        </div>
-    `;
-    
-    // Insert after the top bar to maintain proper layout
-    if (topBar) {
-        topBar.insertAdjacentElement('afterend', conversationsContent);
-    } else {
-        container.appendChild(conversationsContent);
-    }
-    
-    // Show the bottom input in conversations view
-    if (bottomInput) {
-        bottomInput.style.display = 'block';
-        bottomInput.classList.remove('hidden-in-projects');
-    }
-    
-    this.loadConversationsGrid();
+    this.viewManager.showConversationsView();
 };
 
 // Show projects grid view in main content area
 KnowledgeBaseApp.prototype.showProjectsView = function() {
-    this.currentView = 'projects';
-    const container = document.getElementById('main-content');
-    
-    // Update top bar to hide context toggle
-    const contextToggle = document.getElementById('context-toggle-btn');
-    if (contextToggle) contextToggle.style.display = 'none';
-    
-    if (!container) {
-        console.error('main-content div not found');
-        return;
-    }
-    
-    // Preserve the top bar and bottom input container
-    const topBar = container.querySelector('.top-bar');
-    const bottomInput = container.querySelector('.bottom-input-container');
-    
-    // Remove any existing main-view elements to prevent appending
-    const existingMainViews = container.querySelectorAll('.main-view');
-    existingMainViews.forEach(view => view.remove());
-    
-    // Clear only the chat messages area, not the entire container
-    const chatMessagesContainer = container.querySelector('.chat-messages-container');
-    if (chatMessagesContainer) {
-        chatMessagesContainer.remove();
-    }
-    
-    // Create the projects view content
-    const projectsContent = document.createElement('div');
-    projectsContent.className = 'main-view';
-    projectsContent.innerHTML = `
-        <nav class="breadcrumb">
-            <span class="breadcrumb-item active">
-                <i class="fas fa-folder-open"></i>
-                All Projects
-            </span>
-        </nav>
-        
-        <div class="view-header">
-            <div class="view-title">
-                <i class="fas fa-folder-open"></i>
-                <h2>Projects</h2>
-            </div>
-            <div class="view-actions">
-                <button class="view-action-btn" onclick="window.app.promptCreateNewProject()">
-                    <i class="fas fa-plus"></i>
-                    New Project
-                </button>
-            </div>
-            </div>
-            
-            <div id="projects-grid" class="projects-grid-view">
-                <div class="empty-state-large">
-                    <i class="fas fa-spinner fa-spin"></i>
-                    <h3>Loading projects...</h3>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    // Insert after the top bar to maintain proper layout
-    if (topBar) {
-        topBar.insertAdjacentElement('afterend', projectsContent);
-    } else {
-        container.appendChild(projectsContent);
-    }
-    
-    // Hide the bottom input in projects view
-    if (bottomInput) {
-        bottomInput.style.display = 'none';
-        bottomInput.classList.add('hidden-in-projects');
-        console.log('showProjectsView: Hidden bottom input container');
-    } else {
-        console.log('showProjectsView: Bottom input container not found');
-    }
-    
-    this.loadProjectsGrid();
-    
-    // Double-check that bottom input is still hidden after loading projects
-    setTimeout(() => {
-        const bottomInput = document.querySelector('.bottom-input-container');
-        if (bottomInput && bottomInput.style.display !== 'none') {
-            console.log('showProjectsView: Bottom input became visible again, re-hiding...');
-            bottomInput.style.display = 'none';
-            bottomInput.classList.add('hidden-in-projects');
-        }
-    }, 100);
+    this.viewManager.showProjectsView();
 };
 
 // Show project conversations view
 KnowledgeBaseApp.prototype.showProjectConversationsView = function(project) {
-    this.currentView = 'project-conversations';
-    this.currentViewProject = project;
-    const container = document.getElementById('main-content');
-    
-    if (!container) {
-        console.error('main-content div not found');
-        return;
-    }
-    
-    // Preserve the top bar and bottom input container
-    const topBar = container.querySelector('.top-bar');
-    const bottomInput = container.querySelector('.bottom-input-container');
-    
-    // Hide the bottom input when in project view
-    if (bottomInput) {
-        bottomInput.style.display = 'none';
-    }
-    
-    // Remove any existing main-view elements to prevent appending
-    const existingMainViews = container.querySelectorAll('.main-view');
-    existingMainViews.forEach(view => view.remove());
-    
-    // Clear only the chat messages area, not the entire container
-    const chatMessagesContainer = container.querySelector('.chat-messages-container');
-    if (chatMessagesContainer) {
-        chatMessagesContainer.remove();
-    }
-    
-    // Create the project conversations view content
-    const projectContent = document.createElement('div');
-    projectContent.className = 'main-view';
-    projectContent.innerHTML = `
-        <nav class="breadcrumb">
-            <span class="breadcrumb-item" onclick="window.app.showProjectsView()">
-                <i class="fas fa-folder-open"></i>
-                Projects
-            </span>
-            <span class="breadcrumb-separator"><i class="fas fa-chevron-right"></i></span>
-            <span class="breadcrumb-item active">
-                ${project.name}
-            </span>
-        </nav>
-        
-        <div class="view-header">
-            <div class="view-title">
-                <i class="fas fa-folder-open"></i>
-                <h2>${project.name}</h2>
-            </div>
-            <div class="view-actions">
-                <button class="view-action-btn" onclick="window.app.startNewConversationInProject('${project.id}')">
-                    <i class="fas fa-plus"></i>
-                    New Chat
-                    </button>
-                    <button class="view-action-btn secondary" onclick="window.app.editProject('${project.id}', '${project.name.replace(/'/g, "\\'")}')">
-                        <i class="fas fa-edit"></i>
-                        Edit Project
-                    </button>
-                </div>
-            </div>
-            
-            <div id="project-conversations-grid" class="conversations-grid">
-                <div class="empty-state-large">
-                    <i class="fas fa-spinner fa-spin"></i>
-                    <h3>Loading conversations...</h3>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    // Insert after the top bar to maintain proper layout
-    if (topBar) {
-        topBar.insertAdjacentElement('afterend', projectContent);
-    } else {
-        container.appendChild(projectContent);
-    }
-    
-    this.loadProjectConversationsGrid(project.id);
+    this.viewManager.showProjectConversationsView(project);
 };
 
 // Load conversations grid data
@@ -4305,128 +3380,7 @@ KnowledgeBaseApp.prototype.openProject = function(projectId) {
 
 // Show normal chat view
 KnowledgeBaseApp.prototype.showChatView = function() {
-    this.currentView = 'chat';
-    
-    // Always use main-content container for chat view to ensure proper layout
-    const container = document.getElementById('main-content');
-    if (!container) {
-        console.error('main-content container not found for chat view');
-        return;
-    }
-    
-    // Clear any existing view content (conversations, projects, etc.)
-    const existingViewContent = container.querySelector('.main-view');
-    if (existingViewContent) {
-        existingViewContent.remove();
-    }
-    
-    // Ensure the main-content div has the proper CSS classes for chat layout
-    container.className = 'main-content';
-    
-    // Find the existing chat-messages-container in the template
-    let chatMessagesContainer = container.querySelector('.chat-messages-container');
-    console.log('showChatView: Looking for existing chat container:', chatMessagesContainer);
-    
-    if (!chatMessagesContainer) {
-        console.log('showChatView: Chat container not found in template, creating new one');
-        // Only create if it doesn't exist in the template
-        chatMessagesContainer = document.createElement('div');
-        chatMessagesContainer.className = 'chat-messages-container';
-        chatMessagesContainer.innerHTML = `
-            <div class="chat-messages" id="chat-messages">
-                <!-- Messages will be loaded here -->
-            </div>
-        `;
-        
-                               // Insert after the chat header (which is now below the top bar)
-        const chatHeader = container.querySelector('.chat-header');
-        if (chatHeader) {
-            console.log('showChatView: Inserting after chat header');
-            chatHeader.insertAdjacentElement('afterend', chatMessagesContainer);
-        } else {
-            // Fallback: insert after top bar if chat header not found
-            const topBar = container.querySelector('.top-bar');
-            if (topBar) {
-                console.log('showChatView: Chat header not found, inserting after top bar');
-                topBar.insertAdjacentElement('afterend', chatMessagesContainer);
-            } else {
-                console.log('showChatView: No top bar found, appending to container');
-                container.appendChild(chatMessagesContainer);
-            }
-        }
-        console.log('showChatView: Chat container created and inserted');
-    } else {
-        console.log('showChatView: Existing chat container found in template');
-        // Ensure the existing container is in the right place (after chat header)
-        const chatHeader = container.querySelector('.chat-header');
-        if (chatHeader && chatMessagesContainer.previousElementSibling !== chatHeader) {
-            console.log('showChatView: Moving existing chat container to correct position after chat header');
-            chatHeader.insertAdjacentElement('afterend', chatMessagesContainer);
-        } else if (!chatHeader) {
-            // Fallback: check if it's after top bar
-            const topBar = container.querySelector('.top-bar');
-            if (topBar && chatMessagesContainer.previousElementSibling !== topBar) {
-                console.log('showChatView: Moving existing chat container to correct position after top bar');
-                topBar.insertAdjacentElement('afterend', chatMessagesContainer);
-            }
-        }
-    }
-    
-    // Show/hide chat header based on project context
-    const chatHeader = document.getElementById('chat-header');
-    if (chatHeader) {
-        if (this.currentViewProject) {
-            // Show project context in header
-            chatHeader.style.display = 'block';
-            const projectName = document.getElementById('project-name');
-            const conversationTitle = document.getElementById('conversation-title');
-            if (projectName) projectName.textContent = this.currentViewProject.name;
-            if (conversationTitle) conversationTitle.textContent = 'New Conversation';
-            console.log('showChatView: Breadcrumb displayed for project:', this.currentViewProject.name);
-        } else {
-            chatHeader.style.display = 'none';
-            console.log('showChatView: Breadcrumb hidden - no project context');
-        }
-    } else {
-        console.warn('showChatView: Chat header not found');
-    }
-    
-    // Show context toggle again
-    const contextToggle = document.getElementById('context-toggle-btn');
-    if (contextToggle) contextToggle.style.display = 'block';
-    
-    // Hide any remaining search results that might be interfering with the layout
-    const searchResults = document.querySelector('.search-results-container');
-    if (searchResults) {
-        searchResults.style.display = 'none';
-    }
-    
-    // Show empty state for new conversation
-    if (!this.currentConversationId) {
-        const chatMessages = document.getElementById('chat-messages');
-        if (chatMessages) {
-            chatMessages.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-state-icon">
-                        <i class="fas fa-comments"></i>
-                    </div>
-                    <h2 class="empty-state-title">New Conversation</h2>
-                    <p class="empty-state-description">Start a conversation or search your knowledge base.</p>
-                </div>
-            `;
-        }
-    }
-    
-
-    
-    // Show the bottom input when in chat view
-    const bottomInput = container.querySelector('.bottom-input-container');
-    if (bottomInput) {
-        bottomInput.style.display = 'block';
-        bottomInput.classList.remove('hidden-in-projects');
-    }
-    
-    // If there's a current conversation, it will be loaded by the caller
+    this.viewManager.showChatView();
 };
 
 
