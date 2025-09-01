@@ -606,6 +606,10 @@ class KnowledgeBaseApp {
         }
     }
 
+    goToProjects() {
+        this.showProjectsView();
+    }
+
     goToHome() {
         this.clearProjectContext();
     }

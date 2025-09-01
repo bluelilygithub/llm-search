@@ -717,7 +717,6 @@ body {
 .chat-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     padding: var(--spacing-sm) var(--spacing-xl);
     background-color: var(--white);
     border-bottom: 1px solid var(--gray-200);
@@ -755,30 +754,7 @@ body {
     margin: 0 var(--spacing-xs);
 }
 
-.chat-header-actions {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-}
 
-.chat-header-btn {
-    padding: var(--spacing-xs) var(--spacing-sm);
-    background-color: var(--gray-100);
-    color: var(--gray-700);
-    border: 1px solid var(--gray-200);
-    border-radius: var(--radius-sm);
-    font-size: var(--font-size-sm);
-    cursor: pointer;
-    transition: all var(--transition-fast);
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-xs);
-}
-
-.chat-header-btn:hover {
-    background-color: var(--gray-200);
-    color: var(--gray-900);
-}
 
 /* Main view styles for conversations and projects */
 .main-view {
@@ -1012,37 +988,7 @@ body {
     color: var(--primary-blue);
 }
 
-.chat-header-actions {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-    margin-top: var(--spacing-sm);
-}
 
-.chat-header-btn {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-xs);
-    padding: var(--spacing-xs) var(--spacing-sm);
-    background: var(--gray-100);
-    border: 1px solid var(--gray-200);
-    border-radius: var(--radius-md);
-    color: var(--gray-700);
-    font-size: var(--font-size-sm);
-    font-weight: 500;
-    cursor: pointer;
-    transition: all var(--transition-fast);
-}
-
-.chat-header-btn:hover {
-    background: var(--gray-200);
-    border-color: var(--gray-300);
-    color: var(--gray-800);
-}
-
-.chat-header-btn i {
-    font-size: var(--font-size-xs);
-}
 
 .chat-messages {
     flex: 1;
