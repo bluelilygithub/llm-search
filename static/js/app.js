@@ -2767,37 +2767,11 @@ window.showSettingsSection = function(sectionName) {
     }
 };
 
-// Make settings functions globally available
-window.checkAllModelsAccess = function() {
-    if (typeof checkAllModelsAccess === 'function') {
-        return checkAllModelsAccess();
-    }
-};
+// Note: checkAllModelsAccess and saveModelSettings are defined in the HTML template
+// and should work directly without global wrappers
 
-window.saveModelSettings = function() {
-    if (typeof saveModelSettings === 'function') {
-        return saveModelSettings();
-    }
-};
-
-// Make model toggle functions globally available
-window.toggleModelEnabled = function(modelValue) {
-    if (typeof toggleModelEnabled === 'function') {
-        return toggleModelEnabled(modelValue);
-    }
-};
-
-window.toggleGroupModels = function(provider, enabled) {
-    if (typeof toggleGroupModels === 'function') {
-        return toggleGroupModels(provider, enabled);
-    }
-};
-
-window.checkModelAccess = function(modelValue) {
-    if (typeof checkModelAccess === 'function') {
-        return checkModelAccess(modelValue);
-    }
-};
+// Note: Model toggle functions (toggleModelEnabled, toggleGroupModels, checkModelAccess) 
+// are also defined in the HTML template and should work directly
 
 // Initialize the app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
