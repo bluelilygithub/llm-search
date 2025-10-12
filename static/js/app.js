@@ -2722,12 +2722,110 @@ KnowledgeBaseApp.prototype.openSettingsPanel = function() {
     const panel = document.getElementById('settings-panel');
     if (panel) {
         panel.classList.add('open');
-        // Trigger model loading if the function exists
+        // Trigger model loading after a short delay to ensure panel is visible
         setTimeout(() => {
-            if (typeof loadModelConfigurations === 'function') {
-                loadModelConfigurations();
+            this.loadModelsForSettingsPanel();
+        }, 200);
+    }
+};
+
+// Function to load models into the settings panel
+KnowledgeBaseApp.prototype.loadModelsForSettingsPanel = async function() {
+    const modelsList = document.getElementById('models-list');
+    if (!modelsList) {
+        console.error('Models list container not found');
+        return;
+    }
+    
+    try {
+        modelsList.innerHTML = '<div class="loading-models">Loading model configurations...</div>';
+        
+        // Define available models (this should match your backend)
+        const availableModels = {
+            'openai': [
+                {value: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', description: 'Fast and efficient for most tasks'},
+                {value: 'gpt-4', name: 'GPT-4', description: 'Most capable GPT model'},
+                {value: 'gpt-4-turbo', name: 'GPT-4 Turbo', description: 'Faster GPT-4 with longer context'},
+                {value: 'gpt-4o', name: 'GPT-4o', description: 'Latest GPT-4 optimized model'},
+                {value: 'gpt-4o-mini', name: 'GPT-4o Mini', description: 'Compact version of GPT-4o'}
+            ],
+            'anthropic': [
+                {value: 'claude-3.5-sonnet', name: 'Claude 3.5 Sonnet', description: 'Latest Claude model'},
+                {value: 'claude-3-opus', name: 'Claude 3 Opus', description: 'Most powerful Claude model'},
+                {value: 'claude-3-sonnet', name: 'Claude 3 Sonnet', description: 'Balanced Claude model'},
+                {value: 'claude-3-haiku', name: 'Claude 3 Haiku', description: 'Fastest Claude model'}
+            ],
+            'google': [
+                {value: 'gemini-pro', name: 'Gemini Pro', description: 'Google\'s advanced AI model'},
+                {value: 'gemini-flash', name: 'Gemini Flash', description: 'Fast Gemini model'}
+            ]
+        };
+        
+        // Try to load current settings from server
+        let modelSettings = {};
+        try {
+            const response = await fetch('/api/model-settings');
+            if (response.ok) {
+                modelSettings = await response.json();
             }
-        }, 100); // Small delay to ensure panel is visible
+        } catch (error) {
+            console.log('Could not load model settings from server, using defaults');
+        }
+        
+        // Generate HTML for models
+        let html = '';
+        Object.keys(availableModels).forEach(provider => {
+            const providerName = provider.charAt(0).toUpperCase() + provider.slice(1);
+            html += `
+                <div class="model-group">
+                    <div class="model-group-header">
+                        <h4 class="model-group-title">
+                            <i class="fas fa-robot"></i>
+                            ${providerName}
+                        </h4>
+                        <div class="model-group-actions">
+                            <button class="model-group-btn" onclick="toggleGroupModels('${provider}', true)">Enable All</button>
+                            <button class="model-group-btn" onclick="toggleGroupModels('${provider}', false)">Disable All</button>
+                        </div>
+                    </div>
+                    <div class="models-grid">
+            `;
+            
+            availableModels[provider].forEach(model => {
+                const settings = modelSettings[model.value] || { enabled: model.value !== 'gpt-5', status: 'unknown' };
+                html += `
+                    <div class="model-item">
+                        <div class="model-info">
+                            <input type="checkbox" class="model-checkbox" 
+                                   id="model-${model.value}" 
+                                   ${settings.enabled ? 'checked' : ''}
+                                   onchange="toggleModelEnabled('${model.value}')">
+                            <div class="model-details">
+                                <h5 class="model-name">${model.name}</h5>
+                                <p class="model-description">${model.description}</p>
+                            </div>
+                        </div>
+                        <div class="model-status">
+                            <div class="model-access-status ${settings.status}">
+                                <span class="status-icon ${settings.status}"></span>
+                                ${settings.status || 'Unknown'}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += `
+                    </div>
+                </div>
+            `;
+        });
+        
+        modelsList.innerHTML = html;
+        
+    } catch (error) {
+        console.error('Failed to load model configurations:', error);
+        modelsList.innerHTML = '<div class="loading-models" style="color: red;">Failed to load model configurations</div>';
     }
 };
 
@@ -2770,8 +2868,148 @@ window.showSettingsSection = function(sectionName) {
 // Note: checkAllModelsAccess and saveModelSettings are defined in the HTML template
 // and should work directly without global wrappers
 
+// However, the settings modal uses a different template, so we need to define these functions globally
+window.checkAllModelsAccess = async function() {
+    const checkBtn = document.querySelector('.btn-secondary');
+    if (!checkBtn) {
+        console.error('Check button not found');
+        return;
+    }
+    
+    const originalText = checkBtn.innerHTML;
+    
+    try {
+        // Show loading state
+        checkBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
+        checkBtn.disabled = true;
+        
+        console.log('Starting check for all models...');
+        
+        // Get available models from the template or define them
+        const availableModels = {
+            'openai': [
+                {value: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo'},
+                {value: 'gpt-4', name: 'GPT-4'},
+                {value: 'gpt-4-turbo', name: 'GPT-4 Turbo'},
+                {value: 'gpt-4o', name: 'GPT-4o'},
+                {value: 'gpt-4o-mini', name: 'GPT-4o Mini'}
+            ],
+            'anthropic': [
+                {value: 'claude-3.5-sonnet', name: 'Claude 3.5 Sonnet'},
+                {value: 'claude-3-opus', name: 'Claude 3 Opus'},
+                {value: 'claude-3-sonnet', name: 'Claude 3 Sonnet'},
+                {value: 'claude-3-haiku', name: 'Claude 3 Haiku'}
+            ],
+            'google': [
+                {value: 'gemini-pro', name: 'Gemini Pro'},
+                {value: 'gemini-flash', name: 'Gemini Flash'}
+            ]
+        };
+        
+        const allModels = Object.keys(availableModels).flatMap(provider => 
+            availableModels[provider].map(model => model.value)
+        );
+        
+        console.log('Models to check:', allModels);
+        
+        // For now, just simulate the check
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        alert('Model access check completed! (This is a placeholder - implement actual API checks)');
+        
+    } catch (error) {
+        console.error('Error checking model access:', error);
+        alert('Error checking model access: ' + error.message);
+    } finally {
+        // Restore button state
+        checkBtn.innerHTML = originalText;
+        checkBtn.disabled = false;
+    }
+};
+
+window.saveModelSettings = async function() {
+    const saveBtn = document.querySelector('.btn-primary');
+    if (!saveBtn) {
+        console.error('Save button not found');
+        return;
+    }
+    
+    const originalText = saveBtn.innerHTML;
+    
+    try {
+        // Show loading state
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+        saveBtn.disabled = true;
+        
+        // Get current model settings from checkboxes
+        const modelSettings = {};
+        const checkboxes = document.querySelectorAll('.model-checkbox');
+        checkboxes.forEach(checkbox => {
+            const modelValue = checkbox.id.replace('model-', '');
+            modelSettings[modelValue] = {
+                enabled: checkbox.checked,
+                status: 'unknown'
+            };
+        });
+        
+        console.log('Saving model settings:', modelSettings);
+        
+        // Save to server
+        const response = await fetch('/api/model-settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(modelSettings)
+        });
+        
+        if (response.ok) {
+            alert('Model settings saved successfully!');
+        } else {
+            const result = await response.json();
+            alert(`Failed to save model settings: ${result.error || 'Unknown error'}`);
+        }
+        
+    } catch (error) {
+        console.error('Error saving model settings:', error);
+        alert('Error saving model settings: ' + error.message);
+    } finally {
+        // Restore button state
+        saveBtn.innerHTML = originalText;
+        saveBtn.disabled = false;
+    }
+};
+
 // Note: Model toggle functions (toggleModelEnabled, toggleGroupModels, checkModelAccess) 
 // are also defined in the HTML template and should work directly
+
+// Add the missing toggle functions for the settings panel
+window.toggleModelEnabled = function(modelValue) {
+    const checkbox = document.getElementById(`model-${modelValue}`);
+    if (checkbox) {
+        console.log(`Model ${modelValue} enabled: ${checkbox.checked}`);
+        // Store the setting (you can expand this to save to server)
+    }
+};
+
+window.toggleGroupModels = function(provider, enabled) {
+    // Find all checkboxes for this provider
+    const checkboxes = document.querySelectorAll('.model-checkbox');
+    checkboxes.forEach(checkbox => {
+        const modelValue = checkbox.id.replace('model-', '');
+        // Check if this model belongs to the provider (simple check)
+        if ((provider === 'openai' && modelValue.startsWith('gpt')) ||
+            (provider === 'anthropic' && modelValue.startsWith('claude')) ||
+            (provider === 'google' && modelValue.startsWith('gemini'))) {
+            checkbox.checked = enabled;
+            toggleModelEnabled(modelValue);
+        }
+    });
+};
+
+window.checkModelAccess = function(modelValue) {
+    console.log(`Checking access for model: ${modelValue}`);
+    // Placeholder - implement actual API check
+    alert(`Checking access for ${modelValue} (placeholder)`);
+};
 
 // Initialize the app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
