@@ -2722,8 +2722,12 @@ KnowledgeBaseApp.prototype.openSettingsPanel = function() {
     const panel = document.getElementById('settings-panel');
     if (panel) {
         panel.classList.add('open');
-        // Load model settings when panel opens
-        this.loadModelSettings();
+        // Trigger model loading if the function exists
+        setTimeout(() => {
+            if (typeof loadModelConfigurations === 'function') {
+                loadModelConfigurations();
+            }
+        }, 100); // Small delay to ensure panel is visible
     }
 };
 
