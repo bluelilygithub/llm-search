@@ -2717,6 +2717,30 @@ KnowledgeBaseApp.prototype.closeSettingsModal = function() {
     document.getElementById('settings-modal').style.display = 'none';
 };
 
+// Settings Panel Functions (for model toggles)
+KnowledgeBaseApp.prototype.openSettingsPanel = function() {
+    const panel = document.getElementById('settings-panel');
+    if (panel) {
+        panel.classList.add('open');
+        // Load model settings when panel opens
+        this.loadModelSettings();
+    }
+};
+
+KnowledgeBaseApp.prototype.closeSettingsPanel = function() {
+    const panel = document.getElementById('settings-panel');
+    if (panel) {
+        panel.classList.remove('open');
+    }
+};
+
+// Make closeSettingsPanel available globally for onclick handlers
+window.closeSettingsPanel = function() {
+    if (window.app) {
+        window.app.closeSettingsPanel();
+    }
+};
+
 // Initialize the app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     window.app = new KnowledgeBaseApp();
