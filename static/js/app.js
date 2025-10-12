@@ -2745,6 +2745,60 @@ window.closeSettingsPanel = function() {
     }
 };
 
+// Settings section navigation
+window.showSettingsSection = function(sectionName) {
+    // Hide all sections
+    const sections = document.querySelectorAll('.settings-section');
+    sections.forEach(section => section.classList.remove('active'));
+    
+    // Show the selected section
+    const targetSection = document.getElementById(sectionName + '-section');
+    if (targetSection) {
+        targetSection.classList.add('active');
+    }
+    
+    // Update navigation buttons
+    const navButtons = document.querySelectorAll('.settings-nav-btn');
+    navButtons.forEach(btn => btn.classList.remove('active'));
+    
+    const activeNavBtn = document.querySelector(`[data-section="${sectionName}"]`);
+    if (activeNavBtn) {
+        activeNavBtn.classList.add('active');
+    }
+};
+
+// Make settings functions globally available
+window.checkAllModelsAccess = function() {
+    if (typeof checkAllModelsAccess === 'function') {
+        return checkAllModelsAccess();
+    }
+};
+
+window.saveModelSettings = function() {
+    if (typeof saveModelSettings === 'function') {
+        return saveModelSettings();
+    }
+};
+
+// Make model toggle functions globally available
+window.toggleModelEnabled = function(modelValue) {
+    if (typeof toggleModelEnabled === 'function') {
+        return toggleModelEnabled(modelValue);
+    }
+};
+
+window.toggleGroupModels = function(provider, enabled) {
+    if (typeof toggleGroupModels === 'function') {
+        return toggleGroupModels(provider, enabled);
+    }
+};
+
+window.checkModelAccess = function(modelValue) {
+    if (typeof checkModelAccess === 'function') {
+        return checkModelAccess(modelValue);
+    }
+};
+
 // Initialize the app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     window.app = new KnowledgeBaseApp();
