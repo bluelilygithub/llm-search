@@ -2918,7 +2918,7 @@ window.checkAllModelsAccess = async function() {
                     results.push(`✓ ${modelValue}: ${result.status || 'Available'}`);
                     
                     // Update the UI status indicator
-                    const modelItem = document.querySelector(`#model-${modelValue}`).closest('.model-item');
+                    const modelItem = document.getElementById(`model-${modelValue}`).closest('.model-item');
                     if (modelItem) {
                         const statusElement = modelItem.querySelector('.model-access-status');
                         if (statusElement) {
@@ -2931,7 +2931,7 @@ window.checkAllModelsAccess = async function() {
                     results.push(`✗ ${modelValue}: ${result.error || 'Access denied'}`);
                     
                     // Update the UI status indicator
-                    const modelItem = document.querySelector(`#model-${modelValue}`).closest('.model-item');
+                    const modelItem = document.getElementById(`model-${modelValue}`).closest('.model-item');
                     if (modelItem) {
                         const statusElement = modelItem.querySelector('.model-access-status');
                         if (statusElement) {
@@ -2947,7 +2947,7 @@ window.checkAllModelsAccess = async function() {
                 results.push(`✗ ${modelValue}: Network error`);
                 
                 // Update the UI status indicator
-                const modelItem = document.querySelector(`#model-${modelValue}`).closest('.model-item');
+                const modelItem = document.getElementById(`model-${modelValue}`).closest('.model-item');
                 if (modelItem) {
                     const statusElement = modelItem.querySelector('.model-access-status');
                     if (statusElement) {
@@ -3062,7 +3062,7 @@ window.checkModelAccess = async function(modelValue) {
     
     try {
         // Find the model item to update its status
-        const modelItem = document.querySelector(`#model-${modelValue}`).closest('.model-item');
+        const modelItem = document.getElementById(`model-${modelValue}`).closest('.model-item');
         const statusElement = modelItem ? modelItem.querySelector('.model-access-status') : null;
         
         // Show loading state
@@ -3102,7 +3102,7 @@ window.checkModelAccess = async function(modelValue) {
         console.error(`Error checking ${modelValue}:`, error);
         
         // Update UI to show error
-        const modelItem = document.querySelector(`#model-${modelValue}`).closest('.model-item');
+        const modelItem = document.getElementById(`model-${modelValue}`).closest('.model-item');
         const statusElement = modelItem ? modelItem.querySelector('.model-access-status') : null;
         if (statusElement) {
             statusElement.className = 'model-access-status error';

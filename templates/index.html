@@ -884,7 +884,7 @@
         async function checkModelAccess(modelValue) {
             try {
                 // Find the model element and status elements
-                const modelElement = document.querySelector(`#model-${modelValue}`);
+                const modelElement = document.getElementById(`model-${modelValue}`);
                 if (!modelElement) {
                     console.error(`Model element not found for: ${modelValue}`);
                     return;
@@ -949,7 +949,7 @@
                 
                 // Try to update the status element if we can find it
                 try {
-                    const modelElement = document.querySelector(`#model-${modelValue}`);
+                    const modelElement = document.getElementById(`model-${modelValue}`);
                     if (modelElement) {
                         const modelItem = modelElement.closest('.model-item');
                         if (modelItem) {
