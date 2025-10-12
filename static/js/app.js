@@ -2885,37 +2885,89 @@ window.checkAllModelsAccess = async function() {
         
         console.log('Starting check for all models...');
         
-        // Get available models from the template or define them
-        const availableModels = {
-            'openai': [
-                {value: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo'},
-                {value: 'gpt-4', name: 'GPT-4'},
-                {value: 'gpt-4-turbo', name: 'GPT-4 Turbo'},
-                {value: 'gpt-4o', name: 'GPT-4o'},
-                {value: 'gpt-4o-mini', name: 'GPT-4o Mini'}
-            ],
-            'anthropic': [
-                {value: 'claude-3.5-sonnet', name: 'Claude 3.5 Sonnet'},
-                {value: 'claude-3-opus', name: 'Claude 3 Opus'},
-                {value: 'claude-3-sonnet', name: 'Claude 3 Sonnet'},
-                {value: 'claude-3-haiku', name: 'Claude 3 Haiku'}
-            ],
-            'google': [
-                {value: 'gemini-pro', name: 'Gemini Pro'},
-                {value: 'gemini-flash', name: 'Gemini Flash'}
-            ]
-        };
-        
-        const allModels = Object.keys(availableModels).flatMap(provider => 
-            availableModels[provider].map(model => model.value)
+        // Get all model checkboxes to check
+        const checkboxes = document.querySelectorAll('.model-checkbox');
+        const modelsToCheck = Array.from(checkboxes).map(checkbox => 
+            checkbox.id.replace('model-', '')
         );
         
-        console.log('Models to check:', allModels);
+        console.log('Models to check:', modelsToCheck);
         
-        // For now, just simulate the check
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        let successCount = 0;
+        let errorCount = 0;
+        const results = [];
         
-        alert('Model access check completed! (This is a placeholder - implement actual API checks)');
+        // Check each model individually
+        for (const modelValue of modelsToCheck) {
+            try {
+                checkBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Checking ${modelValue}...`;
+                
+                // Make actual API call to check model access
+                const response = await fetch('/api/check-model-access', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ model: modelValue })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    successCount++;
+                    results.push(`✓ ${modelValue}: ${result.status || 'Available'}`);
+                    
+                    // Update the UI status indicator
+                    const modelItem = document.querySelector(`#model-${modelValue}`).closest('.model-item');
+                    if (modelItem) {
+                        const statusElement = modelItem.querySelector('.model-access-status');
+                        if (statusElement) {
+                            statusElement.className = 'model-access-status available';
+                            statusElement.innerHTML = '<span class="status-icon available"></span>Available';
+                        }
+                    }
+                } else {
+                    errorCount++;
+                    results.push(`✗ ${modelValue}: ${result.error || 'Access denied'}`);
+                    
+                    // Update the UI status indicator
+                    const modelItem = document.querySelector(`#model-${modelValue}`).closest('.model-item');
+                    if (modelItem) {
+                        const statusElement = modelItem.querySelector('.model-access-status');
+                        if (statusElement) {
+                            statusElement.className = 'model-access-status error';
+                            statusElement.innerHTML = '<span class="status-icon error"></span>Error';
+                        }
+                    }
+                }
+                
+            } catch (error) {
+                errorCount++;
+                console.error(`Error checking ${modelValue}:`, error);
+                results.push(`✗ ${modelValue}: Network error`);
+                
+                // Update the UI status indicator
+                const modelItem = document.querySelector(`#model-${modelValue}`).closest('.model-item');
+                if (modelItem) {
+                    const statusElement = modelItem.querySelector('.model-access-status');
+                    if (statusElement) {
+                        statusElement.className = 'model-access-status error';
+                        statusElement.innerHTML = '<span class="status-icon error"></span>Error';
+                    }
+                }
+            }
+            
+            // Small delay between checks to avoid rate limiting
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        
+        // Show results summary
+        const summary = `Model Access Check Complete!\n\n` +
+                       `✓ Available: ${successCount}\n` +
+                       `✗ Unavailable: ${errorCount}\n\n` +
+                       `Details:\n${results.join('\n')}`;
+        
+        alert(summary);
         
     } catch (error) {
         console.error('Error checking model access:', error);
@@ -3005,10 +3057,60 @@ window.toggleGroupModels = function(provider, enabled) {
     });
 };
 
-window.checkModelAccess = function(modelValue) {
+window.checkModelAccess = async function(modelValue) {
     console.log(`Checking access for model: ${modelValue}`);
-    // Placeholder - implement actual API check
-    alert(`Checking access for ${modelValue} (placeholder)`);
+    
+    try {
+        // Find the model item to update its status
+        const modelItem = document.querySelector(`#model-${modelValue}`).closest('.model-item');
+        const statusElement = modelItem ? modelItem.querySelector('.model-access-status') : null;
+        
+        // Show loading state
+        if (statusElement) {
+            statusElement.className = 'model-access-status checking';
+            statusElement.innerHTML = '<span class="status-icon checking"></span>Checking...';
+        }
+        
+        // Make API call to check model access
+        const response = await fetch('/api/check-model-access', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ model: modelValue })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+            // Model is available
+            if (statusElement) {
+                statusElement.className = 'model-access-status available';
+                statusElement.innerHTML = '<span class="status-icon available"></span>Available';
+            }
+            alert(`✓ ${modelValue}: ${result.status || 'Available'}`);
+        } else {
+            // Model is not available
+            if (statusElement) {
+                statusElement.className = 'model-access-status error';
+                statusElement.innerHTML = '<span class="status-icon error"></span>Error';
+            }
+            alert(`✗ ${modelValue}: ${result.error || 'Access denied'}`);
+        }
+        
+    } catch (error) {
+        console.error(`Error checking ${modelValue}:`, error);
+        
+        // Update UI to show error
+        const modelItem = document.querySelector(`#model-${modelValue}`).closest('.model-item');
+        const statusElement = modelItem ? modelItem.querySelector('.model-access-status') : null;
+        if (statusElement) {
+            statusElement.className = 'model-access-status error';
+            statusElement.innerHTML = '<span class="status-icon error"></span>Network Error';
+        }
+        
+        alert(`✗ ${modelValue}: Network error - ${error.message}`);
+    }
 };
 
 // Initialize the app when DOM is loaded
