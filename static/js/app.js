@@ -3486,8 +3486,14 @@ async function loadCurrentModelsList() {
     try {
         container.innerHTML = '<div class="loading">Loading models...</div>';
         
-        const response = await fetch('/api/models');
-        const models = await response.json();
+        // Load both dynamic models and model settings in parallel
+        const [modelsResponse, settingsResponse] = await Promise.all([
+            fetch('/api/models'),
+            fetch('/api/model-settings')
+        ]);
+        
+        const models = await modelsResponse.json();
+        const settings = settingsResponse.ok ? await settingsResponse.json() : {};
         
         if (models.length === 0) {
             container.innerHTML = '<div class="no-models">No models configured. Add some models above!</div>';
@@ -3499,17 +3505,28 @@ async function loadCurrentModelsList() {
                 <div>Model Name</div>
                 <div>Provider</div>
                 <div>API Key</div>
+                <div>Enabled</div>
                 <div>Status</div>
                 <div>Actions</div>
             </div>
         `;
         
         models.forEach(model => {
+            const modelSettings = settings[model.name] || { enabled: false };
+            const enabledStatus = modelSettings.enabled ? '✅ Yes' : '❌ No';
+            const enabledClass = modelSettings.enabled ? 'enabled' : 'disabled';
+            
             html += `
                 <div class="model-row" data-model="${model.name}">
                     <div class="model-name">${model.name}</div>
                     <div class="model-provider">${model.provider}</div>
                     <div class="model-api-key">${model.api_key || 'Auto-detected'}</div>
+                    <div class="model-enabled ${enabledClass}">
+                        ${enabledStatus}
+                        <button class="btn-tiny" onclick="toggleModelEnabledInManagement('${model.name}', ${!modelSettings.enabled})" title="Toggle enabled status">
+                            <i class="fas fa-toggle-${modelSettings.enabled ? 'on' : 'off'}"></i>
+                        </button>
+                    </div>
                     <div class="model-status" id="mgmt-status-${model.name}">
                         <span class="status-unknown">Unknown</span>
                     </div>
@@ -3592,10 +3609,29 @@ window.addModel = async function() {
             apiKeyInput.value = '';
             descriptionInput.value = '';
             
+            // Auto-enable the new model
+            try {
+                const settingsResponse = await fetch('/api/model-settings');
+                const settings = settingsResponse.ok ? await settingsResponse.json() : {};
+                
+                // Enable the new model by default
+                settings[name] = { enabled: true, status: 'unknown' };
+                
+                await fetch('/api/model-settings', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(settings)
+                });
+            } catch (settingsError) {
+                console.log('Could not auto-enable model:', settingsError);
+            }
+            
             // Reload models list
             await loadCurrentModelsList();
             
-            alert(`✓ Model "${name}" added successfully!`);
+            alert(`✓ Model "${name}" added successfully and enabled!`);
         } else {
             alert(`✗ Failed to add model: ${result.error || 'Unknown error'}`);
         }
@@ -3735,6 +3771,44 @@ window.testModelAccess = async function() {
 
 window.refreshModelManagement = async function() {
     await loadModelManagementData();
+};
+
+// Function to toggle model enabled status from Model Management
+window.toggleModelEnabledInManagement = async function(modelName, newEnabledState) {
+    try {
+        // Load current settings
+        const response = await fetch('/api/model-settings');
+        const settings = response.ok ? await response.json() : {};
+        
+        // Update the specific model
+        settings[modelName] = settings[modelName] || {};
+        settings[modelName].enabled = newEnabledState;
+        
+        // Save back to server
+        const saveResponse = await fetch('/api/model-settings', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(settings)
+        });
+        
+        if (saveResponse.ok) {
+            // Reload the models list to show updated status
+            await loadCurrentModelsList();
+            
+            // Also reload the settings panel if it's open
+            if (window.app && window.app.loadModelsForSettingsPanel) {
+                window.app.loadModelsForSettingsPanel();
+            }
+        } else {
+            alert('Failed to save model settings');
+        }
+        
+    } catch (error) {
+        console.error('Error toggling model enabled status:', error);
+        alert('Error updating model status: ' + error.message);
+    }
 };
 
 // Initialize the app when DOM is loaded
