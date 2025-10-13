@@ -2936,6 +2936,122 @@ KnowledgeBaseApp.prototype.loadModelsForSettingsPanel = async function() {
     }
 };
 
+// Method to load models into the main dropdown
+KnowledgeBaseApp.prototype.loadMainModelDropdown = async function() {
+    const dropdown = document.getElementById('llm-model');
+    if (!dropdown) return;
+    
+    try {
+        // Load both dynamic models and settings to show only enabled models
+        const [modelsResponse, settingsResponse] = await Promise.all([
+            fetch('/api/models'),
+            fetch('/api/model-settings')
+        ]);
+        
+        const availableModels = await modelsResponse.json();
+        const modelSettings = settingsResponse.ok ? await settingsResponse.json() : {};
+        
+        console.log('Main dropdown - Available models:', availableModels);
+        console.log('Main dropdown - Model settings:', modelSettings);
+        
+        // Create a combined list of all models (dynamic + legacy from settings)
+        const allModels = new Map();
+        
+        // Add dynamic models first
+        availableModels.forEach(model => {
+            allModels.set(model.name, {
+                ...model,
+                isDynamic: true
+            });
+        });
+        
+        // Add legacy models from settings that aren't in dynamic list
+        Object.keys(modelSettings).forEach(modelName => {
+            if (!allModels.has(modelName)) {
+                // This is a legacy model - try to detect provider from name
+                let provider = 'Unknown';
+                
+                if (modelName.startsWith('gpt-') || modelName.startsWith('o1-')) {
+                    provider = 'OpenAI';
+                } else if (modelName.startsWith('claude-')) {
+                    provider = 'Anthropic';
+                } else if (modelName.startsWith('gemini-')) {
+                    provider = 'Google';
+                } else if (modelName.includes('llama') || modelName.includes('mixtral') || modelName.includes('codellama')) {
+                    provider = 'Hugging Face';
+                } else if (modelName.startsWith('stable-')) {
+                    provider = 'Stability AI';
+                }
+                
+                allModels.set(modelName, {
+                    name: modelName,
+                    provider: provider,
+                    description: `Legacy ${provider} model`,
+                    isDynamic: false
+                });
+            }
+        });
+        
+        // Filter to only enabled models
+        const enabledModels = Array.from(allModels.values()).filter(model => {
+            const settings = modelSettings[model.name];
+            return settings && settings.enabled;
+        });
+        
+        console.log('Enabled models for main dropdown:', enabledModels);
+        
+        // Group enabled models by provider
+        const modelsByProvider = {};
+        enabledModels.forEach(model => {
+            if (!modelsByProvider[model.provider]) {
+                modelsByProvider[model.provider] = [];
+            }
+            modelsByProvider[model.provider].push(model);
+        });
+        
+        // Build dropdown HTML
+        let html = '<option value="">Select a model...</option>';
+        
+        if (Object.keys(modelsByProvider).length === 0) {
+            html = '<option value="">No enabled models - check Settings</option>';
+        } else {
+            Object.keys(modelsByProvider).sort().forEach(provider => {
+                html += `<optgroup label="${provider}">`;
+                modelsByProvider[provider].forEach(model => {
+                    html += `<option value="${model.name}">${model.name}</option>`;
+                });
+                html += '</optgroup>';
+            });
+        }
+        
+        dropdown.innerHTML = html;
+        
+        // Try to set default model from preferences
+        try {
+            const prefsResponse = await fetch('/api/preferences');
+            if (prefsResponse.ok) {
+                const prefs = await prefsResponse.json();
+                if (prefs.defaultModel && enabledModels.some(m => m.name === prefs.defaultModel)) {
+                    dropdown.value = prefs.defaultModel;
+                }
+            }
+        } catch (error) {
+            console.log('Could not load preferences for default model');
+        }
+        
+        // If no default set, select first enabled model
+        if (!dropdown.value && enabledModels.length > 0) {
+            dropdown.value = enabledModels[0].name;
+        }
+        
+        console.log('Main dropdown populated with', enabledModels.length, 'enabled models');
+        
+    } catch (error) {
+        console.error('Error loading main model dropdown:', error);
+        dropdown.innerHTML = '<option value="">Error loading models</option>';
+    }
+};
+
 KnowledgeBaseApp.prototype.closeSettingsPanel = function() {
     const panel = document.getElementById('settings-panel');
     if (panel) {
@@ -4062,86 +4178,12 @@ window.migrateModel = async function(modelName) {
     }
 };
 
-// Function to load models into the main dropdown
-async function loadMainModelDropdown() {
-    const dropdown = document.getElementById('llm-model');
-    if (!dropdown) return;
-    
-    try {
-        // Load both dynamic models and settings to show only enabled models
-        const [modelsResponse, settingsResponse] = await Promise.all([
-            fetch('/api/models'),
-            fetch('/api/model-settings')
-        ]);
-        
-        const availableModels = await modelsResponse.json();
-        const modelSettings = settingsResponse.ok ? await settingsResponse.json() : {};
-        
-        console.log('Main dropdown - Available models:', availableModels);
-        console.log('Main dropdown - Model settings:', modelSettings);
-        
-        // Filter to only enabled models
-        const enabledModels = availableModels.filter(model => {
-            const settings = modelSettings[model.name];
-            return settings && settings.enabled;
-        });
-        
-        // Group enabled models by provider
-        const modelsByProvider = {};
-        enabledModels.forEach(model => {
-            if (!modelsByProvider[model.provider]) {
-                modelsByProvider[model.provider] = [];
-            }
-            modelsByProvider[model.provider].push(model);
-        });
-        
-        // Build dropdown HTML
-        let html = '<option value="">Select a model...</option>';
-        
-        if (Object.keys(modelsByProvider).length === 0) {
-            html = '<option value="">No enabled models - check Settings</option>';
-        } else {
-            Object.keys(modelsByProvider).forEach(provider => {
-                html += `<optgroup label="${provider}">`;
-                modelsByProvider[provider].forEach(model => {
-                    html += `<option value="${model.name}">${model.name}</option>`;
-                });
-                html += '</optgroup>';
-            });
-        }
-        
-        dropdown.innerHTML = html;
-        
-        // Try to set default model from preferences
-        try {
-            const prefsResponse = await fetch('/api/preferences');
-            if (prefsResponse.ok) {
-                const prefs = await prefsResponse.json();
-                if (prefs.defaultModel && enabledModels.some(m => m.name === prefs.defaultModel)) {
-                    dropdown.value = prefs.defaultModel;
-                }
-            }
-        } catch (error) {
-            console.log('Could not load preferences for default model');
-        }
-        
-        // If no default set, select first enabled model
-        if (!dropdown.value && enabledModels.length > 0) {
-            dropdown.value = enabledModels[0].name;
-        }
-        
-    } catch (error) {
-        console.error('Error loading main model dropdown:', error);
-        dropdown.innerHTML = '<option value="">Error loading models</option>';
-    }
-}
-
 // Initialize the app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     window.app = new KnowledgeBaseApp();
     
     // Load dynamic models into main dropdown
-    loadMainModelDropdown();
+    window.app.loadMainModelDropdown();
     
     // Only attach event handlers if elements exist
     const newChatBtn = document.getElementById('new-chat-btn');
