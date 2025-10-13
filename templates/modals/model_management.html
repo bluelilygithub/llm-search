@@ -13,9 +13,8 @@
         <div class="modal-body">
             <!-- API Key Status -->
             <div class="section">
-                <h3>API Key Status</h3>
-                <p>Railway Environment Variables (keys are secure and not exposed)</p>
-                <div id="api-keys-status" class="api-keys-grid">
+                <h3>Railway API Key Status</h3>
+                <div id="api-keys-status" class="api-keys-simple">
                     <div class="loading">Loading API key status...</div>
                 </div>
             </div>
@@ -23,44 +22,37 @@
             <!-- Add New Model -->
             <div class="section">
                 <h3>Add New Model</h3>
-                <div class="add-model-form">
+                <div class="add-model-form-grid">
                     <div class="form-row">
-                        <div class="form-group">
-                            <label for="model-name">Model Name:</label>
-                            <input type="text" id="model-name" placeholder="e.g., gpt-4-vision-preview" />
-                        </div>
-                        <div class="form-group">
-                            <label for="model-provider">Provider:</label>
-                            <select id="model-provider">
-                                <option value="">Select provider...</option>
-                                <option value="OpenAI">OpenAI</option>
-                                <option value="Anthropic">Anthropic</option>
-                                <option value="Google">Google</option>
-                                <option value="Hugging Face">Hugging Face</option>
-                                <option value="Stability AI">Stability AI</option>
-                                <option value="Custom">Custom</option>
-                            </select>
-                        </div>
+                        <label for="model-name">Model Name:</label>
+                        <input type="text" id="model-name" placeholder="e.g., gpt-4-vision-preview" />
                     </div>
                     <div class="form-row">
-                        <div class="form-group">
-                            <label for="model-api-key">API Key Name:</label>
-                            <input type="text" id="model-api-key" placeholder="e.g., OPENAI_API_KEY" />
-                            <small>Railway environment variable name (without the actual key)</small>
-                        </div>
-                        <div class="form-group">
-                            <label for="model-description">Description:</label>
-                            <input type="text" id="model-description" placeholder="Brief description" />
-                        </div>
+                        <label for="model-provider">Provider:</label>
+                        <select id="model-provider">
+                            <option value="">Select provider...</option>
+                            <option value="OpenAI">OpenAI</option>
+                            <option value="Anthropic">Anthropic</option>
+                            <option value="Google">Google</option>
+                            <option value="Hugging Face">Hugging Face</option>
+                            <option value="Stability AI">Stability AI</option>
+                            <option value="Custom">Custom</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <label for="model-api-key">API Key Name:</label>
+                        <input type="text" id="model-api-key" placeholder="e.g., OPENAI_API_KEY" />
+                    </div>
+                    <div class="form-row">
+                        <label for="model-description">Description:</label>
+                        <input type="text" id="model-description" placeholder="Brief description" />
                     </div>
                     <div class="form-actions">
                         <button class="btn btn-secondary" onclick="testModelAccess()" id="test-model-btn">
-                            <i class="fas fa-flask"></i>
-                            Test Access
+                            <i class="fas fa-flask"></i> Test Access
                         </button>
                         <button class="btn btn-primary" onclick="addModel()" id="add-model-btn">
-                            <i class="fas fa-plus"></i>
-                            Add Model
+                            <i class="fas fa-plus"></i> Add Model
                         </button>
                     </div>
                 </div>
@@ -69,7 +61,7 @@
             <!-- Current Models -->
             <div class="section">
                 <h3>Current Models</h3>
-                <div id="current-models-list" class="models-table">
+                <div id="current-models-list" class="models-simple-table">
                     <div class="loading">Loading models...</div>
                 </div>
             </div>
@@ -78,13 +70,198 @@
         <!-- Footer -->
         <div class="modal-footer">
             <button class="btn btn-secondary" onclick="closeModelManagement()">
-                <i class="fas fa-times"></i>
-                Close
+                <i class="fas fa-times"></i> Close
             </button>
             <button class="btn btn-info" onclick="refreshModelManagement()">
-                <i class="fas fa-refresh"></i>
-                Refresh All
+                <i class="fas fa-refresh"></i> Refresh All
             </button>
         </div>
     </div>
 </div>
+
+<style>
+/* Model Management Modal Styles */
+.model-management-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.model-management-modal .modal-content {
+    background: white;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 800px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.model-management-modal .modal-header {
+    padding: 20px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.model-management-modal .modal-body {
+    padding: 20px;
+}
+
+.model-management-modal .modal-footer {
+    padding: 20px;
+    border-top: 1px solid #eee;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.model-management-modal .section {
+    margin-bottom: 30px;
+}
+
+.model-management-modal .section h3 {
+    margin-bottom: 15px;
+    color: #333;
+    font-size: 18px;
+}
+
+/* API Keys Simple Display */
+.api-keys-simple {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 10px;
+}
+
+.api-key-simple {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    background: #f8f9fa;
+    border-radius: 5px;
+    border-left: 4px solid #ddd;
+}
+
+.api-key-simple.configured {
+    border-left-color: #28a745;
+    background: #d4edda;
+}
+
+.api-key-simple.not-configured {
+    border-left-color: #dc3545;
+    background: #f8d7da;
+}
+
+.api-key-name {
+    font-weight: bold;
+    color: #333;
+}
+
+.api-key-status {
+    font-size: 14px;
+}
+
+/* Add Model Form Grid */
+.add-model-form-grid {
+    display: grid;
+    gap: 15px;
+}
+
+.add-model-form-grid .form-row {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    align-items: center;
+    gap: 10px;
+}
+
+.add-model-form-grid label {
+    font-weight: bold;
+    color: #333;
+}
+
+.add-model-form-grid input,
+.add-model-form-grid select {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.add-model-form-grid .form-actions {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 10px;
+}
+
+/* Simple Models Table */
+.models-simple-table {
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.model-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1.5fr 1fr 80px;
+    align-items: center;
+    padding: 12px 15px;
+    border-bottom: 1px solid #eee;
+    background: white;
+}
+
+.model-row:hover {
+    background: #f8f9fa;
+}
+
+.model-row.header {
+    background: #f1f3f4;
+    font-weight: bold;
+    color: #333;
+}
+
+.model-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.btn-small {
+    padding: 4px 8px;
+    font-size: 12px;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.btn-small.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-small.btn-danger {
+    background: #dc3545;
+    color: white;
+}
+
+.status-available { color: #28a745; font-weight: bold; }
+.status-error { color: #dc3545; font-weight: bold; }
+.status-unknown { color: #6c757d; }
+.status-testing { color: #007bff; }
+
+.loading, .error, .no-models {
+    text-align: center;
+    padding: 20px;
+    color: #6c757d;
+    font-style: italic;
+}
+</style>

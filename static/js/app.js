@@ -3462,11 +3462,9 @@ async function loadApiKeysStatus() {
             const statusClass = info.configured ? 'configured' : 'not-configured';
             
             html += `
-                <div class="api-key-card ${statusClass}">
-                    <div class="key-name">${keyName}</div>
-                    <div class="key-provider">${info.provider}</div>
-                    <div class="key-status">${status}</div>
-                    <div class="key-models">${info.models_supported}</div>
+                <div class="api-key-simple ${statusClass}">
+                    <div class="api-key-name">${keyName}</div>
+                    <div class="api-key-status">${status}</div>
                 </div>
             `;
         });
@@ -3494,48 +3492,45 @@ async function loadCurrentModelsList() {
         }
         
         let html = `
-            <table class="models-table">
-                <thead>
-                    <tr>
-                        <th>Model Name</th>
-                        <th>Provider</th>
-                        <th>API Key</th>
-                        <th>Description</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
+            <div class="model-row header">
+                <div>Model Name</div>
+                <div>Provider</div>
+                <div>API Key</div>
+                <div>Status</div>
+                <div>Actions</div>
+            </div>
         `;
         
         models.forEach(model => {
             html += `
-                <tr data-model="${model.name}">
-                    <td class="model-name">${model.name}</td>
-                    <td class="model-provider">${model.provider}</td>
-                    <td class="model-api-key">${model.api_key || 'Auto-detected'}</td>
-                    <td class="model-description">${model.description}</td>
-                    <td class="model-status" id="mgmt-status-${model.name}">
+                <div class="model-row" data-model="${model.name}">
+                    <div class="model-name">${model.name}</div>
+                    <div class="model-provider">${model.provider}</div>
+                    <div class="model-api-key">${model.api_key || 'Auto-detected'}</div>
+                    <div class="model-status" id="mgmt-status-${model.name}">
                         <span class="status-unknown">Unknown</span>
-                    </td>
-                    <td class="model-actions">
+                    </div>
+                    <div class="model-actions">
                         <button class="btn-small btn-secondary" onclick="testModelInManagement('${model.name}')" title="Test Access">
                             <i class="fas fa-flask"></i>
                         </button>
                         <button class="btn-small btn-danger" onclick="deleteModel('${model.name}')" title="Remove Model">
                             <i class="fas fa-trash"></i>
                         </button>
-                    </td>
-                </tr>
+                    </div>
+                </div>
             `;
         });
         
-        html += `
-                </tbody>
-            </table>
-        `;
-        
         container.innerHTML = html;
+        
+        // Auto-test all models after loading
+        setTimeout(() => {
+            models.forEach(model => {
+                testModelInManagement(model.name, false); // false = don't show alert
+            });
+        }, 500);
+        
     } catch (error) {
         console.error('Error loading current models:', error);
         container.innerHTML = '<div class="error">Failed to load models</div>';
@@ -3563,20 +3558,29 @@ window.addModel = async function() {
         addBtn.disabled = true;
         addBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
         
+        const payload = {
+            name: name,
+            provider: provider,
+            description: description || `${provider} model`
+        };
+        
+        // Add API key if specified
+        if (apiKey) {
+            payload.api_key = apiKey;
+        }
+        
+        console.log('Adding model with payload:', payload);
+        
         const response = await fetch('/api/models', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-                name: name,
-                provider: provider,
-                api_key: apiKey,
-                description: description
-            })
+            body: JSON.stringify(payload)
         });
         
         const result = await response.json();
+        console.log('Add model response:', result);
         
         if (response.ok && result.success) {
             // Clear form
@@ -3602,32 +3606,7 @@ window.addModel = async function() {
     }
 };
 
-window.deleteModel = async function(modelName) {
-    if (!confirm(`Are you sure you want to remove the model "${modelName}"?`)) {
-        return;
-    }
-    
-    try {
-        const response = await fetch(`/api/models/${encodeURIComponent(modelName)}`, {
-            method: 'DELETE'
-        });
-        
-        const result = await response.json();
-        
-        if (response.ok && result.success) {
-            await loadCurrentModelsList();
-            alert(`✓ Model "${modelName}" removed successfully!`);
-        } else {
-            alert(`✗ Failed to remove model: ${result.error || 'Unknown error'}`);
-        }
-        
-    } catch (error) {
-        console.error('Error removing model:', error);
-        alert(`✗ Network error: ${error.message}`);
-    }
-};
-
-window.testModelInManagement = async function(modelName) {
+window.testModelInManagement = async function(modelName, showAlert = true) {
     const statusElement = document.getElementById(`mgmt-status-${modelName}`);
     
     try {
@@ -3653,16 +3632,20 @@ window.testModelInManagement = async function(modelName) {
                 statusElement.innerHTML = `<span class="${statusClass}">${status}</span>`;
             }
             
-            const message = result.hasAccess 
-                ? `✓ ${modelName}: Available (${result.api_key_name})`
-                : `✗ ${modelName}: ${result.status} (${result.api_key_name})`;
-            
-            alert(message);
+            if (showAlert) {
+                const message = result.hasAccess 
+                    ? `✓ ${modelName}: Available (${result.api_key_name})`
+                    : `✗ ${modelName}: ${result.status} (${result.api_key_name})`;
+                
+                alert(message);
+            }
         } else {
             if (statusElement) {
                 statusElement.innerHTML = '<span class="status-error">Error</span>';
             }
-            alert(`✗ ${modelName}: ${result.error || 'Test failed'}`);
+            if (showAlert) {
+                alert(`✗ ${modelName}: ${result.error || 'Test failed'}`);
+            }
         }
         
     } catch (error) {
@@ -3670,7 +3653,34 @@ window.testModelInManagement = async function(modelName) {
         if (statusElement) {
             statusElement.innerHTML = '<span class="status-error">Network Error</span>';
         }
-        alert(`✗ ${modelName}: Network error - ${error.message}`);
+        if (showAlert) {
+            alert(`✗ ${modelName}: Network error - ${error.message}`);
+        }
+    }
+};
+
+window.deleteModel = async function(modelName) {
+    if (!confirm(`Are you sure you want to remove the model "${modelName}"?`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/models/${encodeURIComponent(modelName)}`, {
+            method: 'DELETE'
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+            await loadCurrentModelsList();
+            alert(`✓ Model "${modelName}" removed successfully!`);
+        } else {
+            alert(`✗ Failed to remove model: ${result.error || 'Unknown error'}`);
+        }
+        
+    } catch (error) {
+        console.error('Error removing model:', error);
+        alert(`✗ Network error: ${error.message}`);
     }
 };
 
