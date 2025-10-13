@@ -2722,10 +2722,128 @@ KnowledgeBaseApp.prototype.openSettingsPanel = function() {
     const panel = document.getElementById('settings-panel');
     if (panel) {
         panel.classList.add('open');
-        // Trigger model loading after a short delay to ensure panel is visible
+        // Load dynamic model data when panel opens
         setTimeout(() => {
-            this.loadModelsForSettingsPanel();
+            this.loadDynamicModels();
         }, 200);
+    }
+};
+
+// Function to load dynamic models and API key status
+KnowledgeBaseApp.prototype.loadDynamicModels = async function() {
+    try {
+        // Load all data in parallel
+        await Promise.all([
+            this.loadApiKeyStatus(),
+            this.loadProviders(),
+            this.loadCurrentModels()
+        ]);
+    } catch (error) {
+        console.error('Error loading dynamic models:', error);
+    }
+};
+
+// Load API key status
+KnowledgeBaseApp.prototype.loadApiKeyStatus = async function() {
+    const container = document.getElementById('api-keys-list');
+    if (!container) return;
+    
+    try {
+        container.innerHTML = '<div class="loading-models">Loading API key status...</div>';
+        
+        const response = await fetch('/api/api-keys/status');
+        const apiKeys = await response.json();
+        
+        let html = '<div class="api-keys-grid">';
+        Object.entries(apiKeys).forEach(([keyName, info]) => {
+            const status = info.configured ? '✅ Configured' : '❌ Not Found';
+            const statusClass = info.configured ? 'configured' : 'not-configured';
+            
+            html += `
+                <div class="api-key-item ${statusClass}">
+                    <div class="api-key-name">${keyName}</div>
+                    <div class="api-key-provider">${info.provider}</div>
+                    <div class="api-key-status">${status}</div>
+                    <div class="api-key-models">${info.models_supported}</div>
+                </div>
+            `;
+        });
+        html += '</div>';
+        
+        container.innerHTML = html;
+    } catch (error) {
+        console.error('Error loading API key status:', error);
+        container.innerHTML = '<div class="error">Failed to load API key status</div>';
+    }
+};
+
+// Load providers for dropdown
+KnowledgeBaseApp.prototype.loadProviders = async function() {
+    const select = document.getElementById('new-model-provider');
+    if (!select) return;
+    
+    try {
+        const response = await fetch('/api/providers');
+        const providers = await response.json();
+        
+        select.innerHTML = '<option value="">Select provider...</option>';
+        providers.forEach(provider => {
+            select.innerHTML += `
+                <option value="${provider.name}" data-api-key="${provider.api_key}">
+                    ${provider.name} - ${provider.description}
+                </option>
+            `;
+        });
+    } catch (error) {
+        console.error('Error loading providers:', error);
+    }
+};
+
+// Load current models
+KnowledgeBaseApp.prototype.loadCurrentModels = async function() {
+    const container = document.getElementById('models-list');
+    if (!container) return;
+    
+    try {
+        container.innerHTML = '<div class="loading-models">Loading models...</div>';
+        
+        const response = await fetch('/api/models');
+        const models = await response.json();
+        
+        if (models.length === 0) {
+            container.innerHTML = '<div class="no-models">No models configured. Add some models above!</div>';
+            return;
+        }
+        
+        let html = '<div class="current-models-grid">';
+        models.forEach(model => {
+            html += `
+                <div class="current-model-item" data-model="${model.name}">
+                    <div class="model-info">
+                        <div class="model-name">${model.name}</div>
+                        <div class="model-provider">${model.provider}</div>
+                        <div class="model-description">${model.description}</div>
+                    </div>
+                    <div class="model-status" id="status-${model.name}">
+                        <span class="status-text">Unknown</span>
+                    </div>
+                    <div class="model-actions">
+                        <button class="btn-small btn-secondary" onclick="testSingleModel('${model.name}')" title="Test Access">
+                            <i class="fas fa-flask"></i>
+                        </button>
+                        <button class="btn-small btn-danger" onclick="removeModel('${model.name}')" title="Remove Model">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+        html += '</div>';
+        
+        container.innerHTML = html;
+    } catch (error) {
+        console.error('Error loading current models:', error);
+        container.innerHTML = '<div class="error">Failed to load models</div>';
     }
 };
 
@@ -3110,6 +3228,193 @@ window.checkModelAccess = async function(modelValue) {
         }
         
         alert(`✗ ${modelValue}: Network error - ${error.message}`);
+    }
+};
+
+// Dynamic Model Management Functions
+window.addNewModel = async function() {
+    const nameInput = document.getElementById('new-model-name');
+    const providerSelect = document.getElementById('new-model-provider');
+    const descriptionInput = document.getElementById('new-model-description');
+    const addBtn = document.getElementById('add-new-model-btn');
+    
+    const name = nameInput.value.trim();
+    const provider = providerSelect.value;
+    const description = descriptionInput.value.trim();
+    
+    if (!name || !provider) {
+        alert('Please enter a model name and select a provider');
+        return;
+    }
+    
+    try {
+        addBtn.disabled = true;
+        addBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
+        
+        const response = await fetch('/api/models', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                name: name,
+                provider: provider,
+                description: description
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+            // Clear form
+            nameInput.value = '';
+            providerSelect.value = '';
+            descriptionInput.value = '';
+            
+            // Reload models list
+            if (window.app) {
+                await window.app.loadCurrentModels();
+            }
+            
+            alert(`✓ Model "${name}" added successfully!`);
+        } else {
+            alert(`✗ Failed to add model: ${result.error || 'Unknown error'}`);
+        }
+        
+    } catch (error) {
+        console.error('Error adding model:', error);
+        alert(`✗ Network error: ${error.message}`);
+    } finally {
+        addBtn.disabled = false;
+        addBtn.innerHTML = '<i class="fas fa-plus"></i> Add Model';
+    }
+};
+
+window.removeModel = async function(modelName) {
+    if (!confirm(`Are you sure you want to remove the model "${modelName}"?`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/models/${encodeURIComponent(modelName)}`, {
+            method: 'DELETE'
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+            // Reload models list
+            if (window.app) {
+                await window.app.loadCurrentModels();
+            }
+            
+            alert(`✓ Model "${modelName}" removed successfully!`);
+        } else {
+            alert(`✗ Failed to remove model: ${result.error || 'Unknown error'}`);
+        }
+        
+    } catch (error) {
+        console.error('Error removing model:', error);
+        alert(`✗ Network error: ${error.message}`);
+    }
+};
+
+window.testSingleModel = async function(modelName) {
+    const statusElement = document.getElementById(`status-${modelName}`);
+    
+    try {
+        if (statusElement) {
+            statusElement.innerHTML = '<span class="status-text checking">Testing...</span>';
+        }
+        
+        const response = await fetch('/api/check-model-access', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ model: modelName })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+            const status = result.hasAccess ? 'Available' : 'No Access';
+            const statusClass = result.hasAccess ? 'available' : 'error';
+            
+            if (statusElement) {
+                statusElement.innerHTML = `<span class="status-text ${statusClass}">${status}</span>`;
+            }
+            
+            const message = result.hasAccess 
+                ? `✓ ${modelName}: Available (${result.api_key_name})`
+                : `✗ ${modelName}: ${result.status} (${result.api_key_name})`;
+            
+            alert(message);
+        } else {
+            if (statusElement) {
+                statusElement.innerHTML = '<span class="status-text error">Error</span>';
+            }
+            alert(`✗ ${modelName}: ${result.error || 'Test failed'}`);
+        }
+        
+    } catch (error) {
+        console.error(`Error testing ${modelName}:`, error);
+        if (statusElement) {
+            statusElement.innerHTML = '<span class="status-text error">Network Error</span>';
+        }
+        alert(`✗ ${modelName}: Network error - ${error.message}`);
+    }
+};
+
+window.testNewModel = async function() {
+    const nameInput = document.getElementById('new-model-name');
+    const providerSelect = document.getElementById('new-model-provider');
+    const testBtn = document.getElementById('test-new-model-btn');
+    
+    const name = nameInput.value.trim();
+    const provider = providerSelect.value;
+    
+    if (!name || !provider) {
+        alert('Please enter a model name and select a provider to test');
+        return;
+    }
+    
+    try {
+        testBtn.disabled = true;
+        testBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testing...';
+        
+        const response = await fetch('/api/check-model-access', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ model: name })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+            const message = result.hasAccess 
+                ? `✓ ${name}: API key available! (${result.api_key_name})`
+                : `✗ ${name}: API key not configured (${result.api_key_name})`;
+            
+            alert(message);
+        } else {
+            alert(`✗ ${name}: ${result.error || 'Test failed'}`);
+        }
+        
+    } catch (error) {
+        console.error(`Error testing ${name}:`, error);
+        alert(`✗ ${name}: Network error - ${error.message}`);
+    } finally {
+        testBtn.disabled = false;
+        testBtn.innerHTML = '<i class="fas fa-flask"></i> Test Access';
+    }
+};
+
+window.refreshModelsList = async function() {
+    if (window.app) {
+        await window.app.loadDynamicModels();
     }
 };
 

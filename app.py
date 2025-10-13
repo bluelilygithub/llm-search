@@ -2479,6 +2479,204 @@ def check_model_access():
 
 # ==================== END MODEL SETTINGS API ====================
 
+# ==================== DYNAMIC MODEL MANAGEMENT API ====================
+
+@app.route('/api/models', methods=['GET'])
+def get_available_models():
+    """Get list of available models (dynamic)"""
+    try:
+        # Load models from file
+        models_file = os.path.join(app.instance_path, 'available_models.json')
+        
+        if os.path.exists(models_file):
+            import json
+            with open(models_file, 'r') as f:
+                models = json.load(f)
+            app.logger.info(f"Loaded models from file: {len(models)} models")
+        else:
+            # Default models if file doesn't exist
+            models = [
+                {'name': 'gpt-3.5-turbo', 'provider': 'OpenAI', 'description': 'Fast and efficient for most tasks'},
+                {'name': 'gpt-4', 'provider': 'OpenAI', 'description': 'Most capable GPT model'},
+                {'name': 'gpt-4o', 'provider': 'OpenAI', 'description': 'Latest GPT-4 optimized model'},
+                {'name': 'claude-3.5-sonnet', 'provider': 'Anthropic', 'description': 'Latest Claude model'},
+                {'name': 'claude-3-opus', 'provider': 'Anthropic', 'description': 'Most powerful Claude model'},
+                {'name': 'gemini-pro', 'provider': 'Google', 'description': 'Google\'s advanced AI model'},
+                {'name': 'gemini-flash', 'provider': 'Google', 'description': 'Fast Gemini model'}
+            ]
+            app.logger.info(f"Using default models: {len(models)} models")
+        
+        return jsonify(models)
+    
+    except Exception as e:
+        app.logger.error(f"Error getting available models: {str(e)}")
+        return jsonify({'error': 'Failed to get available models'}), 500
+
+@app.route('/api/models', methods=['POST'])
+def add_model():
+    """Add a new model"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
+        name = data.get('name', '').strip()
+        provider = data.get('provider', '').strip()
+        description = data.get('description', '').strip()
+        
+        if not name or not provider:
+            return jsonify({'error': 'Model name and provider are required'}), 400
+        
+        # Load existing models
+        models_file = os.path.join(app.instance_path, 'available_models.json')
+        if os.path.exists(models_file):
+            import json
+            with open(models_file, 'r') as f:
+                models = json.load(f)
+        else:
+            models = []
+        
+        # Check if model already exists
+        if any(model['name'] == name for model in models):
+            return jsonify({'error': f'Model {name} already exists'}), 400
+        
+        # Add new model
+        new_model = {
+            'name': name,
+            'provider': provider,
+            'description': description or f'{provider} model'
+        }
+        models.append(new_model)
+        
+        # Save to file
+        os.makedirs(app.instance_path, exist_ok=True)
+        import json
+        with open(models_file, 'w') as f:
+            json.dump(models, f, indent=2)
+        
+        app.logger.info(f"Added model: {name} ({provider})")
+        return jsonify({'success': True, 'model': new_model})
+    
+    except Exception as e:
+        app.logger.error(f"Error adding model: {str(e)}")
+        return jsonify({'error': 'Failed to add model'}), 500
+
+@app.route('/api/models/<model_name>', methods=['DELETE'])
+def remove_model(model_name):
+    """Remove a model"""
+    try:
+        # Load existing models
+        models_file = os.path.join(app.instance_path, 'available_models.json')
+        if not os.path.exists(models_file):
+            return jsonify({'error': 'No models file found'}), 404
+        
+        import json
+        with open(models_file, 'r') as f:
+            models = json.load(f)
+        
+        # Find and remove model
+        original_count = len(models)
+        models = [model for model in models if model['name'] != model_name]
+        
+        if len(models) == original_count:
+            return jsonify({'error': f'Model {model_name} not found'}), 404
+        
+        # Save updated list
+        with open(models_file, 'w') as f:
+            json.dump(models, f, indent=2)
+        
+        app.logger.info(f"Removed model: {model_name}")
+        return jsonify({'success': True, 'message': f'Model {model_name} removed'})
+    
+    except Exception as e:
+        app.logger.error(f"Error removing model: {str(e)}")
+        return jsonify({'error': 'Failed to remove model'}), 500
+
+@app.route('/api/api-keys/status', methods=['GET'])
+def get_api_key_status():
+    """Get status of API keys (without exposing actual keys)"""
+    try:
+        # Check which API keys are configured in Railway environment
+        api_keys = {
+            'OPENAI_API_KEY': {
+                'configured': bool(os.getenv('OPENAI_API_KEY', '').strip()),
+                'provider': 'OpenAI',
+                'models_supported': 'gpt-*, o1-*'
+            },
+            'CLAUDE_API_KEY': {
+                'configured': bool(os.getenv('CLAUDE_API_KEY', '').strip()),
+                'provider': 'Anthropic', 
+                'models_supported': 'claude-*'
+            },
+            'GEMINI_API_KEY': {
+                'configured': bool(os.getenv('GEMINI_API_KEY', '').strip()),
+                'provider': 'Google',
+                'models_supported': 'gemini-*'
+            },
+            'HUGGING_FACE_API_KEY': {
+                'configured': bool(os.getenv('HUGGING_FACE_API_KEY', '').strip()),
+                'provider': 'Hugging Face',
+                'models_supported': 'llama*, mixtral*, codellama*'
+            },
+            'STABILITY_API_KEY': {
+                'configured': bool(os.getenv('STABILITY_API_KEY', '').strip()),
+                'provider': 'Stability AI',
+                'models_supported': 'stable-*'
+            }
+        }
+        
+        app.logger.info(f"API key status check completed")
+        return jsonify(api_keys)
+    
+    except Exception as e:
+        app.logger.error(f"Error checking API key status: {str(e)}")
+        return jsonify({'error': 'Failed to check API key status'}), 500
+
+@app.route('/api/providers', methods=['GET'])
+def get_providers():
+    """Get list of supported providers"""
+    try:
+        providers = [
+            {
+                'name': 'OpenAI',
+                'api_key': 'OPENAI_API_KEY',
+                'model_patterns': ['gpt-*', 'o1-*'],
+                'description': 'GPT models and O1 reasoning models'
+            },
+            {
+                'name': 'Anthropic', 
+                'api_key': 'CLAUDE_API_KEY',
+                'model_patterns': ['claude-*'],
+                'description': 'Claude family models'
+            },
+            {
+                'name': 'Google',
+                'api_key': 'GEMINI_API_KEY', 
+                'model_patterns': ['gemini-*'],
+                'description': 'Gemini models'
+            },
+            {
+                'name': 'Hugging Face',
+                'api_key': 'HUGGING_FACE_API_KEY',
+                'model_patterns': ['llama*', 'mixtral*', 'codellama*'],
+                'description': 'Open source models via Hugging Face'
+            },
+            {
+                'name': 'Stability AI',
+                'api_key': 'STABILITY_API_KEY',
+                'model_patterns': ['stable-*'],
+                'description': 'Image generation models'
+            }
+        ]
+        
+        return jsonify(providers)
+    
+    except Exception as e:
+        app.logger.error(f"Error getting providers: {str(e)}")
+        return jsonify({'error': 'Failed to get providers'}), 500
+
+# ==================== END DYNAMIC MODEL MANAGEMENT API ====================
+
 # ==================== PREFERENCES API ====================
 
 @app.route('/api/preferences', methods=['GET'])
