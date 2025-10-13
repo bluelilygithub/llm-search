@@ -3412,9 +3412,19 @@ window.refreshModelsList = async function() {
 // Model Management Modal Functions
 window.openModelManagement = function() {
     const modal = document.getElementById('model-management-modal');
+    const settingsPanel = document.getElementById('settings-panel');
+    
     if (modal) {
+        // Hide the settings panel completely when model management opens
+        if (settingsPanel) {
+            settingsPanel.style.opacity = '0';
+            settingsPanel.style.pointerEvents = 'none';
+            settingsPanel.style.zIndex = '999'; // Lower than modal
+        }
+        
         modal.style.display = 'flex';
         modal.setAttribute('aria-hidden', 'false');
+        modal.style.zIndex = '1000'; // Higher than settings panel
         
         // Add keyboard event listener for ESC key
         const handleKeydown = (e) => {
@@ -3468,9 +3478,18 @@ window.openModelManagement = function() {
 
 window.closeModelManagement = function() {
     const modal = document.getElementById('model-management-modal');
+    const settingsPanel = document.getElementById('settings-panel');
+    
     if (modal) {
         modal.style.display = 'none';
         modal.setAttribute('aria-hidden', 'true');
+        
+        // Restore the settings panel
+        if (settingsPanel) {
+            settingsPanel.style.opacity = '1';
+            settingsPanel.style.pointerEvents = 'auto';
+            settingsPanel.style.zIndex = '1000'; // Restore original z-index
+        }
     }
 };
 
@@ -3652,31 +3671,32 @@ async function loadCurrentModelsList() {
             const enabledClass = modelSettings.enabled ? 'enabled' : 'disabled';
             const modelType = model.isDynamic ? '' : ' (Legacy)';
             
-            html += `
-                <div class="model-row" data-model="${model.name}">
-                    <div class="model-name">
-                        ${model.name}${modelType}
-                        ${!model.isDynamic ? '<button class="btn-tiny btn-migrate" onclick="migrateModel(\''+model.name+'\')" title="Migrate to dynamic system"><i class="fas fa-arrow-up"></i></button>' : ''}
-                    </div>
-                    <div class="model-provider">${model.provider}</div>
-                    <div class="model-api-key">${model.api_key || 'Auto-detected'}</div>
-                    <div class="model-enabled ${enabledClass}">
-                        ${enabledStatus}
-                        <button class="btn-tiny" onclick="toggleModelEnabledInManagement('${model.name}', ${!modelSettings.enabled})" title="Toggle enabled status">
-                            <i class="fas fa-toggle-${modelSettings.enabled ? 'on' : 'off'}"></i>
-                        </button>
-                    </div>
-                    <div class="model-status" id="mgmt-status-${model.name}">
-                        <span class="status-unknown">Unknown</span>
-                    </div>
-                    <div class="model-actions">
-                        <button class="btn-small btn-secondary" onclick="testModelInManagement('${model.name}')" title="Test Access">
-                            <i class="fas fa-flask"></i>
-                        </button>
-                        ${model.isDynamic ? '<button class="btn-small btn-danger" onclick="deleteModel(\''+model.name+'\')" title="Remove Model"><i class="fas fa-trash"></i></button>' : ''}
-                    </div>
-                </div>
-            `;
+                   html += `
+                       <div class="model-row" data-model="${model.name}">
+                           <div class="model-name">
+                               ${model.name}${modelType}
+                               ${!model.isDynamic ? '<button class="btn-tiny btn-migrate" onclick="migrateModel(\''+model.name+'\')" title="Migrate to dynamic system"><i class="fas fa-arrow-up"></i></button>' : ''}
+                           </div>
+                           <div class="model-provider">${model.provider}</div>
+                           <div class="model-api-key">${model.api_key || 'Auto-detected'}</div>
+                           <div class="model-enabled ${enabledClass}">
+                               <label class="toggle-switch" title="Toggle model enabled/disabled">
+                                   <input type="checkbox" ${modelSettings.enabled ? 'checked' : ''} 
+                                          onchange="toggleModelEnabledInManagement('${model.name}', this.checked)">
+                                   <span class="toggle-slider"></span>
+                               </label>
+                           </div>
+                           <div class="model-status" id="mgmt-status-${model.name}">
+                               <span class="status-unknown">Unknown</span>
+                           </div>
+                           <div class="model-actions">
+                               <button class="btn-small btn-secondary" onclick="testModelInManagement('${model.name}')" title="Test Access">
+                                   <i class="fas fa-flask"></i>
+                               </button>
+                               ${model.isDynamic ? '<button class="btn-small btn-danger" onclick="deleteModel(\''+model.name+'\')" title="Remove Model"><i class="fas fa-trash"></i></button>' : ''}
+                           </div>
+                       </div>
+                   `;
         });
         
         container.innerHTML = html;
@@ -3935,6 +3955,8 @@ window.refreshModelManagement = async function() {
 // Function to toggle model enabled status from Model Management
 window.toggleModelEnabledInManagement = async function(modelName, newEnabledState) {
     try {
+        console.log(`Toggling model ${modelName} to ${newEnabledState ? 'enabled' : 'disabled'}`);
+        
         // Load current settings
         const response = await fetch('/api/model-settings');
         const settings = response.ok ? await response.json() : {};
@@ -3953,20 +3975,47 @@ window.toggleModelEnabledInManagement = async function(modelName, newEnabledStat
         });
         
         if (saveResponse.ok) {
-            // Reload the models list to show updated status
-            await loadCurrentModelsList();
+            console.log(`Successfully toggled ${modelName} to ${newEnabledState ? 'enabled' : 'disabled'}`);
+            
+            // Update the visual state of the row immediately (without full reload)
+            const modelRow = document.querySelector(`[data-model="${modelName}"]`);
+            if (modelRow) {
+                const enabledCell = modelRow.querySelector('.model-enabled');
+                if (enabledCell) {
+                    enabledCell.className = `model-enabled ${newEnabledState ? 'enabled' : 'disabled'}`;
+                }
+            }
             
             // Also reload the settings panel if it's open
             if (window.app && window.app.loadModelsForSettingsPanel) {
                 window.app.loadModelsForSettingsPanel();
             }
+            
+            // Refresh the main model dropdown
+            if (window.app && window.app.loadMainModelDropdown) {
+                await window.app.loadMainModelDropdown();
+            }
+            
         } else {
+            console.error('Failed to save model settings');
             alert('Failed to save model settings');
+            
+            // Revert the checkbox state on error
+            const checkbox = document.querySelector(`[data-model="${modelName}"] input[type="checkbox"]`);
+            if (checkbox) {
+                checkbox.checked = !newEnabledState;
+            }
         }
         
     } catch (error) {
         console.error('Error toggling model enabled status:', error);
         alert('Error updating model status: ' + error.message);
+        
+        // Revert the checkbox state on error
+        const checkbox = document.querySelector(`[data-model="${modelName}"] input[type="checkbox"]`);
+        if (checkbox) {
+            checkbox.checked = !newEnabledState;
+        }
     }
 };
 
