@@ -1,10 +1,10 @@
 <!-- Model Management Modal -->
-<div class="modal model-management-modal" id="model-management-modal" style="display: none;">
+<div class="modal model-management-modal" id="model-management-modal" style="display: none;" tabindex="-1" role="dialog" aria-labelledby="model-management-title" aria-hidden="true">
     <div class="modal-content">
         <!-- Header -->
         <div class="modal-header">
-            <h2>Model Management</h2>
-            <button class="modal-close-btn" onclick="closeModelManagement()">
+            <h2 id="model-management-title">Model Management</h2>
+            <button class="modal-close-btn" onclick="closeModelManagement()" aria-label="Close modal">
                 <i class="fas fa-times"></i>
             </button>
         </div>

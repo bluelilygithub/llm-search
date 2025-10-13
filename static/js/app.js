@@ -3423,6 +3423,17 @@ window.openModelManagement = function() {
     const modal = document.getElementById('model-management-modal');
     if (modal) {
         modal.style.display = 'flex';
+        
+        // Set focus to the modal to make it active
+        setTimeout(() => {
+            modal.focus();
+            // Also try to focus on the first focusable element
+            const firstFocusable = modal.querySelector('input, button, select, textarea, [tabindex]:not([tabindex="-1"])');
+            if (firstFocusable) {
+                firstFocusable.focus();
+            }
+        }, 100);
+        
         // Load model management data
         loadModelManagementData();
     }
@@ -3495,6 +3506,9 @@ async function loadCurrentModelsList() {
         const dynamicModels = await modelsResponse.json();
         const settings = settingsResponse.ok ? await settingsResponse.json() : {};
         
+        console.log('Dynamic models:', dynamicModels);
+        console.log('Settings:', settings);
+        
         // Create a combined list of all models (dynamic + legacy from settings)
         const allModels = new Map();
         
@@ -3506,9 +3520,12 @@ async function loadCurrentModelsList() {
             });
         });
         
+        console.log('After adding dynamic models:', Array.from(allModels.keys()));
+        
         // Add legacy models from settings that aren't in dynamic list
         Object.keys(settings).forEach(modelName => {
             if (!allModels.has(modelName)) {
+                console.log('Adding legacy model:', modelName);
                 // This is a legacy model - try to detect provider from name
                 let provider = 'Unknown';
                 let apiKey = null;
@@ -3541,6 +3558,7 @@ async function loadCurrentModelsList() {
         });
         
         const modelsList = Array.from(allModels.values());
+        console.log('Final models list:', modelsList);
         
         if (modelsList.length === 0) {
             container.innerHTML = '<div class="no-models">No models configured. Add some models above!</div>';
