@@ -1,6 +1,6 @@
 <!-- Model Management Modal -->
 <div class="modal model-management-modal" id="model-management-modal" style="display: none;" tabindex="0" role="dialog" aria-labelledby="model-management-title" aria-hidden="true">
-    <div class="modal-content">
+    <div class="modal-content" tabindex="0">
         <!-- Header -->
         <div class="modal-header">
             <h2 id="model-management-title">Model Management</h2>
@@ -94,11 +94,12 @@
     align-items: center;
     justify-content: center;
     z-index: 1000;
-    outline: none; /* Remove focus outline on modal container */
+    outline: none;
+    pointer-events: auto; /* Ensure modal can receive events */
 }
 
 .model-management-modal:focus {
-    outline: none; /* Ensure no outline when focused */
+    outline: none;
 }
 
 .model-management-modal .modal-content {
@@ -110,6 +111,9 @@
     overflow-y: auto;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
     outline: none;
+    pointer-events: auto; /* Ensure content can receive events */
+    z-index: 1001; /* Higher than modal background */
+    position: relative; /* Create stacking context */
 }
 
 .model-management-modal .modal-header {

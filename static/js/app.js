@@ -3425,16 +3425,41 @@ window.openModelManagement = function() {
         };
         document.addEventListener('keydown', handleKeydown);
         
-        // Force focus on the modal to make it active
-        setTimeout(() => {
+        // Aggressive approach to break through the modal mask
+        requestAnimationFrame(() => {
+            const modalContent = modal.querySelector('.modal-content');
+            
+            // Simulate click on modal content to break through mask
+            if (modalContent) {
+                const clickEvent = new MouseEvent('click', {
+                    bubbles: true,
+                    cancelable: true,
+                    view: window,
+                    clientX: modalContent.offsetLeft + modalContent.offsetWidth / 2,
+                    clientY: modalContent.offsetTop + modalContent.offsetHeight / 2
+                });
+                modalContent.dispatchEvent(clickEvent);
+                
+                // Focus the modal content
+                modalContent.focus();
+            }
+            
+            // Focus the modal container
             modal.focus();
             
-            // Also focus on the first input field for better UX
-            const firstInput = modal.querySelector('input[type="text"], select');
-            if (firstInput) {
-                firstInput.focus();
-            }
-        }, 150);
+            // Focus the first input after a delay
+            setTimeout(() => {
+                const firstInput = modal.querySelector('input[type="text"]');
+                if (firstInput) {
+                    firstInput.focus();
+                    firstInput.select(); // Select text if any
+                    
+                    // Simulate typing to ensure it's active
+                    const inputEvent = new Event('input', { bubbles: true });
+                    firstInput.dispatchEvent(inputEvent);
+                }
+            }, 200);
+        });
         
         // Load model management data
         loadModelManagementData();
@@ -3446,9 +3471,6 @@ window.closeModelManagement = function() {
     if (modal) {
         modal.style.display = 'none';
         modal.setAttribute('aria-hidden', 'true');
-        
-        // Remove any keyboard event listeners
-        document.removeEventListener('keydown', arguments.callee.handleKeydown);
     }
 };
 
