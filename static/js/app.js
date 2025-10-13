@@ -3492,10 +3492,57 @@ async function loadCurrentModelsList() {
             fetch('/api/model-settings')
         ]);
         
-        const models = await modelsResponse.json();
+        const dynamicModels = await modelsResponse.json();
         const settings = settingsResponse.ok ? await settingsResponse.json() : {};
         
-        if (models.length === 0) {
+        // Create a combined list of all models (dynamic + legacy from settings)
+        const allModels = new Map();
+        
+        // Add dynamic models first
+        dynamicModels.forEach(model => {
+            allModels.set(model.name, {
+                ...model,
+                isDynamic: true
+            });
+        });
+        
+        // Add legacy models from settings that aren't in dynamic list
+        Object.keys(settings).forEach(modelName => {
+            if (!allModels.has(modelName)) {
+                // This is a legacy model - try to detect provider from name
+                let provider = 'Unknown';
+                let apiKey = null;
+                
+                if (modelName.startsWith('gpt-') || modelName.startsWith('o1-')) {
+                    provider = 'OpenAI';
+                    apiKey = 'OPENAI_API_KEY';
+                } else if (modelName.startsWith('claude-')) {
+                    provider = 'Anthropic';
+                    apiKey = 'CLAUDE_API_KEY';
+                } else if (modelName.startsWith('gemini-')) {
+                    provider = 'Google';
+                    apiKey = 'GEMINI_API_KEY';
+                } else if (modelName.includes('llama') || modelName.includes('mixtral') || modelName.includes('codellama')) {
+                    provider = 'Hugging Face';
+                    apiKey = 'HUGGING_FACE_API_KEY';
+                } else if (modelName.startsWith('stable-')) {
+                    provider = 'Stability AI';
+                    apiKey = 'STABILITY_API_KEY';
+                }
+                
+                allModels.set(modelName, {
+                    name: modelName,
+                    provider: provider,
+                    api_key: apiKey,
+                    description: `Legacy ${provider} model`,
+                    isDynamic: false
+                });
+            }
+        });
+        
+        const modelsList = Array.from(allModels.values());
+        
+        if (modelsList.length === 0) {
             container.innerHTML = '<div class="no-models">No models configured. Add some models above!</div>';
             return;
         }
@@ -3511,14 +3558,18 @@ async function loadCurrentModelsList() {
             </div>
         `;
         
-        models.forEach(model => {
+        modelsList.forEach(model => {
             const modelSettings = settings[model.name] || { enabled: false };
             const enabledStatus = modelSettings.enabled ? '✅ Yes' : '❌ No';
             const enabledClass = modelSettings.enabled ? 'enabled' : 'disabled';
+            const modelType = model.isDynamic ? '' : ' (Legacy)';
             
             html += `
                 <div class="model-row" data-model="${model.name}">
-                    <div class="model-name">${model.name}</div>
+                    <div class="model-name">
+                        ${model.name}${modelType}
+                        ${!model.isDynamic ? '<button class="btn-tiny btn-migrate" onclick="migrateModel(\''+model.name+'\')" title="Migrate to dynamic system"><i class="fas fa-arrow-up"></i></button>' : ''}
+                    </div>
                     <div class="model-provider">${model.provider}</div>
                     <div class="model-api-key">${model.api_key || 'Auto-detected'}</div>
                     <div class="model-enabled ${enabledClass}">
@@ -3534,9 +3585,7 @@ async function loadCurrentModelsList() {
                         <button class="btn-small btn-secondary" onclick="testModelInManagement('${model.name}')" title="Test Access">
                             <i class="fas fa-flask"></i>
                         </button>
-                        <button class="btn-small btn-danger" onclick="deleteModel('${model.name}')" title="Remove Model">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                        ${model.isDynamic ? '<button class="btn-small btn-danger" onclick="deleteModel(\''+model.name+'\')" title="Remove Model"><i class="fas fa-trash"></i></button>' : ''}
                     </div>
                 </div>
             `;
@@ -3546,7 +3595,7 @@ async function loadCurrentModelsList() {
         
         // Auto-test all models after loading
         setTimeout(() => {
-            models.forEach(model => {
+            modelsList.forEach(model => {
                 testModelInManagement(model.name, false); // false = don't show alert
             });
         }, 500);
@@ -3808,6 +3857,49 @@ window.toggleModelEnabledInManagement = async function(modelName, newEnabledStat
     } catch (error) {
         console.error('Error toggling model enabled status:', error);
         alert('Error updating model status: ' + error.message);
+    }
+};
+
+// Function to migrate a legacy model to the dynamic system
+window.migrateModel = async function(modelName) {
+    try {
+        // Get the legacy model info from the current display
+        const modelRow = document.querySelector(`[data-model="${modelName}"]`);
+        if (!modelRow) {
+            alert('Model not found');
+            return;
+        }
+        
+        const provider = modelRow.querySelector('.model-provider').textContent;
+        const apiKey = modelRow.querySelector('.model-api-key').textContent;
+        
+        // Add to dynamic system
+        const response = await fetch('/api/models', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                name: modelName,
+                provider: provider,
+                api_key: apiKey !== 'Auto-detected' ? apiKey : null,
+                description: `Migrated ${provider} model`
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+            // Reload the models list to show the migrated model
+            await loadCurrentModelsList();
+            alert(`✓ Model "${modelName}" migrated to dynamic system!`);
+        } else {
+            alert(`✗ Failed to migrate model: ${result.error || 'Unknown error'}`);
+        }
+        
+    } catch (error) {
+        console.error('Error migrating model:', error);
+        alert(`✗ Network error: ${error.message}`);
     }
 };
 
