@@ -136,16 +136,16 @@
 
 /* API Keys Simple Display */
 .api-keys-simple {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
 .api-key-simple {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px 15px;
+    padding: 12px 15px;
     background: #f8f9fa;
     border-radius: 5px;
     border-left: 4px solid #ddd;
@@ -161,13 +161,26 @@
     background: #f8d7da;
 }
 
+.api-key-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
 .api-key-name {
     font-weight: bold;
     color: #333;
+    font-family: 'Courier New', monospace;
+}
+
+.api-key-provider {
+    color: #666;
+    font-size: 14px;
 }
 
 .api-key-status {
     font-size: 14px;
+    font-weight: bold;
 }
 
 /* Add Model Form Grid */

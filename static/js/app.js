@@ -3463,7 +3463,10 @@ async function loadApiKeysStatus() {
             
             html += `
                 <div class="api-key-simple ${statusClass}">
-                    <div class="api-key-name">${keyName}</div>
+                    <div class="api-key-info">
+                        <span class="api-key-name">${keyName}</span>
+                        <span class="api-key-provider">(${info.provider})</span>
+                    </div>
                     <div class="api-key-status">${status}</div>
                 </div>
             `;
