@@ -34,65 +34,26 @@
             <!-- Models Section -->
             <div class="settings-section active" id="models-section">
                 <div class="section-header">
-                    <h3>Dynamic Model Management</h3>
-                    <p>Add, remove, and test AI models. API keys are securely stored in Railway environment variables.</p>
+                    <h3>Model Configuration</h3>
+                    <p>Manage which models are available in the dropdown and check their access status.</p>
                 </div>
 
-                <!-- API Key Status -->
-                <div class="api-keys-status">
-                    <h4>API Key Status (Railway Environment Variables)</h4>
-                    <div id="api-keys-list">
-                        <div class="loading-models">Loading API key status...</div>
-                    </div>
-                </div>
-
-                <!-- Add New Model -->
-                <div class="add-model-section">
-                    <h4>Add New Model</h4>
-                    <div class="add-model-form">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="new-model-name">Model Name:</label>
-                                <input type="text" id="new-model-name" placeholder="e.g., gpt-4-vision-preview" />
-                            </div>
-                            <div class="form-group">
-                                <label for="new-model-provider">Provider:</label>
-                                <select id="new-model-provider">
-                                    <option value="">Select provider...</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="new-model-description">Description (optional):</label>
-                                <input type="text" id="new-model-description" placeholder="Brief description of the model" />
-                            </div>
-                        </div>
-                        <div class="form-actions">
-                            <button class="btn-secondary" onclick="testNewModel()" id="test-new-model-btn">
-                                <i class="fas fa-flask"></i>
-                                Test Access
-                            </button>
-                            <button class="btn-primary" onclick="addNewModel()" id="add-new-model-btn">
-                                <i class="fas fa-plus"></i>
-                                Add Model
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Current Models -->
-                <div class="current-models-section">
+                <div class="models-container">
                     <div class="models-header">
-                        <h4>Current Models</h4>
                         <div class="models-actions">
                             <button class="btn-secondary" onclick="checkAllModelsAccess()">
                                 <i class="fas fa-sync"></i>
                                 Check All Access
                             </button>
-                            <button class="btn-secondary" onclick="refreshModelsList()">
-                                <i class="fas fa-refresh"></i>
-                                Refresh List
+
+                            <button class="btn-primary" onclick="saveModelSettings()">
+                                <i class="fas fa-save"></i>
+                                Save Changes
+                            </button>
+                            
+                            <button class="btn-info" onclick="openModelManagement()">
+                                <i class="fas fa-cogs"></i>
+                                Manage Models
                             </button>
                         </div>
                     </div>

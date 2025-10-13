@@ -1,0 +1,90 @@
+<!-- Model Management Modal -->
+<div class="modal model-management-modal" id="model-management-modal" style="display: none;">
+    <div class="modal-content">
+        <!-- Header -->
+        <div class="modal-header">
+            <h2>Model Management</h2>
+            <button class="modal-close-btn" onclick="closeModelManagement()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <!-- Body -->
+        <div class="modal-body">
+            <!-- API Key Status -->
+            <div class="section">
+                <h3>API Key Status</h3>
+                <p>Railway Environment Variables (keys are secure and not exposed)</p>
+                <div id="api-keys-status" class="api-keys-grid">
+                    <div class="loading">Loading API key status...</div>
+                </div>
+            </div>
+
+            <!-- Add New Model -->
+            <div class="section">
+                <h3>Add New Model</h3>
+                <div class="add-model-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="model-name">Model Name:</label>
+                            <input type="text" id="model-name" placeholder="e.g., gpt-4-vision-preview" />
+                        </div>
+                        <div class="form-group">
+                            <label for="model-provider">Provider:</label>
+                            <select id="model-provider">
+                                <option value="">Select provider...</option>
+                                <option value="OpenAI">OpenAI</option>
+                                <option value="Anthropic">Anthropic</option>
+                                <option value="Google">Google</option>
+                                <option value="Hugging Face">Hugging Face</option>
+                                <option value="Stability AI">Stability AI</option>
+                                <option value="Custom">Custom</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="model-api-key">API Key Name:</label>
+                            <input type="text" id="model-api-key" placeholder="e.g., OPENAI_API_KEY" />
+                            <small>Railway environment variable name (without the actual key)</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="model-description">Description:</label>
+                            <input type="text" id="model-description" placeholder="Brief description" />
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn btn-secondary" onclick="testModelAccess()" id="test-model-btn">
+                            <i class="fas fa-flask"></i>
+                            Test Access
+                        </button>
+                        <button class="btn btn-primary" onclick="addModel()" id="add-model-btn">
+                            <i class="fas fa-plus"></i>
+                            Add Model
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Current Models -->
+            <div class="section">
+                <h3>Current Models</h3>
+                <div id="current-models-list" class="models-table">
+                    <div class="loading">Loading models...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModelManagement()">
+                <i class="fas fa-times"></i>
+                Close
+            </button>
+            <button class="btn btn-info" onclick="refreshModelManagement()">
+                <i class="fas fa-refresh"></i>
+                Refresh All
+            </button>
+        </div>
+    </div>
+</div>
