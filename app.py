@@ -2525,23 +2525,60 @@ def get_available_models():
                 models = json.load(f)
             app.logger.info(f"Loaded models from file: {len(models)} models")
         else:
-            # Default models if file doesn't exist
-            models = [
-                {'name': 'gpt-3.5-turbo', 'provider': 'OpenAI', 'description': 'Fast and efficient for most tasks'},
-                {'name': 'gpt-4', 'provider': 'OpenAI', 'description': 'Most capable GPT model'},
-                {'name': 'gpt-4o', 'provider': 'OpenAI', 'description': 'Latest GPT-4 optimized model'},
-                {'name': 'claude-3.5-sonnet', 'provider': 'Anthropic', 'description': 'Latest Claude model'},
-                {'name': 'claude-3-opus', 'provider': 'Anthropic', 'description': 'Most powerful Claude model'},
-                {'name': 'gemini-pro', 'provider': 'Google', 'description': 'Google\'s advanced AI model'},
-                {'name': 'gemini-flash', 'provider': 'Google', 'description': 'Fast Gemini model'}
-            ]
-            app.logger.info(f"Using default models: {len(models)} models")
+            # Create starter models if file doesn't exist
+            models = create_starter_models()
+            app.logger.info(f"Created starter models: {len(models)} models")
         
         return jsonify(models)
     
     except Exception as e:
         app.logger.error(f"Error getting available models: {str(e)}")
         return jsonify({'error': 'Failed to get available models'}), 500
+
+def create_starter_models():
+    """Create a set of starter models for new installations"""
+    starter_models = [
+        # OpenAI Models
+        {'name': 'gpt-3.5-turbo', 'provider': 'OpenAI', 'api_key': 'OPENAI_API_KEY', 'description': 'Fast and efficient for most tasks'},
+        {'name': 'gpt-4', 'provider': 'OpenAI', 'api_key': 'OPENAI_API_KEY', 'description': 'Most capable GPT model'},
+        {'name': 'gpt-4-turbo', 'provider': 'OpenAI', 'api_key': 'OPENAI_API_KEY', 'description': 'Faster GPT-4 with longer context'},
+        {'name': 'gpt-4o', 'provider': 'OpenAI', 'api_key': 'OPENAI_API_KEY', 'description': 'Latest GPT-4 optimized model'},
+        {'name': 'gpt-4o-mini', 'provider': 'OpenAI', 'api_key': 'OPENAI_API_KEY', 'description': 'Compact version of GPT-4o'},
+        {'name': 'o1-preview', 'provider': 'OpenAI', 'api_key': 'OPENAI_API_KEY', 'description': 'Advanced reasoning model'},
+        {'name': 'o1-mini', 'provider': 'OpenAI', 'api_key': 'OPENAI_API_KEY', 'description': 'Compact reasoning model'},
+        
+        # Anthropic Models
+        {'name': 'claude-3.5-sonnet', 'provider': 'Anthropic', 'api_key': 'CLAUDE_API_KEY', 'description': 'Latest Claude model'},
+        {'name': 'claude-3-opus', 'provider': 'Anthropic', 'api_key': 'CLAUDE_API_KEY', 'description': 'Most powerful Claude model'},
+        {'name': 'claude-3-sonnet', 'provider': 'Anthropic', 'api_key': 'CLAUDE_API_KEY', 'description': 'Balanced Claude model'},
+        {'name': 'claude-3-haiku', 'provider': 'Anthropic', 'api_key': 'CLAUDE_API_KEY', 'description': 'Fastest Claude model'},
+        
+        # Google Models
+        {'name': 'gemini-pro', 'provider': 'Google', 'api_key': 'GEMINI_API_KEY', 'description': 'Google\'s advanced AI model'},
+        {'name': 'gemini-flash', 'provider': 'Google', 'api_key': 'GEMINI_API_KEY', 'description': 'Fast Gemini model'},
+        
+        # Hugging Face Models
+        {'name': 'llama2-70b', 'provider': 'Hugging Face', 'api_key': 'HUGGING_FACE_API_KEY', 'description': 'Large language model'},
+        {'name': 'mixtral-8x7b', 'provider': 'Hugging Face', 'api_key': 'HUGGING_FACE_API_KEY', 'description': 'Mixture of experts model'},
+        {'name': 'codellama-34b', 'provider': 'Hugging Face', 'api_key': 'HUGGING_FACE_API_KEY', 'description': 'Code generation model'},
+        
+        # Stability AI Models
+        {'name': 'stable-image-ultra', 'provider': 'Stability AI', 'api_key': 'STABILITY_API_KEY', 'description': 'Ultra-high quality image generation'},
+        {'name': 'stable-image-core', 'provider': 'Stability AI', 'api_key': 'STABILITY_API_KEY', 'description': 'Core image generation model'},
+        {'name': 'stable-image-sd3', 'provider': 'Stability AI', 'api_key': 'STABILITY_API_KEY', 'description': 'Stable Diffusion 3 model'},
+        {'name': 'stable-audio-2', 'provider': 'Stability AI', 'api_key': 'STABILITY_API_KEY', 'description': 'Audio generation model'}
+    ]
+    
+    # Save starter models to file
+    models_file = os.path.join(app.instance_path, 'available_models.json')
+    os.makedirs(app.instance_path, exist_ok=True)
+    
+    import json
+    with open(models_file, 'w') as f:
+        json.dump(starter_models, f, indent=2)
+    
+    app.logger.info(f"Created starter models file with {len(starter_models)} models")
+    return starter_models
 
 @app.route('/api/models', methods=['POST'])
 def add_model():

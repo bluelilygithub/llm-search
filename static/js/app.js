@@ -2854,70 +2854,59 @@ KnowledgeBaseApp.prototype.loadModelsForSettingsPanel = async function() {
         console.error('Models list container not found');
         return;
     }
-    
+
     try {
         modelsList.innerHTML = '<div class="loading-models">Loading model configurations...</div>';
-        
-        // Define available models (this should match your backend)
-        const availableModels = {
-            'openai': [
-                {value: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', description: 'Fast and efficient for most tasks'},
-                {value: 'gpt-4', name: 'GPT-4', description: 'Most capable GPT model'},
-                {value: 'gpt-4-turbo', name: 'GPT-4 Turbo', description: 'Faster GPT-4 with longer context'},
-                {value: 'gpt-4o', name: 'GPT-4o', description: 'Latest GPT-4 optimized model'},
-                {value: 'gpt-4o-mini', name: 'GPT-4o Mini', description: 'Compact version of GPT-4o'}
-            ],
-            'anthropic': [
-                {value: 'claude-3.5-sonnet', name: 'Claude 3.5 Sonnet', description: 'Latest Claude model'},
-                {value: 'claude-3-opus', name: 'Claude 3 Opus', description: 'Most powerful Claude model'},
-                {value: 'claude-3-sonnet', name: 'Claude 3 Sonnet', description: 'Balanced Claude model'},
-                {value: 'claude-3-haiku', name: 'Claude 3 Haiku', description: 'Fastest Claude model'}
-            ],
-            'google': [
-                {value: 'gemini-pro', name: 'Gemini Pro', description: 'Google\'s advanced AI model'},
-                {value: 'gemini-flash', name: 'Gemini Flash', description: 'Fast Gemini model'}
-            ]
-        };
-        
-        // Try to load current settings from server
-        let modelSettings = {};
-        try {
-            const response = await fetch('/api/model-settings');
-            if (response.ok) {
-                modelSettings = await response.json();
+
+        // Load dynamic models and settings in parallel
+        const [modelsResponse, settingsResponse] = await Promise.all([
+            fetch('/api/models'),
+            fetch('/api/model-settings')
+        ]);
+
+        const availableModels = await modelsResponse.json();
+        const modelSettings = settingsResponse.ok ? await settingsResponse.json() : {};
+
+        console.log('Settings panel - Available models:', availableModels);
+        console.log('Settings panel - Model settings:', modelSettings);
+
+        // Group models by provider
+        const modelsByProvider = {};
+        availableModels.forEach(model => {
+            if (!modelsByProvider[model.provider]) {
+                modelsByProvider[model.provider] = [];
             }
-        } catch (error) {
-            console.log('Could not load model settings from server, using defaults');
-        }
-        
-        // Generate HTML for models
+            modelsByProvider[model.provider].push(model);
+        });
+
+        // Generate HTML for models grouped by provider
         let html = '';
-        Object.keys(availableModels).forEach(provider => {
-            const providerName = provider.charAt(0).toUpperCase() + provider.slice(1);
+        Object.keys(modelsByProvider).forEach(provider => {
+            const providerModels = modelsByProvider[provider];
             html += `
                 <div class="model-group">
                     <div class="model-group-header">
                         <h4 class="model-group-title">
                             <i class="fas fa-robot"></i>
-                            ${providerName}
+                            ${provider}
                         </h4>
                         <div class="model-group-actions">
-                            <button class="model-group-btn" onclick="toggleGroupModels('${provider}', true)">Enable All</button>
-                            <button class="model-group-btn" onclick="toggleGroupModels('${provider}', false)">Disable All</button>
+                            <button class="model-group-btn" onclick="toggleGroupModels('${provider.toLowerCase()}', true)">Enable All</button>
+                            <button class="model-group-btn" onclick="toggleGroupModels('${provider.toLowerCase()}', false)">Disable All</button>
                         </div>
                     </div>
                     <div class="models-grid">
             `;
-            
-            availableModels[provider].forEach(model => {
-                const settings = modelSettings[model.value] || { enabled: model.value !== 'gpt-5', status: 'unknown' };
+
+            providerModels.forEach(model => {
+                const settings = modelSettings[model.name] || { enabled: model.name !== 'gpt-5', status: 'unknown' };
                 html += `
                     <div class="model-item">
                         <div class="model-info">
-                            <input type="checkbox" class="model-checkbox" 
-                                   id="model-${model.value}" 
+                            <input type="checkbox" class="model-checkbox"
+                                   id="model-${model.name}"
                                    ${settings.enabled ? 'checked' : ''}
-                                   onchange="toggleModelEnabled('${model.value}')">
+                                   onchange="toggleModelEnabled('${model.name}')">
                             <div class="model-details">
                                 <h5 class="model-name">${model.name}</h5>
                                 <p class="model-description">${model.description}</p>
@@ -2932,15 +2921,15 @@ KnowledgeBaseApp.prototype.loadModelsForSettingsPanel = async function() {
                     </div>
                 `;
             });
-            
+
             html += `
                     </div>
                 </div>
             `;
         });
-        
+
         modelsList.innerHTML = html;
-        
+
     } catch (error) {
         console.error('Failed to load model configurations:', error);
         modelsList.innerHTML = '<div class="loading-models" style="color: red;">Failed to load model configurations</div>';
@@ -3165,10 +3154,12 @@ window.toggleGroupModels = function(provider, enabled) {
     const checkboxes = document.querySelectorAll('.model-checkbox');
     checkboxes.forEach(checkbox => {
         const modelValue = checkbox.id.replace('model-', '');
-        // Check if this model belongs to the provider (simple check)
-        if ((provider === 'openai' && modelValue.startsWith('gpt')) ||
-            (provider === 'anthropic' && modelValue.startsWith('claude')) ||
-            (provider === 'google' && modelValue.startsWith('gemini'))) {
+        // Check if this model belongs to the provider
+        const modelItem = checkbox.closest('.model-item');
+        const modelGroup = modelItem ? modelItem.closest('.model-group') : null;
+        const groupTitle = modelGroup ? modelGroup.querySelector('.model-group-title') : null;
+        
+        if (groupTitle && groupTitle.textContent.trim().toLowerCase().includes(provider.toLowerCase())) {
             checkbox.checked = enabled;
             toggleModelEnabled(modelValue);
         }
@@ -3423,16 +3414,27 @@ window.openModelManagement = function() {
     const modal = document.getElementById('model-management-modal');
     if (modal) {
         modal.style.display = 'flex';
+        modal.setAttribute('aria-hidden', 'false');
         
-        // Set focus to the modal to make it active
+        // Add keyboard event listener for ESC key
+        const handleKeydown = (e) => {
+            if (e.key === 'Escape') {
+                closeModelManagement();
+                document.removeEventListener('keydown', handleKeydown);
+            }
+        };
+        document.addEventListener('keydown', handleKeydown);
+        
+        // Force focus on the modal to make it active
         setTimeout(() => {
             modal.focus();
-            // Also try to focus on the first focusable element
-            const firstFocusable = modal.querySelector('input, button, select, textarea, [tabindex]:not([tabindex="-1"])');
-            if (firstFocusable) {
-                firstFocusable.focus();
+            
+            // Also focus on the first input field for better UX
+            const firstInput = modal.querySelector('input[type="text"], select');
+            if (firstInput) {
+                firstInput.focus();
             }
-        }, 100);
+        }, 150);
         
         // Load model management data
         loadModelManagementData();
@@ -3443,6 +3445,10 @@ window.closeModelManagement = function() {
     const modal = document.getElementById('model-management-modal');
     if (modal) {
         modal.style.display = 'none';
+        modal.setAttribute('aria-hidden', 'true');
+        
+        // Remove any keyboard event listeners
+        document.removeEventListener('keydown', arguments.callee.handleKeydown);
     }
 };
 
@@ -3452,6 +3458,20 @@ async function loadModelManagementData() {
             loadApiKeysStatus(),
             loadCurrentModelsList()
         ]);
+        
+        // Ensure API key dropdown is populated after a short delay
+        setTimeout(() => {
+            const dropdown = document.getElementById('model-api-key');
+            if (dropdown && dropdown.options.length <= 1) {
+                console.log('Retrying API key dropdown population...');
+                // Re-fetch and populate if dropdown is empty
+                fetch('/api/api-keys/status')
+                    .then(response => response.json())
+                    .then(apiKeys => populateApiKeyDropdown(apiKeys))
+                    .catch(error => console.error('Error retrying API key dropdown:', error));
+            }
+        }, 500);
+        
     } catch (error) {
         console.error('Error loading model management data:', error);
     }
@@ -3484,10 +3504,38 @@ async function loadApiKeysStatus() {
         });
         
         container.innerHTML = html;
+        
+        // Also populate the API key dropdown
+        populateApiKeyDropdown(apiKeys);
+        
     } catch (error) {
         console.error('Error loading API key status:', error);
         container.innerHTML = '<div class="error">Failed to load API key status</div>';
     }
+}
+
+function populateApiKeyDropdown(apiKeys) {
+    const dropdown = document.getElementById('model-api-key');
+    if (!dropdown) {
+        console.log('API key dropdown not found, will retry later');
+        return;
+    }
+    
+    console.log('Populating API key dropdown with:', apiKeys);
+    
+    // Clear existing options except the first one
+    dropdown.innerHTML = '<option value="">Auto-detect from provider</option>';
+    
+    // Add all available API keys
+    Object.entries(apiKeys).forEach(([keyName, info]) => {
+        const status = info.configured ? '✅' : '❌';
+        const option = document.createElement('option');
+        option.value = keyName;
+        option.textContent = `${keyName} ${status} (${info.provider})`;
+        dropdown.appendChild(option);
+    });
+    
+    console.log('API key dropdown populated with', dropdown.options.length, 'options');
 }
 
 async function loadCurrentModelsList() {
@@ -3627,13 +3675,13 @@ async function loadCurrentModelsList() {
 window.addModel = async function() {
     const nameInput = document.getElementById('model-name');
     const providerSelect = document.getElementById('model-provider');
-    const apiKeyInput = document.getElementById('model-api-key');
+    const apiKeySelect = document.getElementById('model-api-key');
     const descriptionInput = document.getElementById('model-description');
     const addBtn = document.getElementById('add-model-btn');
     
     const name = nameInput.value.trim();
     const provider = providerSelect.value;
-    const apiKey = apiKeyInput.value.trim();
+    const apiKey = apiKeySelect.value.trim();
     const description = descriptionInput.value.trim();
     
     if (!name || !provider) {
@@ -3651,7 +3699,7 @@ window.addModel = async function() {
             description: description || `${provider} model`
         };
         
-        // Add API key if specified
+        // Add API key if specified (not empty string)
         if (apiKey) {
             payload.api_key = apiKey;
         }
@@ -3673,7 +3721,7 @@ window.addModel = async function() {
             // Clear form
             nameInput.value = '';
             providerSelect.value = '';
-            apiKeyInput.value = '';
+            apiKeySelect.value = '';
             descriptionInput.value = '';
             
             // Auto-enable the new model
@@ -3921,9 +3969,86 @@ window.migrateModel = async function(modelName) {
     }
 };
 
+// Function to load models into the main dropdown
+async function loadMainModelDropdown() {
+    const dropdown = document.getElementById('llm-model');
+    if (!dropdown) return;
+    
+    try {
+        // Load both dynamic models and settings to show only enabled models
+        const [modelsResponse, settingsResponse] = await Promise.all([
+            fetch('/api/models'),
+            fetch('/api/model-settings')
+        ]);
+        
+        const availableModels = await modelsResponse.json();
+        const modelSettings = settingsResponse.ok ? await settingsResponse.json() : {};
+        
+        console.log('Main dropdown - Available models:', availableModels);
+        console.log('Main dropdown - Model settings:', modelSettings);
+        
+        // Filter to only enabled models
+        const enabledModels = availableModels.filter(model => {
+            const settings = modelSettings[model.name];
+            return settings && settings.enabled;
+        });
+        
+        // Group enabled models by provider
+        const modelsByProvider = {};
+        enabledModels.forEach(model => {
+            if (!modelsByProvider[model.provider]) {
+                modelsByProvider[model.provider] = [];
+            }
+            modelsByProvider[model.provider].push(model);
+        });
+        
+        // Build dropdown HTML
+        let html = '<option value="">Select a model...</option>';
+        
+        if (Object.keys(modelsByProvider).length === 0) {
+            html = '<option value="">No enabled models - check Settings</option>';
+        } else {
+            Object.keys(modelsByProvider).forEach(provider => {
+                html += `<optgroup label="${provider}">`;
+                modelsByProvider[provider].forEach(model => {
+                    html += `<option value="${model.name}">${model.name}</option>`;
+                });
+                html += '</optgroup>';
+            });
+        }
+        
+        dropdown.innerHTML = html;
+        
+        // Try to set default model from preferences
+        try {
+            const prefsResponse = await fetch('/api/preferences');
+            if (prefsResponse.ok) {
+                const prefs = await prefsResponse.json();
+                if (prefs.defaultModel && enabledModels.some(m => m.name === prefs.defaultModel)) {
+                    dropdown.value = prefs.defaultModel;
+                }
+            }
+        } catch (error) {
+            console.log('Could not load preferences for default model');
+        }
+        
+        // If no default set, select first enabled model
+        if (!dropdown.value && enabledModels.length > 0) {
+            dropdown.value = enabledModels[0].name;
+        }
+        
+    } catch (error) {
+        console.error('Error loading main model dropdown:', error);
+        dropdown.innerHTML = '<option value="">Error loading models</option>';
+    }
+}
+
 // Initialize the app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     window.app = new KnowledgeBaseApp();
+    
+    // Load dynamic models into main dropdown
+    loadMainModelDropdown();
     
     // Only attach event handlers if elements exist
     const newChatBtn = document.getElementById('new-chat-btn');
