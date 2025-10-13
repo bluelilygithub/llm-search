@@ -2320,6 +2320,7 @@ def get_model_settings():
         app.logger.error(f"Error getting model settings: {str(e)}")
         return jsonify({'error': 'Failed to get model settings'}), 500
 
+@csrf.exempt
 @app.route('/api/model-settings', methods=['POST'])
 def save_model_settings():
     """Save model settings"""
@@ -2369,10 +2370,13 @@ def save_model_settings():
         app.logger.error(f"Error saving model settings: {str(e)}")
         return jsonify({'error': 'Failed to save model settings'}), 500
 
+@csrf.exempt
 @app.route('/api/check-model-access', methods=['POST'])
 def check_model_access():
     """Check if a specific model is accessible"""
     try:
+        app.logger.info("check_model_access endpoint called")
+        
         # Check if user is authenticated (but don't fail if auth is not available)
         user_id = None
         try:
@@ -2380,19 +2384,32 @@ def check_model_access():
             user_id = current_user_id()
         except ImportError:
             # Auth module not available, continue without authentication
+            app.logger.info("Auth module not available, continuing without authentication")
             pass
         
         # For now, allow access even without authentication for demo purposes
         # You can enhance this to require authentication in production
         
         data = request.get_json()
+        if not data:
+            app.logger.error("No JSON data received")
+            return jsonify({'error': 'No data provided'}), 400
+            
         model = data.get('model')
         if not model:
+            app.logger.error("No model specified in request")
             return jsonify({'error': 'Model not specified'}), 400
         
+        app.logger.info(f"Checking access for model: {model}")
+        
         # Import LLM service to check model access
-        from llm_service import LLMService
-        llm_service = LLMService()
+        try:
+            from llm_service import LLMService
+            llm_service = LLMService()
+            app.logger.info("LLMService imported successfully")
+        except Exception as import_error:
+            app.logger.error(f"Failed to import LLMService: {str(import_error)}")
+            return jsonify({'error': 'Service initialization failed'}), 500
         
         # Get model info from dynamic model list to find custom API key
         models_file = os.path.join(app.instance_path, 'available_models.json')
@@ -2580,6 +2597,7 @@ def create_starter_models():
     app.logger.info(f"Created starter models file with {len(starter_models)} models")
     return starter_models
 
+@csrf.exempt
 @app.route('/api/models', methods=['POST'])
 def add_model():
     """Add a new model"""

@@ -3790,6 +3790,8 @@ window.testModelInManagement = async function(modelName, showAlert = true) {
             statusElement.innerHTML = '<span class="status-testing">Testing...</span>';
         }
         
+        console.log(`Testing model access for: ${modelName}`);
+        
         const response = await fetch('/api/check-model-access', {
             method: 'POST',
             headers: {
@@ -3798,7 +3800,27 @@ window.testModelInManagement = async function(modelName, showAlert = true) {
             body: JSON.stringify({ model: modelName })
         });
         
+        console.log(`Response status: ${response.status}`);
+        console.log(`Response headers:`, response.headers);
+        
+        // Check if response is actually JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            console.error(`Expected JSON but got: ${contentType}`);
+            const textResponse = await response.text();
+            console.error(`Response text:`, textResponse.substring(0, 500));
+            
+            if (statusElement) {
+                statusElement.innerHTML = '<span class="status-error">Server Error</span>';
+            }
+            if (showAlert) {
+                alert(`✗ ${modelName}: Server returned HTML instead of JSON. Check console for details.`);
+            }
+            return;
+        }
+        
         const result = await response.json();
+        console.log(`API response for ${modelName}:`, result);
         
         if (response.ok && result.success) {
             const status = result.hasAccess ? 'Available' : 'No Access';
