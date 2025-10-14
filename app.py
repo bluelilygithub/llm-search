@@ -1157,19 +1157,19 @@ def chat():
                 project = Project.query.get(project_uuid)
             except (ValueError, TypeError):
                 app.logger.warning(f"Invalid project_id format: {project_id}")
-    
-    # Apply project template if we have a project
-    if project:
-        project_system_prompt = build_project_system_prompt(project)
-        if project_system_prompt:
-            messages.append({
-                'role': 'system',
-                'content': project_system_prompt
-            })
-            app.logger.info(f"Applied project template for project: {project.name}")
-    
-    # Load conversation history if conversation exists
-    if conversation_id:
+        
+        # Apply project template if we have a project
+        if project:
+            project_system_prompt = build_project_system_prompt(project)
+            if project_system_prompt:
+                messages.append({
+                    'role': 'system',
+                    'content': project_system_prompt
+                })
+                app.logger.info(f"Applied project template for project: {project.name}")
+        
+        # Load conversation history if conversation exists
+        if conversation_id:
             db_messages = Message.query.filter_by(conversation_id=conv_uuid).order_by(Message.timestamp.asc()).all()
             conversation_messages = llm_service.format_conversation_for_llm(db_messages)
             messages.extend(conversation_messages)
@@ -1267,15 +1267,15 @@ Please use this context information appropriately when responding to user questi
         'response': ai_response,
         'model': model,
         'timestamp': datetime.utcnow().isoformat()
-    }
-    
-    # Add updated free access info if applicable
-    if getattr(request, 'access_type', None) == 'free_tier':
-        from auth import FreeAccessManager
-        updated_free_info = FreeAccessManager.check_free_access()
-        response_data['free_access'] = updated_free_info
-    
-    return jsonify(response_data)
+        }
+        
+        # Add updated free access info if applicable
+        if getattr(request, 'access_type', None) == 'free_tier':
+            from auth import FreeAccessManager
+            updated_free_info = FreeAccessManager.check_free_access()
+            response_data['free_access'] = updated_free_info
+        
+        return jsonify(response_data)
     
     except Exception as e:
         app.logger.error(f"Chat error: {str(e)}", exc_info=True)
