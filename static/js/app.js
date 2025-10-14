@@ -6122,38 +6122,54 @@ KnowledgeBaseApp.prototype.showChatView = function() {
             container.appendChild(chatMessagesContainer);
         }
         console.log('showChatView: Chat container created and inserted');
+        
+        // Debug: Check if the header was actually created
+        const createdHeader = chatMessagesContainer.querySelector('#chat-header');
+        console.log('showChatView: Header in newly created container:', createdHeader);
     } else {
         console.log('showChatView: Existing chat container found');
+        
+        // Debug: Check if existing container has header
+        const existingHeader = chatMessagesContainer.querySelector('#chat-header');
+        console.log('showChatView: Header in existing container:', existingHeader);
     }
     
     // Show/hide chat header based on project context
-    const chatHeader = document.getElementById('chat-header');
-    if (chatHeader) {
-        if (this.currentViewProject) {
-            // Show project context in header
-            chatHeader.style.display = 'block';
-            
-            // Update breadcrumb content
-            const projectName = document.getElementById('project-name');
-            const conversationTitle = document.getElementById('conversation-title');
-            const projectBreadcrumb = document.getElementById('project-breadcrumb');
-            
-            if (projectName) projectName.textContent = this.currentViewProject.name;
-            if (conversationTitle) conversationTitle.textContent = this.currentConversationId ? 'Conversation' : 'New Conversation';
-            
-            // Update the project breadcrumb onclick to return to the correct project
-            if (projectBreadcrumb) {
-                projectBreadcrumb.onclick = () => this.showProjectView(this.currentViewProject.id);
+    // Use a small delay to ensure the dynamically created elements are available in the DOM
+    setTimeout(() => {
+        const chatHeader = document.getElementById('chat-header');
+        console.log('showChatView: Looking for chat header after timeout:', chatHeader);
+        
+        if (chatHeader) {
+            if (this.currentViewProject) {
+                // Show project context in header
+                chatHeader.style.display = 'block';
+                
+                // Update breadcrumb content
+                const projectName = document.getElementById('project-name');
+                const conversationTitle = document.getElementById('conversation-title');
+                const projectBreadcrumb = document.getElementById('project-breadcrumb');
+                
+                if (projectName) projectName.textContent = this.currentViewProject.name;
+                if (conversationTitle) conversationTitle.textContent = this.currentConversationId ? 'Conversation' : 'New Conversation';
+                
+                // Update the project breadcrumb onclick to return to the correct project
+                if (projectBreadcrumb) {
+                    projectBreadcrumb.onclick = () => this.showProjectView(this.currentViewProject.id);
+                }
+                
+                console.log('showChatView: Updated breadcrumb for project:', this.currentViewProject.name);
+            } else {
+                chatHeader.style.display = 'none';
+                console.log('showChatView: No project context, hiding breadcrumb');
             }
-            
-            console.log('showChatView: Updated breadcrumb for project:', this.currentViewProject.name);
         } else {
-            chatHeader.style.display = 'none';
-            console.log('showChatView: No project context, hiding breadcrumb');
+            console.log('showChatView: Chat header element still not found after timeout');
+            // Try to find it in the container we just created
+            const containerHeader = container.querySelector('#chat-header');
+            console.log('showChatView: Looking for header in container:', containerHeader);
         }
-    } else {
-        console.log('showChatView: Chat header element not found');
-    }
+    }, 10); // Small delay to allow DOM to update
     
     // Show context toggle again
     const contextToggle = document.getElementById('context-toggle-btn');
