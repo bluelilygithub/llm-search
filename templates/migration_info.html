@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-User System Migration</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+        .btn {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        .btn:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        .feature-list {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+        .feature-list ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        .feature-list li {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Multi-User System Migration</h1>
+        
+        <p>This migration will upgrade your AI Knowledge Base from a single-user system to a comprehensive multi-user platform with advanced authentication, roles, and permissions.</p>
+        
+        <div class="feature-list">
+            <h3>✨ New Features You'll Get:</h3>
+            <ul>
+                <li><strong>User Registration & Login</strong> - Proper user accounts with secure authentication</li>
+                <li><strong>Role-Based Access Control</strong> - Super Admin, Admin, User, Viewer, and Guest roles</li>
+                <li><strong>Organization Management</strong> - Multi-tenant support for teams and companies</li>
+                <li><strong>Session Management</strong> - Secure session handling with activity tracking</li>
+                <li><strong>Audit Logging</strong> - Complete audit trail of all user actions</li>
+                <li><strong>Password Reset</strong> - Secure password reset via email</li>
+                <li><strong>Email Verification</strong> - Email verification for new accounts</li>
+                <li><strong>API Key Management</strong> - Personal API keys for each user</li>
+                <li><strong>Enhanced Security</strong> - Modern security practices and protections</li>
+            </ul>
+        </div>
+        
+        <div class="warning">
+            <h4>⚠️ Important Notes:</h4>
+            <ul>
+                <li>This migration will modify your database structure</li>
+                <li>All existing data will be preserved and assigned to a default admin user</li>
+                <li>The default admin credentials will be: <strong>admin / admin123</strong></li>
+                <li><strong>You MUST change the admin password immediately after migration</strong></li>
+                <li>Make sure to backup your database before proceeding</li>
+            </ul>
+        </div>
+        
+        <div style="margin: 30px 0;">
+            <h3>Migration Steps:</h3>
+            <ol>
+                <li>Creates new user management tables (users, organizations, sessions, audit_logs)</li>
+                <li>Creates a default organization called "Default Organization"</li>
+                <li>Creates a default admin user with super admin privileges</li>
+                <li>Adds user_id columns to existing tables (conversations, projects, context_items)</li>
+                <li>Assigns all existing data to the default admin user</li>
+                <li>Sets up proper foreign key relationships</li>
+            </ol>
+        </div>
+        
+        <div style="text-align: center; margin: 30px 0;">
+            <button class="btn" onclick="runMigration()">🚀 Run Migration</button>
+        </div>
+        
+        <div id="result" style="margin-top: 20px;"></div>
+    </div>
+    
+    <script>
+        async function runMigration() {
+            const resultDiv = document.getElementById('result');
+            const btn = document.querySelector('.btn');
+            
+            btn.disabled = true;
+            btn.textContent = '⏳ Running Migration...';
+            
+            try {
+                const response = await fetch('/migrate-user-system', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h4>✅ Migration Successful!</h4>
+                            <p>${result.message}</p>
+                            <ul>
+                                <li>Conversations updated: ${result.stats.conversations_updated}</li>
+                                <li>Projects updated: ${result.stats.projects_updated}</li>
+                                <li>Context items updated: ${result.stats.context_items_updated}</li>
+                                <li>Admin User ID: ${result.stats.admin_user_id}</li>
+                                <li>Organization ID: ${result.stats.organization_id}</li>
+                            </ul>
+                            <p><strong>Default Admin Credentials:</strong></p>
+                            <p>Username: <code>admin</code><br>Password: <code>admin123</code></p>
+                            <p><strong>⚠️ Please change the admin password immediately!</strong></p>
+                            <p><a href="/api/users/login">Go to Login Page</a></p>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="warning">
+                            <h4>❌ Migration Failed</h4>
+                            <p>Error: ${result.error}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="warning">
+                        <h4>❌ Migration Failed</h4>
+                        <p>Error: ${error.message}</p>
+                    </div>
+                `;
+            }
+            
+            btn.disabled = false;
+            btn.textContent = '🚀 Run Migration';
+        }
+    </script>
+</body>
+</html>
