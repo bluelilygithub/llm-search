@@ -752,12 +752,48 @@ class KnowledgeBaseApp {
             timeString += ` (${this.selectedModel})`;
         }
         
-        // Generate follow-up questions for assistant messages
-        let followUpHtml = '';
+        // Initial message without follow-up questions
+        messageDiv.innerHTML = `
+            <div class="message-content">
+                ${this.formatMessageContent(message.content)}
+                <div class="message-time">${timeString}</div>
+            </div>
+        `;
+        
+        container.appendChild(messageDiv);
+        this.scrollToBottom();
+        
+        // Generate follow-up questions for assistant messages (async)
         if (message.role === 'assistant') {
-            const followUpQuestions = this.generateFollowUpQuestions(message.content);
+            this.addFollowUpQuestionsAsync(messageDiv, message.content);
+        }
+    }
+
+    async addFollowUpQuestionsAsync(messageDiv, aiResponse) {
+        try {
+            // Show loading indicator for follow-up questions
+            const loadingHtml = `
+                <div class="follow-up-questions">
+                    <div class="follow-up-title">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        Generating follow-up questions...
+                    </div>
+                </div>
+            `;
+            messageDiv.querySelector('.message-content').insertAdjacentHTML('beforeend', loadingHtml);
+            
+            // Generate the questions
+            const followUpQuestions = await this.generateFollowUpQuestions(aiResponse);
+            
+            // Remove loading indicator
+            const loadingDiv = messageDiv.querySelector('.follow-up-questions');
+            if (loadingDiv) {
+                loadingDiv.remove();
+            }
+            
+            // Add the actual follow-up questions
             if (followUpQuestions.length > 0) {
-                followUpHtml = `
+                const followUpHtml = `
                     <div class="follow-up-questions">
                         <div class="follow-up-title">
                             <i class="fas fa-lightbulb"></i>
@@ -772,19 +808,16 @@ class KnowledgeBaseApp {
                         </div>
                     </div>
                 `;
+                messageDiv.querySelector('.message-content').insertAdjacentHTML('beforeend', followUpHtml);
+            }
+        } catch (error) {
+            console.error('Error adding follow-up questions:', error);
+            // Remove loading indicator if still present
+            const loadingDiv = messageDiv.querySelector('.follow-up-questions');
+            if (loadingDiv) {
+                loadingDiv.remove();
             }
         }
-        
-        messageDiv.innerHTML = `
-            <div class="message-content">
-                ${this.formatMessageContent(message.content)}
-                <div class="message-time">${timeString}</div>
-                ${followUpHtml}
-            </div>
-        `;
-        
-        container.appendChild(messageDiv);
-        this.scrollToBottom();
     }
 
     formatMessageContent(content) {
@@ -798,40 +831,91 @@ class KnowledgeBaseApp {
     }
 
     generateFollowUpQuestions(aiResponse) {
-        // Generate contextually relevant follow-up questions based on the AI's response
-        const questions = [];
+        // Generate contextually relevant follow-up questions by analyzing the conversation
+        // This will be done asynchronously and return a promise
+        return this.generateSmartFollowUpQuestions(aiResponse);
+    }
+
+    async generateSmartFollowUpQuestions(aiResponse) {
+        try {
+            // Get the last few messages for context
+            const conversationContext = await this.getRecentConversationContext();
+            
+            // Send a request to generate follow-up questions
+            const response = await fetch('/api/generate-followup-questions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    conversation_context: conversationContext,
+                    latest_response: aiResponse,
+                    model: this.selectedModel || 'gpt-3.5-turbo'
+                })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                return data.questions || [];
+            } else {
+                console.warn('Failed to generate follow-up questions, using fallback');
+                return this.getFallbackQuestions(aiResponse);
+            }
+        } catch (error) {
+            console.error('Error generating follow-up questions:', error);
+            return this.getFallbackQuestions(aiResponse);
+        }
+    }
+
+    async getRecentConversationContext() {
+        // Get the last 4 messages for context (2 exchanges)
+        if (!this.currentConversationId) return [];
+        
+        try {
+            const response = await fetch(`/conversations/${this.currentConversationId}/messages`);
+            if (response.ok) {
+                const messages = await response.json();
+                // Return last 4 messages for context
+                return messages.slice(-4).map(msg => ({
+                    role: msg.role,
+                    content: msg.content
+                }));
+            }
+        } catch (error) {
+            console.error('Error getting conversation context:', error);
+        }
+        return [];
+    }
+
+    getFallbackQuestions(aiResponse) {
+        // Smarter fallback questions based on response analysis
         const response = aiResponse.toLowerCase();
         
-        // Analyze the response content to generate relevant questions
         if (response.includes('step') || response.includes('process') || response.includes('how to')) {
-            questions.push("Can you walk me through this step by step?");
-            questions.push("What should I do next?");
-            questions.push("Are there any common pitfalls to avoid?");
-        } else if (response.includes('example') || response.includes('instance') || response.includes('like')) {
-            questions.push("Can you provide more examples?");
-            questions.push("How would this apply to my specific situation?");
-            questions.push("What are some alternative approaches?");
-        } else if (response.includes('benefit') || response.includes('advantage') || response.includes('good')) {
-            questions.push("What are the potential drawbacks?");
-            questions.push("How does this compare to other options?");
-            questions.push("Is this always the best approach?");
+            return [
+                "What's the next step I should take?",
+                "Can you elaborate on any of these steps?", 
+                "What if I run into issues with this process?"
+            ];
+        } else if (response.includes('example') || response.includes('instance')) {
+            return [
+                "Can you show me another example?",
+                "How would this work in a different scenario?",
+                "What are some common variations of this?"
+            ];
         } else if (response.includes('code') || response.includes('function') || response.includes('programming')) {
-            questions.push("Can you explain this code in more detail?");
-            questions.push("How would I test this?");
-            questions.push("What if I encounter errors?");
-        } else if (response.includes('concept') || response.includes('theory') || response.includes('principle')) {
-            questions.push("Can you give me a practical example?");
-            questions.push("How is this used in real-world scenarios?");
-            questions.push("What are the key takeaways?");
+            return [
+                "Can you explain how this code works?",
+                "How would I modify this for my use case?",
+                "What are some best practices to keep in mind?"
+            ];
         } else {
-            // Generic follow-up questions
-            questions.push("Can you elaborate on this?");
-            questions.push("What would you recommend as next steps?");
-            questions.push("How can I apply this information?");
+            return [
+                "Can you explain this further?",
+                "What should I consider next?",
+                "How does this apply to my situation?"
+            ];
         }
-        
-        // Return only the first 3 questions to avoid overwhelming the user
-        return questions.slice(0, 3);
     }
 
     escapeHtml(text) {

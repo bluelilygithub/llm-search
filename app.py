@@ -673,6 +673,102 @@ def delete_project(project_id):
         return jsonify({'error': f'Failed to delete project: {str(e)}'}), 500
 
 @csrf.exempt
+@app.route('/api/generate-followup-questions', methods=['POST'])
+@auth.access_required(allow_free=True)
+def generate_followup_questions():
+    """Generate contextually relevant follow-up questions based on conversation"""
+    try:
+        data = request.get_json()
+        if not data or not data.get('latest_response'):
+            return jsonify({'error': 'Latest response is required'}), 400
+        
+        conversation_context = data.get('conversation_context', [])
+        latest_response = data['latest_response']
+        model = data.get('model', 'gpt-3.5-turbo')
+        
+        # Build context for follow-up question generation
+        context_messages = []
+        
+        # Add conversation history for context
+        for msg in conversation_context:
+            context_messages.append({
+                'role': msg['role'],
+                'content': msg['content']
+            })
+        
+        # Add system message for follow-up question generation
+        system_prompt = """You are an expert at generating relevant follow-up questions for conversations. 
+Based on the conversation context and the latest AI response, generate exactly 3 highly relevant, specific follow-up questions that would naturally continue the conversation.
+
+The questions should:
+1. Be directly related to the content and context of the conversation
+2. Help the user dive deeper into the topic or explore related aspects
+3. Be actionable and lead to meaningful responses
+4. Avoid generic questions like "Can you tell me more?"
+5. Be concise and clear (under 15 words each)
+
+Return only the 3 questions, one per line, without numbering or bullet points."""
+
+        # Create the prompt for generating questions
+        followup_messages = [
+            {'role': 'system', 'content': system_prompt},
+            *context_messages,
+            {'role': 'user', 'content': f"Based on this conversation, generate 3 relevant follow-up questions for the latest AI response: {latest_response}"}
+        ]
+        
+        # Get follow-up questions from AI
+        from llm_service import LLMService
+        llm_service = LLMService()
+        
+        # Check if user is authenticated
+        is_authenticated = getattr(request, 'access_type', None) != 'free_tier'
+        
+        ai_response, tokens, estimated_cost = llm_service.get_response(
+            model, 
+            followup_messages, 
+            max_tokens=200,  # Keep it short
+            temperature=0.7,
+            is_authenticated=is_authenticated
+        )
+        
+        # Parse the response into individual questions
+        questions = []
+        if ai_response:
+            lines = ai_response.strip().split('\n')
+            for line in lines:
+                question = line.strip()
+                # Remove numbering, bullets, and clean up
+                question = question.lstrip('123456789.-• ')
+                if question and len(question) > 5:  # Basic validation
+                    questions.append(question)
+        
+        # Ensure we have exactly 3 questions, pad with fallbacks if needed
+        while len(questions) < 3:
+            fallback_questions = [
+                "What would you recommend as the next step?",
+                "Can you elaborate on this approach?", 
+                "How would this work in practice?"
+            ]
+            for fallback in fallback_questions:
+                if fallback not in questions and len(questions) < 3:
+                    questions.append(fallback)
+        
+        # Return only first 3 questions
+        questions = questions[:3]
+        
+        return jsonify({'questions': questions}), 200
+        
+    except Exception as e:
+        app.logger.error(f"Error generating follow-up questions: {str(e)}")
+        # Return fallback questions on error
+        fallback_questions = [
+            "Can you explain this further?",
+            "What should I consider next?",
+            "How does this apply to my situation?"
+        ]
+        return jsonify({'questions': fallback_questions}), 200
+
+@csrf.exempt
 @app.route('/projects/<project_id>', methods=['PATCH'])
 def rename_project(project_id):
     """Rename/update a project"""
