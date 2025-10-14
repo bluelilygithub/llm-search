@@ -29,6 +29,115 @@ config_name = os.getenv('FLASK_CONFIG', 'default')
 app.config.from_object(config[config_name])
 config[config_name].init_app(app)
 
+def build_project_system_prompt(project):
+    """Build a structured system prompt from project template data"""
+    if not project:
+        return None
+    
+    # Check if project has any template data
+    has_template_data = any([
+        project.agent_name, 
+        project.agent_role, 
+        project.primary_goal,
+        project.goal_steps,
+        project.rules_do,
+        project.rules_dont,
+        project.context_background,
+        project.output_format
+    ])
+    
+    if not has_template_data:
+        return None
+    
+    prompt_parts = []
+    
+    # Identity & Persona Section
+    if project.agent_name or project.agent_role or project.agent_personality:
+        prompt_parts.append("# IDENTITY & PERSONA")
+        
+        if project.agent_name and project.agent_role:
+            personality = f", {project.agent_personality}" if project.agent_personality else ""
+            prompt_parts.append(f"You are {project.agent_name}, a {project.agent_role}. Your personality is {project.agent_personality.strip(', ')}.{personality}")
+        elif project.agent_name:
+            prompt_parts.append(f"You are {project.agent_name}.")
+        elif project.agent_role:
+            prompt_parts.append(f"You are a {project.agent_role}.")
+        
+        if project.agent_personality and not (project.agent_name and project.agent_role):
+            prompt_parts.append(f"Your personality is {project.agent_personality}.")
+    
+    # Task & Goal Section
+    if project.primary_goal or project.goal_steps:
+        prompt_parts.append("\n# TASK & GOAL")
+        
+        if project.primary_goal:
+            prompt_parts.append(f"Your primary goal is to {project.primary_goal}")
+        
+        if project.goal_steps:
+            try:
+                import json
+                steps = json.loads(project.goal_steps)
+                if steps and isinstance(steps, list):
+                    prompt_parts.append("You will accomplish this by following these steps:")
+                    for i, step in enumerate(steps, 1):
+                        prompt_parts.append(f"{i}. {step}")
+            except (json.JSONDecodeError, TypeError):
+                # Handle case where goal_steps is a plain string
+                if project.goal_steps.strip():
+                    prompt_parts.append("Steps to follow:")
+                    for line in project.goal_steps.split('\n'):
+                        if line.strip():
+                            prompt_parts.append(f"• {line.strip()}")
+    
+    # Rules & Constraints Section
+    if project.rules_do or project.rules_dont:
+        prompt_parts.append("\n# RULES & CONSTRAINTS")
+        
+        if project.rules_do:
+            try:
+                import json
+                do_rules = json.loads(project.rules_do)
+                if do_rules and isinstance(do_rules, list):
+                    for rule in do_rules:
+                        prompt_parts.append(f"- DO: {rule}")
+            except (json.JSONDecodeError, TypeError):
+                # Handle case where rules_do is a plain string
+                if project.rules_do.strip():
+                    for line in project.rules_do.split('\n'):
+                        if line.strip():
+                            prompt_parts.append(f"- DO: {line.strip()}")
+        
+        if project.rules_dont:
+            try:
+                import json
+                dont_rules = json.loads(project.rules_dont)
+                if dont_rules and isinstance(dont_rules, list):
+                    for rule in dont_rules:
+                        prompt_parts.append(f"- DO NOT: {rule}")
+            except (json.JSONDecodeError, TypeError):
+                # Handle case where rules_dont is a plain string
+                if project.rules_dont.strip():
+                    for line in project.rules_dont.split('\n'):
+                        if line.strip():
+                            prompt_parts.append(f"- DO NOT: {line.strip()}")
+    
+    # Context Section
+    if project.context_background or project.user_role:
+        prompt_parts.append("\n# CONTEXT")
+        
+        if project.context_background:
+            prompt_parts.append(f"The context for our conversation is {project.context_background}")
+        
+        if project.user_role:
+            prompt_parts.append(f"I, the user, am a {project.user_role}.")
+    
+    # Output Format Section
+    if project.output_format:
+        prompt_parts.append("\n# OUTPUT FORMAT")
+        prompt_parts.append(project.output_format)
+    
+    return '\n'.join(prompt_parts) if prompt_parts else None
+
 # Security configurations
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB max file size
 
@@ -264,22 +373,69 @@ def get_projects():
 @app.route('/projects', methods=['POST'])
 def create_project():
     from models import Project
+    import json
+    
     data = request.get_json()
     if not data or not data.get('name'):
         return jsonify({'error': 'Project name is required'}), 400
+    
+    # Convert step and rule arrays to JSON strings for storage
+    goal_steps = data.get('goal_steps', [])
+    if isinstance(goal_steps, str):
+        # If it's a string with line breaks, split into array
+        goal_steps = [step.strip() for step in goal_steps.split('\n') if step.strip()]
+    
+    rules_do = data.get('rules_do', [])
+    if isinstance(rules_do, str):
+        rules_do = [rule.strip() for rule in rules_do.split('\n') if rule.strip()]
+        
+    rules_dont = data.get('rules_dont', [])
+    if isinstance(rules_dont, str):
+        rules_dont = [rule.strip() for rule in rules_dont.split('\n') if rule.strip()]
+    
     project = Project(
         name=data['name'],
-        description=data.get('description', '')
+        description=data.get('description', ''),
+        agent_name=data.get('agent_name'),
+        agent_role=data.get('agent_role'),
+        agent_personality=data.get('agent_personality'),
+        primary_goal=data.get('primary_goal'),
+        goal_steps=json.dumps(goal_steps) if goal_steps else None,
+        rules_do=json.dumps(rules_do) if rules_do else None,
+        rules_dont=json.dumps(rules_dont) if rules_dont else None,
+        context_background=data.get('context_background'),
+        user_role=data.get('user_role'),
+        output_format=data.get('output_format')
     )
+    
     db.session.add(project)
     db.session.commit()
-    return jsonify({
+    
+    # Return project data including template fields
+    response_data = {
         'id': str(project.id),
         'name': project.name,
         'description': project.description,
         'created_at': project.created_at.isoformat(),
         'updated_at': project.updated_at.isoformat() if project.updated_at else None
-    }), 201
+    }
+    
+    # Include template data if present
+    if project.agent_name or project.agent_role or project.primary_goal:
+        response_data['template'] = {
+            'agent_name': project.agent_name,
+            'agent_role': project.agent_role,
+            'agent_personality': project.agent_personality,
+            'primary_goal': project.primary_goal,
+            'goal_steps': json.loads(project.goal_steps) if project.goal_steps else [],
+            'rules_do': json.loads(project.rules_do) if project.rules_do else [],
+            'rules_dont': json.loads(project.rules_dont) if project.rules_dont else [],
+            'context_background': project.context_background,
+            'user_role': project.user_role,
+            'output_format': project.output_format
+        }
+    
+    return jsonify(response_data), 201
 
 @csrf.exempt
 @app.route('/projects/<project_id>', methods=['DELETE'])
@@ -640,8 +796,21 @@ def chat():
         if conversation_id:
             conv_uuid = uuid.UUID(conversation_id)
             conversation = Conversation.query.get_or_404(conv_uuid)
+            
+            # Add project template as system prompt if available
+            if conversation.project_id:
+                project = Project.query.get(conversation.project_id)
+                if project:
+                    project_system_prompt = build_project_system_prompt(project)
+                    if project_system_prompt:
+                        messages.append({
+                            'role': 'system',
+                            'content': project_system_prompt
+                        })
+            
             db_messages = Message.query.filter_by(conversation_id=conv_uuid).order_by(Message.timestamp.asc()).all()
-            messages = llm_service.format_conversation_for_llm(db_messages)
+            conversation_messages = llm_service.format_conversation_for_llm(db_messages)
+            messages.extend(conversation_messages)
             # Add context items to prompt using new context management system
             try:
                 active_context = ContextService.get_conversation_context(str(conversation_id))

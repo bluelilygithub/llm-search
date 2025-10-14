@@ -8,6 +8,19 @@ class Project(db.Model):
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text)
+    
+    # Structured prompt template fields
+    agent_name = db.Column(db.String(255))
+    agent_role = db.Column(db.String(500))
+    agent_personality = db.Column(db.String(500))
+    primary_goal = db.Column(db.Text)
+    goal_steps = db.Column(db.Text)  # JSON array of steps
+    rules_do = db.Column(db.Text)    # JSON array of DO rules
+    rules_dont = db.Column(db.Text)  # JSON array of DON'T rules
+    context_background = db.Column(db.Text)
+    user_role = db.Column(db.String(500))
+    output_format = db.Column(db.Text)
+    
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     conversations = db.relationship('Conversation', backref='project', lazy=True, cascade='all, delete-orphan')

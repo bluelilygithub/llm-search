@@ -6029,7 +6029,9 @@ KnowledgeBaseApp.prototype.startNewConversationFromConversations = function() {
 KnowledgeBaseApp.prototype.promptCreateNewProject = function() {
     const name = prompt('Enter project name:');
     if (name && name.trim()) {
-        this.createNewProject(name.trim());
+        // Store the project name and show setup modal
+        this.pendingProjectName = name.trim();
+        this.showProjectSetupModal();
     }
 };
 

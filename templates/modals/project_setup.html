@@ -1,0 +1,282 @@
+<!-- Project Setup Modal -->
+<div id="project-setup-modal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="projectSetupModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="projectSetupModalLabel">
+                    <i class="fas fa-cogs"></i>
+                    Project Setup - <span id="project-setup-name"></span>
+                </h5>
+                <button type="button" class="btn-close" onclick="closeProjectSetup()" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            
+            <div class="modal-body project-setup-form">
+                <form id="project-setup-form">
+                    <!-- Identity & Persona Section -->
+                    <div class="form-section">
+                        <h6 class="section-title">
+                            <i class="fas fa-user-circle"></i>
+                            Identity & Persona
+                        </h6>
+                        
+                        <div class="form-group">
+                            <label for="agent-name">Agent's Name</label>
+                            <input type="text" id="agent-name" class="form-control" placeholder="e.g., Alex, Assistant, Coach Sarah" />
+                            <small class="form-text text-muted">What should the AI be called?</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="agent-role">Role/Profession</label>
+                            <input type="text" id="agent-role" class="form-control" placeholder="e.g., Senior Software Developer, Marketing Strategist, Writing Coach" />
+                            <small class="form-text text-muted">What is the AI's professional role?</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="agent-personality">Personality Traits</label>
+                            <input type="text" id="agent-personality" class="form-control" placeholder="e.g., helpful, analytical, creative, patient, detail-oriented" />
+                            <small class="form-text text-muted">Describe the AI's personality (comma-separated traits)</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Task & Goal Section -->
+                    <div class="form-section">
+                        <h6 class="section-title">
+                            <i class="fas fa-bullseye"></i>
+                            Task & Goal
+                        </h6>
+                        
+                        <div class="form-group">
+                            <label for="primary-goal">Primary Goal</label>
+                            <textarea id="primary-goal" class="form-control" rows="2" placeholder="e.g., Help you build a complete web application from concept to deployment"></textarea>
+                            <small class="form-text text-muted">What is the main objective for this project?</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="goal-steps">Key Steps (one per line)</label>
+                            <textarea id="goal-steps" class="form-control" rows="4" placeholder="1. Analyze requirements and create project plan&#10;2. Design system architecture and database schema&#10;3. Implement core functionality with best practices&#10;4. Test thoroughly and deploy to production"></textarea>
+                            <small class="form-text text-muted">List the main steps to achieve the goal</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Rules & Constraints Section -->
+                    <div class="form-section">
+                        <h6 class="section-title">
+                            <i class="fas fa-gavel"></i>
+                            Rules & Constraints
+                        </h6>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="rules-do">DO (one per line)</label>
+                                    <textarea id="rules-do" class="form-control" rows="4" placeholder="Always provide working code examples&#10;Explain complex concepts clearly&#10;Follow security best practices&#10;Test all solutions thoroughly"></textarea>
+                                    <small class="form-text text-muted">Mandatory actions</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="rules-dont">DO NOT (one per line)</label>
+                                    <textarea id="rules-dont" class="form-control" rows="4" placeholder="Don't suggest deprecated methods&#10;Don't skip error handling&#10;Don't make assumptions about requirements&#10;Don't provide incomplete solutions"></textarea>
+                                    <small class="form-text text-muted">Forbidden actions</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Context Section -->
+                    <div class="form-section">
+                        <h6 class="section-title">
+                            <i class="fas fa-info-circle"></i>
+                            Context
+                        </h6>
+                        
+                        <div class="form-group">
+                            <label for="context-background">Background Information</label>
+                            <textarea id="context-background" class="form-control" rows="3" placeholder="e.g., This is a startup project building a SaaS platform for small businesses. We're using React, Node.js, and PostgreSQL."></textarea>
+                            <small class="form-text text-muted">Provide relevant background context</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="user-role">Your Role/Experience Level</label>
+                            <input type="text" id="user-role" class="form-control" placeholder="e.g., Junior Developer, Experienced Entrepreneur, Marketing Manager with basic tech knowledge" />
+                            <small class="form-text text-muted">Describe your background and experience level</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Output Format Section -->
+                    <div class="form-section">
+                        <h6 class="section-title">
+                            <i class="fas fa-file-alt"></i>
+                            Output Format
+                        </h6>
+                        
+                        <div class="form-group">
+                            <label for="output-format">Response Format & Style</label>
+                            <textarea id="output-format" class="form-control" rows="3" placeholder="e.g., Use Markdown formatting with clear headings. Provide code in properly formatted blocks. Include step-by-step instructions when explaining processes."></textarea>
+                            <small class="form-text text-muted">How should the AI format its responses?</small>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="modal-footer">
+                <div class="footer-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeProjectSetup()">
+                        <i class="fas fa-times"></i>
+                        Skip Setup
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="saveProjectSetup()">
+                        <i class="fas fa-save"></i>
+                        Save & Continue
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Project Setup Modal Styles */
+.project-setup-form {
+    max-height: 70vh;
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+.form-section {
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.form-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.section-title {
+    color: #495057;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.section-title i {
+    color: #007bff;
+    width: 20px;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    font-weight: 500;
+    color: #495057;
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.form-control:focus {
+    border-color: #80bdff;
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.form-control::placeholder {
+    color: #6c757d;
+    opacity: 1;
+}
+
+.form-text {
+    font-size: 0.75rem;
+    color: #6c757d;
+    margin-top: 0.25rem;
+}
+
+.footer-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    width: 100%;
+}
+
+.btn {
+    padding: 0.5rem 1rem;
+    border: 1px solid transparent;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s ease-in-out;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-primary {
+    background-color: #007bff;
+    border-color: #007bff;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+    border-color: #0056b3;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    border-color: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #545b62;
+    border-color: #545b62;
+}
+
+.row {
+    display: flex;
+    flex-wrap: wrap;
+    margin-left: -0.75rem;
+    margin-right: -0.75rem;
+}
+
+.col-md-6 {
+    flex: 0 0 50%;
+    max-width: 50%;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+}
+
+@media (max-width: 768px) {
+    .col-md-6 {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+    
+    .modal-dialog {
+        margin: 0.5rem;
+    }
+    
+    .project-setup-form {
+        max-height: 60vh;
+    }
+}
+</style>
