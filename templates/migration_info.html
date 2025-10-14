@@ -161,7 +161,16 @@
                             <p><strong>Default Admin Credentials:</strong></p>
                             <p>Username: <code>admin</code><br>Password: <code>admin123</code></p>
                             <p><strong>⚠️ Please change the admin password immediately!</strong></p>
-                            <p><a href="/api/users/login">Go to Login Page</a></p>
+                            <p><strong>To login via API:</strong></p>
+                            <pre style="background: #f5f5f5; padding: 10px; border-radius: 4px; text-align: left; font-size: 12px; overflow-x: auto;">
+POST /api/users/login
+Content-Type: application/json
+
+{
+  "username_or_email": "admin",
+  "password": "admin123"
+}</pre>
+                            <p style="margin-top: 16px;"><a href="/">Return to Main App</a></p>
                         </div>
                     `;
                 } else {
