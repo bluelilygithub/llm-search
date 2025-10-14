@@ -3506,10 +3506,14 @@ try:
             return jsonify(result), 200
             
         except Exception as e:
+            import traceback
+            error_traceback = traceback.format_exc()
             app.logger.error(f"User system migration failed: {str(e)}")
+            app.logger.error(f"Traceback:\n{error_traceback}")
             return jsonify({
                 'success': False,
-                'error': f'Migration failed: {str(e)}'
+                'error': f'Migration failed: {str(e)}',
+                'traceback': error_traceback
             }), 500
     
     app.logger.info("Multi-user system integration loaded successfully")
