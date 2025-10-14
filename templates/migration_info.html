@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Multi-User System Migration</title>
     <style>
         body {
@@ -125,12 +126,23 @@
             btn.textContent = '⏳ Running Migration...';
             
             try {
+                // Get CSRF token from meta tag
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                
                 const response = await fetch('/migrate-user-system', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
                     }
                 });
+                
+                // Check if response is JSON before parsing
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    const text = await response.text();
+                    throw new Error(`Server returned non-JSON response (${response.status}): ${text.substring(0, 200)}`);
+                }
                 
                 const result = await response.json();
                 
