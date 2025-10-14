@@ -346,6 +346,62 @@ def init_database():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/migrate-project-template')
+def migrate_project_template():
+    """Add new template fields to the projects table if they don't exist"""
+    try:
+        # List of new columns to add
+        new_columns = [
+            ("agent_name", "VARCHAR(255)"),
+            ("agent_role", "VARCHAR(500)"),
+            ("agent_personality", "VARCHAR(500)"),
+            ("primary_goal", "TEXT"),
+            ("goal_steps", "TEXT"),
+            ("rules_do", "TEXT"),
+            ("rules_dont", "TEXT"),
+            ("context_background", "TEXT"),
+            ("user_role", "VARCHAR(500)"),
+            ("output_format", "TEXT")
+        ]
+        
+        results = []
+        
+        # Check which columns already exist
+        try:
+            result = db.session.execute(text("""
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name = 'projects'
+            """))
+            existing_columns = [row[0] for row in result]
+            results.append(f"Existing columns: {existing_columns}")
+        except Exception as e:
+            results.append(f"Could not check existing columns: {e}")
+            existing_columns = []
+        
+        # Add each column if it doesn't exist
+        for column_name, column_type in new_columns:
+            if column_name not in existing_columns:
+                try:
+                    alter_sql = f"ALTER TABLE projects ADD COLUMN {column_name} {column_type}"
+                    db.session.execute(text(alter_sql))
+                    db.session.commit()
+                    results.append(f"✓ Added column: {column_name}")
+                except Exception as e:
+                    results.append(f"✗ Failed to add column {column_name}: {e}")
+                    db.session.rollback()
+            else:
+                results.append(f"○ Column {column_name} already exists")
+        
+        return jsonify({
+            'message': 'Migration completed successfully!',
+            'details': results
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Migration failed: {str(e)}'}), 500
+
 @app.route('/projects', methods=['GET'])
 @auth.login_required
 def get_projects():
