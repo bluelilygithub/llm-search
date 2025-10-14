@@ -6107,13 +6107,27 @@ KnowledgeBaseApp.prototype.showChatView = function() {
         if (this.currentViewProject) {
             // Show project context in header
             chatHeader.style.display = 'block';
+            
+            // Update breadcrumb content
             const projectName = document.getElementById('project-name');
             const conversationTitle = document.getElementById('conversation-title');
+            const projectBreadcrumb = document.getElementById('project-breadcrumb');
+            
             if (projectName) projectName.textContent = this.currentViewProject.name;
-            if (conversationTitle) conversationTitle.textContent = 'New Conversation';
+            if (conversationTitle) conversationTitle.textContent = this.currentConversationId ? 'Conversation' : 'New Conversation';
+            
+            // Update the project breadcrumb onclick to return to the correct project
+            if (projectBreadcrumb) {
+                projectBreadcrumb.onclick = () => this.showProjectView(this.currentViewProject.id);
+            }
+            
+            console.log('showChatView: Updated breadcrumb for project:', this.currentViewProject.name);
         } else {
             chatHeader.style.display = 'none';
+            console.log('showChatView: No project context, hiding breadcrumb');
         }
+    } else {
+        console.log('showChatView: Chat header element not found');
     }
     
     // Show context toggle again
@@ -6141,8 +6155,6 @@ KnowledgeBaseApp.prototype.showChatView = function() {
             `;
         }
     }
-    
-
     
     // If there's a current conversation, it will be loaded by the caller
 };
