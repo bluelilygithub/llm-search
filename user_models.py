@@ -47,7 +47,7 @@ class User(db.Model):
     # Role and permissions
     role = db.Column(db.Enum(UserRole), default=UserRole.USER, nullable=False)
     status = db.Column(db.Enum(UserStatus), default=UserStatus.ACTIVE, nullable=False)
-    permissions = db.Column(db.JSON, default=list)  # Additional custom permissions
+    permissions = db.Column(db.JSON, default=lambda: [])  # Additional custom permissions
     
     # Organization/team management
     organization_id = db.Column(UUID(as_uuid=True), db.ForeignKey('organizations.id'), nullable=True)
@@ -70,7 +70,7 @@ class User(db.Model):
     two_factor_secret = db.Column(db.String(32), nullable=True)
     
     # Preferences
-    preferences = db.Column(db.JSON, default=dict)  # User settings and preferences
+    preferences = db.Column(db.JSON, default=lambda: {})  # User settings and preferences
     timezone = db.Column(db.String(50), default='UTC')
     language = db.Column(db.String(10), default='en')
     

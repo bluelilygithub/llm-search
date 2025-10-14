@@ -40,17 +40,20 @@ def migrate_to_multi_user_system():
         logger.info("Creating default admin user...")
         admin_user = User.query.filter_by(username='admin').first()
         if not admin_user:
+            # Create admin user with required args, then set optional fields
             admin_user = User(
                 username='admin',
                 email='admin@example.com',
                 password='admin123',  # Should be changed immediately
-                first_name='System',
-                last_name='Administrator',
-                role=UserRole.SUPER_ADMIN,
-                status=UserStatus.ACTIVE,
-                email_verified=True,
-                organization_id=default_org.id
             )
+            # Set additional fields after initialization
+            admin_user.first_name = 'System'
+            admin_user.last_name = 'Administrator'
+            admin_user.role = UserRole.SUPER_ADMIN
+            admin_user.status = UserStatus.ACTIVE
+            admin_user.email_verified = True
+            admin_user.organization_id = default_org.id
+            
             db.session.add(admin_user)
             db.session.flush()
         
