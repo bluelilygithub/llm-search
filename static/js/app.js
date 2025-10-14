@@ -3699,20 +3699,23 @@ async function loadCurrentModelsList() {
     const container = document.getElementById('current-models-list');
     if (!container) return;
     
-    try {
-        container.innerHTML = '<div class="loading">Loading models...</div>';
-        
-        // Load both dynamic models and model settings in parallel
-        const [modelsResponse, settingsResponse] = await Promise.all([
-            fetch('/api/models'),
-            fetch('/api/model-settings')
-        ]);
-        
-        const dynamicModels = await modelsResponse.json();
-        const settings = settingsResponse.ok ? await settingsResponse.json() : {};
-        
-        console.log('Dynamic models:', dynamicModels);
-        console.log('Settings:', settings);
+        try {
+            container.innerHTML = '<div class="loading">Loading models...</div>';
+            
+            // Load models, settings, and preferences in parallel
+            const [modelsResponse, settingsResponse, prefsResponse] = await Promise.all([
+                fetch('/api/models'),
+                fetch('/api/model-settings'),
+                fetch('/api/preferences')
+            ]);
+            
+            const dynamicModels = await modelsResponse.json();
+            const settings = settingsResponse.ok ? await settingsResponse.json() : {};
+            const preferences = prefsResponse.ok ? await prefsResponse.json() : {};
+            
+            console.log('Dynamic models:', dynamicModels);
+            console.log('Settings:', settings);
+            console.log('Preferences:', preferences);
         
         // Create a combined list of all models (dynamic + legacy from settings)
         const allModels = new Map();
@@ -3770,22 +3773,24 @@ async function loadCurrentModelsList() {
             return;
         }
         
-        let html = `
-            <div class="model-row header">
-                <div>Model Name</div>
-                <div>Provider</div>
-                <div>API Key</div>
-                <div>Enabled</div>
-                <div>Status</div>
-                <div>Actions</div>
-            </div>
-        `;
+               let html = `
+                   <div class="model-row header">
+                       <div>Model Name</div>
+                       <div>Provider</div>
+                       <div>API Key</div>
+                       <div>Enabled</div>
+                       <div>Default</div>
+                       <div>Status</div>
+                       <div>Actions</div>
+                   </div>
+               `;
         
         modelsList.forEach(model => {
             const modelSettings = settings[model.name] || { enabled: false };
             const enabledStatus = modelSettings.enabled ? '✅ Yes' : '❌ No';
             const enabledClass = modelSettings.enabled ? 'enabled' : 'disabled';
             const modelType = model.isDynamic ? '' : ' (Legacy)';
+            const isDefault = preferences.defaultModel === model.name;
             
                    html += `
                        <div class="model-row" data-model="${model.name}">
@@ -3800,6 +3805,15 @@ async function loadCurrentModelsList() {
                                    <input type="checkbox" ${modelSettings.enabled ? 'checked' : ''} 
                                           onchange="toggleModelEnabledInManagement('${model.name}', this.checked)">
                                    <span class="toggle-slider"></span>
+                               </label>
+                           </div>
+                           <div class="model-default">
+                               <label class="radio-container" title="Set as default model">
+                                   <input type="radio" name="default-model" value="${model.name}" 
+                                          ${isDefault ? 'checked' : ''} 
+                                          ${!modelSettings.enabled ? 'disabled' : ''}
+                                          onchange="setDefaultModel('${model.name}')">
+                                   <span class="radio-checkmark"></span>
                                </label>
                            </div>
                            <div class="model-status" id="mgmt-status-${model.name}">
@@ -4100,6 +4114,18 @@ window.toggleModelEnabledInManagement = async function(modelName, newEnabledStat
                 if (enabledCell) {
                     enabledCell.className = `model-enabled ${newEnabledState ? 'enabled' : 'disabled'}`;
                 }
+                
+                // Handle default radio button - disable if model is disabled
+                const radioButton = modelRow.querySelector('input[type="radio"]');
+                if (radioButton) {
+                    radioButton.disabled = !newEnabledState;
+                    // If disabling a model that was the default, clear the default
+                    if (!newEnabledState && radioButton.checked) {
+                        radioButton.checked = false;
+                        // Clear the default model preference
+                        await setDefaultModel(''); // Empty string clears default
+                    }
+                }
             }
             
             // Also reload the settings panel if it's open
@@ -4131,6 +4157,78 @@ window.toggleModelEnabledInManagement = async function(modelName, newEnabledStat
         const checkbox = document.querySelector(`[data-model="${modelName}"] input[type="checkbox"]`);
         if (checkbox) {
             checkbox.checked = !newEnabledState;
+        }
+    }
+};
+
+// Function to set the default model
+window.setDefaultModel = async function(modelName) {
+    try {
+        console.log(`Setting default model to: ${modelName || '(none)'}`);
+        
+        // Update preferences
+        const response = await fetch('/api/preferences', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                defaultModel: modelName || '' // Handle empty string for clearing default
+            })
+        });
+        
+        if (response.ok) {
+            console.log(`Successfully set default model to: ${modelName || '(none)'}`);
+            
+            // Refresh the main model dropdown to show the new default
+            if (window.app && window.app.loadMainModelDropdown) {
+                await window.app.loadMainModelDropdown();
+            }
+            
+            // Show a brief success message only if setting a model (not clearing)
+            if (modelName) {
+                const statusElement = document.getElementById(`mgmt-status-${modelName}`);
+                if (statusElement) {
+                    const originalContent = statusElement.innerHTML;
+                    statusElement.innerHTML = '<span class="status-success">Default Set!</span>';
+                    setTimeout(() => {
+                        statusElement.innerHTML = originalContent;
+                    }, 2000);
+                }
+            }
+            
+        } else {
+            const error = await response.json();
+            console.error(`Failed to set default model:`, error);
+            
+            // Only show alert if we were trying to set a model (not clear it)
+            if (modelName) {
+                alert(`Failed to set default model: ${error.error || 'Unknown error'}`);
+                
+                // Revert the radio button selection
+                const radioButtons = document.querySelectorAll('input[name="default-model"]');
+                radioButtons.forEach(radio => {
+                    if (radio.value === modelName) {
+                        radio.checked = false;
+                    }
+                });
+            }
+        }
+        
+    } catch (error) {
+        console.error(`Error setting default model:`, error);
+        
+        // Only show alert if we were trying to set a model (not clear it)
+        if (modelName) {
+            alert(`Error setting default model: ${error.message}`);
+            
+            // Revert the radio button selection
+            const radioButtons = document.querySelectorAll('input[name="default-model"]');
+            radioButtons.forEach(radio => {
+                if (radio.value === modelName) {
+                    radio.checked = false;
+                }
+            });
         }
     }
 };
