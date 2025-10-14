@@ -6155,7 +6155,7 @@ KnowledgeBaseApp.prototype.showChatView = function() {
                 
                 // Update the project breadcrumb onclick to return to the correct project
                 if (projectBreadcrumb) {
-                    projectBreadcrumb.onclick = () => this.showProjectView(this.currentViewProject.id);
+                    projectBreadcrumb.onclick = () => this.showProjectConversationsView(this.currentViewProject);
                 }
                 
                 console.log('showChatView: Updated breadcrumb for project:', this.currentViewProject.name);
