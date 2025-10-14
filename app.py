@@ -1249,27 +1249,27 @@ Please use this context information appropriately when responding to user questi
         # Get AI response and usage info
         ai_response, tokens, estimated_cost = llm_service.get_response(model, messages, is_authenticated=is_authenticated)
         app.logger.info(f"Got response from {model}: {tokens} tokens, cost: ${estimated_cost:.4f}")
-    
-    # Log usage
-    from models import LLMUsageLog
-    usage_log = LLMUsageLog(
-        model=model,
-        conversation_id=conversation_id if conversation_id else None,
-        tokens=tokens,
-        estimated_cost=estimated_cost
-    )
-    db.session.add(usage_log)
-    
-    # Note: Context usage logging will be handled when messages are saved
-    # to avoid foreign key constraints with non-existent message IDs
-    
-    db.session.commit()
-    
-    # Prepare response
-    response_data = {
-        'response': ai_response,
-        'model': model,
-        'timestamp': datetime.utcnow().isoformat()
+        
+        # Log usage
+        from models import LLMUsageLog
+        usage_log = LLMUsageLog(
+            model=model,
+            conversation_id=conversation_id if conversation_id else None,
+            tokens=tokens,
+            estimated_cost=estimated_cost
+        )
+        db.session.add(usage_log)
+        
+        # Note: Context usage logging will be handled when messages are saved
+        # to avoid foreign key constraints with non-existent message IDs
+        
+        db.session.commit()
+        
+        # Prepare response
+        response_data = {
+            'response': ai_response,
+            'model': model,
+            'timestamp': datetime.utcnow().isoformat()
         }
         
         # Add updated free access info if applicable
