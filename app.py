@@ -242,6 +242,15 @@ def validate_security_config():
 # Run security validation on startup
 validate_security_config()
 
+@app.route('/test-endpoint')
+def test_endpoint():
+    """Simple test endpoint to verify deployment"""
+    return jsonify({
+        'status': 'working',
+        'message': 'Endpoint is accessible',
+        'timestamp': datetime.utcnow().isoformat()
+    })
+
 @app.route('/migrate-add-indexes')
 def migrate_add_indexes():
     """
@@ -249,116 +258,45 @@ def migrate_add_indexes():
     Only run this once after deployment
     """
     try:
-        from database import db
-        
         # Log the migration attempt
         app.logger.info("Starting database index migration via web endpoint")
         
-        # Define indexes to create
+        # Define indexes to create (simplified for reliability)
         indexes = [
-            # Conversations indexes
-            "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_conversations_user_created ON conversations(user_id, created_at DESC)",
-            "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_conversations_session_created ON conversations(session_id, created_at DESC)", 
-            "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_conversations_project_created ON conversations(project_id, created_at DESC)",
-            "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_conversations_user_project ON conversations(user_id, project_id, updated_at DESC)",
-            
-            # Messages indexes  
-            "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_messages_conversation_timestamp ON messages(conversation_id, timestamp ASC)",
-            "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_messages_conversation_role ON messages(conversation_id, role, timestamp ASC)",
-            
-            # Context items indexes
-            "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_context_items_user_active ON context_items(user_id, is_active, created_at DESC)",
-            "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_context_items_project_active ON context_items(project_id, is_active, created_at DESC)",
-        ]
-        
-        # Optional indexes for tables that might not exist
-        optional_indexes = [
-            ("context_sessions", "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_context_sessions_conversation ON context_sessions(conversation_id, created_at DESC)"),
-            ("llm_usage_logs", "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_llm_usage_conversation_timestamp ON llm_usage_logs(conversation_id, timestamp DESC)"),
-            ("llm_usage_logs", "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_llm_usage_model_timestamp ON llm_usage_logs(model, timestamp DESC)"),
-            ("free_access_logs", "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_free_access_ip_timestamp ON free_access_logs(ip_address, timestamp DESC)"),
+            "CREATE INDEX IF NOT EXISTS idx_conversations_user_created ON conversations(user_id, created_at)",
+            "CREATE INDEX IF NOT EXISTS idx_conversations_project_created ON conversations(project_id, created_at)", 
+            "CREATE INDEX IF NOT EXISTS idx_messages_conversation_timestamp ON messages(conversation_id, timestamp)",
         ]
         
         created_indexes = []
-        skipped_indexes = []
         failed_indexes = []
         
-        # Create core indexes
-        for index_sql in indexes:
+        # Create indexes one by one
+        for i, index_sql in enumerate(indexes):
             try:
                 db.session.execute(index_sql)
-                index_name = index_sql.split("idx_")[1].split(" ")[0]
-                created_indexes.append(f"idx_{index_name}")
-                app.logger.info(f"Created index: idx_{index_name}")
+                db.session.commit()
+                index_name = f"index_{i+1}"
+                created_indexes.append(index_name)
+                app.logger.info(f"Created index: {index_name}")
             except Exception as e:
-                index_name = index_sql.split("idx_")[1].split(" ")[0] if "idx_" in index_sql else "unknown"
-                if "already exists" in str(e).lower():
-                    skipped_indexes.append(f"idx_{index_name}")
-                else:
-                    failed_indexes.append(f"idx_{index_name}: {str(e)}")
-                    app.logger.error(f"Failed to create index idx_{index_name}: {e}")
+                failed_indexes.append(f"index_{i+1}: {str(e)}")
+                app.logger.error(f"Failed to create index {i+1}: {e}")
         
-        # Create optional indexes
-        for table_name, index_sql in optional_indexes:
-            try:
-                # Check if table exists
-                result = db.session.execute(f"SELECT to_regclass('public.{table_name}')")
-                if result.scalar() is not None:
-                    db.session.execute(index_sql)
-                    index_name = index_sql.split("idx_")[1].split(" ")[0]
-                    created_indexes.append(f"idx_{index_name}")
-                    app.logger.info(f"Created optional index: idx_{index_name}")
-                else:
-                    app.logger.info(f"Table {table_name} does not exist, skipping index")
-            except Exception as e:
-                index_name = index_sql.split("idx_")[1].split(" ")[0] if "idx_" in index_sql else "unknown"
-                if "already exists" in str(e).lower():
-                    skipped_indexes.append(f"idx_{index_name}")
-                else:
-                    failed_indexes.append(f"idx_{index_name}: {str(e)}")
-        
-        # Commit all changes
-        db.session.commit()
-        
-        # Update table statistics
-        analyze_tables = ['conversations', 'messages', 'projects', 'context_items']
-        for table in analyze_tables:
-            try:
-                db.session.execute(f"ANALYZE {table}")
-                app.logger.info(f"Analyzed table: {table}")
-            except Exception as e:
-                app.logger.warning(f"Could not analyze table {table}: {e}")
-        
-        db.session.commit()
-        
-        # Verify indexes
-        result = db.session.execute("""
-            SELECT tablename, indexname 
-            FROM pg_indexes 
-            WHERE tablename IN ('conversations', 'messages', 'projects', 'context_items')
-            AND indexname LIKE 'idx_%'
-            ORDER BY tablename, indexname
-        """)
-        
-        existing_indexes = [f"{row[0]}.{row[1]}" for row in result]
-        
-        app.logger.info("Database index migration completed successfully")
+        app.logger.info("Database index migration completed")
         
         return jsonify({
             'success': True,
-            'message': 'Database indexes added successfully',
+            'message': f'Database indexes migration completed',
+            'created': len(created_indexes),
+            'failed': len(failed_indexes),
             'details': {
-                'created': created_indexes,
-                'skipped': skipped_indexes,
-                'failed': failed_indexes,
-                'existing_indexes': existing_indexes,
-                'total_performance_indexes': len(existing_indexes)
-            },
-            'recommendation': 'Your database queries should be significantly faster now!'
+                'created_indexes': created_indexes,
+                'failed_indexes': failed_indexes
+            }
         })
         
     except Exception as e:
-        db.session.rollback()
         app.logger.error(f"Database index migration failed: {str(e)}")
         return jsonify({
             'success': False,
