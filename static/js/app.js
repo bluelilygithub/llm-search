@@ -205,21 +205,14 @@ class KnowledgeBaseApp {
 
     // Methods called from the new HTML structure
     startNewConversation() {
-        console.log('startNewConversation called');
-        console.log('currentProject:', this.currentProject);
-        console.log('currentViewProject:', this.currentViewProject);
-        
         // Check if we're currently in a project context
         if (this.currentProject && this.currentProject.id) {
-            console.log('Using currentProject.id:', this.currentProject.id);
             // If we're in a project, start conversation in that project
             this.startNewConversationInProject(this.currentProject.id);
         } else if (this.currentViewProject && this.currentViewProject.id) {
-            console.log('Using currentViewProject.id:', this.currentViewProject.id);
             // If we're viewing a specific project, start conversation in that project
             this.startNewConversationInProject(this.currentViewProject.id);
         } else {
-            console.log('No project context, starting general conversation');
             // No project context, start a general conversation
             this.currentConversationId = null;
             document.getElementById('chat-messages').innerHTML = `
@@ -5909,12 +5902,20 @@ KnowledgeBaseApp.prototype.renderConversationsGrid = function(conversations, con
     const container = document.getElementById(containerId);
     
     if (!conversations.length) {
+        // Determine the correct onclick handler based on project context
+        let newChatOnclick = 'window.app.startNewConversation()';
+        if (this.currentViewProject && this.currentViewProject.id) {
+            newChatOnclick = `window.app.startNewConversationInProject('${this.currentViewProject.id}')`;
+        } else if (this.currentProject && this.currentProject.id) {
+            newChatOnclick = `window.app.startNewConversationInProject('${this.currentProject.id}')`;
+        }
+        
         container.innerHTML = `
             <div class="empty-state-large">
                 <i class="fas fa-comments"></i>
                 <h3>No conversations yet</h3>
                 <p>Start your first conversation to see it here.</p>
-                <button class="view-action-btn" onclick="window.app.startNewConversation()">
+                <button class="view-action-btn" onclick="${newChatOnclick}">
                     <i class="fas fa-plus"></i>
                     New Chat
                 </button>
