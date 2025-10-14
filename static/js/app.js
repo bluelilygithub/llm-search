@@ -718,13 +718,13 @@ class KnowledgeBaseApp {
         }
 
         messages.forEach(message => {
-            this.addMessageToChat(message);
+            this.addMessageToChat(message, false); // false = existing message, don't generate follow-ups
         });
 
         this.scrollToBottom();
     }
 
-    addMessageToChat(message) {
+    addMessageToChat(message, isNewMessage = false) {
         // Try to find the appropriate container
         let container = document.getElementById('chat-messages');
         
@@ -763,8 +763,8 @@ class KnowledgeBaseApp {
         container.appendChild(messageDiv);
         this.scrollToBottom();
         
-        // Generate follow-up questions for assistant messages (async)
-        if (message.role === 'assistant') {
+        // Generate follow-up questions ONLY for NEW assistant messages
+        if (message.role === 'assistant' && isNewMessage) {
             this.addFollowUpQuestionsAsync(messageDiv, message.content);
         }
     }
@@ -996,7 +996,7 @@ class KnowledgeBaseApp {
             timestamp: new Date().toISOString()
         };
         
-        this.addMessageToChat(userMessage);
+        this.addMessageToChat(userMessage, true); // true = new message (though user messages don't get follow-ups anyway)
         input.value = '';
         this.autoResizeTextarea();
 
@@ -1025,7 +1025,7 @@ class KnowledgeBaseApp {
                 content: aiResponse,
                 timestamp: new Date().toISOString()
             };
-            this.addMessageToChat(aiMessage);
+            this.addMessageToChat(aiMessage, true); // true = new AI message, generate follow-ups
 
         } catch (error) {
             this.hideTypingIndicator();
