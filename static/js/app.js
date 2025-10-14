@@ -316,35 +316,83 @@ class KnowledgeBaseApp {
     }
 
     async deleteProject(projectId) {
-        if (confirm('Are you sure you want to delete this project?')) {
-            try {
-                const response = await fetch(`/projects/${projectId}`, {
-                    method: 'DELETE'
-                });
-
-                if (response.ok) {
-                    if (this.currentProject && this.currentProject.id === projectId) {
-                        this.currentProject = null;
-                    }
-                    this.loadProjects();
-                    this.loadConversations();
-                    
-                    // If currently viewing projects page, refresh the main content area too
-                    if (this.currentView === 'projects') {
-                        await this.loadProjectsGrid();
-                    }
-                    
-                    // Show success notification
-                    this.showSuccessNotification('Project deleted successfully!');
-                } else {
-                    const errorData = await response.json();
-                    console.error('Failed to delete project:', errorData.error);
-                    alert(`Failed to delete project: ${errorData.error || 'Unknown error'}`);
+        try {
+            // First, get the count of conversations associated with this project
+            const conversationsResponse = await fetch(`/conversations?project_id=${projectId}`);
+            const conversations = conversationsResponse.ok ? await conversationsResponse.json() : [];
+            const conversationCount = conversations.length;
+            
+            // Get project name for better UX
+            const project = this.projects?.find(p => p.id === projectId);
+            const projectName = project?.name || 'this project';
+            
+            if (conversationCount === 0) {
+                // Simple deletion if no conversations
+                if (confirm(`Are you sure you want to delete "${projectName}"?\n\nThis project has no conversations.`)) {
+                    await this.performProjectDeletion(projectId, false);
                 }
-            } catch (error) {
-                console.error('Error deleting project:', error);
-                alert('Failed to delete project. Please try again.');
+            } else {
+                // Enhanced deletion flow with conversation handling
+                const deleteConversations = confirm(
+                    `"${projectName}" has ${conversationCount} conversation${conversationCount > 1 ? 's' : ''} associated with it.\n\n` +
+                    `Do you want to DELETE the conversations too?\n\n` +
+                    `• Click "OK" to delete the project AND all ${conversationCount} conversation${conversationCount > 1 ? 's' : ''}\n` +
+                    `• Click "Cancel" to keep the conversations but remove the project`
+                );
+                
+                if (deleteConversations) {
+                    // User wants to delete everything
+                    if (confirm(`⚠️ FINAL CONFIRMATION ⚠️\n\nThis will permanently delete:\n• Project: "${projectName}"\n• ${conversationCount} conversation${conversationCount > 1 ? 's' : ''}\n\nThis cannot be undone. Are you sure?`)) {
+                        await this.performProjectDeletion(projectId, true);
+                    }
+                } else {
+                    // User wants to keep conversations but delete project
+                    if (confirm(`Delete project "${projectName}" but keep the ${conversationCount} conversation${conversationCount > 1 ? 's' : ''}?\n\nThe conversation${conversationCount > 1 ? 's' : ''} will become unassigned and can be found in "All Conversations".`)) {
+                        await this.performProjectDeletion(projectId, false);
+                    }
+                }
             }
+            
+        } catch (error) {
+            console.error('Error during project deletion process:', error);
+            alert('Failed to delete project. Please try again.');
+        }
+    }
+
+    async performProjectDeletion(projectId, deleteConversations) {
+        try {
+            const url = `/projects/${projectId}${deleteConversations ? '?delete_conversations=true' : ''}`;
+            const response = await fetch(url, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                if (this.currentProject && this.currentProject.id === projectId) {
+                    this.currentProject = null;
+                }
+                this.loadProjects();
+                this.loadConversations();
+                
+                // If currently viewing projects page, refresh the main content area too
+                if (this.currentView === 'projects') {
+                    await this.loadProjectsGrid();
+                }
+                
+                // Show success notification
+                const message = deleteConversations 
+                    ? 'Project and all associated conversations deleted successfully!'
+                    : 'Project deleted successfully! Conversations are now unassigned.';
+                this.showSuccessNotification(message);
+                
+            } else {
+                const errorData = await response.json();
+                console.error('Failed to delete project:', errorData.error);
+                alert(`Failed to delete project: ${errorData.error || 'Unknown error'}`);
+            }
+            
+        } catch (error) {
+            console.error('Error deleting project:', error);
+            alert('Failed to delete project. Please try again.');
         }
     }
 

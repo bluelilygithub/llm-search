@@ -284,19 +284,39 @@ def create_project():
 @csrf.exempt
 @app.route('/projects/<project_id>', methods=['DELETE'])
 def delete_project(project_id):
-    """Delete a project and set related conversations to no project"""
+    """Delete a project and optionally delete or unassign related conversations"""
     try:
         from models import Project, Conversation
         project = Project.query.get(project_id)
         if not project:
             return jsonify({'error': 'Project not found'}), 404
         
-        # Set project_id to None for all related conversations
-        Conversation.query.filter_by(project_id=project_id).update({'project_id': None})
+        # Check if we should delete conversations too
+        delete_conversations = request.args.get('delete_conversations', 'false').lower() == 'true'
+        
+        if delete_conversations:
+            # Delete all conversations associated with this project
+            conversations = Conversation.query.filter_by(project_id=project_id).all()
+            conversation_count = len(conversations)
+            
+            for conversation in conversations:
+                db.session.delete(conversation)
+            
+            app.logger.info(f"Deleting project {project_id} and {conversation_count} associated conversations")
+            message = f'Project and {conversation_count} conversation{"s" if conversation_count != 1 else ""} deleted'
+        else:
+            # Set project_id to None for all related conversations (unassign them)
+            conversation_count = Conversation.query.filter_by(project_id=project_id).count()
+            Conversation.query.filter_by(project_id=project_id).update({'project_id': None})
+            
+            app.logger.info(f"Deleting project {project_id}, unassigning {conversation_count} conversations")
+            message = f'Project deleted, {conversation_count} conversation{"s" if conversation_count != 1 else ""} unassigned'
+        
+        # Delete the project
         db.session.delete(project)
         db.session.commit()
         
-        return jsonify({'success': True, 'message': 'Project deleted'}), 200
+        return jsonify({'success': True, 'message': message}), 200
     except Exception as e:
         app.logger.error(f"Error deleting project: {e}")
         db.session.rollback()
