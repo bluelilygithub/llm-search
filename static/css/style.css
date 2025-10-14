@@ -3482,7 +3482,7 @@ body {
     align-items: center;
     text-align: center;
     gap: var(--spacing-lg);
-    min-height: 200px;
+    min-height: 280px;
 }
 
 .project-card:hover {
@@ -3521,8 +3521,10 @@ body {
 }
 
 .project-card-actions {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: var(--spacing-sm);
+    width: 100%;
     opacity: 1;
     transition: opacity var(--transition-fast);
     margin-top: auto;
