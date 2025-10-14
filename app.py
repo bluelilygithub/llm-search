@@ -13,6 +13,18 @@ import hashlib
 from werkzeug.utils import secure_filename
 from sqlalchemy import text
 
+# Import our new error handling and validation modules
+from error_handlers import (
+    handle_api_errors, validate_json_request, require_uuid, log_api_request,
+    register_error_handlers, APIException, ValidationException, NotFoundException,
+    UnauthorizedException, ForbiddenException, ConflictException
+)
+from validation_schemas import (
+    chat_message_schema, project_schema, conversation_schema, context_item_schema,
+    user_preferences_schema, validate_request_data, create_validation_error_response,
+    validate_uuid, validate_file_upload
+)
+
 from PyPDF2 import PdfReader
 import io
 try:
@@ -153,6 +165,9 @@ CORS(app)
 
 # CSRF Protection
 csrf = CSRFProtect(app)
+
+# Register error handlers
+register_error_handlers(app)
 
 # Custom CSRF validation for API endpoints
 def validate_csrf_for_api():
@@ -1103,58 +1118,55 @@ def add_message(conversation_id):
 @app.route('/chat', methods=['POST'])
 @limiter.limit("30 per minute")
 @auth.access_required(allow_free=True)
-def chat():
-    try:
-        data = request.get_json()
+@handle_api_errors
+@log_api_request
+@validate_json_request(chat_message_schema)
+def chat(validated_data):
+    conversation_id = validated_data.get('conversation_id')
+    user_message = validated_data['message']
+    model = validated_data['model']
+    project_id = validated_data.get('project_id')  # Get project_id for new conversations
+    
+    # Handle free tier access
+    if getattr(request, 'access_type', None) == 'free_tier':
+        from auth import FreeAccessManager
+        free_info = FreeAccessManager.log_free_query(model)
+        app.logger.info(f"Free tier chat: model={model}, remaining={free_info['queries_remaining']}")
+    
+    app.logger.info(f"Chat request: model={model}, message_length={len(user_message)}")
+    
+    # Get conversation history if conversation exists
+    messages = []
+    
+    # Add project template as system prompt if available (for both existing and new conversations)
+    project = None
+    if conversation_id:
+        conv_uuid = uuid.UUID(conversation_id)
+        conversation = Conversation.query.get_or_404(conv_uuid)
         
-        if not data or not data.get('message') or not data.get('model'):
-            return jsonify({'error': 'Message and model are required'}), 400
-        
-        conversation_id = data.get('conversation_id')
-        user_message = data['message']
-        model = data['model']
-        project_id = data.get('project_id')  # Get project_id for new conversations
-        
-        # Handle free tier access
-        if getattr(request, 'access_type', None) == 'free_tier':
-            from auth import FreeAccessManager
-            free_info = FreeAccessManager.log_free_query(model)
-            app.logger.info(f"Free tier chat: model={model}, remaining={free_info['queries_remaining']}")
-        
-        app.logger.info(f"Chat request: model={model}, message_length={len(user_message)}")
-        
-        # Get conversation history if conversation exists
-        messages = []
-        
-        # Add project template as system prompt if available (for both existing and new conversations)
-        project = None
-        if conversation_id:
-            conv_uuid = uuid.UUID(conversation_id)
-            conversation = Conversation.query.get_or_404(conv_uuid)
-            
-            # Get project from existing conversation
-            if conversation.project_id:
-                project = Project.query.get(conversation.project_id)
-        elif project_id:
-            # For new conversations, get project directly
-            try:
-                project_uuid = uuid.UUID(project_id)
-                project = Project.query.get(project_uuid)
-            except (ValueError, TypeError):
-                app.logger.warning(f"Invalid project_id format: {project_id}")
-        
-        # Apply project template if we have a project
-        if project:
-            project_system_prompt = build_project_system_prompt(project)
-            if project_system_prompt:
-                messages.append({
-                    'role': 'system',
-                    'content': project_system_prompt
-                })
-                app.logger.info(f"Applied project template for project: {project.name}")
-        
-        # Load conversation history if conversation exists
-        if conversation_id:
+        # Get project from existing conversation
+        if conversation.project_id:
+            project = Project.query.get(conversation.project_id)
+    elif project_id:
+        # For new conversations, get project directly
+        try:
+            project_uuid = uuid.UUID(project_id)
+            project = Project.query.get(project_uuid)
+        except (ValueError, TypeError):
+            app.logger.warning(f"Invalid project_id format: {project_id}")
+    
+    # Apply project template if we have a project
+    if project:
+        project_system_prompt = build_project_system_prompt(project)
+        if project_system_prompt:
+            messages.append({
+                'role': 'system',
+                'content': project_system_prompt
+            })
+            app.logger.info(f"Applied project template for project: {project.name}")
+    
+    # Load conversation history if conversation exists
+    if conversation_id:
             db_messages = Message.query.filter_by(conversation_id=conv_uuid).order_by(Message.timestamp.asc()).all()
             conversation_messages = llm_service.format_conversation_for_llm(db_messages)
             messages.extend(conversation_messages)

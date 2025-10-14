@@ -5,15 +5,26 @@
  */
 
 class APIClient {
-    constructor() {
+    constructor(errorHandler = null, validator = null) {
+        this.errorHandler = errorHandler;
+        this.validator = validator;
         this.baseURL = '';
         this.defaultHeaders = {
             'Content-Type': 'application/json'
         };
+        
+        // Get CSRF token
+        const csrfToken = document.querySelector('meta[name="csrf-token"]');
+        if (csrfToken) {
+            this.defaultHeaders['X-CSRFToken'] = csrfToken.getAttribute('content');
+        }
+        
+        // Request timeout (30 seconds)
+        this.timeout = 30000;
     }
 
     /**
-     * Generic request handler with error handling
+     * Generic request handler with enhanced error handling
      */
     async request(url, options = {}) {
         try {
@@ -22,10 +33,26 @@ class APIClient {
                 ...options
             };
 
-            const response = await fetch(url, config);
+            // Create timeout promise
+            const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error('Request timeout')), this.timeout);
+            });
+
+            // Make the request with timeout
+            const response = await Promise.race([
+                fetch(url, config),
+                timeoutPromise
+            ]);
             
             if (!response.ok) {
-                throw new APIError(`HTTP ${response.status}: ${response.statusText}`, response.status);
+                const apiError = await APIError.fromResponse(response);
+                
+                // Use error handler if available
+                if (this.errorHandler) {
+                    this.errorHandler.handleError(apiError);
+                }
+                
+                throw apiError;
             }
 
             const contentType = response.headers.get('content-type');
@@ -34,7 +61,14 @@ class APIClient {
                 
                 // Check for API-level errors
                 if (data.error) {
-                    throw new APIError(data.error, response.status, data);
+                    const apiError = new APIError(data.error, response.status, response);
+                    apiError.errorData = data;
+                    
+                    if (this.errorHandler) {
+                        this.errorHandler.handleError(apiError);
+                    }
+                    
+                    throw apiError;
                 }
                 
                 return data;
@@ -45,8 +79,33 @@ class APIClient {
             if (error instanceof APIError) {
                 throw error;
             }
-            throw new APIError(`Network error: ${error.message}`, 0);
+            
+            // Handle network errors
+            const networkError = APIError.fromNetworkError(error);
+            
+            if (this.errorHandler) {
+                this.errorHandler.handleError(networkError);
+            }
+            
+            throw networkError;
         }
+    }
+
+    /**
+     * Validate data before sending request
+     */
+    validateData(data, schemaName) {
+        if (this.validator && schemaName) {
+            try {
+                return this.validator.validate(data, schemaName);
+            } catch (validationError) {
+                if (this.errorHandler) {
+                    this.errorHandler.handleError(validationError);
+                }
+                throw validationError;
+            }
+        }
+        return data;
     }
 
     // Conversation API methods
@@ -76,9 +135,10 @@ class APIClient {
 
     // Chat API methods
     async sendChatMessage(data) {
+        const validatedData = this.validateData(data, 'chatMessage');
         return this.request('/chat', {
             method: 'POST',
-            body: JSON.stringify(data)
+            body: JSON.stringify(validatedData)
         });
     }
 
@@ -88,9 +148,10 @@ class APIClient {
     }
 
     async createProject(data) {
+        const validatedData = this.validateData(data, 'project');
         return this.request('/projects', {
             method: 'POST',
-            body: JSON.stringify(data)
+            body: JSON.stringify(validatedData)
         });
     }
 
