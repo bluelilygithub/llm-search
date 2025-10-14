@@ -4439,6 +4439,154 @@ window.setDefaultModel = async function(modelName) {
             });
         }
     }
+
+    // ==================== TEMPLATE & PROMPT LIBRARY METHODS ====================
+    
+    openTemplatePicker() {
+        const modal = document.getElementById('template-modal');
+        if (modal) {
+            modal.style.display = 'flex';
+            // Focus on search input
+            setTimeout(() => {
+                const searchInput = document.getElementById('template-search');
+                if (searchInput) searchInput.focus();
+            }, 100);
+        }
+    }
+
+    closeTemplatePicker() {
+        const modal = document.getElementById('template-modal');
+        if (modal) {
+            modal.style.display = 'none';
+            // Clear search
+            const searchInput = document.getElementById('template-search');
+            if (searchInput) searchInput.value = '';
+            this.filterTemplates('all');
+        }
+    }
+
+    selectTemplate(templateId) {
+        const TEMPLATE_DATA = {
+            'email-template': {
+                name: 'Email Template',
+                content: 'Please help me write a professional email about {{topic}}. The email should be {{tone}} and include {{details}}.',
+                category: 'writing',
+                defaultModel: 'claude-3.5-sonnet',
+                description: 'Professional email writing'
+            },
+            'code-review': {
+                name: 'Code Review',
+                content: 'Please review this code for best practices, potential bugs, and improvements:\n\n```\n{{code}}\n```\n\nFocus on: {{focus_areas}}',
+                category: 'code',
+                defaultModel: 'gpt-4',
+                description: 'Comprehensive code analysis'
+            },
+            'meeting-notes': {
+                name: 'Meeting Notes',
+                content: 'Please help me organize these meeting notes into a structured format:\n\n{{notes}}\n\nInclude: agenda, key decisions, action items, and next steps.',
+                category: 'writing',
+                defaultModel: 'claude-3.5-sonnet',
+                description: 'Structured meeting documentation'
+            },
+            'brainstorming': {
+                name: 'Brainstorming',
+                content: 'Help me brainstorm creative ideas for {{topic}}. Consider these constraints: {{constraints}}. Generate {{number}} innovative solutions.',
+                category: 'creative',
+                defaultModel: 'claude-3.5-sonnet',
+                description: 'Creative idea generation'
+            },
+            'research': {
+                name: 'Research',
+                content: 'Help me research {{topic}}. Please provide:\n1. Key facts and statistics\n2. Current trends\n3. Expert opinions\n4. Potential challenges\n5. Future outlook',
+                category: 'research',
+                defaultModel: 'gpt-4',
+                description: 'Academic research assistance'
+            },
+            'blog-post': {
+                name: 'Blog Post',
+                content: 'Help me write an engaging blog post about {{topic}}. Target audience: {{audience}}. Tone: {{tone}}. Length: {{length}} words.',
+                category: 'writing',
+                defaultModel: 'claude-3.5-sonnet',
+                description: 'Engaging blog content'
+            }
+        };
+
+        const template = TEMPLATE_DATA[templateId];
+        if (!template) {
+            console.error('Template not found:', templateId);
+            return;
+        }
+
+        // Auto-select the recommended model
+        this.selectedModel = template.defaultModel;
+        const modelSelector = document.getElementById('llm-model');
+        if (modelSelector) {
+            modelSelector.value = template.defaultModel;
+            modelSelector.dispatchEvent(new Event('change'));
+        }
+
+        // Populate the message input with template content
+        const messageInput = document.getElementById('message-input');
+        if (messageInput) {
+            messageInput.value = template.content;
+            messageInput.style.height = 'auto';
+            messageInput.style.height = Math.min(messageInput.scrollHeight, 200) + 'px';
+            messageInput.focus();
+        }
+
+        // Show template applied notification
+        if (this.showNotification) {
+            this.showNotification(`Template "${template.name}" applied with ${template.defaultModel}`, 'success');
+        }
+
+        // Close the modal
+        this.closeTemplatePicker();
+    }
+
+    searchTemplates(query) {
+        const cards = document.querySelectorAll('.template-card');
+        const searchTerm = query.toLowerCase();
+
+        cards.forEach(card => {
+            const title = card.querySelector('h4').textContent.toLowerCase();
+            const description = card.querySelector('p').textContent.toLowerCase();
+            
+            if (title.includes(searchTerm) || description.includes(searchTerm)) {
+                card.style.display = 'flex';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+
+    filterTemplates(category) {
+        // Update active tab
+        document.querySelectorAll('.category-tab').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        const activeTab = document.querySelector(`[data-category="${category}"]`);
+        if (activeTab) {
+            activeTab.classList.add('active');
+        }
+
+        // Filter cards
+        const cards = document.querySelectorAll('.template-card');
+        cards.forEach(card => {
+            if (category === 'all' || card.dataset.category === category) {
+                card.style.display = 'flex';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+
+    createCustomTemplate() {
+        // For now, just show a placeholder
+        if (this.showNotification) {
+            this.showNotification('Custom template creation coming soon!', 'info');
+        }
+        this.closeTemplatePicker();
+    }
 };
 
 // Function to migrate a legacy model to the dynamic system
@@ -6567,162 +6715,5 @@ function submitEditContext() {
         submitBtn.textContent = originalText;
         submitBtn.disabled = false;
     });
-} 
- // ==================== TEMPLATE & PROMPT LIBRARY METHODS ====================
-
-// Template data - in a real app, this would come from an API
-const TEMPLATE_DATA = {
-    'email-template': {
-        name: 'Email Template',
-        content: 'Please help me write a professional email about {{topic}}. The email should be {{tone}} and include {{details}}.',
-        category: 'writing',
-        defaultModel: 'claude-3.5-sonnet',
-        description: 'Professional email writing',
-        usage: 245
-    },
-    'code-review': {
-        name: 'Code Review',
-        content: 'Please review this code for best practices, potential bugs, and improvements:\n\n```\n{{code}}\n```\n\nFocus on: {{focus_areas}}',
-        category: 'code',
-        defaultModel: 'gpt-4',
-        description: 'Comprehensive code analysis',
-        usage: 189
-    },
-    'meeting-notes': {
-        name: 'Meeting Notes',
-        content: 'Please help me organize these meeting notes into a structured format:\n\n{{notes}}\n\nInclude: agenda, key decisions, action items, and next steps.',
-        category: 'writing',
-        defaultModel: 'claude-3.5-sonnet',
-        description: 'Structured meeting documentation',
-        usage: 156
-    },
-    'brainstorming': {
-        name: 'Brainstorming',
-        content: 'Help me brainstorm creative ideas for {{topic}}. Consider these constraints: {{constraints}}. Generate {{number}} innovative solutions.',
-        category: 'creative',
-        defaultModel: 'claude-3.5-sonnet',
-        description: 'Creative idea generation',
-        usage: 134
-    },
-    'research': {
-        name: 'Research',
-        content: 'Help me research {{topic}}. Please provide:\n1. Key facts and statistics\n2. Current trends\n3. Expert opinions\n4. Potential challenges\n5. Future outlook',
-        category: 'research',
-        defaultModel: 'gpt-4',
-        description: 'Academic research assistance',
-        usage: 98
-    },
-    'blog-post': {
-        name: 'Blog Post',
-        content: 'Help me write an engaging blog post about {{topic}}. Target audience: {{audience}}. Tone: {{tone}}. Length: {{length}} words.',
-        category: 'writing',
-        defaultModel: 'claude-3.5-sonnet',
-        description: 'Engaging blog content',
-        usage: 87
-    }
-};
-
-// Template picker methods
-openTemplatePicker() {
-    const modal = document.getElementById('template-modal');
-    if (modal) {
-        modal.style.display = 'flex';
-        // Focus on search input
-        setTimeout(() => {
-            const searchInput = document.getElementById('template-search');
-            if (searchInput) searchInput.focus();
-        }, 100);
-    }
 }
-
-closeTemplatePicker() {
-    const modal = document.getElementById('template-modal');
-    if (modal) {
-        modal.style.display = 'none';
-        // Clear search
-        const searchInput = document.getElementById('template-search');
-        if (searchInput) searchInput.value = '';
-        this.filterTemplates('all');
-    }
-}
-
-selectTemplate(templateId) {
-    const template = TEMPLATE_DATA[templateId];
-    if (!template) {
-        console.error('Template not found:', templateId);
-        return;
-    }
-
-    // Auto-select the recommended model
-    this.selectedModel = template.defaultModel;
-    this.updateModelSelector(template.defaultModel);
-
-    // Populate the message input with template content
-    const messageInput = document.getElementById('message-input');
-    if (messageInput) {
-        messageInput.value = template.content;
-        messageInput.style.height = 'auto';
-        messageInput.style.height = Math.min(messageInput.scrollHeight, 200) + 'px';
-        messageInput.focus();
-    }
-
-    // Show template applied notification
-    this.showNotification(`Template "${template.name}" applied with ${template.defaultModel}`, 'success');
-
-    // Close the modal
-    this.closeTemplatePicker();
-}
-
-searchTemplates(query) {
-    const cards = document.querySelectorAll('.template-card');
-    const searchTerm = query.toLowerCase();
-
-    cards.forEach(card => {
-        const title = card.querySelector('h4').textContent.toLowerCase();
-        const description = card.querySelector('p').textContent.toLowerCase();
-        
-        if (title.includes(searchTerm) || description.includes(searchTerm)) {
-            card.style.display = 'flex';
-        } else {
-            card.style.display = 'none';
-        }
-    });
-}
-
-filterTemplates(category) {
-    // Update active tab
-    document.querySelectorAll('.category-tab').forEach(tab => {
-        tab.classList.remove('active');
-    });
-    document.querySelector(`[data-category="${category}"]`).classList.add('active');
-
-    // Filter cards
-    const cards = document.querySelectorAll('.template-card');
-    cards.forEach(card => {
-        if (category === 'all' || card.dataset.category === category) {
-            card.style.display = 'flex';
-        } else {
-            card.style.display = 'none';
-        }
-    });
-}
-
-updateModelSelector(model) {
-    const modelSelector = document.getElementById('llm-model');
-    if (modelSelector) {
-        modelSelector.value = model;
-        // Trigger change event
-        modelSelector.dispatchEvent(new Event('change'));
-    }
-}
-
-createCustomTemplate() {
-    // For now, just show a placeholder
-    this.showNotification('Custom template creation coming soon!', 'info');
-    this.closeTemplatePicker();
-}
-
-// Initialize the app when DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
-    window.app = new KnowledgeBaseApp();
-});
+ 
