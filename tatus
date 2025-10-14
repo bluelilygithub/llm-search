@@ -7,3 +7,8 @@
   [31mremotes/origin/main[m
   [31mremotes/origin/mature-ui[m
   [31mremotes/origin/version_before_ui_update[m
+[33m5031884[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mnow-using-html-templates[m[33m)[m Integrate main model dropdown with Settings - only show enabled models
+[33m6f92d98[m[33m ([m[1;31morigin/now-using-html-templates[m[33m)[m still issues with modal
+[33m03f93aa[m Add CSRF exemption and better error handling for model access API
+[33m08a6cdd[m more modal
+[33mb32ee64[m modal models

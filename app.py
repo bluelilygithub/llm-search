@@ -286,7 +286,7 @@ def create_project():
 def delete_project(project_id):
     """Delete a project and optionally delete or unassign related conversations"""
     try:
-        from models import Project, Conversation, ContextItem
+        from models import Project, Conversation, ContextItem, LLMUsageLog, LLMErrorLog
         
         app.logger.info(f"Attempting to delete project: {project_id}")
         
@@ -299,11 +299,33 @@ def delete_project(project_id):
         delete_conversations = request.args.get('delete_conversations', 'false').lower() == 'true'
         app.logger.info(f"Delete conversations flag: {delete_conversations}")
         
-        # Get conversation count before any operations
-        conversation_count = Conversation.query.filter_by(project_id=project_id).count()
-        app.logger.info(f"Found {conversation_count} conversations associated with project")
+        # Get conversation count and IDs before any operations
+        conversations = Conversation.query.filter_by(project_id=project_id).all()
+        conversation_count = len(conversations)
+        conversation_ids = [conv.id for conv in conversations]
+        app.logger.info(f"Found {conversation_count} conversations associated with project: {conversation_ids}")
         
         if delete_conversations:
+            # Need to handle foreign key constraints before deleting conversations
+            if conversation_ids:
+                # Delete LLM usage logs that reference these conversations
+                usage_logs_deleted = LLMUsageLog.query.filter(LLMUsageLog.conversation_id.in_(conversation_ids)).delete(synchronize_session=False)
+                app.logger.info(f"Deleted {usage_logs_deleted} LLM usage log entries")
+                
+                # Delete LLM error logs that reference these conversations  
+                error_logs_deleted = LLMErrorLog.query.filter(LLMErrorLog.conversation_id.in_(conversation_ids)).delete(synchronize_session=False)
+                app.logger.info(f"Deleted {error_logs_deleted} LLM error log entries")
+                
+                # Delete any context sessions that reference these conversations
+                try:
+                    from models import ContextSession
+                    context_sessions_deleted = ContextSession.query.filter(ContextSession.conversation_id.in_(conversation_ids)).delete(synchronize_session=False)
+                    app.logger.info(f"Deleted {context_sessions_deleted} context session entries")
+                except Exception as ctx_error:
+                    app.logger.warning(f"Could not delete context sessions: {ctx_error}")
+                
+                db.session.flush()  # Apply deletions before proceeding
+            
             # Let the cascade relationship handle conversation deletion
             # The Project model has cascade='all, delete-orphan' so conversations will be deleted automatically
             app.logger.info(f"Will delete project {project_id} and let cascade delete {conversation_count} conversations")
@@ -330,8 +352,8 @@ def delete_project(project_id):
         # Delete the project
         try:
             app.logger.info(f"About to delete project: {project.name} ({project.id})")
-            db.session.delete(project)
-            db.session.commit()
+        db.session.delete(project)
+        db.session.commit()
             app.logger.info(f"Successfully deleted project: {project_id}")
         except Exception as delete_error:
             app.logger.error(f"Error deleting project: {str(delete_error)}")
@@ -2450,8 +2472,8 @@ def check_model_access():
         
         # Import LLM service to check model access
         try:
-            from llm_service import LLMService
-            llm_service = LLMService()
+        from llm_service import LLMService
+        llm_service = LLMService()
             app.logger.info("LLMService imported successfully")
         except Exception as import_error:
             app.logger.error(f"Failed to import LLMService: {str(import_error)}")
@@ -2489,46 +2511,46 @@ def check_model_access():
                 
             else:
                 # Fall back to pattern matching for legacy models
-                if model.startswith('gpt-') or model.startswith('o1-'):
-                    # OpenAI models - check if API key is configured
+            if model.startswith('gpt-') or model.startswith('o1-'):
+                # OpenAI models - check if API key is configured
                     api_key_name = 'OPENAI_API_KEY'
-                    openai_key = os.getenv('OPENAI_API_KEY')
-                    app.logger.info(f"Checking OpenAI API key: {'configured' if openai_key and openai_key.strip() else 'not configured'}")
-                    has_access = bool(openai_key and openai_key.strip())
-                    
-                elif model.startswith('claude-'):
-                    # Anthropic models - check if API key is configured
+                openai_key = os.getenv('OPENAI_API_KEY')
+                app.logger.info(f"Checking OpenAI API key: {'configured' if openai_key and openai_key.strip() else 'not configured'}")
+                has_access = bool(openai_key and openai_key.strip())
+                
+            elif model.startswith('claude-'):
+                # Anthropic models - check if API key is configured
                     api_key_name = 'CLAUDE_API_KEY'
-                    anthropic_key = os.getenv('CLAUDE_API_KEY')
-                    app.logger.info(f"Checking Claude API key: {'configured' if anthropic_key and anthropic_key.strip() else 'not configured'}")
-                    has_access = bool(anthropic_key and anthropic_key.strip())
-                    
-                elif model.startswith('gemini-'):
-                    # Google models - check if API key is configured
+                anthropic_key = os.getenv('CLAUDE_API_KEY')
+                app.logger.info(f"Checking Claude API key: {'configured' if anthropic_key and anthropic_key.strip() else 'not configured'}")
+                has_access = bool(anthropic_key and anthropic_key.strip())
+                
+            elif model.startswith('gemini-'):
+                # Google models - check if API key is configured
                     api_key_name = 'GEMINI_API_KEY'
-                    gemini_key = os.getenv('GEMINI_API_KEY')
-                    app.logger.info(f"Checking Gemini API key: {'configured' if gemini_key and gemini_key.strip() else 'not configured'}")
-                    has_access = bool(gemini_key and gemini_key.strip())
-                    
-                elif model in ['llama2-70b', 'mixtral-8x7b', 'codellama-34b']:
-                    # Hugging Face models - check if API key is configured
+                gemini_key = os.getenv('GEMINI_API_KEY')
+                app.logger.info(f"Checking Gemini API key: {'configured' if gemini_key and gemini_key.strip() else 'not configured'}")
+                has_access = bool(gemini_key and gemini_key.strip())
+                
+            elif model in ['llama2-70b', 'mixtral-8x7b', 'codellama-34b']:
+                # Hugging Face models - check if API key is configured
                     api_key_name = 'HUGGING_FACE_API_KEY'
-                    hf_key = os.getenv('HUGGING_FACE_API_KEY')
-                    app.logger.info(f"Checking Hugging Face API key: {'configured' if hf_key and hf_key.strip() else 'not configured'}")
-                    has_access = bool(hf_key and hf_key.strip())
-                    
-                elif model.startswith('stable-'):
-                    # Stability AI models - check if API key is configured
+                hf_key = os.getenv('HUGGING_FACE_API_KEY')
+                app.logger.info(f"Checking Hugging Face API key: {'configured' if hf_key and hf_key.strip() else 'not configured'}")
+                has_access = bool(hf_key and hf_key.strip())
+                
+            elif model.startswith('stable-'):
+                # Stability AI models - check if API key is configured
                     api_key_name = 'STABILITY_API_KEY'
-                    stability_key = os.getenv('STABILITY_API_KEY')
-                    app.logger.info(f"Checking Stability API key: {'configured' if stability_key and stability_key.strip() else 'not configured'}")
-                    has_access = bool(stability_key and stability_key.strip())
-                    
-                else:
-                    # Unknown model
-                    has_access = False
+                stability_key = os.getenv('STABILITY_API_KEY')
+                app.logger.info(f"Checking Stability API key: {'configured' if stability_key and stability_key.strip() else 'not configured'}")
+                has_access = bool(stability_key and stability_key.strip())
+                
+            else:
+                # Unknown model
+                has_access = False
                     api_key_name = 'Unknown'
-                    
+                
             # For GPT-5 specifically, you might want additional checks
             if model == 'gpt-5':
                 # GPT-5 might have special access requirements
