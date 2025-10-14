@@ -3491,6 +3491,7 @@ try:
         }
     
     # Migration endpoint for upgrading to multi-user system
+    @csrf.exempt
     @app.route('/migrate-user-system', methods=['GET', 'POST'])
     def migrate_user_system_endpoint():
         """Web endpoint to migrate to multi-user system"""
