@@ -493,6 +493,96 @@ def create_project():
     
     return jsonify(response_data), 201
 
+@app.route('/projects/<project_id>/template', methods=['GET'])
+@auth.login_required
+def get_project_template(project_id):
+    """Get project template data"""
+    try:
+        conv_uuid = uuid.UUID(project_id)
+        project = Project.query.get_or_404(conv_uuid)
+        
+        import json
+        template_data = {
+            'agent_name': project.agent_name,
+            'agent_role': project.agent_role,
+            'agent_personality': project.agent_personality,
+            'primary_goal': project.primary_goal,
+            'goal_steps': json.loads(project.goal_steps) if project.goal_steps else [],
+            'rules_do': json.loads(project.rules_do) if project.rules_do else [],
+            'rules_dont': json.loads(project.rules_dont) if project.rules_dont else [],
+            'context_background': project.context_background,
+            'user_role': project.user_role,
+            'output_format': project.output_format
+        }
+        
+        return jsonify({
+            'project': {
+                'id': str(project.id),
+                'name': project.name,
+                'description': project.description
+            },
+            'template': template_data
+        }), 200
+        
+    except ValueError:
+        return jsonify({'error': 'Invalid project ID'}), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@csrf.exempt
+@app.route('/projects/<project_id>/template', methods=['PUT'])
+@auth.login_required
+def update_project_template(project_id):
+    """Update project template data"""
+    try:
+        conv_uuid = uuid.UUID(project_id)
+        project = Project.query.get_or_404(conv_uuid)
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
+        import json
+        
+        # Convert step and rule arrays to JSON strings for storage
+        goal_steps = data.get('goal_steps', [])
+        if isinstance(goal_steps, str):
+            goal_steps = [step.strip() for step in goal_steps.split('\n') if step.strip()]
+        
+        rules_do = data.get('rules_do', [])
+        if isinstance(rules_do, str):
+            rules_do = [rule.strip() for rule in rules_do.split('\n') if rule.strip()]
+            
+        rules_dont = data.get('rules_dont', [])
+        if isinstance(rules_dont, str):
+            rules_dont = [rule.strip() for rule in rules_dont.split('\n') if rule.strip()]
+        
+        # Update template fields
+        project.agent_name = data.get('agent_name')
+        project.agent_role = data.get('agent_role')
+        project.agent_personality = data.get('agent_personality')
+        project.primary_goal = data.get('primary_goal')
+        project.goal_steps = json.dumps(goal_steps) if goal_steps else None
+        project.rules_do = json.dumps(rules_do) if rules_do else None
+        project.rules_dont = json.dumps(rules_dont) if rules_dont else None
+        project.context_background = data.get('context_background')
+        project.user_role = data.get('user_role')
+        project.output_format = data.get('output_format')
+        project.updated_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Project template updated successfully'
+        }), 200
+        
+    except ValueError:
+        return jsonify({'error': 'Invalid project ID'}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
 @csrf.exempt
 @app.route('/projects/<project_id>', methods=['DELETE'])
 def delete_project(project_id):
