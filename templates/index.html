@@ -77,6 +77,65 @@
                     </div>
                 </div>
 
+                <!-- Templates Section -->
+                <div class="nav-section">
+                    <button class="section-header" onclick="toggleSection('templates')" id="templates-header">
+                        <div class="section-header-content">
+                            <div class="section-title">
+                                <i class="fas fa-file-alt"></i>
+                                <span class="section-label">Templates</span>
+                            </div>
+                            <div class="section-toggle">
+                                <i class="fas fa-plus" id="templates-toggle"></i>
+                            </div>
+                        </div>
+                    </button>
+                    
+                    <div class="section-content collapsed" id="templates-content">
+                        <div class="templates-scroll-area">
+                            <div class="templates-list" id="templates-list">
+                                <!-- Template categories will be loaded here -->
+                                <div class="template-category">
+                                    <div class="template-category-header">
+                                        <i class="fas fa-star"></i>
+                                        <span>Favorites</span>
+                                    </div>
+                                    <div class="template-items">
+                                        <div class="template-item" onclick="window.app.selectTemplate('email-template')">
+                                            <i class="fas fa-envelope"></i>
+                                            <span>Email Template</span>
+                                        </div>
+                                        <div class="template-item" onclick="window.app.selectTemplate('code-review')">
+                                            <i class="fas fa-code"></i>
+                                            <span>Code Review</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="template-category">
+                                    <div class="template-category-header">
+                                        <i class="fas fa-fire"></i>
+                                        <span>Popular</span>
+                                    </div>
+                                    <div class="template-items">
+                                        <div class="template-item" onclick="window.app.selectTemplate('meeting-notes')">
+                                            <i class="fas fa-clipboard"></i>
+                                            <span>Meeting Notes</span>
+                                        </div>
+                                        <div class="template-item" onclick="window.app.selectTemplate('brainstorming')">
+                                            <i class="fas fa-lightbulb"></i>
+                                            <span>Brainstorming</span>
+                                        </div>
+                                        <div class="template-item" onclick="window.app.selectTemplate('research')">
+                                            <i class="fas fa-search"></i>
+                                            <span>Research</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
             </div>
 
@@ -141,6 +200,10 @@
                             </optgroup>
                         </select>
                     </div>
+                    <button class="template-btn" onclick="window.app.openTemplatePicker()" title="Templates & Prompts">
+                        <i class="fas fa-file-alt"></i>
+                        <span>Templates</span>
+                    </button>
                 </div>
                 
                 <div class="top-bar-right">
@@ -290,6 +353,9 @@
                         </button>
                         <button class="input-control-btn" onclick="startVoiceInput()" title="Voice Input" id="voice-btn">
                             <i class="fas fa-microphone"></i>
+                        </button>
+                        <button class="input-control-btn" onclick="window.app.openTemplatePicker()" title="Templates & Prompts">
+                            <i class="fas fa-file-alt"></i>
                         </button>
                     </div>
                     
@@ -1496,5 +1562,130 @@
               }
          });
     </script>
+
+    <!-- Template Picker Modal -->
+    <div class="template-modal" id="template-modal" style="display: none;">
+        <div class="template-modal-content">
+            <div class="template-modal-header">
+                <h3><i class="fas fa-file-alt"></i> Choose Template</h3>
+                <button class="template-modal-close" onclick="window.app.closeTemplatePicker()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="template-modal-body">
+                <div class="template-search">
+                    <div class="template-search-input">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="template-search" placeholder="Search templates..." oninput="window.app.searchTemplates(this.value)">
+                    </div>
+                </div>
+                
+                <div class="template-categories">
+                    <div class="template-category-tabs">
+                        <button class="category-tab active" onclick="window.app.filterTemplates('all')" data-category="all">All</button>
+                        <button class="category-tab" onclick="window.app.filterTemplates('writing')" data-category="writing">Writing</button>
+                        <button class="category-tab" onclick="window.app.filterTemplates('research')" data-category="research">Research</button>
+                        <button class="category-tab" onclick="window.app.filterTemplates('code')" data-category="code">Code</button>
+                        <button class="category-tab" onclick="window.app.filterTemplates('creative')" data-category="creative">Creative</button>
+                    </div>
+                </div>
+                
+                <div class="template-grid" id="template-grid">
+                    <!-- Templates will be populated here -->
+                    <div class="template-card" data-category="writing" onclick="window.app.selectTemplate('email-template')">
+                        <div class="template-icon">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <div class="template-info">
+                            <h4>Email Template</h4>
+                            <p>Professional email writing</p>
+                            <div class="template-meta">
+                                <span class="template-model">Claude-3.5-Sonnet</span>
+                                <span class="template-usage">⭐ 245 uses</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="template-card" data-category="code" onclick="window.app.selectTemplate('code-review')">
+                        <div class="template-icon">
+                            <i class="fas fa-code"></i>
+                        </div>
+                        <div class="template-info">
+                            <h4>Code Review</h4>
+                            <p>Comprehensive code analysis</p>
+                            <div class="template-meta">
+                                <span class="template-model">GPT-4</span>
+                                <span class="template-usage">⭐ 189 uses</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="template-card" data-category="writing" onclick="window.app.selectTemplate('meeting-notes')">
+                        <div class="template-icon">
+                            <i class="fas fa-clipboard"></i>
+                        </div>
+                        <div class="template-info">
+                            <h4>Meeting Notes</h4>
+                            <p>Structured meeting documentation</p>
+                            <div class="template-meta">
+                                <span class="template-model">Claude-3.5-Sonnet</span>
+                                <span class="template-usage">⭐ 156 uses</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="template-card" data-category="creative" onclick="window.app.selectTemplate('brainstorming')">
+                        <div class="template-icon">
+                            <i class="fas fa-lightbulb"></i>
+                        </div>
+                        <div class="template-info">
+                            <h4>Brainstorming</h4>
+                            <p>Creative idea generation</p>
+                            <div class="template-meta">
+                                <span class="template-model">Claude-3.5-Sonnet</span>
+                                <span class="template-usage">⭐ 134 uses</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="template-card" data-category="research" onclick="window.app.selectTemplate('research')">
+                        <div class="template-icon">
+                            <i class="fas fa-search"></i>
+                        </div>
+                        <div class="template-info">
+                            <h4>Research</h4>
+                            <p>Academic research assistance</p>
+                            <div class="template-meta">
+                                <span class="template-model">GPT-4</span>
+                                <span class="template-usage">⭐ 98 uses</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="template-card" data-category="writing" onclick="window.app.selectTemplate('blog-post')">
+                        <div class="template-icon">
+                            <i class="fas fa-blog"></i>
+                        </div>
+                        <div class="template-info">
+                            <h4>Blog Post</h4>
+                            <p>Engaging blog content</p>
+                            <div class="template-meta">
+                                <span class="template-model">Claude-3.5-Sonnet</span>
+                                <span class="template-usage">⭐ 87 uses</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="template-modal-footer">
+                <button class="template-btn-secondary" onclick="window.app.closeTemplatePicker()">Cancel</button>
+                <button class="template-btn-primary" onclick="window.app.createCustomTemplate()">
+                    <i class="fas fa-plus"></i> Create Custom Template
+                </button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
