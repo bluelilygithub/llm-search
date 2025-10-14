@@ -363,36 +363,36 @@ class KnowledgeBaseApp {
         try {
             const url = `/projects/${projectId}${deleteConversations ? '?delete_conversations=true' : ''}`;
             const response = await fetch(url, {
-                method: 'DELETE'
-            });
+                    method: 'DELETE'
+                });
 
-            if (response.ok) {
-                if (this.currentProject && this.currentProject.id === projectId) {
-                    this.currentProject = null;
-                }
-                this.loadProjects();
-                this.loadConversations();
-                
-                // If currently viewing projects page, refresh the main content area too
-                if (this.currentView === 'projects') {
-                    await this.loadProjectsGrid();
-                }
-                
-                // Show success notification
+                if (response.ok) {
+                    if (this.currentProject && this.currentProject.id === projectId) {
+                        this.currentProject = null;
+                    }
+                    this.loadProjects();
+                    this.loadConversations();
+                    
+                    // If currently viewing projects page, refresh the main content area too
+                    if (this.currentView === 'projects') {
+                        await this.loadProjectsGrid();
+                    }
+                    
+                    // Show success notification
                 const message = deleteConversations 
                     ? 'Project and all associated conversations deleted successfully!'
                     : 'Project deleted successfully! Conversations are now unassigned.';
                 this.showSuccessNotification(message);
                 
-            } else {
-                const errorData = await response.json();
-                console.error('Failed to delete project:', errorData.error);
-                alert(`Failed to delete project: ${errorData.error || 'Unknown error'}`);
-            }
+                } else {
+                    const errorData = await response.json();
+                    console.error('Failed to delete project:', errorData.error);
+                    alert(`Failed to delete project: ${errorData.error || 'Unknown error'}`);
+                }
             
-        } catch (error) {
-            console.error('Error deleting project:', error);
-            alert('Failed to delete project. Please try again.');
+            } catch (error) {
+                console.error('Error deleting project:', error);
+                alert('Failed to delete project. Please try again.');
         }
     }
 
