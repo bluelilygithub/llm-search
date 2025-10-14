@@ -352,8 +352,8 @@ def delete_project(project_id):
         # Delete the project
         try:
             app.logger.info(f"About to delete project: {project.name} ({project.id})")
-        db.session.delete(project)
-        db.session.commit()
+            db.session.delete(project)
+            db.session.commit()
             app.logger.info(f"Successfully deleted project: {project_id}")
         except Exception as delete_error:
             app.logger.error(f"Error deleting project: {str(delete_error)}")
