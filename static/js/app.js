@@ -6082,6 +6082,31 @@ KnowledgeBaseApp.prototype.showChatView = function() {
         chatMessagesContainer = document.createElement('div');
         chatMessagesContainer.className = 'chat-messages-container';
         chatMessagesContainer.innerHTML = `
+            <!-- Chat Header (for project/conversation context) -->
+            <div class="chat-header" id="chat-header" style="display: none;">
+                <div class="chat-breadcrumb">
+                    <span class="breadcrumb-item breadcrumb-clickable" id="projects-breadcrumb" onclick="window.app.showProjectsView()">
+                        <i class="fas fa-folder"></i>
+                        <span>Projects</span>
+                    </span>
+                    <span class="breadcrumb-separator"><i class="fas fa-chevron-right"></i></span>
+                    <span class="breadcrumb-item breadcrumb-clickable" id="project-breadcrumb" onclick="window.app.goBackToProject()">
+                        <i class="fas fa-folder-open"></i>
+                        <span id="project-name"></span>
+                    </span>
+                    <span class="breadcrumb-separator"><i class="fas fa-chevron-right"></i></span>
+                    <span class="breadcrumb-item active">
+                        <i class="fas fa-comment"></i>
+                        <span id="conversation-title"></span>
+                    </span>
+                </div>
+                <div class="chat-header-actions">
+                    <button class="chat-header-btn" onclick="window.app.goToHome()" title="Go to Home">
+                        <i class="fas fa-home"></i>
+                        <span>Home</span>
+                    </button>
+                </div>
+            </div>
             <div class="chat-messages" id="chat-messages">
                 <!-- Messages will be loaded here -->
             </div>
