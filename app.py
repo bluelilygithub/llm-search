@@ -2472,8 +2472,8 @@ def check_model_access():
         
         # Import LLM service to check model access
         try:
-        from llm_service import LLMService
-        llm_service = LLMService()
+            from llm_service import LLMService
+            llm_service = LLMService()
             app.logger.info("LLMService imported successfully")
         except Exception as import_error:
             app.logger.error(f"Failed to import LLMService: {str(import_error)}")
