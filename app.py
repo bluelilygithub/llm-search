@@ -286,41 +286,67 @@ def create_project():
 def delete_project(project_id):
     """Delete a project and optionally delete or unassign related conversations"""
     try:
-        from models import Project, Conversation
+        from models import Project, Conversation, ContextItem
+        
+        app.logger.info(f"Attempting to delete project: {project_id}")
+        
         project = Project.query.get(project_id)
         if not project:
+            app.logger.error(f"Project not found: {project_id}")
             return jsonify({'error': 'Project not found'}), 404
         
         # Check if we should delete conversations too
         delete_conversations = request.args.get('delete_conversations', 'false').lower() == 'true'
+        app.logger.info(f"Delete conversations flag: {delete_conversations}")
+        
+        # Get conversation count before any operations
+        conversation_count = Conversation.query.filter_by(project_id=project_id).count()
+        app.logger.info(f"Found {conversation_count} conversations associated with project")
         
         if delete_conversations:
-            # Delete all conversations associated with this project
-            conversations = Conversation.query.filter_by(project_id=project_id).all()
-            conversation_count = len(conversations)
-            
-            for conversation in conversations:
-                db.session.delete(conversation)
-            
-            app.logger.info(f"Deleting project {project_id} and {conversation_count} associated conversations")
+            # Let the cascade relationship handle conversation deletion
+            # The Project model has cascade='all, delete-orphan' so conversations will be deleted automatically
+            app.logger.info(f"Will delete project {project_id} and let cascade delete {conversation_count} conversations")
             message = f'Project and {conversation_count} conversation{"s" if conversation_count != 1 else ""} deleted'
         else:
-            # Set project_id to None for all related conversations (unassign them)
-            conversation_count = Conversation.query.filter_by(project_id=project_id).count()
-            Conversation.query.filter_by(project_id=project_id).update({'project_id': None})
+            # Unassign conversations from project before deleting project
+            # This prevents the cascade from deleting them
+            try:
+                updated_rows = Conversation.query.filter_by(project_id=project_id).update({'project_id': None})
+                db.session.flush()  # Ensure the update is applied before deleting project
+                app.logger.info(f"Updated {updated_rows} conversations to unassign from project")
+            except Exception as update_error:
+                app.logger.error(f"Error updating conversations: {str(update_error)}")
+                raise update_error
             
-            app.logger.info(f"Deleting project {project_id}, unassigning {conversation_count} conversations")
+            app.logger.info(f"Deleting project {project_id}, unassigned {conversation_count} conversations")
             message = f'Project deleted, {conversation_count} conversation{"s" if conversation_count != 1 else ""} unassigned'
         
+        # Handle context items - they have ondelete='SET NULL' so they'll be handled automatically
+        context_items_count = ContextItem.query.filter_by(project_id=project_id).count()
+        if context_items_count > 0:
+            app.logger.info(f"Found {context_items_count} context items that will be unassigned from project")
+        
         # Delete the project
-        db.session.delete(project)
-        db.session.commit()
+        try:
+            app.logger.info(f"About to delete project: {project.name} ({project.id})")
+            db.session.delete(project)
+            db.session.commit()
+            app.logger.info(f"Successfully deleted project: {project_id}")
+        except Exception as delete_error:
+            app.logger.error(f"Error deleting project: {str(delete_error)}")
+            raise delete_error
         
         return jsonify({'success': True, 'message': message}), 200
+        
     except Exception as e:
-        app.logger.error(f"Error deleting project: {e}")
+        app.logger.error(f"Error deleting project {project_id}: {str(e)}")
+        app.logger.error(f"Exception type: {type(e).__name__}")
+        import traceback
+        app.logger.error(f"Traceback: {traceback.format_exc()}")
+        
         db.session.rollback()
-        return jsonify({'error': 'Failed to delete project'}), 500
+        return jsonify({'error': f'Failed to delete project: {str(e)}'}), 500
 
 @csrf.exempt
 @app.route('/projects/<project_id>', methods=['PATCH'])
