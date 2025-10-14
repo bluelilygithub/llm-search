@@ -2511,44 +2511,44 @@ def check_model_access():
                 
             else:
                 # Fall back to pattern matching for legacy models
-            if model.startswith('gpt-') or model.startswith('o1-'):
-                # OpenAI models - check if API key is configured
+                if model.startswith('gpt-') or model.startswith('o1-'):
+                    # OpenAI models - check if API key is configured
                     api_key_name = 'OPENAI_API_KEY'
-                openai_key = os.getenv('OPENAI_API_KEY')
-                app.logger.info(f"Checking OpenAI API key: {'configured' if openai_key and openai_key.strip() else 'not configured'}")
-                has_access = bool(openai_key and openai_key.strip())
+                    openai_key = os.getenv('OPENAI_API_KEY')
+                    app.logger.info(f"Checking OpenAI API key: {'configured' if openai_key and openai_key.strip() else 'not configured'}")
+                    has_access = bool(openai_key and openai_key.strip())
                 
-            elif model.startswith('claude-'):
-                # Anthropic models - check if API key is configured
+                elif model.startswith('claude-'):
+                    # Anthropic models - check if API key is configured
                     api_key_name = 'CLAUDE_API_KEY'
-                anthropic_key = os.getenv('CLAUDE_API_KEY')
-                app.logger.info(f"Checking Claude API key: {'configured' if anthropic_key and anthropic_key.strip() else 'not configured'}")
-                has_access = bool(anthropic_key and anthropic_key.strip())
+                    anthropic_key = os.getenv('CLAUDE_API_KEY')
+                    app.logger.info(f"Checking Claude API key: {'configured' if anthropic_key and anthropic_key.strip() else 'not configured'}")
+                    has_access = bool(anthropic_key and anthropic_key.strip())
                 
-            elif model.startswith('gemini-'):
-                # Google models - check if API key is configured
+                elif model.startswith('gemini-'):
+                    # Google models - check if API key is configured
                     api_key_name = 'GEMINI_API_KEY'
-                gemini_key = os.getenv('GEMINI_API_KEY')
-                app.logger.info(f"Checking Gemini API key: {'configured' if gemini_key and gemini_key.strip() else 'not configured'}")
-                has_access = bool(gemini_key and gemini_key.strip())
+                    gemini_key = os.getenv('GEMINI_API_KEY')
+                    app.logger.info(f"Checking Gemini API key: {'configured' if gemini_key and gemini_key.strip() else 'not configured'}")
+                    has_access = bool(gemini_key and gemini_key.strip())
                 
-            elif model in ['llama2-70b', 'mixtral-8x7b', 'codellama-34b']:
-                # Hugging Face models - check if API key is configured
+                elif model in ['llama2-70b', 'mixtral-8x7b', 'codellama-34b']:
+                    # Hugging Face models - check if API key is configured
                     api_key_name = 'HUGGING_FACE_API_KEY'
-                hf_key = os.getenv('HUGGING_FACE_API_KEY')
-                app.logger.info(f"Checking Hugging Face API key: {'configured' if hf_key and hf_key.strip() else 'not configured'}")
-                has_access = bool(hf_key and hf_key.strip())
+                    hf_key = os.getenv('HUGGING_FACE_API_KEY')
+                    app.logger.info(f"Checking Hugging Face API key: {'configured' if hf_key and hf_key.strip() else 'not configured'}")
+                    has_access = bool(hf_key and hf_key.strip())
                 
-            elif model.startswith('stable-'):
-                # Stability AI models - check if API key is configured
+                elif model.startswith('stable-'):
+                    # Stability AI models - check if API key is configured
                     api_key_name = 'STABILITY_API_KEY'
-                stability_key = os.getenv('STABILITY_API_KEY')
-                app.logger.info(f"Checking Stability API key: {'configured' if stability_key and stability_key.strip() else 'not configured'}")
-                has_access = bool(stability_key and stability_key.strip())
+                    stability_key = os.getenv('STABILITY_API_KEY')
+                    app.logger.info(f"Checking Stability API key: {'configured' if stability_key and stability_key.strip() else 'not configured'}")
+                    has_access = bool(stability_key and stability_key.strip())
                 
-            else:
-                # Unknown model
-                has_access = False
+                else:
+                    # Unknown model
+                    has_access = False
                     api_key_name = 'Unknown'
                 
             # For GPT-5 specifically, you might want additional checks
