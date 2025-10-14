@@ -1129,34 +1129,34 @@ def chat():
         user_message = data['message']
         model = data['model']
         project_id = data.get('project_id')  # Get project_id for new conversations
-    
-    # Handle free tier access
-    if getattr(request, 'access_type', None) == 'free_tier':
-        from auth import FreeAccessManager
-        free_info = FreeAccessManager.log_free_query(model)
-        app.logger.info(f"Free tier chat: model={model}, remaining={free_info['queries_remaining']}")
-    
-    app.logger.info(f"Chat request: model={model}, message_length={len(user_message)}")
-    
-    # Get conversation history if conversation exists
-    messages = []
-    
-    # Add project template as system prompt if available (for both existing and new conversations)
-    project = None
-    if conversation_id:
-        conv_uuid = uuid.UUID(conversation_id)
-        conversation = Conversation.query.get_or_404(conv_uuid)
         
-        # Get project from existing conversation
-        if conversation.project_id:
-            project = Project.query.get(conversation.project_id)
-    elif project_id:
-        # For new conversations, get project directly
-        try:
-            project_uuid = uuid.UUID(project_id)
-            project = Project.query.get(project_uuid)
-        except (ValueError, TypeError):
-            app.logger.warning(f"Invalid project_id format: {project_id}")
+        # Handle free tier access
+        if getattr(request, 'access_type', None) == 'free_tier':
+            from auth import FreeAccessManager
+            free_info = FreeAccessManager.log_free_query(model)
+            app.logger.info(f"Free tier chat: model={model}, remaining={free_info['queries_remaining']}")
+        
+        app.logger.info(f"Chat request: model={model}, message_length={len(user_message)}")
+        
+        # Get conversation history if conversation exists
+        messages = []
+        
+        # Add project template as system prompt if available (for both existing and new conversations)
+        project = None
+        if conversation_id:
+            conv_uuid = uuid.UUID(conversation_id)
+            conversation = Conversation.query.get_or_404(conv_uuid)
+            
+            # Get project from existing conversation
+            if conversation.project_id:
+                project = Project.query.get(conversation.project_id)
+        elif project_id:
+            # For new conversations, get project directly
+            try:
+                project_uuid = uuid.UUID(project_id)
+                project = Project.query.get(project_uuid)
+            except (ValueError, TypeError):
+                app.logger.warning(f"Invalid project_id format: {project_id}")
     
     # Apply project template if we have a project
     if project:
