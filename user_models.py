@@ -60,7 +60,7 @@ class User(db.Model):
     
     # Activity tracking
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=lambda: datetime.utcnow())
     last_login_at = db.Column(db.DateTime, nullable=True)
     last_activity_at = db.Column(db.DateTime, nullable=True)
     login_count = db.Column(db.Integer, default=0, nullable=False)
@@ -228,7 +228,7 @@ class Organization(db.Model):
     
     # Timestamps
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=lambda: datetime.utcnow())
     
     # Relationships
     users = db.relationship('User', backref='organization', lazy=True)

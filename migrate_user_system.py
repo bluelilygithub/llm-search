@@ -22,40 +22,67 @@ def migrate_to_multi_user_system():
         
         # Step 1: Create new tables
         logger.info("Creating new user management tables...")
-        db.create_all()
+        try:
+            db.create_all()
+            logger.info("Tables created successfully")
+        except Exception as e:
+            logger.error(f"Error creating tables: {str(e)}")
+            raise
         
         # Step 2: Create default organization
         logger.info("Creating default organization...")
-        default_org = Organization.query.filter_by(slug='default').first()
-        if not default_org:
-            default_org = Organization(
-                name='Default Organization',
-                slug='default',
-                description='Default organization for migrated users'
-            )
-            db.session.add(default_org)
-            db.session.flush()
+        try:
+            default_org = Organization.query.filter_by(slug='default').first()
+            if not default_org:
+                logger.info("Organization not found, creating new one...")
+                default_org = Organization(
+                    name='Default Organization',
+                    slug='default',
+                    description='Default organization for migrated users'
+                )
+                db.session.add(default_org)
+                db.session.flush()
+                logger.info(f"Organization created with ID: {default_org.id}")
+            else:
+                logger.info(f"Organization already exists with ID: {default_org.id}")
+        except Exception as e:
+            logger.error(f"Error creating organization: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
+            raise
         
         # Step 3: Create default admin user
         logger.info("Creating default admin user...")
-        admin_user = User.query.filter_by(username='admin').first()
-        if not admin_user:
-            # Create admin user with required args, then set optional fields
-            admin_user = User(
-                username='admin',
-                email='admin@example.com',
-                password='admin123',  # Should be changed immediately
-            )
-            # Set additional fields after initialization
-            admin_user.first_name = 'System'
-            admin_user.last_name = 'Administrator'
-            admin_user.role = UserRole.SUPER_ADMIN
-            admin_user.status = UserStatus.ACTIVE
-            admin_user.email_verified = True
-            admin_user.organization_id = default_org.id
-            
-            db.session.add(admin_user)
-            db.session.flush()
+        try:
+            admin_user = User.query.filter_by(username='admin').first()
+            if not admin_user:
+                logger.info("Admin user not found, creating new one...")
+                # Create admin user with required args, then set optional fields
+                admin_user = User(
+                    username='admin',
+                    email='admin@example.com',
+                    password='admin123',  # Should be changed immediately
+                )
+                logger.info("User object created, setting additional fields...")
+                # Set additional fields after initialization
+                admin_user.first_name = 'System'
+                admin_user.last_name = 'Administrator'
+                admin_user.role = UserRole.SUPER_ADMIN
+                admin_user.status = UserStatus.ACTIVE
+                admin_user.email_verified = True
+                admin_user.organization_id = default_org.id
+                
+                logger.info("Adding user to session...")
+                db.session.add(admin_user)
+                db.session.flush()
+                logger.info(f"Admin user created with ID: {admin_user.id}")
+            else:
+                logger.info(f"Admin user already exists with ID: {admin_user.id}")
+        except Exception as e:
+            logger.error(f"Error creating admin user: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
+            raise
         
         # Step 4: Add user_id columns to existing tables if they don't exist
         logger.info("Adding user_id columns to existing tables...")
