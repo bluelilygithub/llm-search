@@ -5834,15 +5834,15 @@ KnowledgeBaseApp.prototype.renderProjectsGrid = function(projects) {
                 <div class="project-card-actions">
                     <button class="view-action-btn secondary" onclick="event.stopPropagation(); viewProjectTemplate('${project.id}')" title="View Template">
                         <i class="fas fa-eye"></i>
-                        Template
+                        Preview
                     </button>
                     <button class="view-action-btn secondary" onclick="event.stopPropagation(); editProjectTemplate('${project.id}')" title="Edit Template">
                         <i class="fas fa-cogs"></i>
                         Setup
                     </button>
-                    <button class="view-action-btn secondary" onclick="event.stopPropagation(); window.app.editProject('${project.id}', '${project.name.replace(/'/g, "\\'")}')" title="Edit Project">
+                    <button class="view-action-btn secondary" onclick="event.stopPropagation(); window.app.editProject('${project.id}', '${project.name.replace(/'/g, "\\'")}')" title="Rename Project">
                         <i class="fas fa-edit"></i>
-                        Edit
+                        Rename
                     </button>
                     <button class="view-action-btn secondary" onclick="event.stopPropagation(); window.app.deleteProject('${project.id}')" title="Delete Project">
                         <i class="fas fa-trash"></i>
