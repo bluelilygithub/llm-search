@@ -1108,16 +1108,24 @@ class KnowledgeBaseApp {
                 return await this.handleStabilityImageEditing(userMessage);
             } else {
                 // Regular chat API call
+                const requestBody = {
+                    message: userMessage,
+                    model: this.selectedModel,
+                    conversation_id: this.currentConversationId
+                };
+                
+                // Add project_id if we're in a project context (for new conversations)
+                const projectToUse = this.currentProject || this.currentViewProject;
+                if (projectToUse && projectToUse.id && !this.currentConversationId) {
+                    requestBody.project_id = projectToUse.id;
+                }
+                
                 const response = await fetch('/chat', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        message: userMessage,
-                        model: this.selectedModel,
-                        conversation_id: this.currentConversationId
-                    })
+                    body: JSON.stringify(requestBody)
                 });
 
                 const data = await response.json();

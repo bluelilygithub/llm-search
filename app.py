@@ -1049,6 +1049,7 @@ def chat():
         conversation_id = data.get('conversation_id')
         user_message = data['message']
         model = data['model']
+        project_id = data.get('project_id')  # Get project_id for new conversations
         
         # Handle free tier access
         if getattr(request, 'access_type', None) == 'free_tier':
@@ -1060,21 +1061,36 @@ def chat():
         
         # Get conversation history if conversation exists
         messages = []
+        
+        # Add project template as system prompt if available (for both existing and new conversations)
+        project = None
         if conversation_id:
             conv_uuid = uuid.UUID(conversation_id)
             conversation = Conversation.query.get_or_404(conv_uuid)
             
-            # Add project template as system prompt if available
+            # Get project from existing conversation
             if conversation.project_id:
                 project = Project.query.get(conversation.project_id)
-                if project:
-                    project_system_prompt = build_project_system_prompt(project)
-                    if project_system_prompt:
-                        messages.append({
-                            'role': 'system',
-                            'content': project_system_prompt
-                        })
-            
+        elif project_id:
+            # For new conversations, get project directly
+            try:
+                project_uuid = uuid.UUID(project_id)
+                project = Project.query.get(project_uuid)
+            except (ValueError, TypeError):
+                app.logger.warning(f"Invalid project_id format: {project_id}")
+        
+        # Apply project template if we have a project
+        if project:
+            project_system_prompt = build_project_system_prompt(project)
+            if project_system_prompt:
+                messages.append({
+                    'role': 'system',
+                    'content': project_system_prompt
+                })
+                app.logger.info(f"Applied project template for project: {project.name}")
+        
+        # Load conversation history if conversation exists
+        if conversation_id:
             db_messages = Message.query.filter_by(conversation_id=conv_uuid).order_by(Message.timestamp.asc()).all()
             conversation_messages = llm_service.format_conversation_for_llm(db_messages)
             messages.extend(conversation_messages)
