@@ -13,17 +13,17 @@ import hashlib
 from werkzeug.utils import secure_filename
 from sqlalchemy import text
 
-# Import our new error handling and validation modules
-from error_handlers import (
-    handle_api_errors, validate_json_request, require_uuid, log_api_request,
-    register_error_handlers, APIException, ValidationException, NotFoundException,
-    UnauthorizedException, ForbiddenException, ConflictException
-)
-from validation_schemas import (
-    chat_message_schema, project_schema, conversation_schema, context_item_schema,
-    user_preferences_schema, validate_request_data, create_validation_error_response,
-    validate_uuid, validate_file_upload
-)
+# Temporarily disable advanced error handling to fix deployment
+# from error_handlers import (
+#     handle_api_errors, validate_json_request, require_uuid, log_api_request,
+#     register_error_handlers, APIException, ValidationException, NotFoundException,
+#     UnauthorizedException, ForbiddenException, ConflictException
+# )
+# from validation_schemas import (
+#     chat_message_schema, project_schema, conversation_schema, context_item_schema,
+#     user_preferences_schema, validate_request_data, create_validation_error_response,
+#     validate_uuid, validate_file_upload
+# )
 
 from PyPDF2 import PdfReader
 import io
@@ -166,8 +166,8 @@ CORS(app)
 # CSRF Protection
 csrf = CSRFProtect(app)
 
-# Register error handlers
-register_error_handlers(app)
+# Register error handlers (temporarily disabled)
+# register_error_handlers(app)
 
 # Custom CSRF validation for API endpoints
 def validate_csrf_for_api():
@@ -1118,14 +1118,17 @@ def add_message(conversation_id):
 @app.route('/chat', methods=['POST'])
 @limiter.limit("30 per minute")
 @auth.access_required(allow_free=True)
-@handle_api_errors
-@log_api_request
-@validate_json_request(chat_message_schema)
-def chat(validated_data):
-    conversation_id = validated_data.get('conversation_id')
-    user_message = validated_data['message']
-    model = validated_data['model']
-    project_id = validated_data.get('project_id')  # Get project_id for new conversations
+def chat():
+    try:
+        data = request.get_json()
+        
+        if not data or not data.get('message') or not data.get('model'):
+            return jsonify({'error': 'Message and model are required'}), 400
+        
+        conversation_id = data.get('conversation_id')
+        user_message = data['message']
+        model = data['model']
+        project_id = data.get('project_id')  # Get project_id for new conversations
     
     # Handle free tier access
     if getattr(request, 'access_type', None) == 'free_tier':
@@ -1273,6 +1276,10 @@ Please use this context information appropriately when responding to user questi
         response_data['free_access'] = updated_free_info
     
     return jsonify(response_data)
+    
+    except Exception as e:
+        app.logger.error(f"Chat error: {str(e)}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/transcribe', methods=['POST'])
 def transcribe_audio():
