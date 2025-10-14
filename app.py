@@ -1206,46 +1206,49 @@ Please use this context information appropriately when responding to user questi
             except Exception as context_error:
                 app.logger.error(f"Failed to load context for conversation {conversation_id}: {context_error}")
             
-            # Fallback to old context_documents system for backward compatibility
-            import json
-            docs = getattr(conversation, 'context_documents', None)
-            if isinstance(docs, str):
-                try:
-                    docs = json.loads(docs)
-                except Exception:
-                    docs = []
-            if docs and not active_context:  # Only use old system if new system has no context
-                for doc in docs:
-                    if doc and 'content' in doc:
-                        task_type = doc.get('task_type', 'instructions')
-                        filename = doc.get('filename', 'uploaded file')
-                        content = doc['content']
-                        
-                        if task_type == 'summary':
-                            system_msg = f"You have been provided with a document ({filename}) to summarize. You can analyze, count words, and provide detailed summaries of this content:\n\n{content}"
-                        elif task_type == 'analysis':
-                            system_msg = f"You have been provided with a document ({filename}) to analyze. You can examine, count words, and provide detailed analysis of this content:\n\n{content}"
-                        else:
-                            system_msg = f"Document reference ({filename}): You have access to this document content and can answer questions about it, count words, analyze it, or use it as guidelines:\n\n{content}"
-                        
-                        messages.insert(0, {
-                            'role': 'system',
-                            'content': system_msg
-                        })
-    
-    # Log prompt details
-    app.logger.debug(f"LLM request with {len(messages)} messages for model {model}")
-    
-    # Add current user message
-    messages.append({'role': 'user', 'content': user_message})
-    
-    # Check if user is authenticated (not free tier)
-    is_authenticated = getattr(request, 'access_type', None) != 'free_tier'
-    
-    app.logger.info(f"Calling LLM service for model: {model}, authenticated: {is_authenticated}")
-    # Get AI response and usage info
-    ai_response, tokens, estimated_cost = llm_service.get_response(model, messages, is_authenticated=is_authenticated)
-    app.logger.info(f"Got response from {model}: {tokens} tokens, cost: ${estimated_cost:.4f}")
+        # Fallback to old context_documents system for backward compatibility
+        import json
+        docs = getattr(conversation, 'context_documents', None)
+        if isinstance(docs, str):
+            try:
+                docs = json.loads(docs)
+            except Exception:
+                docs = []
+        if docs and not active_context:  # Only use old system if new system has no context
+            for doc in docs:
+                if doc and 'content' in doc:
+                    task_type = doc.get('task_type', 'instructions')
+                    filename = doc.get('filename', 'uploaded file')
+                    content = doc['content']
+                    
+                    if task_type == 'summary':
+                        system_msg = f"You have been provided with a document ({filename}) to summarize. You can analyze, count words, and provide detailed summaries of this content:\n\n{content}"
+                    elif task_type == 'analysis':
+                        system_msg = f"You have been provided with a document ({filename}) to analyze. You can examine, count words, and provide detailed analysis of this content:\n\n{content}"
+                    else:
+                        system_msg = f"Document reference ({filename}): You have access to this document content and can answer questions about it, count words, analyze it, or use it as guidelines:\n\n{content}"
+                    
+                    messages.insert(0, {
+                        'role': 'system',
+                        'content': system_msg
+                    })
+        
+        # Add user message
+        messages.append({
+            'role': 'user',
+            'content': user_message
+        })
+        
+        # Log prompt details
+        app.logger.debug(f"LLM request with {len(messages)} messages for model {model}")
+        
+        # Check if user is authenticated (not free tier)
+        is_authenticated = getattr(request, 'access_type', None) != 'free_tier'
+        
+        app.logger.info(f"Calling LLM service for model: {model}, authenticated: {is_authenticated}")
+        # Get AI response and usage info
+        ai_response, tokens, estimated_cost = llm_service.get_response(model, messages, is_authenticated=is_authenticated)
+        app.logger.info(f"Got response from {model}: {tokens} tokens, cost: ${estimated_cost:.4f}")
     
     # Log usage
     from models import LLMUsageLog
