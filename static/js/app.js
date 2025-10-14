@@ -4485,6 +4485,7 @@ const TEMPLATE_DATA = {
 
 // Add template methods to KnowledgeBaseApp prototype
 KnowledgeBaseApp.prototype.openTemplatePicker = function() {
+    console.log('✅ Template Picker Opening!');
     const modal = document.getElementById('template-modal');
     if (modal) {
         modal.style.display = 'flex';
@@ -4492,6 +4493,8 @@ KnowledgeBaseApp.prototype.openTemplatePicker = function() {
             const searchInput = document.getElementById('template-search');
             if (searchInput) searchInput.focus();
         }, 100);
+    } else {
+        console.error('❌ Template modal not found in DOM');
     }
 };
 
@@ -4629,6 +4632,10 @@ window.migrateModel = async function(modelName) {
 // Initialize the app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     window.app = new KnowledgeBaseApp();
+    
+    // Confirm template system is loaded
+    console.log('📝 Template & Prompt Library: LOADED');
+    console.log('📋 Available templates:', Object.keys(TEMPLATE_DATA).length);
     
     // Load dynamic models into main dropdown
     window.app.loadMainModelDropdown();
