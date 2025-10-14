@@ -1229,65 +1229,50 @@ Please use this context information appropriately when responding to user questi
                             'role': 'system',
                             'content': system_msg
                         })
-        # Log prompt details
-        app.logger.debug(f"LLM request with {len(messages)} messages for model {model}")
-        
-        # Add current user message
-        messages.append({'role': 'user', 'content': user_message})
-        
-        # Check if user is authenticated (not free tier)
-        is_authenticated = getattr(request, 'access_type', None) != 'free_tier'
-        
-        app.logger.info(f"Calling LLM service for model: {model}, authenticated: {is_authenticated}")
-        # Get AI response and usage info
-        ai_response, tokens, estimated_cost = llm_service.get_response(model, messages, is_authenticated=is_authenticated)
-        app.logger.info(f"Got response from {model}: {tokens} tokens, cost: ${estimated_cost:.4f}")
-        
-        # Log usage
-        from models import LLMUsageLog
-        usage_log = LLMUsageLog(
-            model=model,
-            conversation_id=conversation_id if conversation_id else None,
-            tokens=tokens,
-            estimated_cost=estimated_cost
-        )
-        db.session.add(usage_log)
-        
-        # Note: Context usage logging will be handled when messages are saved
-        # to avoid foreign key constraints with non-existent message IDs
-        
-        db.session.commit()
-        
-        # Prepare response
-        response_data = {
-            'response': ai_response,
-            'model': model,
-            'timestamp': datetime.utcnow().isoformat()
-        }
-        
-        # Add updated free access info if applicable
-        if getattr(request, 'access_type', None) == 'free_tier':
-            from auth import FreeAccessManager
-            updated_free_info = FreeAccessManager.check_free_access()
-            response_data['free_access'] = updated_free_info
-        
-        return jsonify(response_data)
-        
-    except Exception as e:
-        app.logger.error(f"Chat error: {str(e)}", exc_info=True)
-        # Log error to database
-        try:
-            from models import LLMErrorLog
-            error_log = LLMErrorLog(
-                model=model if 'model' in locals() else 'unknown',
-                conversation_id=conversation_id if 'conversation_id' in locals() and conversation_id else None,
-                error_message=str(e)
-            )
-            db.session.add(error_log)
-            db.session.commit()
-        except Exception as db_error:
-            app.logger.error(f"Failed to log error to database: {db_error}")
-        return jsonify({'error': str(e)}), 500
+    
+    # Log prompt details
+    app.logger.debug(f"LLM request with {len(messages)} messages for model {model}")
+    
+    # Add current user message
+    messages.append({'role': 'user', 'content': user_message})
+    
+    # Check if user is authenticated (not free tier)
+    is_authenticated = getattr(request, 'access_type', None) != 'free_tier'
+    
+    app.logger.info(f"Calling LLM service for model: {model}, authenticated: {is_authenticated}")
+    # Get AI response and usage info
+    ai_response, tokens, estimated_cost = llm_service.get_response(model, messages, is_authenticated=is_authenticated)
+    app.logger.info(f"Got response from {model}: {tokens} tokens, cost: ${estimated_cost:.4f}")
+    
+    # Log usage
+    from models import LLMUsageLog
+    usage_log = LLMUsageLog(
+        model=model,
+        conversation_id=conversation_id if conversation_id else None,
+        tokens=tokens,
+        estimated_cost=estimated_cost
+    )
+    db.session.add(usage_log)
+    
+    # Note: Context usage logging will be handled when messages are saved
+    # to avoid foreign key constraints with non-existent message IDs
+    
+    db.session.commit()
+    
+    # Prepare response
+    response_data = {
+        'response': ai_response,
+        'model': model,
+        'timestamp': datetime.utcnow().isoformat()
+    }
+    
+    # Add updated free access info if applicable
+    if getattr(request, 'access_type', None) == 'free_tier':
+        from auth import FreeAccessManager
+        updated_free_info = FreeAccessManager.check_free_access()
+        response_data['free_access'] = updated_free_info
+    
+    return jsonify(response_data)
 
 @app.route('/transcribe', methods=['POST'])
 def transcribe_audio():
