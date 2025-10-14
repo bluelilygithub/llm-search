@@ -941,7 +941,7 @@ def update_conversation(conversation_id):
 @app.route('/conversations/<conversation_id>', methods=['DELETE'])
 @require_conversation_access
 def delete_conversation(conversation_id):
-    """Delete a conversation and all its messages"""
+    """Delete a conversation and all its related records"""
     try:
         conv_uuid = uuid.UUID(conversation_id)
         
@@ -949,18 +949,55 @@ def delete_conversation(conversation_id):
         if not conversation:
             return jsonify({'error': 'Conversation not found'}), 404
         
-        # Delete associated messages and attachments (cascade should handle this)
+        app.logger.info(f"Attempting to delete conversation: {conversation_id}")
+        
+        # Delete related records that reference this conversation to avoid foreign key constraints
+        from models import LLMUsageLog, LLMErrorLog
+        
+        # Delete LLM usage logs
+        usage_logs_deleted = LLMUsageLog.query.filter_by(conversation_id=conv_uuid).delete()
+        app.logger.info(f"Deleted {usage_logs_deleted} LLM usage log entries for conversation {conversation_id}")
+        
+        # Delete LLM error logs  
+        error_logs_deleted = LLMErrorLog.query.filter_by(conversation_id=conv_uuid).delete()
+        app.logger.info(f"Deleted {error_logs_deleted} LLM error log entries for conversation {conversation_id}")
+        
+        # Delete context sessions that reference this conversation
+        try:
+            from models import ContextSession
+            context_sessions_deleted = ContextSession.query.filter_by(conversation_id=conv_uuid).delete()
+            app.logger.info(f"Deleted {context_sessions_deleted} context session entries for conversation {conversation_id}")
+        except Exception as ctx_error:
+            app.logger.warning(f"Could not delete context sessions for conversation {conversation_id}: {ctx_error}")
+        
+        # Delete context usage logs that reference this conversation
+        try:
+            from models import ContextUsageLog
+            context_usage_deleted = ContextUsageLog.query.filter_by(conversation_id=conv_uuid).delete()
+            app.logger.info(f"Deleted {context_usage_deleted} context usage log entries for conversation {conversation_id}")
+        except Exception as ctx_usage_error:
+            app.logger.warning(f"Could not delete context usage logs for conversation {conversation_id}: {ctx_usage_error}")
+        
+        # Apply all the deletions before deleting the conversation
+        db.session.flush()
+        
+        # Now delete the conversation (messages will be cascade deleted)
         db.session.delete(conversation)
         db.session.commit()
         
+        app.logger.info(f"Successfully deleted conversation: {conversation_id}")
         return jsonify({'success': True, 'message': 'Conversation deleted'}), 200
         
     except ValueError:
         return jsonify({'error': 'Invalid conversation ID'}), 400
     except Exception as e:
-        app.logger.error(f"Error deleting conversation: {e}")
+        app.logger.error(f"Error deleting conversation {conversation_id}: {str(e)}")
+        app.logger.error(f"Exception type: {type(e).__name__}")
+        import traceback
+        app.logger.error(f"Traceback: {traceback.format_exc()}")
+        
         db.session.rollback()
-        return jsonify({'error': 'Failed to delete conversation'}), 500
+        return jsonify({'error': f'Failed to delete conversation: {str(e)}'}), 500
 
 @csrf.exempt
 @app.route('/conversations/<conversation_id>/messages', methods=['POST'])
