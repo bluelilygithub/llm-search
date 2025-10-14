@@ -4486,15 +4486,29 @@ const TEMPLATE_DATA = {
 // Add template methods to KnowledgeBaseApp prototype
 KnowledgeBaseApp.prototype.openTemplatePicker = function() {
     console.log('✅ Template Picker Opening!');
+    console.log('🔍 Checking for modal element...');
     const modal = document.getElementById('template-modal');
+    console.log('📦 Modal element:', modal);
+    
     if (modal) {
+        console.log('✅ Modal found! Current display:', modal.style.display);
         modal.style.display = 'flex';
+        console.log('✅ Modal display set to flex. New value:', modal.style.display);
+        console.log('📏 Modal computed style:', window.getComputedStyle(modal).display);
+        
         setTimeout(() => {
             const searchInput = document.getElementById('template-search');
-            if (searchInput) searchInput.focus();
+            if (searchInput) {
+                searchInput.focus();
+                console.log('✅ Search input focused');
+            } else {
+                console.warn('⚠️ Template search input not found');
+            }
         }, 100);
     } else {
         console.error('❌ Template modal not found in DOM');
+        console.log('🔍 All elements with "template" in ID:', 
+            Array.from(document.querySelectorAll('[id*="template"]')).map(el => el.id));
     }
 };
 
@@ -4511,11 +4525,14 @@ KnowledgeBaseApp.prototype.closeTemplatePicker = function() {
 };
 
 KnowledgeBaseApp.prototype.selectTemplate = function(templateId) {
+    console.log('📝 Selecting template:', templateId);
     const template = TEMPLATE_DATA[templateId];
     if (!template) {
-        console.error('Template not found:', templateId);
+        console.error('❌ Template not found:', templateId);
+        console.log('📋 Available templates:', Object.keys(TEMPLATE_DATA));
         return;
     }
+    console.log('✅ Template found:', template);
 
     // Auto-select the recommended model
     this.selectedModel = template.defaultModel;
@@ -4523,6 +4540,9 @@ KnowledgeBaseApp.prototype.selectTemplate = function(templateId) {
     if (modelSelector) {
         modelSelector.value = template.defaultModel;
         modelSelector.dispatchEvent(new Event('change'));
+        console.log('✅ Model set to:', template.defaultModel);
+    } else {
+        console.warn('⚠️ Model selector not found');
     }
 
     // Populate the message input with template content
@@ -4532,11 +4552,16 @@ KnowledgeBaseApp.prototype.selectTemplate = function(templateId) {
         messageInput.style.height = 'auto';
         messageInput.style.height = Math.min(messageInput.scrollHeight, 200) + 'px';
         messageInput.focus();
+        console.log('✅ Template content applied to message input');
+    } else {
+        console.error('❌ Message input not found');
     }
 
     // Show notification if available
     if (this.showNotification) {
         this.showNotification(`Template "${template.name}" applied with ${template.defaultModel}`, 'success');
+    } else {
+        console.log('📢 Template applied:', template.name);
     }
 
     this.closeTemplatePicker();
@@ -4636,6 +4661,22 @@ document.addEventListener('DOMContentLoaded', () => {
     // Confirm template system is loaded
     console.log('📝 Template & Prompt Library: LOADED');
     console.log('📋 Available templates:', Object.keys(TEMPLATE_DATA).length);
+    console.log('📋 Template IDs:', Object.keys(TEMPLATE_DATA));
+    
+    // Check if template modal exists
+    const templateModal = document.getElementById('template-modal');
+    if (templateModal) {
+        console.log('✅ Template modal found in DOM');
+    } else {
+        console.error('❌ Template modal NOT found in DOM - check index.html');
+    }
+    
+    // Check if template buttons exist
+    const templateBtns = document.querySelectorAll('[onclick*="openTemplatePicker"]');
+    console.log('🔘 Template buttons found:', templateBtns.length);
+    templateBtns.forEach((btn, i) => {
+        console.log(`   Button ${i + 1}:`, btn.className, btn.textContent.trim());
+    });
     
     // Load dynamic models into main dropdown
     window.app.loadMainModelDropdown();
@@ -4660,6 +4701,33 @@ document.addEventListener('DOMContentLoaded', () => {
 function startNewChat() {
     window.app.startNewChat();
 }
+
+// Global test function for template modal
+function testTemplateModal() {
+    console.log('🧪 Testing Template Modal...');
+    console.log('1. window.app exists:', !!window.app);
+    console.log('2. openTemplatePicker exists:', typeof window.app?.openTemplatePicker);
+    
+    const modal = document.getElementById('template-modal');
+    console.log('3. Modal element:', modal);
+    
+    if (modal) {
+        console.log('   - Display style:', modal.style.display);
+        console.log('   - Computed display:', window.getComputedStyle(modal).display);
+        console.log('   - Z-index:', window.getComputedStyle(modal).zIndex);
+        console.log('   - Position:', window.getComputedStyle(modal).position);
+    }
+    
+    const buttons = document.querySelectorAll('[onclick*="openTemplatePicker"]');
+    console.log('4. Template buttons:', buttons.length);
+    
+    if (window.app && window.app.openTemplatePicker) {
+        console.log('5. Attempting to open modal...');
+        window.app.openTemplatePicker();
+    }
+}
+
+console.log('💡 Debug tip: Type testTemplateModal() in console to test the template system');
 
 function sendMessage() {
     window.app.sendMessage();
