@@ -838,17 +838,13 @@ class KnowledgeBaseApp {
 
     async generateSmartFollowUpQuestions(aiResponse) {
         try {
-            // Get the last few messages for context
-            const conversationContext = await this.getRecentConversationContext();
-            
-            // Send a request to generate follow-up questions
+            // Send a request to generate follow-up questions based only on the latest response
             const response = await fetch('/api/generate-followup-questions', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    conversation_context: conversationContext,
                     latest_response: aiResponse,
                     model: this.selectedModel || 'gpt-3.5-turbo'
                 })
@@ -865,26 +861,6 @@ class KnowledgeBaseApp {
             console.error('Error generating follow-up questions:', error);
             return this.getFallbackQuestions(aiResponse);
         }
-    }
-
-    async getRecentConversationContext() {
-        // Get the last 4 messages for context (2 exchanges)
-        if (!this.currentConversationId) return [];
-        
-        try {
-            const response = await fetch(`/conversations/${this.currentConversationId}/messages`);
-            if (response.ok) {
-                const messages = await response.json();
-                // Return last 4 messages for context
-                return messages.slice(-4).map(msg => ({
-                    role: msg.role,
-                    content: msg.content
-                }));
-            }
-        } catch (error) {
-            console.error('Error getting conversation context:', error);
-        }
-        return [];
     }
 
     getFallbackQuestions(aiResponse) {

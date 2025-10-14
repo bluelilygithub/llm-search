@@ -676,44 +676,32 @@ def delete_project(project_id):
 @app.route('/api/generate-followup-questions', methods=['POST'])
 @auth.access_required(allow_free=True)
 def generate_followup_questions():
-    """Generate contextually relevant follow-up questions based on conversation"""
+    """Generate contextually relevant follow-up questions based on the latest AI response"""
     try:
         data = request.get_json()
         if not data or not data.get('latest_response'):
             return jsonify({'error': 'Latest response is required'}), 400
         
-        conversation_context = data.get('conversation_context', [])
         latest_response = data['latest_response']
         model = data.get('model', 'gpt-3.5-turbo')
         
-        # Build context for follow-up question generation
-        context_messages = []
-        
-        # Add conversation history for context
-        for msg in conversation_context:
-            context_messages.append({
-                'role': msg['role'],
-                'content': msg['content']
-            })
-        
-        # Add system message for follow-up question generation
-        system_prompt = """You are an expert at generating relevant follow-up questions for conversations. 
-Based on the conversation context and the latest AI response, generate exactly 3 highly relevant, specific follow-up questions that would naturally continue the conversation.
+        # Create a focused prompt for generating follow-up questions based only on the latest response
+        system_prompt = """You are an expert at generating relevant follow-up questions. Based ONLY on the AI response provided, generate exactly 3 highly relevant, specific follow-up questions that would naturally continue the conversation.
 
 The questions should:
-1. Be directly related to the content and context of the conversation
+1. Be directly related to the content of this specific response
 2. Help the user dive deeper into the topic or explore related aspects
 3. Be actionable and lead to meaningful responses
 4. Avoid generic questions like "Can you tell me more?"
 5. Be concise and clear (under 15 words each)
+6. Focus on practical next steps, clarifications, or related topics
 
 Return only the 3 questions, one per line, without numbering or bullet points."""
 
-        # Create the prompt for generating questions
+        # Create the prompt for generating questions - only using the latest response
         followup_messages = [
             {'role': 'system', 'content': system_prompt},
-            *context_messages,
-            {'role': 'user', 'content': f"Based on this conversation, generate 3 relevant follow-up questions for the latest AI response: {latest_response}"}
+            {'role': 'user', 'content': f"Generate 3 relevant follow-up questions for this AI response:\n\n{latest_response}"}
         ]
         
         # Get follow-up questions from AI
@@ -726,7 +714,7 @@ Return only the 3 questions, one per line, without numbering or bullet points.""
         ai_response, tokens, estimated_cost = llm_service.get_response(
             model, 
             followup_messages, 
-            max_tokens=200,  # Keep it short
+            max_tokens=150,  # Keep it short
             temperature=0.7,
             is_authenticated=is_authenticated
         )
