@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request, render_template, send_from_directory, redirect, url_for, session
+from flask import Flask, jsonify, request, render_template, send_from_directory, redirect, url_for, session, g
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -3457,6 +3457,67 @@ def save_preferences():
         return jsonify({'error': 'Failed to save preferences'}), 500
 
 # ==================== END PREFERENCES API ====================
+
+# ==================== MULTI-USER SYSTEM INTEGRATION ====================
+
+# Import user management modules
+try:
+    from user_models import User, Organization, UserSession, UserAuditLog, UserRole, UserStatus
+    from auth_service import auth_service, AuthenticationError, AuthorizationError
+    from user_api import user_bp
+    from functools import wraps
+    
+    # Register user management blueprint
+    app.register_blueprint(user_bp)
+    
+    # Add user context to all requests
+    @app.before_request
+    def load_user():
+        """Load current user for each request"""
+        try:
+            g.current_user = auth_service.get_current_user()
+        except Exception as e:
+            app.logger.error(f"Error loading user: {str(e)}")
+            g.current_user = None
+    
+    # Add user info to template context
+    @app.context_processor
+    def inject_user():
+        """Inject user info into all templates"""
+        return {
+            'current_user': getattr(g, 'current_user', None),
+            'user_roles': UserRole,
+            'user_status': UserStatus
+        }
+    
+    # Migration endpoint for upgrading to multi-user system
+    @app.route('/migrate-user-system', methods=['GET', 'POST'])
+    def migrate_user_system_endpoint():
+        """Web endpoint to migrate to multi-user system"""
+        try:
+            if request.method == 'GET':
+                return render_template('migration_info.html')
+            
+            # Run migration
+            from migrate_user_system import migrate_to_multi_user_system
+            result = migrate_to_multi_user_system()
+            
+            return jsonify(result), 200
+            
+        except Exception as e:
+            app.logger.error(f"User system migration failed: {str(e)}")
+            return jsonify({
+                'success': False,
+                'error': f'Migration failed: {str(e)}'
+            }), 500
+    
+    app.logger.info("Multi-user system integration loaded successfully")
+    
+except ImportError as e:
+    app.logger.warning(f"Multi-user system not available: {str(e)}")
+    app.logger.info("Falling back to legacy authentication system")
+
+# ==================== END MULTI-USER SYSTEM INTEGRATION ====================
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
