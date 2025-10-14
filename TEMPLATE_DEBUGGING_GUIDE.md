@@ -185,6 +185,18 @@ window.app.openTemplatePicker();
 2. **static/css/style.css**
    - Increased `.template-modal` z-index from 1000 to 10000
 
+3. **templates/modals/template_picker.html** (NEW)
+   - Created standalone template modal component with all 6 templates
+
+4. **templates/app_main.html**
+   - Added inclusion of template_picker.html modal
+
+5. **templates/components/top_bar.html**
+   - Added prominent "Templates" button next to model selector
+
+6. **templates/components/bottom_input.html**
+   - Added template icon button in input controls area
+
 ---
 
 ## 🎯 Next Steps
