@@ -3523,7 +3523,7 @@ body {
 .project-card-actions {
     display: flex;
     gap: var(--spacing-sm);
-    opacity: 0;
+    opacity: 1;
     transition: opacity var(--transition-fast);
     margin-top: auto;
 }

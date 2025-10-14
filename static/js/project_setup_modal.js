@@ -163,10 +163,16 @@ KnowledgeBaseApp.prototype.updateProjectTemplate = async function(projectId, tem
 
 // Function to edit existing project template
 window.editProjectTemplate = function(projectId) {
+    console.log('editProjectTemplate called with:', projectId);
+    
     // Load existing project template data
     fetch(`/projects/${projectId}/template`)
-        .then(response => response.json())
+        .then(response => {
+            console.log('Template response:', response);
+            return response.json();
+        })
         .then(data => {
+            console.log('Template data:', data);
             if (data.project && data.template) {
                 // Set up modal for editing
                 window.app.editingProjectId = projectId;
@@ -201,9 +207,15 @@ window.editProjectTemplate = function(projectId) {
 
 // Function to view project template (read-only)
 window.viewProjectTemplate = function(projectId) {
+    console.log('viewProjectTemplate called with:', projectId);
+    
     fetch(`/projects/${projectId}/template`)
-        .then(response => response.json())
+        .then(response => {
+            console.log('View template response:', response);
+            return response.json();
+        })
         .then(data => {
+            console.log('View template data:', data);
             if (data.project && data.template) {
                 showProjectTemplatePreview(data.project, data.template);
             } else {
