@@ -258,6 +258,8 @@ def migrate_add_indexes():
     Only run this once after deployment
     """
     try:
+        from sqlalchemy import text
+        
         # Log the migration attempt
         app.logger.info("Starting database index migration via web endpoint")
         
@@ -274,7 +276,7 @@ def migrate_add_indexes():
         # Create indexes one by one
         for i, index_sql in enumerate(indexes):
             try:
-                db.session.execute(index_sql)
+                db.session.execute(text(index_sql))
                 db.session.commit()
                 index_name = f"index_{i+1}"
                 created_indexes.append(index_name)
