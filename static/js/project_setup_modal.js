@@ -3,26 +3,37 @@ window.showProjectSetupModal = function() {
     const modal = document.getElementById('project-setup-modal');
     const projectNameSpan = document.getElementById('project-setup-name');
     
-    if (modal && window.app.pendingProjectName) {
+    if (modal && window.app && window.app.pendingProjectName) {
         projectNameSpan.textContent = window.app.pendingProjectName;
-        modal.style.display = 'block';
+        
+        // Show modal with proper display and classes
+        modal.style.display = 'flex';
         modal.classList.add('show');
         document.body.classList.add('modal-open');
+        
+        // Prevent body scrolling
+        document.body.style.overflow = 'hidden';
         
         // Focus on first input
         setTimeout(() => {
             const firstInput = modal.querySelector('input, textarea');
             if (firstInput) firstInput.focus();
         }, 100);
+    } else {
+        console.error('Modal element not found or no pending project name');
     }
 };
 
 window.closeProjectSetup = function() {
     const modal = document.getElementById('project-setup-modal');
     if (modal) {
+        // Hide modal
         modal.style.display = 'none';
         modal.classList.remove('show');
         document.body.classList.remove('modal-open');
+        
+        // Restore body scrolling
+        document.body.style.overflow = '';
         
         // Clear form
         const form = document.getElementById('project-setup-form');
