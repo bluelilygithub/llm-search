@@ -4414,7 +4414,72 @@ body {
     line-height: 1.5;
 }
 
-/* ==================== SEARCH HIGHLIGHTING ==================== */
+/* Follow-up Questions */
+.follow-up-questions {
+    margin-top: var(--spacing-md);
+    padding: var(--spacing-md);
+    background-color: var(--gray-50);
+    border-radius: var(--radius-md);
+    border-left: 3px solid var(--primary-blue);
+}
+
+.follow-up-title {
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    color: var(--gray-700);
+    margin-bottom: var(--spacing-sm);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.follow-up-title i {
+    color: var(--primary-blue);
+}
+
+.follow-up-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.follow-up-btn {
+    background: white;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    text-align: left;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    font-size: var(--font-size-sm);
+    color: var(--gray-700);
+    line-height: 1.4;
+}
+
+.follow-up-btn:hover {
+    background-color: var(--primary-blue-light);
+    border-color: var(--primary-blue);
+    color: var(--primary-blue-dark);
+    transform: translateX(4px);
+}
+
+.follow-up-btn:active {
+    transform: translateX(2px);
+    background-color: var(--primary-blue);
+    color: white;
+}
+
+@media (max-width: 768px) {
+    .follow-up-questions {
+        margin-top: var(--spacing-sm);
+        padding: var(--spacing-sm);
+    }
+    
+    .follow-up-btn {
+        padding: var(--spacing-sm);
+        font-size: var(--font-size-xs);
+    }
+}
 
 mark {
     background: var(--primary-blue-light);

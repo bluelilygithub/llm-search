@@ -751,10 +751,35 @@ class KnowledgeBaseApp {
         if (message.role === 'assistant' && this.selectedModel) {
             timeString += ` (${this.selectedModel})`;
         }
+        
+        // Generate follow-up questions for assistant messages
+        let followUpHtml = '';
+        if (message.role === 'assistant') {
+            const followUpQuestions = this.generateFollowUpQuestions(message.content);
+            if (followUpQuestions.length > 0) {
+                followUpHtml = `
+                    <div class="follow-up-questions">
+                        <div class="follow-up-title">
+                            <i class="fas fa-lightbulb"></i>
+                            Continue the conversation:
+                        </div>
+                        <div class="follow-up-buttons">
+                            ${followUpQuestions.map(question => 
+                                `<button class="follow-up-btn" onclick="window.app.askFollowUpQuestion('${this.escapeHtml(question)}')">
+                                    ${question}
+                                </button>`
+                            ).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        
         messageDiv.innerHTML = `
             <div class="message-content">
                 ${this.formatMessageContent(message.content)}
                 <div class="message-time">${timeString}</div>
+                ${followUpHtml}
             </div>
         `;
         
@@ -770,6 +795,63 @@ class KnowledgeBaseApp {
             .replace(/`(.*?)`/g, '<code>$1</code>')
             .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width: 100%; height: auto; border-radius: 8px; margin: 10px 0;">')
             .replace(/\n/g, '<br>');
+    }
+
+    generateFollowUpQuestions(aiResponse) {
+        // Generate contextually relevant follow-up questions based on the AI's response
+        const questions = [];
+        const response = aiResponse.toLowerCase();
+        
+        // Analyze the response content to generate relevant questions
+        if (response.includes('step') || response.includes('process') || response.includes('how to')) {
+            questions.push("Can you walk me through this step by step?");
+            questions.push("What should I do next?");
+            questions.push("Are there any common pitfalls to avoid?");
+        } else if (response.includes('example') || response.includes('instance') || response.includes('like')) {
+            questions.push("Can you provide more examples?");
+            questions.push("How would this apply to my specific situation?");
+            questions.push("What are some alternative approaches?");
+        } else if (response.includes('benefit') || response.includes('advantage') || response.includes('good')) {
+            questions.push("What are the potential drawbacks?");
+            questions.push("How does this compare to other options?");
+            questions.push("Is this always the best approach?");
+        } else if (response.includes('code') || response.includes('function') || response.includes('programming')) {
+            questions.push("Can you explain this code in more detail?");
+            questions.push("How would I test this?");
+            questions.push("What if I encounter errors?");
+        } else if (response.includes('concept') || response.includes('theory') || response.includes('principle')) {
+            questions.push("Can you give me a practical example?");
+            questions.push("How is this used in real-world scenarios?");
+            questions.push("What are the key takeaways?");
+        } else {
+            // Generic follow-up questions
+            questions.push("Can you elaborate on this?");
+            questions.push("What would you recommend as next steps?");
+            questions.push("How can I apply this information?");
+        }
+        
+        // Return only the first 3 questions to avoid overwhelming the user
+        return questions.slice(0, 3);
+    }
+
+    escapeHtml(text) {
+        // Escape HTML and quotes for safe use in onclick attributes
+        return text
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    async askFollowUpQuestion(question) {
+        // Use the follow-up question as the next prompt
+        const input = document.getElementById('message-input');
+        if (input) {
+            input.value = question;
+            // Trigger the send message function
+            await this.sendMessage();
+        }
     }
 
     async sendMessage() {
