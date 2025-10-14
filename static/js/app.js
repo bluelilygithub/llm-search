@@ -205,17 +205,27 @@ class KnowledgeBaseApp {
 
     // Methods called from the new HTML structure
     startNewConversation() {
-        this.currentConversationId = null;
-        document.getElementById('chat-messages').innerHTML = `
-            <div class="empty-state" id="empty-state">
-                <div class="empty-state-icon">
-                    <i class="fas fa-comments"></i>
+        // Check if we're currently in a project context
+        if (this.currentProject && this.currentProject.id) {
+            // If we're in a project, start conversation in that project
+            this.startNewConversationInProject(this.currentProject.id);
+        } else if (this.currentViewProject && this.currentViewProject.id) {
+            // If we're viewing a specific project, start conversation in that project
+            this.startNewConversationInProject(this.currentViewProject.id);
+        } else {
+            // No project context, start a general conversation
+            this.currentConversationId = null;
+            document.getElementById('chat-messages').innerHTML = `
+                <div class="empty-state" id="empty-state">
+                    <div class="empty-state-icon">
+                        <i class="fas fa-comments"></i>
+                    </div>
+                    <h2 class="empty-state-title" id="new-conversation-title">New Conversation</h2>
+                    <p class="empty-state-description">Start a conversation or search your knowledge base.</p>
                 </div>
-                <h2 class="empty-state-title" id="new-conversation-title">New Conversation</h2>
-                <p class="empty-state-description">Start a conversation or search your knowledge base.</p>
-            </div>
-        `;
-        this.updateNewConversationTitle();
+            `;
+            this.updateNewConversationTitle();
+        }
     }
 
     createNewProject(name) {
