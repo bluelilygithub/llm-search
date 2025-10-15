@@ -4382,7 +4382,7 @@ async function loadCurrentModelsList() {
                               <button class="btn-small btn-secondary" onclick="testModelInManagement('${model.name}')" title="Test Access">
                                   <i class="fas fa-flask"></i>
                               </button>
-                              ${model.isDynamic ? '<button class="btn-small btn-secondary" onclick="editModel(\''+model.name+'\', \''+model.provider+'\', \''+(model.api_key||'')+'\', \''+(model.description||'')+'\')" title="Edit Model"><i class="fas fa-edit"></i></button>' : ''}
+                              ${model.isDynamic ? '<button class="btn-small btn-secondary btn-edit-model" data-model-name="'+model.name+'" data-model-provider="'+model.provider+'" data-model-apikey="'+(model.api_key||'')+'" data-model-description="'+(model.description||'')+'" title="Edit Model"><i class="fas fa-edit"></i></button>' : ''}
                               ${model.isDynamic ? '<button class="btn-small btn-danger" onclick="deleteModel(\''+model.name+'\')" title="Remove Model"><i class="fas fa-trash"></i></button>' : ''}
                           </div>
                        </div>
@@ -4390,6 +4390,17 @@ async function loadCurrentModelsList() {
         });
         
         container.innerHTML = html;
+        
+        // Add event listeners for edit buttons
+        container.querySelectorAll('.btn-edit-model').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const modelName = this.dataset.modelName;
+                const provider = this.dataset.modelProvider;
+                const apiKey = this.dataset.modelApikey;
+                const description = this.dataset.modelDescription;
+                editModel(modelName, provider, apiKey, description);
+            });
+        });
         
         // Auto-test all models after loading
         setTimeout(() => {
@@ -4568,19 +4579,39 @@ window.testModelInManagement = async function(modelName, showAlert = true) {
 };
 
 window.editModel = function(modelName, provider, apiKey, description) {
+    console.log('editModel called:', modelName, provider, apiKey, description);
+    
     // Populate the form with existing values
-    document.getElementById('model-name').value = modelName;
-    document.getElementById('model-provider').value = provider;
-    document.getElementById('model-api-key').value = apiKey || '';
-    document.getElementById('model-description').value = description || '';
+    const nameInput = document.getElementById('model-name');
+    const providerSelect = document.getElementById('model-provider');
+    const apiKeySelect = document.getElementById('model-api-key');
+    const descInput = document.getElementById('model-description');
+    const addBtn = document.getElementById('add-model-btn');
+    
+    console.log('Form elements:', { nameInput, providerSelect, apiKeySelect, descInput, addBtn });
+    
+    if (!nameInput || !providerSelect || !addBtn) {
+        console.error('Form elements not found!');
+        alert('Error: Form elements not found. Make sure the Model Management modal is open.');
+        return;
+    }
+    
+    nameInput.value = modelName;
+    providerSelect.value = provider;
+    if (apiKeySelect) apiKeySelect.value = apiKey || '';
+    if (descInput) descInput.value = description || '';
     
     // Change the add button to update button
-    const addBtn = document.getElementById('add-model-btn');
     addBtn.innerHTML = '<i class="fas fa-save"></i> Update Model';
     addBtn.onclick = () => updateModel(modelName);
     
     // Scroll to the form
-    document.querySelector('.add-model-form-grid').scrollIntoView({ behavior: 'smooth' });
+    const form = document.querySelector('.add-model-form-grid');
+    if (form) {
+        form.scrollIntoView({ behavior: 'smooth' });
+    }
+    
+    console.log('Edit form populated successfully');
 };
 
 window.updateModel = async function(originalName) {
