@@ -610,6 +610,9 @@ class KnowledgeBaseApp {
         try {
             this.currentConversationId = conversationId;
             
+            // Ensure we're in chat view with proper layout
+            this.showChatView();
+            
             // Update active conversation in sidebar
             document.querySelectorAll('.conversation-item').forEach(item => {
                 item.classList.remove('active');
