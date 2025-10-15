@@ -2299,6 +2299,177 @@ class KnowledgeBaseApp {
         console.log('✅ Image paste functionality initialized');
     }
 
+    // Keyboard shortcuts functionality
+    setupKeyboardShortcuts() {
+        document.addEventListener('keydown', (event) => {
+            this.handleKeyboardShortcut(event);
+        });
+        
+        console.log('✅ Keyboard shortcuts initialized');
+    }
+
+    handleKeyboardShortcut(event) {
+        // Don't trigger shortcuts when typing in inputs
+        if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
+            return;
+        }
+
+        const { ctrlKey, key, shiftKey } = event;
+
+        // Ctrl+N - New conversation
+        if (ctrlKey && key === 'n') {
+            event.preventDefault();
+            this.createNewConversation();
+            return;
+        }
+
+        // Ctrl+/ - Open templates
+        if (ctrlKey && key === '/') {
+            event.preventDefault();
+            this.openTemplatePicker();
+            return;
+        }
+
+        // Ctrl+K - Focus search
+        if (ctrlKey && key === 'k') {
+            event.preventDefault();
+            const searchInput = document.getElementById('conversation-search');
+            if (searchInput) {
+                searchInput.focus();
+            }
+            return;
+        }
+
+        // Ctrl+, - Open settings
+        if (ctrlKey && key === ',') {
+            event.preventDefault();
+            this.openSettingsPanel();
+            return;
+        }
+
+        // Escape - Close modals
+        if (key === 'Escape') {
+            this.closeAllModals();
+            return;
+        }
+
+        // Ctrl+S - Export conversation
+        if (ctrlKey && key === 's') {
+            event.preventDefault();
+            this.exportConversation();
+            return;
+        }
+
+        // Ctrl+Shift+N - New project
+        if (ctrlKey && shiftKey && key === 'N') {
+            event.preventDefault();
+            this.openProjectSetup();
+            return;
+        }
+
+        // Ctrl+Shift+T - Open templates management
+        if (ctrlKey && shiftKey && key === 'T') {
+            event.preventDefault();
+            this.openSettingsPanel();
+            setTimeout(() => {
+                this.showSettingsSection('templates');
+            }, 100);
+            return;
+        }
+
+        // Ctrl+? - Show keyboard shortcuts help
+        if (ctrlKey && key === '?') {
+            event.preventDefault();
+            this.showKeyboardShortcutsHelp();
+            return;
+        }
+    }
+
+    closeAllModals() {
+        // Close template picker
+        const templateModal = document.getElementById('template-modal');
+        if (templateModal && templateModal.style.display !== 'none') {
+            this.closeTemplatePicker();
+        }
+
+        // Close template editor
+        const templateEditor = document.getElementById('template-editor-modal');
+        if (templateEditor && templateEditor.style.display !== 'none') {
+            this.closeTemplateEditor();
+        }
+
+        // Close settings panel
+        const settingsPanel = document.getElementById('settings-panel');
+        if (settingsPanel && settingsPanel.style.display !== 'none') {
+            this.closeSettingsPanel();
+        }
+
+        // Close other modals
+        const modals = document.querySelectorAll('.modal, .template-modal, .settings-panel');
+        modals.forEach(modal => {
+            if (modal.style.display !== 'none') {
+                modal.style.display = 'none';
+            }
+        });
+    }
+
+    showKeyboardShortcutsHelp() {
+        const shortcuts = [
+            { key: 'Ctrl+N', description: 'New conversation' },
+            { key: 'Ctrl+/', description: 'Open templates' },
+            { key: 'Ctrl+K', description: 'Focus search' },
+            { key: 'Ctrl+,', description: 'Open settings' },
+            { key: 'Ctrl+S', description: 'Export conversation' },
+            { key: 'Ctrl+Shift+N', description: 'New project' },
+            { key: 'Ctrl+Shift+T', description: 'Templates management' },
+            { key: 'Ctrl+?', description: 'Show this help' },
+            { key: 'Escape', description: 'Close modals' },
+            { key: 'Enter', description: 'Send message' },
+            { key: 'Shift+Enter', description: 'New line in message' }
+        ];
+
+        const helpHtml = `
+            <div class="keyboard-shortcuts-help">
+                <h3><i class="fas fa-keyboard"></i> Keyboard Shortcuts</h3>
+                <div class="shortcuts-list">
+                    ${shortcuts.map(shortcut => `
+                        <div class="shortcut-item">
+                            <kbd>${shortcut.key}</kbd>
+                            <span>${shortcut.description}</span>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="shortcuts-footer">
+                    <button class="btn-primary" onclick="this.closest('.modal').style.display='none'">
+                        <i class="fas fa-times"></i> Close
+                    </button>
+                </div>
+            </div>
+        `;
+
+        // Create modal if it doesn't exist
+        let modal = document.getElementById('keyboard-shortcuts-modal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'keyboard-shortcuts-modal';
+            modal.className = 'modal';
+            modal.style.display = 'none';
+            document.body.appendChild(modal);
+        }
+
+        modal.innerHTML = helpHtml;
+        modal.style.display = 'flex';
+
+        // Close on escape
+        const handleEscape = (e) => {
+            if (e.key === 'Escape') {
+                modal.style.display = 'none';
+                document.removeEventListener('keydown', handleEscape);
+            }
+        };
+        document.addEventListener('keydown', handleEscape);
+    }
+
     async handleImagePaste(event) {
         const clipboardItems = event.clipboardData?.items;
         if (!clipboardItems) return;
