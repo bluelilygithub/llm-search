@@ -4817,6 +4817,27 @@ mark {
     gap: 16px;
 }
 
+.template-loading {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    color: var(--gray-500);
+    font-size: 16px;
+}
+
+.template-loading i {
+    font-size: 24px;
+    margin-bottom: 12px;
+    color: var(--primary-blue);
+}
+
+.template-loading span {
+    font-weight: 500;
+}
+
 .template-card {
     display: flex;
     flex-direction: column;

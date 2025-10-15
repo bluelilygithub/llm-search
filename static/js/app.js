@@ -4539,7 +4539,7 @@ KnowledgeBaseApp.prototype.renderTemplateCards = function() {
         return;
     }
     
-    // Clear existing cards
+    // Clear existing cards and loading message
     grid.innerHTML = '';
     
     // Render each template
