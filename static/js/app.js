@@ -3294,6 +3294,11 @@ window.showSettingsSection = function(sectionName) {
     if (activeNavBtn) {
         activeNavBtn.classList.add('active');
     }
+    
+    // Special handling for templates section
+    if (sectionName === 'templates' && window.app) {
+        window.app.renderTemplatesManagementList();
+    }
 };
 
 // Note: checkAllModelsAccess and saveModelSettings are defined in the HTML template
@@ -4519,16 +4524,19 @@ KnowledgeBaseApp.prototype.loadTemplates = async function() {
             TEMPLATE_DATA = await response.json();
             console.log('✅ Templates loaded from API:', Object.keys(TEMPLATE_DATA).length);
             this.renderTemplateCards();
+            this.renderTemplatesManagementList(); // Also update settings list
         } else {
             console.warn('⚠️ API failed, using fallback templates');
             TEMPLATE_DATA = TEMPLATE_DATA_FALLBACK;
             this.renderTemplateCards();
+            this.renderTemplatesManagementList(); // Also update settings list
         }
     } catch (error) {
         console.error('❌ Error loading templates:', error);
         console.log('📋 Using fallback templates');
         TEMPLATE_DATA = TEMPLATE_DATA_FALLBACK;
         this.renderTemplateCards();
+        this.renderTemplatesManagementList(); // Also update settings list
     }
 };
 
