@@ -202,6 +202,28 @@ class ContextTemplate(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+class Template(db.Model):
+    __tablename__ = 'templates'
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = db.Column(db.String(255), nullable=False, index=True)
+    name = db.Column(db.String(255), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    category = db.Column(db.String(50), nullable=False)
+    default_model = db.Column(db.String(100))
+    description = db.Column(db.Text)
+    icon = db.Column(db.String(100), default='fas fa-file-alt')  # FontAwesome icon class
+    usage_count = db.Column(db.Integer, default=0)
+    is_public = db.Column(db.Boolean, default=False)  # For sharing templates
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Index for efficient queries
+    __table_args__ = (
+        db.Index('idx_user_category', 'user_id', 'category'),
+        db.Index('idx_public_active', 'is_public', 'is_active'),
+    )
+
 class ContextAnalytics(db.Model):
     __tablename__ = 'context_analytics'
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)

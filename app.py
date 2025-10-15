@@ -3458,6 +3458,200 @@ def save_preferences():
 
 # ==================== END PREFERENCES API ====================
 
+# ==================== TEMPLATE MANAGEMENT API ====================
+
+from models import Template
+
+@app.route('/api/templates', methods=['GET'])
+def get_templates():
+    """Get templates for current user + public templates"""
+    try:
+        # Get user identifier (session_id for free users, user_id for authenticated)
+        user_identifier = session.get('user_id') or session.get('session_id')
+        if not user_identifier:
+            return jsonify({'error': 'User not identified'}), 401
+        
+        # Get user's templates + public templates
+        user_templates = Template.query.filter(
+            (Template.user_id == user_identifier) & 
+            (Template.is_active == True)
+        ).all()
+        
+        public_templates = Template.query.filter(
+            (Template.is_public == True) & 
+            (Template.is_active == True) &
+            (Template.user_id != user_identifier)
+        ).all()
+        
+        # Combine and format
+        templates = {}
+        for template in user_templates + public_templates:
+            templates[str(template.id)] = {
+                'name': template.name,
+                'content': template.content,
+                'category': template.category,
+                'defaultModel': template.default_model,
+                'description': template.description,
+                'icon': template.icon,
+                'usageCount': template.usage_count,
+                'isPublic': template.is_public,
+                'isUserOwned': template.user_id == user_identifier,
+                'createdAt': template.created_at.isoformat() if template.created_at else None
+            }
+        
+        return jsonify(templates)
+        
+    except Exception as e:
+        app.logger.error(f"Error fetching templates: {str(e)}")
+        return jsonify({'error': 'Failed to fetch templates'}), 500
+
+@app.route('/api/templates', methods=['POST'])
+def create_template():
+    """Create a new template"""
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        required_fields = ['name', 'content', 'category']
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({'error': f'Missing required field: {field}'}), 400
+        
+        # Get user identifier
+        user_identifier = session.get('user_id') or session.get('session_id')
+        if not user_identifier:
+            return jsonify({'error': 'User not identified'}), 401
+        
+        # Create template
+        template = Template(
+            user_id=user_identifier,
+            name=data['name'],
+            content=data['content'],
+            category=data['category'],
+            default_model=data.get('defaultModel'),
+            description=data.get('description'),
+            icon=data.get('icon', 'fas fa-file-alt'),
+            is_public=data.get('isPublic', False)
+        )
+        
+        db.session.add(template)
+        db.session.commit()
+        
+        return jsonify({
+            'id': str(template.id),
+            'message': 'Template created successfully'
+        }), 201
+        
+    except Exception as e:
+        app.logger.error(f"Error creating template: {str(e)}")
+        db.session.rollback()
+        return jsonify({'error': 'Failed to create template'}), 500
+
+@app.route('/api/templates/<template_id>', methods=['PUT'])
+def update_template(template_id):
+    """Update an existing template"""
+    try:
+        data = request.get_json()
+        
+        # Get user identifier
+        user_identifier = session.get('user_id') or session.get('session_id')
+        if not user_identifier:
+            return jsonify({'error': 'User not identified'}), 401
+        
+        # Find template (user must own it)
+        template = Template.query.filter_by(
+            id=template_id, 
+            user_id=user_identifier
+        ).first()
+        
+        if not template:
+            return jsonify({'error': 'Template not found or access denied'}), 404
+        
+        # Update fields
+        if 'name' in data:
+            template.name = data['name']
+        if 'content' in data:
+            template.content = data['content']
+        if 'category' in data:
+            template.category = data['category']
+        if 'defaultModel' in data:
+            template.default_model = data['defaultModel']
+        if 'description' in data:
+            template.description = data['description']
+        if 'icon' in data:
+            template.icon = data['icon']
+        if 'isPublic' in data:
+            template.is_public = data['isPublic']
+        if 'isActive' in data:
+            template.is_active = data['isActive']
+        
+        template.updated_at = datetime.utcnow()
+        db.session.commit()
+        
+        return jsonify({'message': 'Template updated successfully'})
+        
+    except Exception as e:
+        app.logger.error(f"Error updating template: {str(e)}")
+        db.session.rollback()
+        return jsonify({'error': 'Failed to update template'}), 500
+
+@app.route('/api/templates/<template_id>', methods=['DELETE'])
+def delete_template(template_id):
+    """Delete a template"""
+    try:
+        # Get user identifier
+        user_identifier = session.get('user_id') or session.get('session_id')
+        if not user_identifier:
+            return jsonify({'error': 'User not identified'}), 401
+        
+        # Find template (user must own it)
+        template = Template.query.filter_by(
+            id=template_id, 
+            user_id=user_identifier
+        ).first()
+        
+        if not template:
+            return jsonify({'error': 'Template not found or access denied'}), 404
+        
+        # Soft delete (mark as inactive)
+        template.is_active = False
+        template.updated_at = datetime.utcnow()
+        db.session.commit()
+        
+        return jsonify({'message': 'Template deleted successfully'})
+        
+    except Exception as e:
+        app.logger.error(f"Error deleting template: {str(e)}")
+        db.session.rollback()
+        return jsonify({'error': 'Failed to delete template'}), 500
+
+@app.route('/api/templates/<template_id>/usage', methods=['POST'])
+def track_template_usage(template_id):
+    """Track template usage (increment usage count)"""
+    try:
+        # Find template (can be any active template)
+        template = Template.query.filter_by(
+            id=template_id, 
+            is_active=True
+        ).first()
+        
+        if not template:
+            return jsonify({'error': 'Template not found'}), 404
+        
+        # Increment usage count
+        template.usage_count += 1
+        template.updated_at = datetime.utcnow()
+        db.session.commit()
+        
+        return jsonify({'usageCount': template.usage_count})
+        
+    except Exception as e:
+        app.logger.error(f"Error tracking template usage: {str(e)}")
+        db.session.rollback()
+        return jsonify({'error': 'Failed to track usage'}), 500
+
+# ==================== END TEMPLATE MANAGEMENT API ====================
+
 # ==================== MULTI-USER SYSTEM INTEGRATION ====================
 
 # Import user management modules

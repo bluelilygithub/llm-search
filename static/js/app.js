@@ -4483,8 +4483,76 @@ const TEMPLATE_DATA = {
     }
 };
 
+// Add template loading and management methods
+KnowledgeBaseApp.prototype.loadTemplates = async function() {
+    try {
+        console.log('🔄 Loading templates from API...');
+        const response = await fetch('/api/templates');
+        if (response.ok) {
+            TEMPLATE_DATA = await response.json();
+            console.log('✅ Templates loaded from API:', Object.keys(TEMPLATE_DATA).length);
+            this.renderTemplateCards();
+        } else {
+            console.warn('⚠️ API failed, using fallback templates');
+            TEMPLATE_DATA = TEMPLATE_DATA_FALLBACK;
+            this.renderTemplateCards();
+        }
+    } catch (error) {
+        console.error('❌ Error loading templates:', error);
+        console.log('📋 Using fallback templates');
+        TEMPLATE_DATA = TEMPLATE_DATA_FALLBACK;
+        this.renderTemplateCards();
+    }
+};
+
+KnowledgeBaseApp.prototype.renderTemplateCards = function() {
+    const grid = document.getElementById('template-grid');
+    if (!grid) {
+        console.warn('⚠️ Template grid not found');
+        return;
+    }
+    
+    // Clear existing cards
+    grid.innerHTML = '';
+    
+    // Render each template
+    Object.entries(TEMPLATE_DATA).forEach(([id, template]) => {
+        const card = this.createTemplateCard(id, template);
+        grid.appendChild(card);
+    });
+    
+    console.log(`✅ Rendered ${Object.keys(TEMPLATE_DATA).length} template cards`);
+};
+
+KnowledgeBaseApp.prototype.createTemplateCard = function(id, template) {
+    const card = document.createElement('div');
+    card.className = 'template-card';
+    card.setAttribute('data-category', template.category);
+    card.onclick = () => window.app.selectTemplate(id);
+    
+    const icon = template.icon || 'fas fa-file-alt';
+    const usageCount = template.usageCount || 0;
+    const defaultModel = template.defaultModel || 'GPT-4';
+    
+    card.innerHTML = `
+        <div class="template-icon">
+            <i class="${icon}"></i>
+        </div>
+        <div class="template-info">
+            <h4>${template.name}</h4>
+            <p>${template.description || 'Template description'}</p>
+            <div class="template-meta">
+                <span class="template-model">${defaultModel}</span>
+                <span class="template-usage">⭐ ${usageCount} uses</span>
+            </div>
+        </div>
+    `;
+    
+    return card;
+};
+
 // Add template methods to KnowledgeBaseApp prototype
-KnowledgeBaseApp.prototype.openTemplatePicker = function() {
+KnowledgeBaseApp.prototype.openTemplatePicker = async function() {
     console.log('✅ Template Picker Opening!');
     console.log('🔍 Checking for modal element...');
     const modal = document.getElementById('template-modal');
@@ -4495,6 +4563,9 @@ KnowledgeBaseApp.prototype.openTemplatePicker = function() {
         modal.style.display = 'flex';
         console.log('✅ Modal display set to flex. New value:', modal.style.display);
         console.log('📏 Modal computed style:', window.getComputedStyle(modal).display);
+        
+        // Load/refresh templates when opening picker
+        await this.loadTemplates();
         
         setTimeout(() => {
             const searchInput = document.getElementById('template-search');
@@ -4524,7 +4595,7 @@ KnowledgeBaseApp.prototype.closeTemplatePicker = function() {
     }
 };
 
-KnowledgeBaseApp.prototype.selectTemplate = function(templateId) {
+KnowledgeBaseApp.prototype.selectTemplate = async function(templateId) {
     console.log('📝 Selecting template:', templateId);
     const template = TEMPLATE_DATA[templateId];
     if (!template) {
@@ -4533,6 +4604,19 @@ KnowledgeBaseApp.prototype.selectTemplate = function(templateId) {
         return;
     }
     console.log('✅ Template found:', template);
+
+    // Track template usage
+    try {
+        await fetch(`/api/templates/${templateId}/usage`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrf-token]')?.content || ''
+            }
+        });
+    } catch (error) {
+        console.warn('⚠️ Failed to track template usage:', error);
+    }
 
     // Auto-select the recommended model
     this.selectedModel = template.defaultModel;
@@ -4680,6 +4764,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Load dynamic models into main dropdown
     window.app.loadMainModelDropdown();
+    
+    // Load templates from API (or fallback)
+    window.app.loadTemplates();
     
     // Only attach event handlers if elements exist
     const newChatBtn = document.getElementById('new-chat-btn');
