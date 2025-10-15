@@ -699,6 +699,14 @@ body {
     flex: 1;
     overflow: hidden;
     position: relative;
+    min-height: 0;
+}
+
+/* Dynamic content container */
+#dynamic-content {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
 /* Custom scrollbar for chat messages container */

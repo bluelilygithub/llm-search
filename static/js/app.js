@@ -7045,60 +7045,49 @@ KnowledgeBaseApp.prototype.showChatView = function() {
     console.log('showChatView: Looking for existing chat container:', chatMessagesContainer);
     
     if (!chatMessagesContainer) {
-        console.log('showChatView: Chat container not found, creating new one');
-        // Only create if it doesn't exist
-        chatMessagesContainer = document.createElement('div');
-        chatMessagesContainer.className = 'chat-messages-container';
-        chatMessagesContainer.innerHTML = `
-            <!-- Chat Header (for project/conversation context) -->
-            <div class="chat-header" id="chat-header" style="display: none;">
-                <div class="chat-breadcrumb">
-                    <span class="breadcrumb-item breadcrumb-clickable" id="projects-breadcrumb" onclick="window.app.showProjectsView()">
-                        <i class="fas fa-folder"></i>
-                        <span>Projects</span>
-                    </span>
-                    <span class="breadcrumb-separator"><i class="fas fa-chevron-right"></i></span>
-                    <span class="breadcrumb-item breadcrumb-clickable" id="project-breadcrumb" onclick="window.app.goBackToProject()">
-                        <i class="fas fa-folder-open"></i>
-                        <span id="project-name"></span>
-                    </span>
-                    <span class="breadcrumb-separator"><i class="fas fa-chevron-right"></i></span>
-                    <span class="breadcrumb-item active">
-                        <i class="fas fa-comment"></i>
-                        <span id="conversation-title"></span>
-                    </span>
-                </div>
-                <div class="chat-header-actions">
-                    <button class="chat-header-btn" onclick="window.app.goToHome()" title="Go to Home">
-                        <i class="fas fa-home"></i>
-                        <span>Home</span>
-                    </button>
-                </div>
-            </div>
-            <div class="chat-messages" id="chat-messages">
-                <!-- Messages will be loaded here -->
-            </div>
-        `;
-        
-        // Insert after the top bar to maintain proper layout
-        const topBar = container.querySelector('.top-bar');
-        if (topBar) {
-            console.log('showChatView: Inserting after top bar');
-            topBar.insertAdjacentElement('afterend', chatMessagesContainer);
-        } else {
-            console.log('showChatView: No top bar found, appending to container');
-            container.appendChild(chatMessagesContainer);
-        }
-        console.log('showChatView: Chat container created and inserted');
-        
-        // Debug: Check if the header was actually created
-        const createdHeader = chatMessagesContainer.querySelector('#chat-header');
-        console.log('showChatView: Header in newly created container:', createdHeader);
+        console.error('showChatView: Chat container not found in HTML template - this should not happen');
+        return;
     } else {
-        console.log('showChatView: Existing chat container found');
+        console.log('showChatView: Using existing chat container from template');
         
-        // Debug: Check if existing container has header
-        const existingHeader = chatMessagesContainer.querySelector('#chat-header');
+        // Check if existing container has header, if not add it
+        let existingHeader = chatMessagesContainer.querySelector('#chat-header');
+        if (!existingHeader) {
+            console.log('showChatView: Adding missing chat header to existing container');
+            const headerHtml = `
+                <!-- Chat Header (for project/conversation context) -->
+                <div class="chat-header" id="chat-header" style="display: none;">
+                    <div class="chat-breadcrumb">
+                        <span class="breadcrumb-item breadcrumb-clickable" id="projects-breadcrumb" onclick="window.app.showProjectsView()">
+                            <i class="fas fa-folder"></i>
+                            <span>Projects</span>
+                        </span>
+                        <span class="breadcrumb-separator"><i class="fas fa-chevron-right"></i></span>
+                        <span class="breadcrumb-item breadcrumb-clickable" id="project-breadcrumb" onclick="window.app.goBackToProject()">
+                            <i class="fas fa-folder-open"></i>
+                            <span id="project-name"></span>
+                        </span>
+                        <span class="breadcrumb-separator"><i class="fas fa-chevron-right"></i></span>
+                        <span class="breadcrumb-item active">
+                            <i class="fas fa-comment"></i>
+                            <span id="conversation-title"></span>
+                        </span>
+                    </div>
+                    <div class="chat-header-actions">
+                        <button class="chat-header-btn" onclick="window.app.exportConversation()" title="Export Conversation">
+                            <i class="fas fa-download"></i>
+                            <span>Export</span>
+                        </button>
+                        <button class="chat-header-btn" onclick="window.app.deleteConversation()" title="Delete Conversation">
+                            <i class="fas fa-trash"></i>
+                            <span>Delete</span>
+                        </button>
+                    </div>
+                </div>
+            `;
+            chatMessagesContainer.insertAdjacentHTML('afterbegin', headerHtml);
+            existingHeader = chatMessagesContainer.querySelector('#chat-header');
+        }
         console.log('showChatView: Header in existing container:', existingHeader);
     }
     
