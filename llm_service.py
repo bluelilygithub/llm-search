@@ -67,10 +67,12 @@ class LLMService:
         """Get response from specified LLM model. Returns (response_text, tokens, estimated_cost)"""
         # Map legacy Gemini model names to current names
         GEMINI_MODEL_MAP = {
-            'gemini-pro': 'models/gemini-1.5-pro-002',
-            'gemini-flash': 'models/gemini-1.5-flash-latest',
-            'models/gemini-pro': 'models/gemini-1.5-pro-002',
-            'models/gemini-flash': 'models/gemini-1.5-flash-latest'
+            'gemini-pro': 'models/gemini-1.5-pro',
+            'gemini-flash': 'models/gemini-1.5-flash',
+            'models/gemini-pro': 'models/gemini-1.5-pro',
+            'models/gemini-flash': 'models/gemini-1.5-flash',
+            'gemini-1.5-pro-002': 'models/gemini-1.5-pro',
+            'gemini-1.5-flash-latest': 'models/gemini-1.5-flash'
         }
         if model in GEMINI_MODEL_MAP:
             model = GEMINI_MODEL_MAP[model]
