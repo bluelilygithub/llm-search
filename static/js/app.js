@@ -3274,12 +3274,23 @@ KnowledgeBaseApp.prototype.closeSettingsModal = function() {
 // Settings Panel Functions (for model toggles)
 KnowledgeBaseApp.prototype.openSettingsPanel = function() {
     const panel = document.getElementById('settings-panel');
-    if (panel) {
-        panel.classList.add('open');
-        // Load original model settings when panel opens
-        setTimeout(() => {
-            this.loadModelsForSettingsPanel();
-        }, 200);
+    if (!panel) {
+        console.error('Settings panel element not found');
+        return;
+    }
+    panel.classList.add('open');
+    // Load original model settings when panel opens
+    setTimeout(() => {
+        this.loadModelsForSettingsPanel();
+    }, 200);
+};
+
+// Make openSettingsPanel available globally for onclick handlers
+window.openSettingsPanel = function() {
+    if (window.app) {
+        window.app.openSettingsPanel();
+    } else {
+        console.error('App not initialized yet');
     }
 };
 
@@ -4904,6 +4915,123 @@ window.setDefaultModel = async function(modelName) {
                 }
             });
         }
+    }
+};
+
+// Populate default model select dropdown in preferences
+window.populateDefaultModelSelect = async function() {
+    const dropdown = document.getElementById('default-model-select');
+    if (!dropdown) {
+        console.error('Default model select dropdown not found');
+        return;
+    }
+    
+    try {
+        // Show loading state
+        dropdown.innerHTML = '<option value="">Loading models...</option>';
+        
+        // Get model settings to find enabled models
+        const settingsResponse = await fetch('/api/model-settings');
+        if (!settingsResponse.ok) {
+            throw new Error('Failed to load model settings');
+        }
+        
+        const modelSettings = await settingsResponse.json();
+        
+        // Get all available models
+        const modelsResponse = await fetch('/api/models');
+        if (!modelsResponse.ok) {
+            throw new Error('Failed to load models');
+        }
+        
+        const allModels = await modelsResponse.json();
+        
+        // Filter to only enabled models
+        const enabledModels = allModels.filter(model => {
+            const settings = modelSettings[model.name];
+            return settings && settings.enabled;
+        });
+        
+        // Populate dropdown
+        dropdown.innerHTML = '<option value="">-- Select Default Model --</option>';
+        enabledModels.forEach(model => {
+            const option = document.createElement('option');
+            option.value = model.name;
+            option.textContent = model.name;
+            dropdown.appendChild(option);
+        });
+        
+        // Load current preference and set selected value
+        const prefsResponse = await fetch('/api/preferences');
+        if (prefsResponse.ok) {
+            const prefs = await prefsResponse.json();
+            if (prefs.defaultModel) {
+                dropdown.value = prefs.defaultModel;
+            }
+        }
+        
+        console.log('Default model dropdown populated with', enabledModels.length, 'models');
+        
+    } catch (error) {
+        console.error('Error populating default model select:', error);
+        dropdown.innerHTML = '<option value="">Error loading models</option>';
+    }
+};
+
+// Update default model when dropdown changes
+window.updateDefaultModel = async function() {
+    const dropdown = document.getElementById('default-model-select');
+    if (!dropdown) {
+        console.error('Default model select dropdown not found');
+        return;
+    }
+    
+    const selectedModel = dropdown.value;
+    console.log('Default model changed to:', selectedModel || '(none)');
+    
+    // Auto-save the preference when changed
+    await savePreferences();
+};
+
+// Save user preferences
+window.savePreferences = async function() {
+    const dropdown = document.getElementById('default-model-select');
+    if (!dropdown) {
+        console.error('Default model select dropdown not found');
+        return;
+    }
+    
+    const selectedModel = dropdown.value;
+    
+    try {
+        console.log('Saving preference - default model:', selectedModel || '(none)');
+        
+        const response = await fetch('/api/preferences', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                defaultModel: selectedModel || ''
+            })
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to save preferences');
+        }
+        
+        console.log('Preferences saved successfully');
+        alert('Preferences saved successfully!');
+        
+        // Refresh the main model dropdown if available
+        if (window.app && window.app.loadMainModelDropdown) {
+            await window.app.loadMainModelDropdown();
+        }
+        
+    } catch (error) {
+        console.error('Error saving preferences:', error);
+        alert('Error saving preferences: ' + error.message);
     }
 };
 
