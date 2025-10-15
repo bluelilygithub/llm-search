@@ -5042,8 +5042,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Confirm template system is loaded
     console.log('📝 Template & Prompt Library: LOADED');
-    console.log('📋 Available templates:', Object.keys(TEMPLATE_DATA).length);
-    console.log('📋 Template IDs:', Object.keys(TEMPLATE_DATA));
     
     // Check if template modal exists
     const templateModal = document.getElementById('template-modal');
@@ -5064,7 +5062,10 @@ document.addEventListener('DOMContentLoaded', () => {
     window.app.loadMainModelDropdown();
     
     // Load templates from API (or fallback)
-    window.app.loadTemplates();
+    window.app.loadTemplates().then(() => {
+        console.log('📋 Available templates:', Object.keys(TEMPLATE_DATA).length);
+        console.log('📋 Template IDs:', Object.keys(TEMPLATE_DATA));
+    });
     
     // Only attach event handlers if elements exist
     const newChatBtn = document.getElementById('new-chat-btn');
