@@ -224,8 +224,20 @@ class LLMService:
             raise Exception("Gemini API key not configured")
         try:
             prompt = '\n'.join([f"{m['role']}: {m['content']}" for m in messages])
-            model_obj = genai.GenerativeModel(model)
-            response = model_obj.generate_content(prompt, generation_config={"max_output_tokens": max_tokens, "temperature": temperature})
+            
+            # Try without models/ prefix first, then with if that fails
+            try:
+                model_name = model.replace('models/', '') if model.startswith('models/') else model
+                self.logger.info(f"Trying Gemini model: {model_name}")
+                model_obj = genai.GenerativeModel(model_name)
+                response = model_obj.generate_content(prompt, generation_config={"max_output_tokens": max_tokens, "temperature": temperature})
+            except Exception as first_error:
+                # If that fails, try with models/ prefix
+                self.logger.warning(f"First attempt failed: {first_error}. Trying with models/ prefix")
+                model_name = f"models/{model}" if not model.startswith('models/') else model
+                model_obj = genai.GenerativeModel(model_name)
+                response = model_obj.generate_content(prompt, generation_config={"max_output_tokens": max_tokens, "temperature": temperature})
+            
             text = response.text if hasattr(response, 'text') else str(response)
             tokens = 0
             if hasattr(response, 'usage_metadata') and hasattr(response.usage_metadata, 'total_tokens'):
