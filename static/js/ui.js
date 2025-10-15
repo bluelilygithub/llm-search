@@ -35,6 +35,14 @@ window.toggleSidebar = function toggleSidebar() {
 };
 
 window.toggleSection = function toggleSection(sectionName) {
+    if (sectionName === 'recent' && window.app) {
+        window.app.showConversationsView?.();
+        return;
+    }
+    if (sectionName === 'projects' && window.app) {
+        window.app.showProjectsView?.();
+        return;
+    }
     const content = document.getElementById(sectionName + '-content');
     const toggle = document.getElementById(sectionName + '-toggle');
     if (content && toggle) {

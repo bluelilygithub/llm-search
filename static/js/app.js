@@ -6622,6 +6622,7 @@ KnowledgeBaseApp.prototype.showConversationsView = function() {
 
 // Show projects grid view in main content area
 KnowledgeBaseApp.prototype.showProjectsView = function() {
+    console.log('🔵 showProjectsView called');
     this.currentView = 'projects';
     
     // Update top bar to hide context toggle
@@ -6630,24 +6631,28 @@ KnowledgeBaseApp.prototype.showProjectsView = function() {
     
     // Get the content-area where views should be rendered
     const contentArea = document.getElementById('content-area');
+    console.log('🔵 content-area:', contentArea);
     if (!contentArea) {
-        console.error('content-area div not found');
+        console.error('❌ content-area div not found');
         return;
     }
     
     // Remove any existing main-view elements from content-area
     const existingMainViews = contentArea.querySelectorAll('.main-view');
+    console.log('🔵 Removing existing views:', existingMainViews.length);
     existingMainViews.forEach(view => view.remove());
     
     // Hide the chat messages area instead of removing it (so it can be restored later)
     const chatMessagesContainer = contentArea.querySelector('.chat-messages-container');
     if (chatMessagesContainer) {
+        console.log('🔵 Hiding chat container');
         chatMessagesContainer.style.display = 'none';
     }
     
     // Create the projects view content
     const projectsContent = document.createElement('div');
     projectsContent.className = 'main-view';
+    console.log('🔵 Creating projects view HTML');
     projectsContent.innerHTML = `
         <nav class="breadcrumb">
             <span class="breadcrumb-item active">
@@ -6678,7 +6683,9 @@ KnowledgeBaseApp.prototype.showProjectsView = function() {
     `;
     
     // Insert into content-area to maintain proper layout
+    console.log('🔵 Appending projects content to content-area');
     contentArea.appendChild(projectsContent);
+    console.log('🔵 Projects view HTML appended, calling loadProjectsGrid');
     
     this.loadProjectsGrid();
 };
@@ -6911,9 +6918,13 @@ KnowledgeBaseApp.prototype.renderConversationsGrid = function(conversations, con
 
 // Render projects in grid format
 KnowledgeBaseApp.prototype.renderProjectsGrid = function(projects) {
+    console.log('🟢 renderProjectsGrid called with', projects.length, 'projects');
     const container = document.getElementById('projects-grid');
+    console.log('🟢 projects-grid container:', container);
     
     if (!projects.length) {
+        console.log('🟢 No projects, showing empty state');
+
         container.innerHTML = `
             <div class="empty-state-large">
                 <i class="fas fa-folder-open"></i>
@@ -6928,6 +6939,7 @@ KnowledgeBaseApp.prototype.renderProjectsGrid = function(projects) {
         return;
     }
     
+    console.log('🟢 Creating project cards HTML');
     const projectCards = projects.map(project => {
         const conversationCount = project.conversation_count || 0;
         
@@ -6960,7 +6972,9 @@ KnowledgeBaseApp.prototype.renderProjectsGrid = function(projects) {
         `;
     }).join('');
     
+    console.log('🟢 Setting container innerHTML with', projectCards.length, 'characters');
     container.innerHTML = projectCards;
+    console.log('🟢 Projects grid rendered successfully');
 };
 
 // Open conversation from grid view
