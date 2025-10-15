@@ -4378,12 +4378,13 @@ async function loadCurrentModelsList() {
                            <div class="model-status" id="mgmt-status-${model.name}">
                                <span class="status-unknown">Unknown</span>
                            </div>
-                           <div class="model-actions">
-                               <button class="btn-small btn-secondary" onclick="testModelInManagement('${model.name}')" title="Test Access">
-                                   <i class="fas fa-flask"></i>
-                               </button>
-                               ${model.isDynamic ? '<button class="btn-small btn-danger" onclick="deleteModel(\''+model.name+'\')" title="Remove Model"><i class="fas fa-trash"></i></button>' : ''}
-                           </div>
+                          <div class="model-actions">
+                              <button class="btn-small btn-secondary" onclick="testModelInManagement('${model.name}')" title="Test Access">
+                                  <i class="fas fa-flask"></i>
+                              </button>
+                              ${model.isDynamic ? '<button class="btn-small btn-secondary" onclick="editModel(\''+model.name+'\', \''+model.provider+'\', \''+(model.api_key||'')+'\', \''+(model.description||'')+'\')" title="Edit Model"><i class="fas fa-edit"></i></button>' : ''}
+                              ${model.isDynamic ? '<button class="btn-small btn-danger" onclick="deleteModel(\''+model.name+'\')" title="Remove Model"><i class="fas fa-trash"></i></button>' : ''}
+                          </div>
                        </div>
                    `;
         });
@@ -4563,6 +4564,89 @@ window.testModelInManagement = async function(modelName, showAlert = true) {
         if (showAlert) {
             alert(`✗ ${modelName}: Network error - ${error.message}`);
         }
+    }
+};
+
+window.editModel = function(modelName, provider, apiKey, description) {
+    // Populate the form with existing values
+    document.getElementById('model-name').value = modelName;
+    document.getElementById('model-provider').value = provider;
+    document.getElementById('model-api-key').value = apiKey || '';
+    document.getElementById('model-description').value = description || '';
+    
+    // Change the add button to update button
+    const addBtn = document.getElementById('add-model-btn');
+    addBtn.innerHTML = '<i class="fas fa-save"></i> Update Model';
+    addBtn.onclick = () => updateModel(modelName);
+    
+    // Scroll to the form
+    document.querySelector('.add-model-form-grid').scrollIntoView({ behavior: 'smooth' });
+};
+
+window.updateModel = async function(originalName) {
+    const nameInput = document.getElementById('model-name');
+    const providerSelect = document.getElementById('model-provider');
+    const apiKeySelect = document.getElementById('model-api-key');
+    const descInput = document.getElementById('model-description');
+    const addBtn = document.getElementById('add-model-btn');
+    
+    const newName = nameInput.value.trim();
+    const provider = providerSelect.value;
+    const apiKey = apiKeySelect.value || null;
+    const description = descInput.value.trim() || null;
+    
+    if (!newName || !provider) {
+        alert('Please fill in model name and provider');
+        return;
+    }
+    
+    try {
+        addBtn.disabled = true;
+        addBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+        
+        // Delete old model if name changed
+        if (originalName !== newName) {
+            await fetch(`/api/models/${encodeURIComponent(originalName)}`, {
+                method: 'DELETE'
+            });
+        }
+        
+        // Add/update model
+        const response = await fetch('/api/models', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                name: newName,
+                provider: provider,
+                api_key: apiKey,
+                description: description
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+            // Reset form
+            nameInput.value = '';
+            providerSelect.value = '';
+            apiKeySelect.value = '';
+            descInput.value = '';
+            
+            // Reset button
+            addBtn.innerHTML = '<i class="fas fa-plus"></i> Add Model';
+            addBtn.onclick = addModel;
+            
+            await loadCurrentModelsList();
+            alert(`✓ Model "${newName}" updated successfully!`);
+        } else {
+            alert(`✗ Failed to update model: ${result.error || 'Unknown error'}`);
+        }
+        
+    } catch (error) {
+        console.error('Error updating model:', error);
+        alert(`✗ Network error: ${error.message}`);
+    } finally {
+        addBtn.disabled = false;
     }
 };
 
