@@ -6580,6 +6580,8 @@ KnowledgeBaseApp.prototype.showConversationsView = function() {
     const dynamicContent = document.getElementById('dynamic-content');
     if (dynamicContent) {
         dynamicContent.style.display = 'none';
+        dynamicContent.style.height = '0';
+        dynamicContent.style.overflow = 'hidden';
     }
     
     // Create the conversations view content
@@ -6647,6 +6649,8 @@ KnowledgeBaseApp.prototype.showProjectsView = function() {
     if (dynamicContent) {
         console.log('🔵 Hiding dynamic-content wrapper');
         dynamicContent.style.display = 'none';
+        dynamicContent.style.height = '0';
+        dynamicContent.style.overflow = 'hidden';
     }
     
     // Create the projects view content
@@ -6716,6 +6720,8 @@ KnowledgeBaseApp.prototype.showProjectConversationsView = function(project) {
     const dynamicContent = document.getElementById('dynamic-content');
     if (dynamicContent) {
         dynamicContent.style.display = 'none';
+        dynamicContent.style.height = '0';
+        dynamicContent.style.overflow = 'hidden';
     }
     
     // Create the project conversations view content
@@ -7045,6 +7051,8 @@ KnowledgeBaseApp.prototype.showChatView = function() {
     if (dynamicContent) {
         console.log('showChatView: Restoring dynamic-content wrapper');
         dynamicContent.style.display = '';
+        dynamicContent.style.height = '';
+        dynamicContent.style.overflow = '';
     }
     
     // Find the existing chat-messages-container instead of creating a new one
