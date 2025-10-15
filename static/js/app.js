@@ -4716,11 +4716,282 @@ KnowledgeBaseApp.prototype.filterTemplates = function(category) {
 };
 
 KnowledgeBaseApp.prototype.createCustomTemplate = function() {
-    if (this.showNotification) {
-        this.showNotification('Custom template creation coming soon!', 'info');
-    }
+    this.openTemplateEditor();
     this.closeTemplatePicker();
 };
+
+// ==================== TEMPLATE MANAGEMENT FUNCTIONS ====================
+
+KnowledgeBaseApp.prototype.openTemplateEditor = function(templateId = null) {
+    const modal = document.getElementById('template-editor-modal');
+    const titleText = document.getElementById('editor-title-text');
+    const templateIdInput = document.getElementById('template-id');
+    
+    if (templateId) {
+        // Edit existing template
+        const template = TEMPLATE_DATA[templateId];
+        if (template) {
+            titleText.textContent = 'Edit Template';
+            templateIdInput.value = templateId;
+            document.getElementById('template-name').value = template.name;
+            document.getElementById('template-category').value = template.category;
+            document.getElementById('template-model').value = template.defaultModel || '';
+            document.getElementById('template-icon').value = template.icon || 'fas fa-file-alt';
+            document.getElementById('template-description').value = template.description || '';
+            document.getElementById('template-content').value = template.content;
+            document.getElementById('template-public').checked = template.isPublic || false;
+        }
+    } else {
+        // Create new template
+        titleText.textContent = 'New Template';
+        templateIdInput.value = '';
+        document.getElementById('template-editor-form').reset();
+    }
+    
+    modal.style.display = 'flex';
+};
+
+KnowledgeBaseApp.prototype.closeTemplateEditor = function() {
+    const modal = document.getElementById('template-editor-modal');
+    modal.style.display = 'none';
+    document.getElementById('template-editor-form').reset();
+};
+
+KnowledgeBaseApp.prototype.saveTemplate = async function() {
+    const form = document.getElementById('template-editor-form');
+    const templateId = document.getElementById('template-id').value;
+    
+    // Validate form
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+    
+    const templateData = {
+        name: document.getElementById('template-name').value,
+        content: document.getElementById('template-content').value,
+        category: document.getElementById('template-category').value,
+        defaultModel: document.getElementById('template-model').value || null,
+        description: document.getElementById('template-description').value || null,
+        icon: document.getElementById('template-icon').value,
+        isPublic: document.getElementById('template-public').checked
+    };
+    
+    try {
+        let response;
+        if (templateId) {
+            // Update existing template
+            response = await fetch(`/api/templates/${templateId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrf-token]')?.content || ''
+                },
+                body: JSON.stringify(templateData)
+            });
+        } else {
+            // Create new template
+            response = await fetch('/api/templates', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrf-token]')?.content || ''
+                },
+                body: JSON.stringify(templateData)
+            });
+        }
+        
+        if (response.ok) {
+            this.showNotification(templateId ? 'Template updated successfully!' : 'Template created successfully!', 'success');
+            this.closeTemplateEditor();
+            this.refreshTemplatesList();
+            // Refresh template picker if it's open
+            if (document.getElementById('template-modal').style.display !== 'none') {
+                await this.loadTemplates();
+            }
+        } else {
+            const error = await response.json();
+            this.showNotification(`Error: ${error.error}`, 'error');
+        }
+    } catch (error) {
+        console.error('Error saving template:', error);
+        this.showNotification('Failed to save template', 'error');
+    }
+};
+
+KnowledgeBaseApp.prototype.deleteTemplate = async function(templateId) {
+    if (!confirm('Are you sure you want to delete this template? This action cannot be undone.')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/templates/${templateId}`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrf-token]')?.content || ''
+            }
+        });
+        
+        if (response.ok) {
+            this.showNotification('Template deleted successfully!', 'success');
+            this.refreshTemplatesList();
+            // Refresh template picker if it's open
+            if (document.getElementById('template-modal').style.display !== 'none') {
+                await this.loadTemplates();
+            }
+        } else {
+            const error = await response.json();
+            this.showNotification(`Error: ${error.error}`, 'error');
+        }
+    } catch (error) {
+        console.error('Error deleting template:', error);
+        this.showNotification('Failed to delete template', 'error');
+    }
+};
+
+KnowledgeBaseApp.prototype.refreshTemplatesList = async function() {
+    const container = document.getElementById('templates-list');
+    if (!container) return;
+    
+    container.innerHTML = '<div class="loading-templates">Loading templates...</div>';
+    
+    try {
+        await this.loadTemplates();
+        this.renderTemplatesManagementList();
+    } catch (error) {
+        console.error('Error refreshing templates:', error);
+        container.innerHTML = '<div class="error-templates">Failed to load templates</div>';
+    }
+};
+
+KnowledgeBaseApp.prototype.renderTemplatesManagementList = function() {
+    const container = document.getElementById('templates-list');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    const templates = Object.entries(TEMPLATE_DATA);
+    if (templates.length === 0) {
+        container.innerHTML = `
+            <div class="empty-templates">
+                <i class="fas fa-file-alt"></i>
+                <h4>No templates yet</h4>
+                <p>Create your first template to get started!</p>
+                <button class="btn-primary" onclick="openTemplateEditor()">
+                    <i class="fas fa-plus"></i>
+                    Create Template
+                </button>
+            </div>
+        `;
+        return;
+    }
+    
+    templates.forEach(([id, template]) => {
+        const item = document.createElement('div');
+        item.className = 'template-management-item';
+        item.innerHTML = `
+            <div class="template-item-info">
+                <div class="template-item-header">
+                    <div class="template-item-icon">
+                        <i class="${template.icon || 'fas fa-file-alt'}"></i>
+                    </div>
+                    <div class="template-item-details">
+                        <h4>${template.name}</h4>
+                        <p class="template-item-category">${template.category}</p>
+                        <p class="template-item-description">${template.description || 'No description'}</p>
+                    </div>
+                </div>
+                <div class="template-item-meta">
+                    <span class="template-item-model">${template.defaultModel || 'No default model'}</span>
+                    <span class="template-item-usage">⭐ ${template.usageCount || 0} uses</span>
+                    ${template.isPublic ? '<span class="template-item-public">🌐 Public</span>' : ''}
+                </div>
+            </div>
+            <div class="template-item-actions">
+                <button class="btn-sm btn-secondary" onclick="window.app.openTemplateEditor('${id}')" title="Edit">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn-sm btn-info" onclick="window.app.testTemplate('${id}')" title="Test">
+                    <i class="fas fa-play"></i>
+                </button>
+                <button class="btn-sm btn-danger" onclick="window.app.deleteTemplate('${id}')" title="Delete">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        `;
+        container.appendChild(item);
+    });
+};
+
+KnowledgeBaseApp.prototype.testTemplate = function(templateId) {
+    const template = TEMPLATE_DATA[templateId];
+    if (!template) return;
+    
+    const modal = document.getElementById('template-test-modal');
+    const preview = document.getElementById('template-preview');
+    
+    preview.innerHTML = `
+        <div class="template-test-content">
+            <h4>${template.name}</h4>
+            <p><strong>Category:</strong> ${template.category}</p>
+            <p><strong>Model:</strong> ${template.defaultModel || 'No default model'}</p>
+            <div class="template-content-preview">
+                <strong>Content:</strong>
+                <pre>${template.content}</pre>
+            </div>
+        </div>
+    `;
+    
+    modal.style.display = 'flex';
+    
+    // Store template ID for apply function
+    modal.dataset.templateId = templateId;
+};
+
+KnowledgeBaseApp.prototype.closeTemplateTest = function() {
+    const modal = document.getElementById('template-test-modal');
+    modal.style.display = 'none';
+    delete modal.dataset.templateId;
+};
+
+KnowledgeBaseApp.prototype.applyTestTemplate = function() {
+    const modal = document.getElementById('template-test-modal');
+    const templateId = modal.dataset.templateId;
+    
+    if (templateId) {
+        this.selectTemplate(templateId);
+        this.closeTemplateTest();
+    }
+};
+
+// Global functions for HTML onclick handlers
+function openTemplateEditor(templateId = null) {
+    window.app.openTemplateEditor(templateId);
+}
+
+function closeTemplateEditor() {
+    window.app.closeTemplateEditor();
+}
+
+function saveTemplate() {
+    window.app.saveTemplate();
+}
+
+function testTemplate(templateId) {
+    window.app.testTemplate(templateId);
+}
+
+function closeTemplateTest() {
+    window.app.closeTemplateTest();
+}
+
+function applyTestTemplate() {
+    window.app.applyTestTemplate();
+}
+
+function refreshTemplatesList() {
+    window.app.refreshTemplatesList();
+}
 
 // Function to migrate a legacy model to the dynamic system
 window.migrateModel = async function(modelName) {

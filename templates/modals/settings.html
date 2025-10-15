@@ -23,6 +23,10 @@
                 <i class="fas fa-user"></i>
                 Account
             </button>
+            <button class="settings-nav-btn" data-section="templates" onclick="showSettingsSection('templates')">
+                <i class="fas fa-file-alt"></i>
+                Templates
+            </button>
             <button class="settings-nav-btn" data-section="preferences" onclick="showSettingsSection('preferences')" id="preferences-nav-btn">
                 <i class="fas fa-sliders-h"></i>
                 Preferences
@@ -73,6 +77,33 @@
                 </div>
                 <div class="account-info">
                     <p>Account settings coming soon...</p>
+                </div>
+            </div>
+
+            <!-- Templates Section -->
+            <div class="settings-section" id="templates-section">
+                <div class="section-header">
+                    <h3>Template Management</h3>
+                    <p>Create, edit, and organize your prompt templates.</p>
+                </div>
+
+                <div class="templates-container">
+                    <div class="templates-header">
+                        <div class="templates-actions">
+                            <button class="btn-primary" onclick="openTemplateEditor()">
+                                <i class="fas fa-plus"></i>
+                                New Template
+                            </button>
+                            <button class="btn-secondary" onclick="refreshTemplatesList()">
+                                <i class="fas fa-sync"></i>
+                                Refresh
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="templates-list" id="templates-list">
+                        <div class="loading-templates">Loading templates...</div>
+                    </div>
                 </div>
             </div>
 

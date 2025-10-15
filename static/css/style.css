@@ -4954,9 +4954,425 @@ mark {
     font-size: 14px;
 }
 
+/* Template Management Styles */
+.template-management-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    background: white;
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    margin-bottom: 12px;
+    transition: all 0.2s ease;
+}
+
+.template-management-item:hover {
+    border-color: var(--primary-blue);
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+}
+
+.template-item-info {
+    flex: 1;
+}
+
+.template-item-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.template-item-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: var(--primary-blue-light);
+    border-radius: 8px;
+    color: var(--primary-blue);
+    font-size: 16px;
+}
+
+.template-item-details h4 {
+    margin: 0 0 4px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--gray-800);
+}
+
+.template-item-category {
+    margin: 0 0 4px 0;
+    font-size: 12px;
+    color: var(--gray-500);
+    text-transform: uppercase;
+    font-weight: 500;
+}
+
+.template-item-description {
+    margin: 0;
+    font-size: 14px;
+    color: var(--gray-600);
+    line-height: 1.4;
+}
+
+.template-item-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.template-item-model,
+.template-item-usage,
+.template-item-public {
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: var(--gray-100);
+    color: var(--gray-600);
+}
+
+.template-item-public {
+    background: #e0f2fe;
+    color: #0277bd;
+}
+
+.template-item-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-sm {
+    padding: 6px 10px;
+    font-size: 12px;
+    border-radius: 4px;
+}
+
+.btn-danger {
+    background: #ef4444;
+    color: white;
+    border: 1px solid #dc2626;
+}
+
+.btn-danger:hover {
+    background: #dc2626;
+}
+
+.btn-info {
+    background: #3b82f6;
+    color: white;
+    border: 1px solid #2563eb;
+}
+
+.btn-info:hover {
+    background: #2563eb;
+}
+
+.empty-templates {
+    text-align: center;
+    padding: 48px 24px;
+    color: var(--gray-500);
+}
+
+.empty-templates i {
+    font-size: 48px;
+    margin-bottom: 16px;
+    color: var(--gray-300);
+}
+
+.empty-templates h4 {
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    color: var(--gray-600);
+}
+
+.empty-templates p {
+    margin: 0 0 24px 0;
+    font-size: 14px;
+}
+
+.loading-templates,
+.error-templates {
+    text-align: center;
+    padding: 24px;
+    color: var(--gray-500);
+}
+
+/* Template Editor Modal */
+.template-editor-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10001;
+    backdrop-filter: blur(4px);
+}
+
+.template-editor-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.template-editor-content {
+    background: white;
+    border-radius: 16px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+    position: relative;
+}
+
+.template-editor-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 24px;
+    border-bottom: 1px solid var(--gray-200);
+    background: var(--gray-50);
+}
+
+.template-editor-header h3 {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0;
+    font-size: var(--font-size-xl);
+    font-weight: 600;
+    color: var(--gray-800);
+}
+
+.template-editor-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: none;
+    border-radius: 6px;
+    color: var(--gray-500);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.template-editor-close:hover {
+    background: var(--gray-200);
+    color: var(--gray-700);
+}
+
+.template-editor-body {
+    flex: 1;
+    padding: 24px;
+    overflow-y: auto;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 500;
+    color: var(--gray-700);
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--gray-300);
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.2s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary-blue);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 120px;
+}
+
+.form-help {
+    display: block;
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--gray-500);
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+}
+
+.template-editor-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 24px;
+    border-top: 1px solid var(--gray-200);
+    background: var(--gray-50);
+}
+
+/* Template Test Modal */
+.template-test-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10002;
+    backdrop-filter: blur(4px);
+}
+
+.template-test-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.template-test-content {
+    background: white;
+    border-radius: 16px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+    position: relative;
+}
+
+.template-test-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--gray-200);
+    background: var(--gray-50);
+}
+
+.template-test-header h3 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--gray-800);
+}
+
+.template-test-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: none;
+    border-radius: 6px;
+    color: var(--gray-500);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.template-test-close:hover {
+    background: var(--gray-200);
+    color: var(--gray-700);
+}
+
+.template-test-body {
+    flex: 1;
+    padding: 24px;
+    overflow-y: auto;
+}
+
+.template-preview-content {
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 20px;
+}
+
+.template-preview-content h4 {
+    margin: 0 0 12px 0;
+    color: var(--gray-800);
+}
+
+.template-preview-content p {
+    margin: 0 0 8px 0;
+    font-size: 14px;
+    color: var(--gray-600);
+}
+
+.template-content-preview {
+    margin-top: 12px;
+}
+
+.template-content-preview pre {
+    background: white;
+    border: 1px solid var(--gray-200);
+    border-radius: 4px;
+    padding: 12px;
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--gray-700);
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.test-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
-    .template-modal-content {
+    .template-modal-content,
+    .template-editor-content,
+    .template-test-content {
         width: 95%;
         max-height: 90vh;
     }
@@ -4969,9 +5385,20 @@ mark {
         justify-content: center;
     }
     
-    .template-modal-footer {
+    .template-modal-footer,
+    .template-editor-footer {
         flex-direction: column;
         gap: 12px;
+    }
+    
+    .template-management-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+    
+    .template-item-actions {
+        align-self: flex-end;
     }
     
     .template-btn-secondary,
@@ -4979,4 +5406,5 @@ mark {
         width: 100%;
         justify-content: center;
     }
+}
 }
