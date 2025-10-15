@@ -6560,29 +6560,26 @@ KnowledgeBaseApp.prototype.showHomeView = function() {
 // Show conversations list view in main content area
 KnowledgeBaseApp.prototype.showConversationsView = function() {
     this.currentView = 'conversations';
-    const container = document.getElementById('main-content');
     
     // Update top bar to hide context toggle
     const contextToggle = document.getElementById('context-toggle-btn');
     if (contextToggle) contextToggle.style.display = 'none';
     
-    if (!container) {
-        console.error('main-content div not found');
+    // Get the content-area where views should be rendered
+    const contentArea = document.getElementById('content-area');
+    if (!contentArea) {
+        console.error('content-area div not found');
         return;
     }
     
-    // Preserve the top bar and bottom input container
-    const topBar = container.querySelector('.top-bar');
-    const bottomInput = container.querySelector('.bottom-input-container');
-    
-    // Remove any existing main-view elements to prevent appending
-    const existingMainViews = container.querySelectorAll('.main-view');
+    // Remove any existing main-view elements from content-area
+    const existingMainViews = contentArea.querySelectorAll('.main-view');
     existingMainViews.forEach(view => view.remove());
     
-    // Clear only the chat messages area, not the entire container
-    const chatMessagesContainer = container.querySelector('.chat-messages-container');
+    // Hide the chat messages area instead of removing it (so it can be restored later)
+    const chatMessagesContainer = contentArea.querySelector('.chat-messages-container');
     if (chatMessagesContainer) {
-        chatMessagesContainer.remove();
+        chatMessagesContainer.style.display = 'none';
     }
     
     // Create the conversations view content
@@ -6617,12 +6614,8 @@ KnowledgeBaseApp.prototype.showConversationsView = function() {
         </div>
     `;
     
-    // Insert after the top bar to maintain proper layout
-    if (topBar) {
-        topBar.insertAdjacentElement('afterend', conversationsContent);
-    } else {
-        container.appendChild(conversationsContent);
-    }
+    // Insert into content-area to maintain proper layout
+    contentArea.appendChild(conversationsContent);
     
     this.loadConversationsGrid();
 };
@@ -6630,29 +6623,26 @@ KnowledgeBaseApp.prototype.showConversationsView = function() {
 // Show projects grid view in main content area
 KnowledgeBaseApp.prototype.showProjectsView = function() {
     this.currentView = 'projects';
-    const container = document.getElementById('main-content');
     
     // Update top bar to hide context toggle
     const contextToggle = document.getElementById('context-toggle-btn');
     if (contextToggle) contextToggle.style.display = 'none';
     
-    if (!container) {
-        console.error('main-content div not found');
+    // Get the content-area where views should be rendered
+    const contentArea = document.getElementById('content-area');
+    if (!contentArea) {
+        console.error('content-area div not found');
         return;
     }
     
-    // Preserve the top bar and bottom input container
-    const topBar = container.querySelector('.top-bar');
-    const bottomInput = container.querySelector('.bottom-input-container');
-    
-    // Remove any existing main-view elements to prevent appending
-    const existingMainViews = container.querySelectorAll('.main-view');
+    // Remove any existing main-view elements from content-area
+    const existingMainViews = contentArea.querySelectorAll('.main-view');
     existingMainViews.forEach(view => view.remove());
     
-    // Clear only the chat messages area, not the entire container
-    const chatMessagesContainer = container.querySelector('.chat-messages-container');
+    // Hide the chat messages area instead of removing it (so it can be restored later)
+    const chatMessagesContainer = contentArea.querySelector('.chat-messages-container');
     if (chatMessagesContainer) {
-        chatMessagesContainer.remove();
+        chatMessagesContainer.style.display = 'none';
     }
     
     // Create the projects view content
@@ -6688,12 +6678,8 @@ KnowledgeBaseApp.prototype.showProjectsView = function() {
         </div>
     `;
     
-    // Insert after the top bar to maintain proper layout
-    if (topBar) {
-        topBar.insertAdjacentElement('afterend', projectsContent);
-    } else {
-        container.appendChild(projectsContent);
-    }
+    // Insert into content-area to maintain proper layout
+    contentArea.appendChild(projectsContent);
     
     this.loadProjectsGrid();
 };
@@ -6702,25 +6688,20 @@ KnowledgeBaseApp.prototype.showProjectsView = function() {
 KnowledgeBaseApp.prototype.showProjectConversationsView = function(project) {
     this.currentView = 'project-conversations';
     this.currentViewProject = project;
-    const container = document.getElementById('main-content');
     
-    if (!container) {
-        console.error('main-content div not found');
+    // Get the content-area where views should be rendered
+    const contentArea = document.getElementById('content-area');
+    if (!contentArea) {
+        console.error('content-area div not found');
         return;
     }
     
-    // Preserve the top bar and bottom input container
-    const topBar = container.querySelector('.top-bar');
-    const bottomInput = container.querySelector('.bottom-input-container');
-    
-
-    
-    // Remove any existing main-view elements to prevent appending
-    const existingMainViews = container.querySelectorAll('.main-view');
+    // Remove any existing main-view elements from content-area
+    const existingMainViews = contentArea.querySelectorAll('.main-view');
     existingMainViews.forEach(view => view.remove());
     
     // Hide the chat messages area instead of removing it (so it can be restored later)
-    const chatMessagesContainer = container.querySelector('.chat-messages-container');
+    const chatMessagesContainer = contentArea.querySelector('.chat-messages-container');
     if (chatMessagesContainer) {
         chatMessagesContainer.style.display = 'none';
     }
@@ -6766,12 +6747,8 @@ KnowledgeBaseApp.prototype.showProjectConversationsView = function(project) {
         </div>
     `;
     
-    // Insert after the top bar to maintain proper layout
-    if (topBar) {
-        topBar.insertAdjacentElement('afterend', projectContent);
-    } else {
-        container.appendChild(projectContent);
-    }
+    // Insert into content-area to maintain proper layout
+    contentArea.appendChild(projectContent);
     
     this.loadProjectConversationsGrid(project.id);
 };
@@ -7027,24 +7004,21 @@ KnowledgeBaseApp.prototype.openProject = function(projectId) {
 KnowledgeBaseApp.prototype.showChatView = function() {
     this.currentView = 'chat';
     
-    // Always use main-content container for chat view to ensure proper layout
-    const container = document.getElementById('main-content');
-    if (!container) {
-        console.error('main-content container not found for chat view');
+    // Get the content-area where views should be rendered
+    const contentArea = document.getElementById('content-area');
+    if (!contentArea) {
+        console.error('content-area container not found for chat view');
         return;
     }
     
     // Clear any existing view content (conversations, projects, etc.)
-    const existingViewContent = container.querySelector('.main-view');
+    const existingViewContent = contentArea.querySelector('.main-view');
     if (existingViewContent) {
         existingViewContent.remove();
     }
     
-    // Ensure the main-content div has the proper CSS classes for chat layout
-    container.className = 'main-content';
-    
     // Find the existing chat-messages-container instead of creating a new one
-    let chatMessagesContainer = container.querySelector('.chat-messages-container');
+    let chatMessagesContainer = contentArea.querySelector('.chat-messages-container');
     console.log('showChatView: Looking for existing chat container:', chatMessagesContainer);
     
     if (!chatMessagesContainer) {
