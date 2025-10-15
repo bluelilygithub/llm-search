@@ -4443,43 +4443,70 @@ window.setDefaultModel = async function(modelName) {
 
 // ==================== TEMPLATE & PROMPT LIBRARY ====================
 
-// Template data
-const TEMPLATE_DATA = {
+// Dynamic template data (loaded from API, fallback to hardcoded)
+let TEMPLATE_DATA = {};
+
+// Fallback template data
+const TEMPLATE_DATA_FALLBACK = {
     'email-template': {
         name: 'Email Template',
         content: 'Please help me write a professional email about {{topic}}. The email should be {{tone}} and include {{details}}.',
         category: 'writing',
-        defaultModel: 'claude-3.5-sonnet'
+        defaultModel: 'claude-3.5-sonnet',
+        icon: 'fas fa-envelope',
+        description: 'Professional email writing',
+        usageCount: 245,
+        isPublic: true
     },
     'code-review': {
         name: 'Code Review',
         content: 'Please review this code for best practices, potential bugs, and improvements:\n\n```\n{{code}}\n```\n\nFocus on: {{focus_areas}}',
         category: 'code',
-        defaultModel: 'gpt-4'
+        defaultModel: 'gpt-4',
+        icon: 'fas fa-code',
+        description: 'Comprehensive code analysis',
+        usageCount: 189,
+        isPublic: true
     },
     'meeting-notes': {
         name: 'Meeting Notes',
         content: 'Please help me organize these meeting notes into a structured format:\n\n{{notes}}\n\nInclude: agenda, key decisions, action items, and next steps.',
         category: 'writing',
-        defaultModel: 'claude-3.5-sonnet'
+        defaultModel: 'claude-3.5-sonnet',
+        icon: 'fas fa-clipboard',
+        description: 'Structured meeting documentation',
+        usageCount: 156,
+        isPublic: true
     },
     'brainstorming': {
         name: 'Brainstorming',
         content: 'Help me brainstorm creative ideas for {{topic}}. Consider these constraints: {{constraints}}. Generate {{number}} innovative solutions.',
         category: 'creative',
-        defaultModel: 'claude-3.5-sonnet'
+        defaultModel: 'claude-3.5-sonnet',
+        icon: 'fas fa-lightbulb',
+        description: 'Creative idea generation',
+        usageCount: 134,
+        isPublic: true
     },
     'research': {
         name: 'Research',
         content: 'Help me research {{topic}}. Please provide:\n1. Key facts and statistics\n2. Current trends\n3. Expert opinions\n4. Potential challenges\n5. Future outlook',
         category: 'research',
-        defaultModel: 'gpt-4'
+        defaultModel: 'gpt-4',
+        icon: 'fas fa-search',
+        description: 'Academic research assistance',
+        usageCount: 98,
+        isPublic: true
     },
     'blog-post': {
         name: 'Blog Post',
         content: 'Help me write an engaging blog post about {{topic}}. Target audience: {{audience}}. Tone: {{tone}}. Length: {{length}} words.',
         category: 'writing',
-        defaultModel: 'claude-3.5-sonnet'
+        defaultModel: 'claude-3.5-sonnet',
+        icon: 'fas fa-blog',
+        description: 'Engaging blog content',
+        usageCount: 87,
+        isPublic: true
     }
 };
 
