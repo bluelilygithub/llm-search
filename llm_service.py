@@ -67,6 +67,8 @@ class LLMService:
         """Get response from specified LLM model. Returns (response_text, tokens, estimated_cost)"""
         # Map legacy Gemini model names to current names
         GEMINI_MODEL_MAP = {
+            'gemini-pro': 'gemini-1.5-pro',
+            'gemini-flash': 'gemini-1.5-flash',
             'gemini-1.5-pro-002': 'gemini-1.5-pro',
             'gemini-1.5-flash-latest': 'gemini-1.5-flash',
             'models/gemini-pro': 'gemini-1.5-pro',
