@@ -3287,12 +3287,14 @@ KnowledgeBaseApp.prototype.openSettingsPanel = function() {
 
 // Make openSettingsPanel available globally for onclick handlers
 window.openSettingsPanel = function() {
+    console.log('✅ window.openSettingsPanel called - function is loaded!');
     if (window.app) {
         window.app.openSettingsPanel();
     } else {
-        console.error('App not initialized yet');
+        console.error('❌ App not initialized yet - window.app is undefined');
     }
 };
+console.log('✅ Global window.openSettingsPanel registered');
 
 // Function to load dynamic models and API key status
 KnowledgeBaseApp.prototype.loadDynamicModels = async function() {
@@ -4393,7 +4395,7 @@ async function loadCurrentModelsList() {
                               <button class="btn-small btn-secondary" onclick="testModelInManagement('${model.name}')" title="Test Access">
                                   <i class="fas fa-flask"></i>
                               </button>
-                              ${model.isDynamic ? '<button class="btn-small btn-secondary btn-edit-model" data-model-name="'+model.name+'" data-model-provider="'+model.provider+'" data-model-apikey="'+(model.api_key||'')+'" data-model-description="'+(model.description||'')+'" title="Edit Model"><i class="fas fa-edit"></i></button>' : ''}
+                              ${model.isDynamic ? '<button class="btn-small btn-secondary btn-edit-model" data-model-name="'+model.name+'" data-model-value="'+(model.model_value||model.name)+'" data-model-provider="'+model.provider+'" data-model-apikey="'+(model.api_key||'')+'" data-model-description="'+(model.description||'')+'" title="Edit Model"><i class="fas fa-edit"></i></button>' : ''}
                               ${model.isDynamic ? '<button class="btn-small btn-danger" onclick="deleteModel(\''+model.name+'\')" title="Remove Model"><i class="fas fa-trash"></i></button>' : ''}
                           </div>
                        </div>
@@ -4406,10 +4408,11 @@ async function loadCurrentModelsList() {
         container.querySelectorAll('.btn-edit-model').forEach(btn => {
             btn.addEventListener('click', function() {
                 const modelName = this.dataset.modelName;
+                const modelValue = this.dataset.modelValue;
                 const provider = this.dataset.modelProvider;
                 const apiKey = this.dataset.modelApikey;
                 const description = this.dataset.modelDescription;
-                editModel(modelName, provider, apiKey, description);
+                editModel(modelName, provider, apiKey, description, modelValue);
             });
         });
         
@@ -4428,18 +4431,25 @@ async function loadCurrentModelsList() {
 
 window.addModel = async function() {
     const nameInput = document.getElementById('model-name');
+    const valueInput = document.getElementById('model-value');
     const providerSelect = document.getElementById('model-provider');
     const apiKeySelect = document.getElementById('model-api-key');
     const descriptionInput = document.getElementById('model-description');
     const addBtn = document.getElementById('add-model-btn');
     
     const name = nameInput.value.trim();
+    const modelValue = valueInput.value.trim();
     const provider = providerSelect.value;
     const apiKey = apiKeySelect.value.trim();
     const description = descriptionInput.value.trim();
     
     if (!name || !provider) {
-        alert('Please enter a model name and select a provider');
+        alert('Please enter a display name and select a provider');
+        return;
+    }
+    
+    if (!modelValue) {
+        alert('Please enter the Model Identifier (the actual API model name)');
         return;
     }
     
@@ -4449,6 +4459,7 @@ window.addModel = async function() {
         
         const payload = {
             name: name,
+            model_value: modelValue,
             provider: provider,
             description: description || `${provider} model`
         };
@@ -4474,6 +4485,7 @@ window.addModel = async function() {
         if (response.ok && result.success) {
             // Clear form
             nameInput.value = '';
+            valueInput.value = '';
             providerSelect.value = '';
             apiKeySelect.value = '';
             descriptionInput.value = '';
@@ -4589,25 +4601,27 @@ window.testModelInManagement = async function(modelName, showAlert = true) {
     }
 };
 
-window.editModel = function(modelName, provider, apiKey, description) {
-    console.log('editModel called:', modelName, provider, apiKey, description);
+window.editModel = function(modelName, provider, apiKey, description, modelValue) {
+    console.log('editModel called:', modelName, provider, apiKey, description, modelValue);
     
     // Populate the form with existing values
     const nameInput = document.getElementById('model-name');
+    const valueInput = document.getElementById('model-value');
     const providerSelect = document.getElementById('model-provider');
     const apiKeySelect = document.getElementById('model-api-key');
     const descInput = document.getElementById('model-description');
     const addBtn = document.getElementById('add-model-btn');
     
-    console.log('Form elements:', { nameInput, providerSelect, apiKeySelect, descInput, addBtn });
+    console.log('Form elements:', { nameInput, valueInput, providerSelect, apiKeySelect, descInput, addBtn });
     
-    if (!nameInput || !providerSelect || !addBtn) {
+    if (!nameInput || !valueInput || !providerSelect || !addBtn) {
         console.error('Form elements not found!');
         alert('Error: Form elements not found. Make sure the Model Management modal is open.');
         return;
     }
     
     nameInput.value = modelName;
+    valueInput.value = modelValue || modelName;  // Fallback to modelName if modelValue not provided
     providerSelect.value = provider;
     if (apiKeySelect) apiKeySelect.value = apiKey || '';
     if (descInput) descInput.value = description || '';
@@ -4627,18 +4641,25 @@ window.editModel = function(modelName, provider, apiKey, description) {
 
 window.updateModel = async function(originalName) {
     const nameInput = document.getElementById('model-name');
+    const valueInput = document.getElementById('model-value');
     const providerSelect = document.getElementById('model-provider');
     const apiKeySelect = document.getElementById('model-api-key');
     const descInput = document.getElementById('model-description');
     const addBtn = document.getElementById('add-model-btn');
     
     const newName = nameInput.value.trim();
+    const modelValue = valueInput.value.trim();
     const provider = providerSelect.value;
     const apiKey = apiKeySelect.value || null;
     const description = descInput.value.trim() || null;
     
     if (!newName || !provider) {
-        alert('Please fill in model name and provider');
+        alert('Please fill in display name and provider');
+        return;
+    }
+    
+    if (!modelValue) {
+        alert('Please fill in the Model Identifier');
         return;
     }
     
@@ -4659,6 +4680,7 @@ window.updateModel = async function(originalName) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 name: newName,
+                model_value: modelValue,
                 provider: provider,
                 api_key: apiKey,
                 description: description
@@ -4670,6 +4692,7 @@ window.updateModel = async function(originalName) {
         if (response.ok && result.success) {
             // Reset form
             nameInput.value = '';
+            valueInput.value = '';
             providerSelect.value = '';
             apiKeySelect.value = '';
             descInput.value = '';

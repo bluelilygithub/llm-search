@@ -24,8 +24,14 @@
                 <h3>Add New Model</h3>
                 <div class="add-model-form-grid">
                     <div class="form-row">
-                        <label for="model-name">Model Name:</label>
-                        <input type="text" id="model-name" placeholder="e.g., gpt-4-vision-preview" />
+                        <label for="model-name">Display Name:</label>
+                        <input type="text" id="model-name" placeholder="e.g., Gemini Pro 1.5" />
+                        <small style="grid-column: 2; color: #666; font-size: 12px; margin-top: -10px;">Human-readable label shown in dropdowns</small>
+                    </div>
+                    <div class="form-row">
+                        <label for="model-value">Model Identifier:</label>
+                        <input type="text" id="model-value" placeholder="e.g., gemini-1.5-pro" />
+                        <small style="grid-column: 2; color: #666; font-size: 12px; margin-top: -10px;">Actual API model name (required)</small>
                     </div>
                     <div class="form-row">
                         <label for="model-provider">Provider:</label>

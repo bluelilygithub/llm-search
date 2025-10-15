@@ -1242,12 +1242,18 @@ Please use this context information appropriately when responding to user questi
         # Log prompt details
         app.logger.debug(f"LLM request with {len(messages)} messages for model {model}")
         
+        # Resolve model identifier for API call
+        # The 'model' parameter is the display name from the UI
+        # We need to get the actual API model identifier (model_value)
+        model_identifier = get_model_identifier(model)
+        app.logger.info(f"Resolved model '{model}' to identifier '{model_identifier}'")
+        
         # Check if user is authenticated (not free tier)
         is_authenticated = getattr(request, 'access_type', None) != 'free_tier'
         
-        app.logger.info(f"Calling LLM service for model: {model}, authenticated: {is_authenticated}")
-        # Get AI response and usage info
-        ai_response, tokens, estimated_cost = llm_service.get_response(model, messages)
+        app.logger.info(f"Calling LLM service for model: {model} (API id: {model_identifier}), authenticated: {is_authenticated}")
+        # Get AI response and usage info - use model_identifier for API call
+        ai_response, tokens, estimated_cost = llm_service.get_response(model_identifier, messages)
         app.logger.info(f"Got response from {model}: {tokens} tokens, cost: ${estimated_cost:.4f}")
         
         # Log usage
@@ -3143,38 +3149,68 @@ def get_available_models():
         app.logger.error(f"Error getting available models: {str(e)}")
         return jsonify({'error': 'Failed to get available models'}), 500
 
+def get_model_identifier(model_name):
+    """
+    Get the actual API model identifier from the display name.
+    Falls back to model_name if model_value is not found (backward compatibility).
+    """
+    try:
+        models_file = os.path.join(app.instance_path, 'available_models.json')
+        if os.path.exists(models_file):
+            import json
+            with open(models_file, 'r') as f:
+                models = json.load(f)
+            
+            # Find the model by name
+            for model in models:
+                if model.get('name') == model_name:
+                    # Return model_value if it exists, otherwise fallback to name
+                    return model.get('model_value', model_name)
+            
+            # Model not found in list, return the original name
+            app.logger.warning(f"Model '{model_name}' not found in available models, using name as identifier")
+            return model_name
+        else:
+            # No models file, fallback to name
+            return model_name
+    except Exception as e:
+        app.logger.error(f"Error resolving model identifier for '{model_name}': {e}")
+        # On error, fallback to using the name directly
+        return model_name
+
 def create_starter_models():
     """Create a set of starter models for new installations"""
     starter_models = [
         # OpenAI Models
-        {'name': 'gpt-3.5-turbo', 'provider': 'OpenAI', 'api_key': 'OPENAI_API_KEY', 'description': 'Fast and efficient for most tasks'},
-        {'name': 'gpt-4', 'provider': 'OpenAI', 'api_key': 'OPENAI_API_KEY', 'description': 'Most capable GPT model'},
-        {'name': 'gpt-4-turbo', 'provider': 'OpenAI', 'api_key': 'OPENAI_API_KEY', 'description': 'Faster GPT-4 with longer context'},
-        {'name': 'gpt-4o', 'provider': 'OpenAI', 'api_key': 'OPENAI_API_KEY', 'description': 'Latest GPT-4 optimized model'},
-        {'name': 'gpt-4o-mini', 'provider': 'OpenAI', 'api_key': 'OPENAI_API_KEY', 'description': 'Compact version of GPT-4o'},
-        {'name': 'o1-preview', 'provider': 'OpenAI', 'api_key': 'OPENAI_API_KEY', 'description': 'Advanced reasoning model'},
-        {'name': 'o1-mini', 'provider': 'OpenAI', 'api_key': 'OPENAI_API_KEY', 'description': 'Compact reasoning model'},
+        {'name': 'GPT-3.5 Turbo', 'model_value': 'gpt-3.5-turbo', 'provider': 'OpenAI', 'api_key': 'OPENAI_API_KEY', 'description': 'Fast and efficient for most tasks'},
+        {'name': 'GPT-4', 'model_value': 'gpt-4', 'provider': 'OpenAI', 'api_key': 'OPENAI_API_KEY', 'description': 'Most capable GPT model'},
+        {'name': 'GPT-4 Turbo', 'model_value': 'gpt-4-turbo', 'provider': 'OpenAI', 'api_key': 'OPENAI_API_KEY', 'description': 'Faster GPT-4 with longer context'},
+        {'name': 'GPT-4o', 'model_value': 'gpt-4o', 'provider': 'OpenAI', 'api_key': 'OPENAI_API_KEY', 'description': 'Latest GPT-4 optimized model'},
+        {'name': 'GPT-4o Mini', 'model_value': 'gpt-4o-mini', 'provider': 'OpenAI', 'api_key': 'OPENAI_API_KEY', 'description': 'Compact version of GPT-4o'},
+        {'name': 'O1 Preview', 'model_value': 'o1-preview', 'provider': 'OpenAI', 'api_key': 'OPENAI_API_KEY', 'description': 'Advanced reasoning model'},
+        {'name': 'O1 Mini', 'model_value': 'o1-mini', 'provider': 'OpenAI', 'api_key': 'OPENAI_API_KEY', 'description': 'Compact reasoning model'},
         
         # Anthropic Models
-        {'name': 'claude-3.5-sonnet', 'provider': 'Anthropic', 'api_key': 'CLAUDE_API_KEY', 'description': 'Latest Claude model'},
-        {'name': 'claude-3-opus', 'provider': 'Anthropic', 'api_key': 'CLAUDE_API_KEY', 'description': 'Most powerful Claude model'},
-        {'name': 'claude-3-sonnet', 'provider': 'Anthropic', 'api_key': 'CLAUDE_API_KEY', 'description': 'Balanced Claude model'},
-        {'name': 'claude-3-haiku', 'provider': 'Anthropic', 'api_key': 'CLAUDE_API_KEY', 'description': 'Fastest Claude model'},
+        {'name': 'Claude 3.5 Sonnet', 'model_value': 'claude-3-5-sonnet-20241022', 'provider': 'Anthropic', 'api_key': 'CLAUDE_API_KEY', 'description': 'Latest Claude model'},
+        {'name': 'Claude 3 Opus', 'model_value': 'claude-3-opus-20240229', 'provider': 'Anthropic', 'api_key': 'CLAUDE_API_KEY', 'description': 'Most powerful Claude model'},
+        {'name': 'Claude 3 Sonnet', 'model_value': 'claude-3-sonnet-20240229', 'provider': 'Anthropic', 'api_key': 'CLAUDE_API_KEY', 'description': 'Balanced Claude model'},
+        {'name': 'Claude 3 Haiku', 'model_value': 'claude-3-haiku-20240307', 'provider': 'Anthropic', 'api_key': 'CLAUDE_API_KEY', 'description': 'Fastest Claude model'},
         
         # Google Models
-        {'name': 'gemini-pro', 'provider': 'Google', 'api_key': 'GEMINI_API_KEY', 'description': 'Google\'s advanced AI model'},
-        {'name': 'gemini-flash', 'provider': 'Google', 'api_key': 'GEMINI_API_KEY', 'description': 'Fast Gemini model'},
+        {'name': 'Gemini Pro', 'model_value': 'gemini-pro', 'provider': 'Google', 'api_key': 'GEMINI_API_KEY', 'description': 'Google\'s advanced AI model'},
+        {'name': 'Gemini 1.5 Pro', 'model_value': 'gemini-1.5-pro', 'provider': 'Google', 'api_key': 'GEMINI_API_KEY', 'description': 'Latest Gemini Pro with long context'},
+        {'name': 'Gemini 1.5 Flash', 'model_value': 'gemini-1.5-flash', 'provider': 'Google', 'api_key': 'GEMINI_API_KEY', 'description': 'Fast Gemini model'},
         
         # Hugging Face Models
-        {'name': 'llama2-70b', 'provider': 'Hugging Face', 'api_key': 'HUGGING_FACE_API_KEY', 'description': 'Large language model'},
-        {'name': 'mixtral-8x7b', 'provider': 'Hugging Face', 'api_key': 'HUGGING_FACE_API_KEY', 'description': 'Mixture of experts model'},
-        {'name': 'codellama-34b', 'provider': 'Hugging Face', 'api_key': 'HUGGING_FACE_API_KEY', 'description': 'Code generation model'},
+        {'name': 'Llama 2 70B', 'model_value': 'llama2-70b', 'provider': 'Hugging Face', 'api_key': 'HUGGING_FACE_API_KEY', 'description': 'Large language model'},
+        {'name': 'Mixtral 8x7B', 'model_value': 'mixtral-8x7b', 'provider': 'Hugging Face', 'api_key': 'HUGGING_FACE_API_KEY', 'description': 'Mixture of experts model'},
+        {'name': 'CodeLlama 34B', 'model_value': 'codellama-34b', 'provider': 'Hugging Face', 'api_key': 'HUGGING_FACE_API_KEY', 'description': 'Code generation model'},
         
         # Stability AI Models
-        {'name': 'stable-image-ultra', 'provider': 'Stability AI', 'api_key': 'STABILITY_API_KEY', 'description': 'Ultra-high quality image generation'},
-        {'name': 'stable-image-core', 'provider': 'Stability AI', 'api_key': 'STABILITY_API_KEY', 'description': 'Core image generation model'},
-        {'name': 'stable-image-sd3', 'provider': 'Stability AI', 'api_key': 'STABILITY_API_KEY', 'description': 'Stable Diffusion 3 model'},
-        {'name': 'stable-audio-2', 'provider': 'Stability AI', 'api_key': 'STABILITY_API_KEY', 'description': 'Audio generation model'}
+        {'name': 'Stable Image Ultra', 'model_value': 'stable-image-ultra', 'provider': 'Stability AI', 'api_key': 'STABILITY_API_KEY', 'description': 'Ultra-high quality image generation'},
+        {'name': 'Stable Image Core', 'model_value': 'stable-image-core', 'provider': 'Stability AI', 'api_key': 'STABILITY_API_KEY', 'description': 'Core image generation model'},
+        {'name': 'Stable Diffusion 3', 'model_value': 'stable-image-sd3', 'provider': 'Stability AI', 'api_key': 'STABILITY_API_KEY', 'description': 'Stable Diffusion 3 model'},
+        {'name': 'Stable Audio 2', 'model_value': 'stable-audio-2', 'provider': 'Stability AI', 'api_key': 'STABILITY_API_KEY', 'description': 'Audio generation model'}
     ]
     
     # Save starter models to file
@@ -3198,12 +3234,16 @@ def add_model():
             return jsonify({'error': 'No data provided'}), 400
         
         name = data.get('name', '').strip()
+        model_value = data.get('model_value', '').strip()
         provider = data.get('provider', '').strip()
         description = data.get('description', '').strip()
         api_key = data.get('api_key', '').strip()  # Custom API key name
         
         if not name or not provider:
             return jsonify({'error': 'Model name and provider are required'}), 400
+        
+        if not model_value:
+            return jsonify({'error': 'Model identifier is required'}), 400
         
         # Load existing models
         models_file = os.path.join(app.instance_path, 'available_models.json')
@@ -3221,6 +3261,7 @@ def add_model():
         # Add new model
         new_model = {
             'name': name,
+            'model_value': model_value,
             'provider': provider,
             'description': description or f'{provider} model'
         }
@@ -3237,7 +3278,7 @@ def add_model():
         with open(models_file, 'w') as f:
             json.dump(models, f, indent=2)
         
-        app.logger.info(f"Added model: {name} ({provider}) with API key: {api_key or 'auto-detected'}")
+        app.logger.info(f"Added model: {name} (identifier: {model_value}, provider: {provider}) with API key: {api_key or 'auto-detected'}")
         return jsonify({'success': True, 'model': new_model})
     
     except Exception as e:
