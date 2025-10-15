@@ -697,28 +697,27 @@ body {
 
 .content-area {
     flex: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
+    overflow: hidden;
     position: relative;
 }
 
-/* Custom scrollbar for content area */
-.content-area::-webkit-scrollbar {
+/* Custom scrollbar for chat messages container */
+.chat-messages-container::-webkit-scrollbar {
     width: 8px;
 }
 
-.content-area::-webkit-scrollbar-track {
+.chat-messages-container::-webkit-scrollbar-track {
     background: var(--gray-100);
     border-radius: 4px;
 }
 
-.content-area::-webkit-scrollbar-thumb {
+.chat-messages-container::-webkit-scrollbar-thumb {
     background: var(--gray-300);
     border-radius: 4px;
     transition: background var(--transition-fast);
 }
 
-.content-area::-webkit-scrollbar-thumb:hover {
+.chat-messages-container::-webkit-scrollbar-thumb:hover {
     background: var(--gray-400);
 }
 
@@ -901,7 +900,8 @@ body {
 /* Chat Messages Container */
 .chat-messages-container {
     flex: 1;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
     display: flex;
     flex-direction: column;
     position: relative;
@@ -988,7 +988,6 @@ body {
 
 .chat-messages {
     flex: 1;
-    overflow-y: auto;
     padding: var(--spacing-xl);
 }
 

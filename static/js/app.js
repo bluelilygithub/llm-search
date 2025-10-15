@@ -2666,21 +2666,21 @@ class KnowledgeBaseApp {
 
     scrollToBottom() {
         // Try to find the appropriate container
-        let container = document.getElementById('chat-messages');
+        let container = document.querySelector('.chat-messages-container');
         
-        // If we're in chat view but using main-content, the chat-messages div should exist now
+        // If we're in chat view but using main-content, the chat-messages-container should exist now
         if (!container && this.currentView === 'chat') {
+            container = document.querySelector('.chat-messages-container');
+        }
+        
+        // If still no container, fall back to chat-messages
+        if (!container) {
             container = document.getElementById('chat-messages');
         }
         
-        // If still no container, fall back to content-area
+        // Final fallback to content-area
         if (!container) {
             container = document.getElementById('content-area');
-        }
-        
-        // Final fallback to main-content
-        if (!container) {
-            container = document.getElementById('main-content');
         }
         
         if (container) {
