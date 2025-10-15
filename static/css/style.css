@@ -4911,17 +4911,19 @@ mark {
 
 /* Attachment display styles */
 .attachment-image {
-    margin-bottom: var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
 }
 
 .attachment-image img {
-    border: 1px solid var(--gray-200);
     box-shadow: var(--shadow-sm);
-    transition: transform var(--transition-fast);
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .attachment-image img:hover {
-    transform: scale(1.02);
+    transform: scale(1.05);
     box-shadow: var(--shadow-md);
 }
 

@@ -1824,24 +1824,23 @@ class KnowledgeBaseApp {
         let contentHtml = '';
         
         if (isImage) {
-            // Display image inline
+            // Display image as small thumbnail
             contentHtml = `
                 <div class="message-content">
                     <div class="attachment-image">
                         <img src="${fileUrl}" alt="${filename}" 
-                             style="max-width: 100%; max-height: 400px; border-radius: 8px; cursor: pointer;"
+                             style="width: 120px; height: 120px; object-fit: cover; border-radius: 8px; cursor: pointer; border: 1px solid var(--gray-200);"
                              onclick="window.open('${fileUrl}', '_blank')"
                              onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                        <div style="display: none; padding: 10px; background: #f0f0f0; border-radius: 8px; text-align: center;">
+                        <div style="display: none; width: 120px; height: 120px; background: #f0f0f0; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px solid var(--gray-200);">
                             <i class="fas fa-image" style="font-size: 24px; color: #666; margin-bottom: 8px;"></i>
-                            <p style="margin: 0; color: #666;">Image failed to load</p>
-                            <a href="${fileUrl}" target="_blank" style="color: #3b82f6; text-decoration: none;">Click to view</a>
+                            <span style="color: #666; font-size: 12px;">Failed to load</span>
                         </div>
                     </div>
                     <div class="attachment-info">
                         <span class="attachment-name">${filename}</span>
                         <a href="${fileUrl}" target="_blank" class="attachment-link">
-                            <i class="fas fa-external-link-alt"></i> Open in new tab
+                            <i class="fas fa-external-link-alt"></i> View full size
                         </a>
                     </div>
                     <div class="message-time">${this.formatTime(attachment.created_at)}</div>
@@ -1869,7 +1868,11 @@ class KnowledgeBaseApp {
         
         messageDiv.innerHTML = contentHtml;
         container.appendChild(messageDiv);
-        this.scrollToBottom();
+        
+        // Scroll to bottom with a small delay to ensure content is rendered
+        setTimeout(() => {
+            this.scrollToBottom();
+        }, 100);
     }
 
     isImageFile(filename) {
@@ -2676,7 +2679,11 @@ class KnowledgeBaseApp {
         }
         
         if (container) {
-        container.scrollTop = container.scrollHeight;
+            // Use smooth scrolling for better UX
+            container.scrollTo({
+                top: container.scrollHeight,
+                behavior: 'smooth'
+            });
         }
     }
 
