@@ -2283,6 +2283,113 @@ class KnowledgeBaseApp {
         }
     }
 
+    // Image paste functionality
+    setupImagePaste() {
+        const messageInput = document.getElementById('message-input');
+        if (!messageInput) {
+            console.warn('Message input not found for image paste setup');
+            return;
+        }
+
+        // Add paste event listener
+        messageInput.addEventListener('paste', (event) => {
+            this.handleImagePaste(event);
+        });
+
+        console.log('✅ Image paste functionality initialized');
+    }
+
+    async handleImagePaste(event) {
+        const clipboardItems = event.clipboardData?.items;
+        if (!clipboardItems) return;
+
+        let imageFound = false;
+        
+        for (let i = 0; i < clipboardItems.length; i++) {
+            const item = clipboardItems[i];
+            
+            // Check if the pasted item is an image
+            if (item.type.indexOf('image') === 0) {
+                event.preventDefault(); // Prevent default paste behavior
+                imageFound = true;
+                
+                const file = item.getAsFile();
+                if (file) {
+                    await this.processPastedImage(file);
+                }
+                break;
+            }
+        }
+    }
+
+    async processPastedImage(file) {
+        const messageContainer = document.querySelector('.message-input-container');
+        
+        try {
+            // Add visual feedback
+            if (messageContainer) {
+                messageContainer.classList.add('paste-processing');
+            }
+            
+            // Show uploading indicator
+            this.showMessage('📷 Processing pasted image...', 'info');
+            
+            // Validate file size (max 10MB for images)
+            const maxSize = 10 * 1024 * 1024; // 10MB
+            if (file.size > maxSize) {
+                this.showError('Image too large. Maximum size: 10MB');
+                return;
+            }
+
+            // Validate file type
+            if (!file.type.startsWith('image/')) {
+                this.showError('Please paste a valid image file');
+                return;
+            }
+
+            // Check if we have an active conversation
+            if (!this.currentConversationId) {
+                this.showError('Please start or select a conversation before pasting images');
+                return;
+            }
+
+            // Create FormData for upload
+            const formData = new FormData();
+            formData.append('files', file);
+            
+            // Upload the image
+            const response = await fetch(`/conversations/${this.currentConversationId}/attachments`, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to upload image');
+            }
+
+            const data = await response.json();
+            
+            if (data.attachments) {
+                // Add the image to chat
+                data.attachments.forEach(att => {
+                    this.addAttachmentToChat(att);
+                });
+                
+                // Show success message
+                this.showMessage(`✅ Image "${file.name}" uploaded successfully`, 'success');
+            }
+
+        } catch (error) {
+            console.error('Image paste error:', error);
+            this.showError('Failed to process pasted image: ' + error.message);
+        } finally {
+            // Remove visual feedback
+            if (messageContainer) {
+                messageContainer.classList.remove('paste-processing');
+            }
+        }
+    }
+
     handleInputChange() {
         this.autoResizeTextarea();
         // No type-ahead search suggestions
@@ -5074,6 +5181,9 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('📋 Available templates:', Object.keys(TEMPLATE_DATA).length);
         console.log('📋 Template IDs:', Object.keys(TEMPLATE_DATA));
     });
+    
+    // Initialize image paste functionality
+    window.app.setupImagePaste();
     
     // Only attach event handlers if elements exist
     const newChatBtn = document.getElementById('new-chat-btn');

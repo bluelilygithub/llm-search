@@ -4838,6 +4838,16 @@ mark {
     font-weight: 500;
 }
 
+/* Image paste feedback */
+.message-input-container.paste-processing {
+    border: 2px dashed var(--primary-blue);
+    background-color: var(--primary-blue-light);
+}
+
+.message-input-container.paste-processing textarea {
+    background-color: transparent;
+}
+
 .template-card {
     display: flex;
     flex-direction: column;
