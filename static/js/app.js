@@ -6576,10 +6576,10 @@ KnowledgeBaseApp.prototype.showConversationsView = function() {
     const existingMainViews = contentArea.querySelectorAll('.main-view');
     existingMainViews.forEach(view => view.remove());
     
-    // Hide the chat messages area instead of removing it (so it can be restored later)
-    const chatMessagesContainer = contentArea.querySelector('.chat-messages-container');
-    if (chatMessagesContainer) {
-        chatMessagesContainer.style.display = 'none';
+    // Hide the dynamic-content wrapper (contains chat and context panel)
+    const dynamicContent = document.getElementById('dynamic-content');
+    if (dynamicContent) {
+        dynamicContent.style.display = 'none';
     }
     
     // Create the conversations view content
@@ -6642,11 +6642,11 @@ KnowledgeBaseApp.prototype.showProjectsView = function() {
     console.log('🔵 Removing existing views:', existingMainViews.length);
     existingMainViews.forEach(view => view.remove());
     
-    // Hide the chat messages area instead of removing it (so it can be restored later)
-    const chatMessagesContainer = contentArea.querySelector('.chat-messages-container');
-    if (chatMessagesContainer) {
-        console.log('🔵 Hiding chat container');
-        chatMessagesContainer.style.display = 'none';
+    // Hide the dynamic-content wrapper (contains chat and context panel)
+    const dynamicContent = document.getElementById('dynamic-content');
+    if (dynamicContent) {
+        console.log('🔵 Hiding dynamic-content wrapper');
+        dynamicContent.style.display = 'none';
     }
     
     // Create the projects view content
@@ -6685,7 +6685,13 @@ KnowledgeBaseApp.prototype.showProjectsView = function() {
     // Insert into content-area to maintain proper layout
     console.log('🔵 Appending projects content to content-area');
     contentArea.appendChild(projectsContent);
-    console.log('🔵 Projects view HTML appended, calling loadProjectsGrid');
+    console.log('🔵 Projects view HTML appended');
+    console.log('🔵 Projects content element:', projectsContent);
+    console.log('🔵 Projects content display:', window.getComputedStyle(projectsContent).display);
+    console.log('🔵 Projects content visibility:', window.getComputedStyle(projectsContent).visibility);
+    console.log('🔵 Projects content offsetHeight:', projectsContent.offsetHeight);
+    console.log('🔵 Content-area children count:', contentArea.children.length);
+    console.log('🔵 Calling loadProjectsGrid');
     
     this.loadProjectsGrid();
 };
@@ -6706,10 +6712,10 @@ KnowledgeBaseApp.prototype.showProjectConversationsView = function(project) {
     const existingMainViews = contentArea.querySelectorAll('.main-view');
     existingMainViews.forEach(view => view.remove());
     
-    // Hide the chat messages area instead of removing it (so it can be restored later)
-    const chatMessagesContainer = contentArea.querySelector('.chat-messages-container');
-    if (chatMessagesContainer) {
-        chatMessagesContainer.style.display = 'none';
+    // Hide the dynamic-content wrapper (contains chat and context panel)
+    const dynamicContent = document.getElementById('dynamic-content');
+    if (dynamicContent) {
+        dynamicContent.style.display = 'none';
     }
     
     // Create the project conversations view content
@@ -7032,6 +7038,13 @@ KnowledgeBaseApp.prototype.showChatView = function() {
     const existingViewContent = contentArea.querySelector('.main-view');
     if (existingViewContent) {
         existingViewContent.remove();
+    }
+    
+    // Restore the dynamic-content wrapper
+    const dynamicContent = document.getElementById('dynamic-content');
+    if (dynamicContent) {
+        console.log('showChatView: Restoring dynamic-content wrapper');
+        dynamicContent.style.display = '';
     }
     
     // Find the existing chat-messages-container instead of creating a new one
