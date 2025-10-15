@@ -1832,9 +1832,9 @@ class KnowledgeBaseApp {
                              style="width: 120px; height: 120px; object-fit: cover; border-radius: 8px; cursor: pointer; border: 1px solid var(--gray-200);"
                              onclick="window.open('${fileUrl}', '_blank')"
                              onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                        <div style="display: none; width: 120px; height: 120px; background: #f0f0f0; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px solid var(--gray-200);">
-                            <i class="fas fa-image" style="font-size: 24px; color: #666; margin-bottom: 8px;"></i>
-                            <span style="color: #666; font-size: 12px;">Failed to load</span>
+                        <div class="image-error-fallback" style="display: none;">
+                            <i class="fas fa-image"></i>
+                            <span>Failed to load</span>
                         </div>
                     </div>
                     <div class="attachment-info">

@@ -4954,6 +4954,29 @@ mark {
     box-shadow: var(--shadow-md);
 }
 
+.image-error-fallback {
+    width: 120px;
+    height: 120px;
+    background: #f0f0f0;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--gray-200);
+}
+
+.image-error-fallback i {
+    font-size: 24px;
+    color: #666;
+    margin-bottom: 8px;
+}
+
+.image-error-fallback span {
+    color: #666;
+    font-size: 12px;
+}
+
 .attachment-info {
     display: flex;
     justify-content: space-between;
