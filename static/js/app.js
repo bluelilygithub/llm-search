@@ -2673,7 +2673,12 @@ class KnowledgeBaseApp {
             container = document.getElementById('chat-messages');
         }
         
-        // If still no container, fall back to main-content
+        // If still no container, fall back to content-area
+        if (!container) {
+            container = document.getElementById('content-area');
+        }
+        
+        // Final fallback to main-content
         if (!container) {
             container = document.getElementById('main-content');
         }
