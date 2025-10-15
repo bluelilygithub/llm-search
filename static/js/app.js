@@ -6719,10 +6719,10 @@ KnowledgeBaseApp.prototype.showProjectConversationsView = function(project) {
     const existingMainViews = container.querySelectorAll('.main-view');
     existingMainViews.forEach(view => view.remove());
     
-    // Clear only the chat messages area, not the entire container
+    // Hide the chat messages area instead of removing it (so it can be restored later)
     const chatMessagesContainer = container.querySelector('.chat-messages-container');
     if (chatMessagesContainer) {
-        chatMessagesContainer.remove();
+        chatMessagesContainer.style.display = 'none';
     }
     
     // Create the project conversations view content
@@ -7052,6 +7052,9 @@ KnowledgeBaseApp.prototype.showChatView = function() {
         return;
     } else {
         console.log('showChatView: Using existing chat container from template');
+        
+        // Restore the chat container if it was hidden
+        chatMessagesContainer.style.display = '';
         
         // Check if existing container has header, if not add it
         let existingHeader = chatMessagesContainer.querySelector('#chat-header');
