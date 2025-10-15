@@ -5185,6 +5185,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize image paste functionality
     window.app.setupImagePaste();
     
+    // Initialize keyboard shortcuts
+    window.app.setupKeyboardShortcuts();
+    
     // Only attach event handlers if elements exist
     const newChatBtn = document.getElementById('new-chat-btn');
     if (newChatBtn) {
