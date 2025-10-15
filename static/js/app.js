@@ -6667,13 +6667,12 @@ KnowledgeBaseApp.prototype.showProjectsView = function() {
                     New Project
                 </button>
             </div>
-            </div>
-            
-            <div id="projects-grid" class="projects-grid-view">
-                <div class="empty-state-large">
-                    <i class="fas fa-spinner fa-spin"></i>
-                    <h3>Loading projects...</h3>
-                </div>
+        </div>
+        
+        <div id="projects-grid" class="projects-grid-view">
+            <div class="empty-state-large">
+                <i class="fas fa-spinner fa-spin"></i>
+                <h3>Loading projects...</h3>
             </div>
         </div>
     `;
