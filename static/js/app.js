@@ -6975,6 +6975,10 @@ KnowledgeBaseApp.prototype.renderProjectsGrid = function(projects) {
     console.log('🟢 Setting container innerHTML with', projectCards.length, 'characters');
     container.innerHTML = projectCards;
     console.log('🟢 Projects grid rendered successfully');
+    console.log('🟢 Container after render:', container);
+    console.log('🟢 Container offsetHeight:', container.offsetHeight);
+    console.log('🟢 Container children:', container.children.length);
+    console.log('🟢 Content-area offsetHeight:', document.getElementById('content-area').offsetHeight);
 };
 
 // Open conversation from grid view
