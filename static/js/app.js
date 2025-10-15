@@ -1813,16 +1813,69 @@ class KnowledgeBaseApp {
         
         const messageDiv = document.createElement('div');
         messageDiv.className = 'message user new';
+        
         // Extract just the filename for the /uploads route
         const filename = attachment.filename;
-        messageDiv.innerHTML = `
-            <div class="message-content">
-                <a href="/uploads/${encodeURIComponent(filename)}" target="_blank">${filename}</a>
-                <div class="message-time">${this.formatTime(attachment.created_at)}</div>
-            </div>
-        `;
+        const fileUrl = `/uploads/${encodeURIComponent(filename)}`;
+        
+        // Check if it's an image file
+        const isImage = this.isImageFile(filename);
+        
+        let contentHtml = '';
+        
+        if (isImage) {
+            // Display image inline
+            contentHtml = `
+                <div class="message-content">
+                    <div class="attachment-image">
+                        <img src="${fileUrl}" alt="${filename}" 
+                             style="max-width: 100%; max-height: 400px; border-radius: 8px; cursor: pointer;"
+                             onclick="window.open('${fileUrl}', '_blank')"
+                             onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                        <div style="display: none; padding: 10px; background: #f0f0f0; border-radius: 8px; text-align: center;">
+                            <i class="fas fa-image" style="font-size: 24px; color: #666; margin-bottom: 8px;"></i>
+                            <p style="margin: 0; color: #666;">Image failed to load</p>
+                            <a href="${fileUrl}" target="_blank" style="color: #3b82f6; text-decoration: none;">Click to view</a>
+                        </div>
+                    </div>
+                    <div class="attachment-info">
+                        <span class="attachment-name">${filename}</span>
+                        <a href="${fileUrl}" target="_blank" class="attachment-link">
+                            <i class="fas fa-external-link-alt"></i> Open in new tab
+                        </a>
+                    </div>
+                    <div class="message-time">${this.formatTime(attachment.created_at)}</div>
+                </div>
+            `;
+        } else {
+            // Display as file attachment
+            contentHtml = `
+                <div class="message-content">
+                    <div class="attachment-file">
+                        <div class="attachment-icon">
+                            <i class="fas fa-file"></i>
+                        </div>
+                        <div class="attachment-details">
+                            <span class="attachment-name">${filename}</span>
+                            <a href="${fileUrl}" target="_blank" class="attachment-link">
+                                <i class="fas fa-download"></i> Download
+                            </a>
+                        </div>
+                    </div>
+                    <div class="message-time">${this.formatTime(attachment.created_at)}</div>
+                </div>
+            `;
+        }
+        
+        messageDiv.innerHTML = contentHtml;
         container.appendChild(messageDiv);
         this.scrollToBottom();
+    }
+
+    isImageFile(filename) {
+        const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg', '.tiff', '.ico'];
+        const extension = filename.toLowerCase().substring(filename.lastIndexOf('.'));
+        return imageExtensions.includes(extension);
     }
 
     // Voice input functionality (Web Speech API only)
