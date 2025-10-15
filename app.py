@@ -1247,7 +1247,7 @@ Please use this context information appropriately when responding to user questi
         
         app.logger.info(f"Calling LLM service for model: {model}, authenticated: {is_authenticated}")
         # Get AI response and usage info
-        ai_response, tokens, estimated_cost = llm_service.get_response(model, messages, is_authenticated=is_authenticated)
+        ai_response, tokens, estimated_cost = llm_service.get_response(model, messages)
         app.logger.info(f"Got response from {model}: {tokens} tokens, cost: ${estimated_cost:.4f}")
         
         # Log usage
