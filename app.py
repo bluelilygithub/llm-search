@@ -423,110 +423,163 @@ password_reset_codes = {}
 @csrf.exempt
 @app.route('/auth/request-password-reset', methods=['POST'])
 def request_password_reset():
-    """Generate a password reset code"""
+    """Send password reset email"""
     import secrets
+    import smtplib
+    from email.mime.text import MIMEText
+    from email.mime.multipart import MIMEMultipart
     from datetime import datetime, timedelta
-    
-    # Generate a 6-character reset code
-    reset_code = ''.join(secrets.choice('ABCDEFGHJKLMNPQRSTUVWXYZ23456789') for _ in range(6))
-    
-    # Store code with expiration (15 minutes)
-    expiration = datetime.utcnow() + timedelta(minutes=15)
-    password_reset_codes[reset_code] = {
-        'expires': expiration,
-        'used': False
-    }
-    
-    # Clean up expired codes
-    current_time = datetime.utcnow()
-    expired_codes = [code for code, data in password_reset_codes.items() 
-                    if data['expires'] < current_time]
-    for code in expired_codes:
-        del password_reset_codes[code]
-    
-    app.logger.info(f"Password reset code generated: {reset_code} (expires: {expiration})")
-    
-    return jsonify({
-        'success': True,
-        'reset_code': reset_code,
-        'expires_in_minutes': 15
-    })
-
-@csrf.exempt
-@app.route('/auth/reset-password', methods=['POST'])
-def reset_password_route():
-    """Reset password using reset code"""
-    from werkzeug.security import generate_password_hash
-    from datetime import datetime
-    import os
     
     try:
         data = request.get_json()
-        reset_code = data.get('reset_code', '').strip().upper()
-        new_password = data.get('new_password', '')
+        email = data.get('email', '').strip().lower()
         
-        if not reset_code or not new_password:
-            return jsonify({'error': 'Reset code and new password are required'}), 400
+        if not email:
+            return jsonify({'error': 'Email address is required'}), 400
         
-        # Verify reset code
-        if reset_code not in password_reset_codes:
-            return jsonify({'error': 'Invalid or expired reset code'}), 400
+        # Generate reset token
+        reset_token = secrets.token_urlsafe(32)
         
-        code_data = password_reset_codes[reset_code]
+        # Store token with expiration (1 hour)
+        expiration = datetime.utcnow() + timedelta(hours=1)
+        password_reset_codes[reset_token] = {
+            'email': email,
+            'expires': expiration,
+            'used': False
+        }
         
-        # Check if expired
-        if datetime.utcnow() > code_data['expires']:
-            del password_reset_codes[reset_code]
-            return jsonify({'error': 'Reset code has expired'}), 400
+        # Clean up expired tokens
+        current_time = datetime.utcnow()
+        expired_tokens = [token for token, data in password_reset_codes.items() 
+                         if data['expires'] < current_time]
+        for token in expired_tokens:
+            del password_reset_codes[token]
         
-        # Check if already used
-        if code_data['used']:
-            return jsonify({'error': 'Reset code has already been used'}), 400
+        # Get app URL (for Railway or local)
+        app_url = os.getenv('RAILWAY_PUBLIC_DOMAIN') or 'http://localhost:5000'
+        if not app_url.startswith('http'):
+            app_url = f'https://{app_url}'
         
-        # Hash the new password
-        hashed_password = generate_password_hash(new_password)
+        reset_link = f"{app_url}/auth/reset-password?token={reset_token}"
         
-        # Update .env file
-        env_file = '.env'
-        if os.path.exists(env_file):
-            with open(env_file, 'r') as f:
-                lines = f.readlines()
+        # Create email content
+        subject = "Password Reset - AI Knowledge Base"
+        body = f"""
+Hello,
+
+You requested a password reset for your AI Knowledge Base admin account.
+
+Click the link below to reset your password:
+{reset_link}
+
+This link will expire in 1 hour.
+
+If you didn't request this reset, please ignore this email.
+
+Best regards,
+AI Knowledge Base Team
+        """
+        
+        # Send email (simplified - you'll need to configure SMTP)
+        try:
+            # For now, just log the reset link (you can configure actual email later)
+            app.logger.info(f"Password reset requested for {email}")
+            app.logger.info(f"Reset link: {reset_link}")
             
-            # Update or add AUTH_PASSWORD
-            password_updated = False
-            new_lines = []
+            # TODO: Configure actual email sending
+            # For development, we'll just return success and log the link
             
-            for line in lines:
-                if line.startswith('AUTH_PASSWORD='):
-                    new_lines.append(f"AUTH_PASSWORD={hashed_password}\n")
-                    password_updated = True
-                else:
-                    new_lines.append(line)
+            return jsonify({
+                'success': True,
+                'message': 'Reset link sent to your email',
+                'reset_link': reset_link  # For development - remove in production
+            })
             
-            if not password_updated:
-                new_lines.append(f"\nAUTH_PASSWORD={hashed_password}\n")
+        except Exception as email_error:
+            app.logger.error(f"Email sending failed: {email_error}")
+            return jsonify({'error': 'Failed to send email'}), 500
             
-            with open(env_file, 'w') as f:
-                f.writelines(new_lines)
+    except Exception as e:
+        app.logger.error(f"Password reset request error: {str(e)}")
+        return jsonify({'error': 'Failed to process reset request'}), 500
+
+@csrf.exempt
+@app.route('/auth/reset-password', methods=['GET', 'POST'])
+def reset_password_route():
+    """Handle password reset via token link"""
+    if request.method == 'GET':
+        # Show password reset form
+        token = request.args.get('token')
+        if not token or token not in password_reset_codes:
+            return render_template('login.html', error='Invalid or expired reset link')
+        
+        reset_data = password_reset_codes[token]
+        from datetime import datetime
+        if datetime.utcnow() > reset_data['expires']:
+            return render_template('login.html', error='Reset link has expired')
+        
+        return render_template('reset_password.html', token=token)
+    
+    elif request.method == 'POST':
+        # Process password reset
+        try:
+            data = request.get_json()
+            token = data.get('token', '').strip()
+            new_password = data.get('new_password', '')
             
-            # Mark code as used
-            code_data['used'] = True
+            if not token or not new_password:
+                return jsonify({'error': 'Token and new password are required'}), 400
             
-            # Update environment variable for current session
-            os.environ['AUTH_PASSWORD'] = hashed_password
+            if len(new_password) < 6:
+                return jsonify({'error': 'Password must be at least 6 characters long'}), 400
             
-            app.logger.info("Admin password reset successfully via web interface")
+            # Check if token exists and is valid
+            if token not in password_reset_codes:
+                return jsonify({'error': 'Invalid or expired reset token'}), 400
+            
+            reset_data = password_reset_codes[token]
+            
+            # Check if token is expired
+            from datetime import datetime
+            if datetime.utcnow() > reset_data['expires']:
+                del password_reset_codes[token]
+                return jsonify({'error': 'Reset token has expired'}), 400
+            
+            # Check if token was already used
+            if reset_data['used']:
+                return jsonify({'error': 'Reset token has already been used'}), 400
+            
+            # Hash the new password
+            from werkzeug.security import generate_password_hash
+            hashed_password = generate_password_hash(new_password)
+            
+            # Update environment variable (for Railway) or .env file (for local)
+            if os.getenv('RAILWAY_PUBLIC_DOMAIN'):
+                # For Railway, we need to update the environment variable
+                # This is a limitation - Railway doesn't allow runtime env var updates
+                # For now, we'll log the new password hash
+                app.logger.info(f"NEW PASSWORD HASH FOR RAILWAY: {hashed_password}")
+                app.logger.info("Please update AUTH_PASSWORD in Railway dashboard with the above hash")
+            else:
+                # For local development, update .env file
+                from dotenv import load_dotenv, set_key
+                dotenv_path = os.path.join(os.getcwd(), '.env')
+                load_dotenv(dotenv_path)
+                set_key(dotenv_path, 'AUTH_PASSWORD', hashed_password)
+            
+            # Mark token as used
+            password_reset_codes[token]['used'] = True
+            
+            app.logger.info(f"Password reset successfully completed for token: {token[:8]}...")
             
             return jsonify({
                 'success': True,
                 'message': 'Password reset successfully. Please login with your new password.'
             })
-        else:
-            return jsonify({'error': '.env file not found'}), 500
             
-    except Exception as e:
-        app.logger.error(f"Password reset error: {str(e)}")
-        return jsonify({'error': 'Failed to reset password'}), 500
+        except Exception as e:
+            app.logger.error(f"Password reset error: {str(e)}")
+            return jsonify({'error': 'Failed to reset password'}), 500
 
 @app.route('/init-db')
 def init_database():

@@ -443,38 +443,36 @@
             
             <div class="modal-header">
                 <h2>🔐 Reset Admin Password</h2>
-                <p>Generate a temporary access code to reset your password</p>
+                <p>Enter your email to receive a password reset link</p>
             </div>
             
             <div id="resetRequestStep">
                 <p style="color: #4a5568; font-size: 14px; margin-bottom: 20px;">
-                    For security, you'll need server access to complete this reset. A verification code will be generated that you can use to set a new password.
+                    We'll send you a secure link to reset your password. Check your email after submitting.
                 </p>
                 
-                <button onclick="generateResetCode()" class="login-btn primary" id="generateCodeBtn">
-                    <i class="fas fa-key"></i>
-                    Generate Reset Code
+                <input type="email" class="form-input" id="resetEmailInput" placeholder="Enter your email address" style="margin-bottom: 16px;">
+                
+                <button onclick="requestPasswordReset()" class="login-btn primary" id="requestResetBtn">
+                    <i class="fas fa-envelope"></i>
+                    Send Reset Link
                 </button>
             </div>
             
             <div id="resetCodeStep" style="display: none;">
-                <div class="reset-code-display">
-                    <p style="margin-bottom: 10px; font-weight: 600; color: #975a16;">Your Reset Code:</p>
-                    <div class="reset-code" id="resetCodeDisplay">Loading...</div>
-                    <p class="code-hint">⏱️ Valid for 15 minutes</p>
-                    <p class="code-hint">📋 Click code to copy</p>
+                <div class="success-message">
+                    <i class="fas fa-check-circle"></i>
+                    <strong>Reset link sent!</strong><br>
+                    Check your email for a password reset link. It will be valid for 1 hour.
                 </div>
                 
-                <p style="color: #4a5568; font-size: 13px; margin-bottom: 16px;">
-                    Use this code to complete the password reset process.
+                <p style="color: #4a5568; font-size: 13px; margin: 20px 0;">
+                    Didn't receive the email? Check your spam folder or try again.
                 </p>
                 
-                <input type="text" class="form-input" id="resetCodeInput" placeholder="Enter reset code (e.g., XYNQHC)" style="margin-bottom: 8px;">
-                <input type="password" class="form-input" id="newPasswordInput" placeholder="Enter new password">
-                
-                <button onclick="resetPassword()" class="login-btn primary" id="resetPasswordBtn">
-                    <i class="fas fa-check-circle"></i>
-                    Reset Password
+                <button onclick="goBackToRequest()" class="login-btn secondary">
+                    <i class="fas fa-arrow-left"></i>
+                    Try Different Email
                 </button>
             </div>
             
@@ -587,98 +585,49 @@
             document.getElementById('forgotPasswordModal').classList.remove('active');
         }
         
-        async function generateResetCode() {
-            const generateBtn = document.getElementById('generateCodeBtn');
-            const errorMsg = document.getElementById('modalErrorMessage');
-            
-            try {
-                generateBtn.disabled = true;
-                generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
-                errorMsg.style.display = 'none';
-                
-                const response = await fetch('/auth/request-password-reset', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    document.getElementById('resetCodeDisplay').textContent = data.reset_code;
-                    document.getElementById('resetRequestStep').style.display = 'none';
-                    document.getElementById('resetCodeStep').style.display = 'block';
-                    
-                    // Make code copyable
-                    document.getElementById('resetCodeDisplay').onclick = function() {
-                        navigator.clipboard.writeText(data.reset_code);
-                        this.style.background = '#c6f6d5';
-                        setTimeout(() => {
-                            this.style.background = 'white';
-                        }, 1000);
-                    };
-                } else {
-                    errorMsg.textContent = data.error || 'Failed to generate reset code';
-                    errorMsg.style.display = 'block';
-                }
-            } catch (error) {
-                errorMsg.textContent = 'Network error. Please try again.';
-                errorMsg.style.display = 'block';
-            } finally {
-                generateBtn.disabled = false;
-                generateBtn.innerHTML = '<i class="fas fa-key"></i> Generate Reset Code';
-            }
+        function goBackToRequest() {
+            document.getElementById('resetRequestStep').style.display = 'block';
+            document.getElementById('resetCodeStep').style.display = 'none';
+            document.getElementById('resetEmailInput').value = '';
         }
         
-        async function resetPassword() {
-            const resetBtn = document.getElementById('resetPasswordBtn');
+        async function requestPasswordReset() {
+            const email = document.getElementById('resetEmailInput').value.trim();
+            const requestBtn = document.getElementById('requestResetBtn');
             const errorMsg = document.getElementById('modalErrorMessage');
-            const successMsg = document.getElementById('modalSuccessMessage');
-            const resetCode = document.getElementById('resetCodeInput').value.trim();
-            const newPassword = document.getElementById('newPasswordInput').value;
             
-            if (!resetCode || !newPassword) {
-                errorMsg.textContent = 'Please enter both the reset code and new password';
+            if (!email) {
+                errorMsg.textContent = 'Please enter your email address';
                 errorMsg.style.display = 'block';
                 return;
             }
             
             try {
-                resetBtn.disabled = true;
-                resetBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Resetting...';
+                requestBtn.disabled = true;
+                requestBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
                 errorMsg.style.display = 'none';
-                successMsg.style.display = 'none';
                 
-                const response = await fetch('/auth/reset-password', {
+                const response = await fetch('/auth/request-password-reset', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        reset_code: resetCode,
-                        new_password: newPassword
-                    })
+                    body: JSON.stringify({ email: email })
                 });
                 
                 const data = await response.json();
                 
                 if (data.success) {
-                    successMsg.textContent = '✅ Password reset successfully! You can now login with your new password.';
-                    successMsg.style.display = 'block';
-                    
-                    // Close modal and refresh after 2 seconds
-                    setTimeout(() => {
-                        closeForgotPasswordModal();
-                        document.getElementById('password').value = newPassword;
-                        document.getElementById('password').focus();
-                    }, 2000);
+                    document.getElementById('resetRequestStep').style.display = 'none';
+                    document.getElementById('resetCodeStep').style.display = 'block';
                 } else {
-                    errorMsg.textContent = data.error || 'Failed to reset password';
+                    errorMsg.textContent = data.error || 'Failed to send reset email';
                     errorMsg.style.display = 'block';
                 }
             } catch (error) {
                 errorMsg.textContent = 'Network error. Please try again.';
                 errorMsg.style.display = 'block';
             } finally {
-                resetBtn.disabled = false;
-                resetBtn.innerHTML = '<i class="fas fa-check-circle"></i> Reset Password';
+                requestBtn.disabled = false;
+                requestBtn.innerHTML = '<i class="fas fa-envelope"></i> Send Reset Link';
             }
         }
         
