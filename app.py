@@ -417,6 +417,117 @@ def login_override():
     else:
         return jsonify({'success': False, 'error': 'Invalid password'}), 401
 
+# Password Reset Storage (in-memory for simplicity)
+password_reset_codes = {}
+
+@csrf.exempt
+@app.route('/auth/request-password-reset', methods=['POST'])
+def request_password_reset():
+    """Generate a password reset code"""
+    import secrets
+    from datetime import datetime, timedelta
+    
+    # Generate a 6-character reset code
+    reset_code = ''.join(secrets.choice('ABCDEFGHJKLMNPQRSTUVWXYZ23456789') for _ in range(6))
+    
+    # Store code with expiration (15 minutes)
+    expiration = datetime.utcnow() + timedelta(minutes=15)
+    password_reset_codes[reset_code] = {
+        'expires': expiration,
+        'used': False
+    }
+    
+    # Clean up expired codes
+    current_time = datetime.utcnow()
+    expired_codes = [code for code, data in password_reset_codes.items() 
+                    if data['expires'] < current_time]
+    for code in expired_codes:
+        del password_reset_codes[code]
+    
+    app.logger.info(f"Password reset code generated: {reset_code} (expires: {expiration})")
+    
+    return jsonify({
+        'success': True,
+        'reset_code': reset_code,
+        'expires_in_minutes': 15
+    })
+
+@csrf.exempt
+@app.route('/auth/reset-password', methods=['POST'])
+def reset_password_route():
+    """Reset password using reset code"""
+    from werkzeug.security import generate_password_hash
+    from datetime import datetime
+    import os
+    
+    try:
+        data = request.get_json()
+        reset_code = data.get('reset_code', '').strip().upper()
+        new_password = data.get('new_password', '')
+        
+        if not reset_code or not new_password:
+            return jsonify({'error': 'Reset code and new password are required'}), 400
+        
+        # Verify reset code
+        if reset_code not in password_reset_codes:
+            return jsonify({'error': 'Invalid or expired reset code'}), 400
+        
+        code_data = password_reset_codes[reset_code]
+        
+        # Check if expired
+        if datetime.utcnow() > code_data['expires']:
+            del password_reset_codes[reset_code]
+            return jsonify({'error': 'Reset code has expired'}), 400
+        
+        # Check if already used
+        if code_data['used']:
+            return jsonify({'error': 'Reset code has already been used'}), 400
+        
+        # Hash the new password
+        hashed_password = generate_password_hash(new_password)
+        
+        # Update .env file
+        env_file = '.env'
+        if os.path.exists(env_file):
+            with open(env_file, 'r') as f:
+                lines = f.readlines()
+            
+            # Update or add AUTH_PASSWORD
+            password_updated = False
+            new_lines = []
+            
+            for line in lines:
+                if line.startswith('AUTH_PASSWORD='):
+                    new_lines.append(f"AUTH_PASSWORD={hashed_password}\n")
+                    password_updated = True
+                else:
+                    new_lines.append(line)
+            
+            if not password_updated:
+                new_lines.append(f"\nAUTH_PASSWORD={hashed_password}\n")
+            
+            with open(env_file, 'w') as f:
+                f.writelines(new_lines)
+            
+            # Mark code as used
+            code_data['used'] = True
+            
+            # Update environment variable for current session
+            os.environ['AUTH_PASSWORD'] = hashed_password
+            
+            app.logger.info("Admin password reset successfully via web interface")
+            
+            return jsonify({
+                'success': True,
+                'message': 'Password reset successfully. Please login with your new password.'
+            })
+        else:
+            return jsonify({'error': '.env file not found'}), 500
+            
+    except Exception as e:
+        app.logger.error(f"Password reset error: {str(e)}")
+        return jsonify({'error': 'Failed to reset password'}), 500
+
 @app.route('/init-db')
 def init_database():
     try:
