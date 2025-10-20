@@ -439,8 +439,8 @@ def login_override():
     
     # Check if this is an admin login (password only, no username)
     if not username and password:
-    if auth.verify_password(password):
-        session['authenticated'] = True
+        if auth.verify_password(password):
+            session['authenticated'] = True
             session['user_id'] = None  # Set to None for now - will fix after database is properly migrated
             session['user_type'] = 'admin'
             session['user_role'] = 'SUPER_ADMIN'
@@ -451,7 +451,7 @@ def login_override():
                 'user_type': 'admin',
                 'user_role': 'SUPER_ADMIN'
             })
-    else:
+        else:
             return jsonify({'success': False, 'error': 'Invalid admin password'}), 401
     
     # Check if this is a regular user login (username + password)
