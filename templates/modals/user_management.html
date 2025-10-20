@@ -1,0 +1,150 @@
+<!-- User Management Modal -->
+<div class="modal-overlay" id="userManagementModal" style="display: none;">
+    <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+            <h2 id="userModalTitle">Create New User</h2>
+            <button class="modal-close" onclick="closeUserModal()">&times;</button>
+        </div>
+
+        <form id="userForm" onsubmit="saveUser(event)">
+            <div class="form-section">
+                <h3>Account Information</h3>
+                
+                <div class="form-row">
+                    <label for="user-username">Username: *</label>
+                    <input type="text" id="user-username" required placeholder="e.g., john.doe">
+                    <small style="grid-column: 2; color: #666; font-size: 12px;">Unique identifier for login</small>
+                </div>
+
+                <div class="form-row">
+                    <label for="user-email">Email: *</label>
+                    <input type="email" id="user-email" required placeholder="e.g., john@company.com">
+                </div>
+
+                <div class="form-row">
+                    <label for="user-password">Password: *</label>
+                    <input type="password" id="user-password" required placeholder="Minimum 6 characters">
+                    <small style="grid-column: 2; color: #666; font-size: 12px;">Leave blank when editing to keep current password</small>
+                </div>
+
+                <div class="form-row">
+                    <label for="user-confirm-password">Confirm Password:</label>
+                    <input type="password" id="user-confirm-password" placeholder="Re-enter password">
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>Profile Details</h3>
+                
+                <div class="form-row">
+                    <label for="user-first-name">First Name:</label>
+                    <input type="text" id="user-first-name" placeholder="e.g., John">
+                </div>
+
+                <div class="form-row">
+                    <label for="user-last-name">Last Name:</label>
+                    <input type="text" id="user-last-name" placeholder="e.g., Doe">
+                </div>
+
+                <div class="form-row">
+                    <label for="user-display-name">Display Name:</label>
+                    <input type="text" id="user-display-name" placeholder="e.g., John D.">
+                    <small style="grid-column: 2; color: #666; font-size: 12px;">How the name appears in the app</small>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>Role & Permissions</h3>
+                
+                <div class="form-row">
+                    <label for="user-role">Role: *</label>
+                    <select id="user-role" required>
+                        <option value="user">User - Standard access</option>
+                        <option value="admin">Admin - Can manage users</option>
+                        <option value="viewer">Viewer - Read-only access</option>
+                        <option value="guest">Guest - Limited trial access</option>
+                    </select>
+                </div>
+
+                <div class="form-row">
+                    <label for="user-status">Status: *</label>
+                    <select id="user-status" required>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                        <option value="suspended">Suspended</option>
+                    </select>
+                </div>
+            </div>
+
+            <input type="hidden" id="user-id">
+
+            <div class="modal-actions">
+                <button type="submit" class="btn-primary">
+                    <i class="fas fa-save"></i>
+                    <span id="saveUserBtnText">Create User</span>
+                </button>
+                <button type="button" class="btn-secondary" onclick="closeUserModal()">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.form-section {
+    margin-bottom: 24px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.form-section:last-of-type {
+    border-bottom: none;
+}
+
+.form-section h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 16px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 150px 1fr;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.form-row label {
+    font-weight: 500;
+    color: #374151;
+    text-align: right;
+}
+
+.form-row input,
+.form-row select {
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.form-row input:focus,
+.form-row select:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid #e5e7eb;
+}
+</style>
+

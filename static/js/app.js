@@ -3376,6 +3376,8 @@ KnowledgeBaseApp.prototype.openSettingsPanel = function() {
     // Load original model settings when panel opens
     setTimeout(() => {
         this.loadModelsForSettingsPanel();
+        // Show Users tab if admin
+        window.showUsersTabIfAdmin();
     }, 200);
 };
 
@@ -4272,6 +4274,226 @@ window.closeModelManagement = function() {
             settingsPanel.style.pointerEvents = 'auto';
             settingsPanel.style.zIndex = '1000'; // Restore original z-index
         }
+    }
+};
+
+// ==================== USER MANAGEMENT FUNCTIONS ====================
+
+// Show Users tab for admin only
+window.showUsersTabIfAdmin = async function() {
+    try {
+        const response = await fetch('/auth/status');
+        const data = await response.json();
+        
+        // Show Users tab if admin or super_admin
+        const isAdmin = data.authenticated && 
+                       (data.user_role === 'super_admin' || data.user_role === 'admin' || data.user_type === 'admin');
+        
+        const usersTab = document.getElementById('users-nav-btn');
+        if (usersTab && isAdmin) {
+            usersTab.style.display = 'flex';
+        }
+    } catch (error) {
+        console.error('Error checking admin status:', error);
+    }
+};
+
+window.openCreateUserModal = function() {
+    const modal = document.getElementById('userManagementModal');
+    const form = document.getElementById('userForm');
+    
+    // Reset form
+    form.reset();
+    document.getElementById('user-id').value = '';
+    document.getElementById('userModalTitle').textContent = 'Create New User';
+    document.getElementById('saveUserBtnText').textContent = 'Create User';
+    document.getElementById('user-password').required = true;
+    
+    modal.style.display = 'flex';
+};
+
+window.closeUserModal = function() {
+    const modal = document.getElementById('userManagementModal');
+    modal.style.display = 'none';
+};
+
+window.saveUser = async function(event) {
+    event.preventDefault();
+    
+    const userId = document.getElementById('user-id').value;
+    const username = document.getElementById('user-username').value.trim();
+    const email = document.getElementById('user-email').value.trim();
+    const password = document.getElementById('user-password').value;
+    const confirmPassword = document.getElementById('user-confirm-password').value;
+    const firstName = document.getElementById('user-first-name').value.trim();
+    const lastName = document.getElementById('user-last-name').value.trim();
+    const displayName = document.getElementById('user-display-name').value.trim();
+    const role = document.getElementById('user-role').value;
+    const status = document.getElementById('user-status').value;
+    
+    // Validation
+    if (!userId && password !== confirmPassword) {
+        alert('Passwords do not match!');
+        return;
+    }
+    
+    if (!userId && password.length < 6) {
+        alert('Password must be at least 6 characters long!');
+        return;
+    }
+    
+    try {
+        const payload = {
+            username,
+            email,
+            first_name: firstName,
+            last_name: lastName,
+            display_name: displayName,
+            role,
+            status
+        };
+        
+        if (password) {
+            payload.password = password;
+        }
+        
+        const url = userId ? `/api/users/${userId}` : '/api/users';
+        const method = userId ? 'PUT' : 'POST';
+        
+        const response = await fetch(url, {
+            method,
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success || response.ok) {
+            alert(userId ? 'User updated successfully!' : 'User created successfully!');
+            closeUserModal();
+            refreshUsersList();
+        } else {
+            alert('Error: ' + (data.error || 'Failed to save user'));
+        }
+    } catch (error) {
+        console.error('Error saving user:', error);
+        alert('Network error. Please try again.');
+    }
+};
+
+window.refreshUsersList = async function() {
+    const usersList = document.getElementById('users-list');
+    
+    try {
+        usersList.innerHTML = '<div class="loading-users">Loading users...</div>';
+        
+        const response = await fetch('/api/users');
+        const data = await response.json();
+        
+        if (data.users && data.users.length > 0) {
+            usersList.innerHTML = `
+                <table class="users-table">
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Last Login</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.users.map(user => `
+                            <tr>
+                                <td><strong>${user.username}</strong>${user.display_name ? '<br><small>' + user.display_name + '</small>' : ''}</td>
+                                <td>${user.email || 'N/A'}</td>
+                                <td><span class="role-badge role-${user.role}">${user.role}</span></td>
+                                <td><span class="status-badge status-${user.status}">${user.status}</span></td>
+                                <td>${user.last_login_at ? new Date(user.last_login_at).toLocaleDateString() : 'Never'}</td>
+                                <td>
+                                    <button class="btn-icon" onclick="editUser('${user.id}')" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    ${user.username !== 'admin' ? `
+                                    <button class="btn-icon btn-danger" onclick="deleteUser('${user.id}', '${user.username}')" title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                    ` : ''}
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        } else {
+            usersList.innerHTML = '<p>No users found.</p>';
+        }
+    } catch (error) {
+        console.error('Error loading users:', error);
+        usersList.innerHTML = '<p class="error-message">Failed to load users.</p>';
+    }
+};
+
+window.editUser = async function(userId) {
+    try {
+        const response = await fetch(`/api/users/${userId}`);
+        const data = await response.json();
+        
+        if (data.user) {
+            const user = data.user;
+            
+            // Populate form
+            document.getElementById('user-id').value = user.id;
+            document.getElementById('user-username').value = user.username;
+            document.getElementById('user-email').value = user.email;
+            document.getElementById('user-first-name').value = user.first_name || '';
+            document.getElementById('user-last-name').value = user.last_name || '';
+            document.getElementById('user-display-name').value = user.display_name || '';
+            document.getElementById('user-role').value = user.role;
+            document.getElementById('user-status').value = user.status;
+            
+            // Clear password fields
+            document.getElementById('user-password').value = '';
+            document.getElementById('user-confirm-password').value = '';
+            document.getElementById('user-password').required = false;
+            
+            // Update modal title
+            document.getElementById('userModalTitle').textContent = 'Edit User';
+            document.getElementById('saveUserBtnText').textContent = 'Update User';
+            
+            // Show modal
+            document.getElementById('userManagementModal').style.display = 'flex';
+        }
+    } catch (error) {
+        console.error('Error loading user:', error);
+        alert('Failed to load user details.');
+    }
+};
+
+window.deleteUser = async function(userId, username) {
+    if (!confirm(`Are you sure you want to delete user "${username}"? This action cannot be undone.`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/users/${userId}`, {
+            method: 'DELETE'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success || response.ok) {
+            alert('User deleted successfully!');
+            refreshUsersList();
+        } else {
+            alert('Error: ' + (data.error || 'Failed to delete user'));
+        }
+    } catch (error) {
+        console.error('Error deleting user:', error);
+        alert('Network error. Please try again.');
     }
 };
 
