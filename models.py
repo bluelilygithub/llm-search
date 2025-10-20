@@ -21,15 +21,15 @@ class Project(db.Model):
     user_role = db.Column(db.String(500))
     output_format = db.Column(db.Text)
     
-    # User ownership
-    owner_id = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id'), nullable=True, index=True)
+    # User ownership - TEMPORARILY DISABLED until database migration completes
+    # owner_id = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id'), nullable=True, index=True)
     
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     conversations = db.relationship('Conversation', backref='project', lazy=True, cascade='all, delete-orphan')
-    owner = db.relationship('User', backref='projects', foreign_keys=[owner_id])
+    # owner = db.relationship('User', backref='projects', foreign_keys=[owner_id])
 
 class Conversation(db.Model):
     __tablename__ = 'conversations'

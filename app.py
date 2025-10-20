@@ -330,7 +330,10 @@ def filter_conversations_by_user(query):
     identity = get_user_identity()
     
     if identity['type'] == 'authenticated':
-        # Authenticated user: only show conversations with their specific user_id
+        # Authenticated admin: show ALL conversations (user_id is None for admin)
+        if identity['user_id'] is None:
+            return query  # No filter - admin sees everything
+        # Regular authenticated user: only show their conversations
         return query.filter(Conversation.user_id == identity['user_id'])
     else:
         # Free user: only show conversations that:
@@ -436,36 +439,11 @@ def login_override():
     
     # Check if this is an admin login (password only, no username)
     if not username and password:
-        # Look up admin user from database
-        admin_user = db.session.query(User).filter_by(username='admin').first()
-        
-        if admin_user and admin_user.check_password(password):
-            # Update admin login stats
-            admin_user.last_login_at = datetime.utcnow()
-            admin_user.login_count += 1
-            admin_user.last_activity_at = datetime.utcnow()
-            db.session.commit()
-            
+        if auth.verify_password(password):
             session['authenticated'] = True
-            session['user_id'] = str(admin_user.id)  # Use UUID from database
+            session['user_id'] = None  # Set to None for now - will fix after database is properly migrated
             session['user_type'] = 'admin'
             session['user_role'] = 'SUPER_ADMIN'
-            session['username'] = 'admin'
-            session['display_name'] = admin_user.display_name or 'Administrator'
-            
-            # Log the login
-            audit_log = UserAuditLog(
-                user_id=admin_user.id,
-                action='login',
-                resource_type='auth',
-                ip_address=request.remote_addr,
-                user_agent=request.user_agent.string,
-                details={'login_type': 'admin'},
-                success=True
-            )
-            db.session.add(audit_log)
-            db.session.commit()
-            
             app.logger.info("Admin login successful")
             return jsonify({
                 'success': True, 
