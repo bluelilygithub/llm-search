@@ -16,13 +16,29 @@ def get_user_identity():
     auth = SimpleAuth()
     
     if auth.is_authenticated():
-        # For admin, user_id will be None until database migration is complete
-        # Admin users see all conversations (no user_id filter)
-        return {
-            'type': 'authenticated',
-            'user_id': None,  # Admin has no user_id filtering
-            'session_id': None
-        }
+        # Get user info from session
+        user_id = session.get('user_id')
+        user_type = session.get('user_type')
+        user_role = session.get('user_role')
+        
+        # Admin sees everything (user_id = None means no filtering)
+        # Regular users only see their own data
+        if user_type == 'admin' or user_role == 'SUPER_ADMIN':
+            return {
+                'type': 'authenticated',
+                'user_id': None,  # Admin has no user_id filtering
+                'session_id': None,
+                'is_admin': True,
+                'user_role': user_role
+            }
+        else:
+            return {
+                'type': 'authenticated',
+                'user_id': user_id,
+                'session_id': None,
+                'is_admin': False,
+                'user_role': user_role
+            }
     else:
         # Free/anonymous user - use session-based identification
         session_id = request.cookies.get('session_id')
@@ -33,7 +49,9 @@ def get_user_identity():
         return {
             'type': 'free',
             'user_id': None,
-            'session_id': session_id
+            'session_id': session_id,
+            'is_admin': False,
+            'user_role': None
         }
 
 def validate_uuid(uuid_string):
