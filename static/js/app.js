@@ -4292,13 +4292,26 @@ window.showUsersTabIfAdmin = async function() {
         const response = await fetch('/auth/status');
         const data = await response.json();
         
-        // Show Users tab if admin or super_admin
+        // Show Users tab and settings buttons if admin or super_admin
         const isAdmin = data.authenticated && 
                        (data.user_role === 'super_admin' || data.user_role === 'admin' || data.user_type === 'admin');
         
+        // Show/hide Users tab in settings
         const usersTab = document.getElementById('users-nav-btn');
-        if (usersTab && isAdmin) {
-            usersTab.style.display = 'flex';
+        if (usersTab) {
+            usersTab.style.display = isAdmin ? 'flex' : 'none';
+        }
+        
+        // Show/hide Reports button in top bar (admin only)
+        const reportsBtn = document.getElementById('reports-btn');
+        if (reportsBtn) {
+            reportsBtn.style.display = isAdmin ? 'block' : 'none';
+        }
+        
+        // Show/hide Settings button in sidebar footer (admin only)
+        const sidebarSettingsBtn = document.getElementById('sidebar-settings-btn');
+        if (sidebarSettingsBtn) {
+            sidebarSettingsBtn.style.display = isAdmin ? 'flex' : 'none';
         }
     } catch (error) {
         console.error('Error checking admin status:', error);
