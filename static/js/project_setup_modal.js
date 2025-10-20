@@ -74,7 +74,7 @@ window.saveProjectSetup = function() {
         rules_do: document.getElementById('rules-do').value.trim(),
         rules_dont: document.getElementById('rules-dont').value.trim(),
         context_background: document.getElementById('context-background').value.trim(),
-        user_role: document.getElementById('user-role').value.trim(),
+        user_role: document.getElementById('project-user-role').value.trim(),
         output_format: document.getElementById('output-format').value.trim()
     };
     
@@ -246,7 +246,7 @@ function populateProjectSetupForm(template) {
     document.getElementById('rules-dont').value = rulesDont;
     
     document.getElementById('context-background').value = template.context_background || '';
-    document.getElementById('user-role').value = template.user_role || '';
+    document.getElementById('project-user-role').value = template.user_role || '';
     document.getElementById('output-format').value = template.output_format || '';
 }
 
