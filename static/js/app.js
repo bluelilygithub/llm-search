@@ -4301,8 +4301,24 @@ window.showUsersTabIfAdmin = async function() {
 };
 
 window.openCreateUserModal = function() {
+    console.log('🔵 openCreateUserModal called');
     const modal = document.getElementById('userManagementModal');
     const form = document.getElementById('userForm');
+    
+    console.log('🔵 Modal element:', modal);
+    console.log('🔵 Form element:', form);
+    
+    if (!modal) {
+        console.error('❌ userManagementModal not found!');
+        alert('Error: User management modal not found in the page');
+        return;
+    }
+    
+    if (!form) {
+        console.error('❌ userForm not found!');
+        alert('Error: User form not found in the page');
+        return;
+    }
     
     // Reset form
     form.reset();
@@ -4312,6 +4328,7 @@ window.openCreateUserModal = function() {
     document.getElementById('user-password').required = true;
     
     modal.style.display = 'flex';
+    console.log('✅ Modal opened successfully');
 };
 
 window.closeUserModal = function() {
@@ -4321,6 +4338,7 @@ window.closeUserModal = function() {
 
 window.saveUser = async function(event) {
     event.preventDefault();
+    console.log('🟢 saveUser called');
     
     const userId = document.getElementById('user-id').value;
     const username = document.getElementById('user-username').value.trim();
@@ -4333,13 +4351,17 @@ window.saveUser = async function(event) {
     const role = document.getElementById('user-role').value;
     const status = document.getElementById('user-status').value;
     
+    console.log('🟢 Form data:', { userId, username, email, role, status });
+    
     // Validation
     if (!userId && password !== confirmPassword) {
+        console.error('❌ Passwords do not match');
         alert('Passwords do not match!');
         return;
     }
     
     if (!userId && password.length < 6) {
+        console.error('❌ Password too short');
         alert('Password must be at least 6 characters long!');
         return;
     }
@@ -4362,6 +4384,8 @@ window.saveUser = async function(event) {
         const url = userId ? `/api/users/${userId}` : '/api/users';
         const method = userId ? 'PUT' : 'POST';
         
+        console.log('🟢 Sending request:', { url, method, payload });
+        
         const response = await fetch(url, {
             method,
             headers: {
@@ -4369,6 +4393,8 @@ window.saveUser = async function(event) {
             },
             body: JSON.stringify(payload)
         });
+        
+        console.log('🟢 Response status:', response.status);
         
         const data = await response.json();
         
@@ -4386,13 +4412,23 @@ window.saveUser = async function(event) {
 };
 
 window.refreshUsersList = async function() {
+    console.log('🔄 refreshUsersList called');
     const usersList = document.getElementById('users-list');
+    
+    if (!usersList) {
+        console.error('❌ users-list element not found!');
+        return;
+    }
     
     try {
         usersList.innerHTML = '<div class="loading-users">Loading users...</div>';
         
+        console.log('🔄 Fetching users from /api/users');
         const response = await fetch('/api/users');
+        console.log('🔄 Response status:', response.status);
+        
         const data = await response.json();
+        console.log('🔄 Users data:', data);
         
         if (data.users && data.users.length > 0) {
             usersList.innerHTML = `
