@@ -3372,15 +3372,15 @@ KnowledgeBaseApp.prototype.openSettingsPanel = function() {
         console.error('Settings panel element not found');
         return;
     }
-    panel.classList.add('open');
-    // Load original model settings when panel opens
-    setTimeout(() => {
-        this.loadModelsForSettingsPanel();
+        panel.classList.add('open');
+        // Load original model settings when panel opens
+        setTimeout(() => {
+            this.loadModelsForSettingsPanel();
         // Show Users tab if admin
         window.showUsersTabIfAdmin();
         // Load account info
         window.loadAccountInfo();
-    }, 200);
+        }, 200);
 };
 
 // Make openSettingsPanel available globally for onclick handlers
@@ -3755,6 +3755,11 @@ window.showSettingsSection = function(sectionName) {
     // Special handling for templates section
     if (sectionName === 'templates' && window.app) {
         window.app.renderTemplatesManagementList();
+    }
+    
+    // Special handling for users section
+    if (sectionName === 'users') {
+        window.refreshUsersList();
     }
 };
 
