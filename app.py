@@ -334,7 +334,12 @@ def filter_conversations_by_user(query):
         if identity['user_id'] is None:
             return query  # No filter - admin sees everything
         # Regular authenticated user: only show their conversations
-        return query.filter(Conversation.user_id == identity['user_id'])
+        # Convert string UUID to UUID object for comparison
+        user_id = identity['user_id']
+        if isinstance(user_id, str):
+            from uuid import UUID
+            user_id = UUID(user_id)
+        return query.filter(Conversation.user_id == user_id)
     else:
         # Free user: only show conversations that:
         # 1. Have the same session_id (primary match)
