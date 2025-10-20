@@ -216,10 +216,10 @@
                     <button class="top-bar-btn" onclick="tagConversation()" title="Organize with Tags">
                         <i class="fas fa-tags"></i>
                     </button>
-                    <button class="top-bar-btn" onclick="window.app.openSettingsPanel()" title="Reports & Analytics" id="reports-btn" style="display:none;">
+                    <!-- Admin only: Reports & Analytics -->
+                    <button class="top-bar-btn" id="admin-reports-btn" onclick="window.app.openSettingsPanel()" title="Reports & Analytics" style="display:none;">
                         <i class="fas fa-chart-bar"></i>
                     </button>
-                    <!-- Force Railway to reload templates -->
                     <button class="top-bar-btn logout-btn" onclick="logout()" title="Logout" id="logout-btn" style="display:none;">
                         <i class="fas fa-sign-out-alt"></i>
                     </button>

@@ -4303,7 +4303,7 @@ window.showUsersTabIfAdmin = async function() {
         }
         
         // Show/hide Reports button in top bar (admin only)
-        const reportsBtn = document.getElementById('reports-btn');
+        const reportsBtn = document.getElementById('admin-reports-btn');
         if (reportsBtn) {
             reportsBtn.style.display = isAdmin ? 'block' : 'none';
         }
