@@ -2872,6 +2872,13 @@ body {
     opacity: 1;
 }
 
+/* Hide settings panel overlay when user modal is open */
+.modal-overlay ~ .settings-panel.open .settings-panel-overlay,
+body:has(.modal-overlay[style*="display: flex"]) .settings-panel-overlay {
+    opacity: 0;
+    pointer-events: none;
+}
+
 .settings-panel-overlay {
     position: absolute;
     top: 0;
