@@ -836,14 +836,44 @@ def migrate_project_template():
 @auth.login_required
 def get_projects():
     from models import Project, Conversation
-    projects = Project.query.order_by(Project.created_at.desc()).all()
+    
+    # Get user identity to determine filtering
+    identity = get_user_identity()
+    
+    # Admin sees all projects, regular users see only projects with their conversations
+    if identity.get('is_admin'):
+        # Admin sees all projects
+        projects = Project.query.order_by(Project.created_at.desc()).all()
+    else:
+        # Regular users see only projects that contain their conversations
+        user_id = identity.get('user_id')
+        if user_id:
+            # Get project IDs that have conversations belonging to this user
+            project_ids = db.session.query(Conversation.project_id).filter(
+                Conversation.user_id == user_id,
+                Conversation.project_id.isnot(None)
+            ).distinct().all()
+            project_ids = [pid[0] for pid in project_ids]
+            
+            if project_ids:
+                projects = Project.query.filter(Project.id.in_(project_ids)).order_by(Project.created_at.desc()).all()
+            else:
+                projects = []
+        else:
+            projects = []
     
     project_data = []
     for project in projects:
-        # Count conversations for this project
-        conversation_count = db.session.query(Conversation).filter(
-            Conversation.project_id == project.id
-        ).count()
+        # Count conversations for this project (filtered by user if not admin)
+        if identity.get('is_admin'):
+            conversation_count = db.session.query(Conversation).filter(
+                Conversation.project_id == project.id
+            ).count()
+        else:
+            conversation_count = db.session.query(Conversation).filter(
+                Conversation.project_id == project.id,
+                Conversation.user_id == identity.get('user_id')
+            ).count()
         
         project_data.append({
             'id': str(project.id),
