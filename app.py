@@ -842,25 +842,15 @@ def get_projects():
     identity = get_user_identity()
     app.logger.info(f"get_projects - identity: {identity}")
     
-    # Admin sees all projects, regular users see only projects with their conversations
+    # Admin sees all projects, regular users see only their own projects
     if identity.get('is_admin', False):
         # Admin sees all projects
         projects = Project.query.order_by(Project.created_at.desc()).all()
     else:
-        # Regular users see only projects that contain their conversations
+        # Regular users see only projects they own
         user_id = identity.get('user_id')
         if user_id:
-            # user_id is stored as string (VARCHAR in database)
-            project_ids = db.session.query(Conversation.project_id).filter(
-                Conversation.user_id == user_id,
-                Conversation.project_id.isnot(None)
-            ).distinct().all()
-            project_ids = [pid[0] for pid in project_ids]
-            
-            if project_ids:
-                projects = Project.query.filter(Project.id.in_(project_ids)).order_by(Project.created_at.desc()).all()
-            else:
-                projects = []
+            projects = Project.query.filter(Project.owner_id == user_id).order_by(Project.created_at.desc()).all()
         else:
             projects = []
     
@@ -897,6 +887,10 @@ def create_project():
     if not data or not data.get('name'):
         return jsonify({'error': 'Project name is required'}), 400
     
+    # Get user identity for ownership
+    identity = get_user_identity()
+    owner_id = identity['user_id']
+    
     # Convert step and rule arrays to JSON strings for storage
     goal_steps = data.get('goal_steps', [])
     if isinstance(goal_steps, str):
@@ -923,7 +917,8 @@ def create_project():
         rules_dont=json.dumps(rules_dont) if rules_dont else None,
         context_background=data.get('context_background'),
         user_role=data.get('user_role'),
-        output_format=data.get('output_format')
+        output_format=data.get('output_format'),
+        owner_id=owner_id
     )
     
     db.session.add(project)
