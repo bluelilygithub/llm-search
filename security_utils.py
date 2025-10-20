@@ -16,9 +16,19 @@ def get_user_identity():
     auth = SimpleAuth()
     
     if auth.is_authenticated():
-        # Authenticated user - use fixed admin user ID (no IP dependency)
-        # This ensures authenticated users can see their conversations across all locations
-        user_id = 'admin_user'
+        # Get the actual user ID from session (set during login)
+        user_id = session.get('user_id')
+        
+        # If no user_id in session (shouldn't happen), fall back to looking up admin user
+        if not user_id:
+            from user_models import User
+            from database import db
+            admin_user = db.session.query(User).filter_by(username='admin').first()
+            if admin_user:
+                user_id = admin_user.id
+            else:
+                # Last resort: return None and let calling code handle it
+                user_id = None
         
         return {
             'type': 'authenticated',
