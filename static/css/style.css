@@ -5890,14 +5890,21 @@ mark {
     bottom: 0 !important;
     width: 100vw !important;
     height: 100vh !important;
-    background: rgba(0, 0, 0, 0.75) !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
+    background: rgba(0, 0, 0, 0.75);
+    align-items: center;
+    justify-content: center;
     z-index: 10000 !important;
-    padding: 20px !important;
-    overflow-y: auto !important;
+    padding: 20px;
+    overflow-y: auto;
     margin: 0 !important;
+}
+
+#userManagementModal[style*="display: flex"] {
+    display: flex !important;
+}
+
+#userManagementModal[style*="display: none"] {
+    display: none !important;
 }
 
 .modal-overlay {
@@ -5908,13 +5915,12 @@ mark {
     bottom: 0 !important;
     width: 100vw !important;
     height: 100vh !important;
-    background: rgba(0, 0, 0, 0.75) !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
+    background: rgba(0, 0, 0, 0.75);
+    align-items: center;
+    justify-content: center;
     z-index: 10000 !important;
-    padding: 20px !important;
-    overflow-y: auto !important;
+    padding: 20px;
+    overflow-y: auto;
     margin: 0 !important;
 }
 
