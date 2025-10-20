@@ -80,13 +80,8 @@ def check_conversation_access(conversation_id, user_identity=None):
             # Admin users (user_id is None) have access to everything
             if user_identity['user_id'] is None:
                 return True, "Access granted (admin)"
-            # Regular authenticated users check user_id
-            # Convert string UUID to UUID object for comparison
-            user_id = user_identity['user_id']
-            if isinstance(user_id, str):
-                import uuid as uuid_module
-                user_id = uuid_module.UUID(user_id)
-            if conversation.user_id == user_id:
+            # Regular authenticated users check user_id (stored as string in database)
+            if conversation.user_id == user_identity['user_id']:
                 return True, "Access granted"
         else:
             # Free users check session_id
@@ -170,12 +165,8 @@ def check_context_item_access(context_item_id, user_identity=None):
             # Admin users (user_id is None) have access to everything
             if user_identity['user_id'] is None:
                 return True, "Access granted (admin)"
-            # Convert string UUID to UUID object for comparison
-            user_id = user_identity['user_id']
-            if isinstance(user_id, str):
-                import uuid as uuid_module
-                user_id = uuid_module.UUID(user_id)
-            if context_item.user_id == user_id:
+            # user_id stored as string in database
+            if context_item.user_id == user_identity['user_id']:
                 return True, "Access granted"
         else:
             # For free users, check session-based ownership

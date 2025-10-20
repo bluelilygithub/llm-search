@@ -334,12 +334,8 @@ def filter_conversations_by_user(query):
         if identity['user_id'] is None:
             return query  # No filter - admin sees everything
         # Regular authenticated user: only show their conversations
-        # Convert string UUID to UUID object for comparison
-        user_id = identity['user_id']
-        if isinstance(user_id, str):
-            from uuid import UUID
-            user_id = UUID(user_id)
-        return query.filter(Conversation.user_id == user_id)
+        # user_id is stored as string (VARCHAR in database)
+        return query.filter(Conversation.user_id == identity['user_id'])
     else:
         # Free user: only show conversations that:
         # 1. Have the same session_id (primary match)
@@ -854,15 +850,7 @@ def get_projects():
         # Regular users see only projects that contain their conversations
         user_id = identity.get('user_id')
         if user_id:
-            # Convert user_id to UUID if it's a string
-            from uuid import UUID
-            if isinstance(user_id, str):
-                user_id = UUID(user_id)
-            
-            # Get project IDs that have conversations belonging to this user
-            # Use explicit UUID casting in the query to avoid type mismatch
-            from sqlalchemy import cast
-            from sqlalchemy.dialects.postgresql import UUID as PGUUID
+            # user_id is stored as string (VARCHAR in database)
             project_ids = db.session.query(Conversation.project_id).filter(
                 Conversation.user_id == user_id,
                 Conversation.project_id.isnot(None)
@@ -1314,11 +1302,8 @@ def create_conversation():
     
     app.logger.info(f"Creating conversation - identity: {identity}")
     
-    # Convert user_id string to UUID if needed
+    # user_id is stored as string (VARCHAR in database)
     user_id = identity['user_id']
-    if user_id and isinstance(user_id, str):
-        from uuid import UUID
-        user_id = UUID(user_id)
     
     from models import Conversation
     conversation = Conversation(
