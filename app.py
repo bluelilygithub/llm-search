@@ -839,9 +839,10 @@ def get_projects():
     
     # Get user identity to determine filtering
     identity = get_user_identity()
+    app.logger.info(f"get_projects - identity: {identity}")
     
     # Admin sees all projects, regular users see only projects with their conversations
-    if identity.get('is_admin'):
+    if identity.get('is_admin', False):
         # Admin sees all projects
         projects = Project.query.order_by(Project.created_at.desc()).all()
     else:
@@ -865,7 +866,7 @@ def get_projects():
     project_data = []
     for project in projects:
         # Count conversations for this project (filtered by user if not admin)
-        if identity.get('is_admin'):
+        if identity.get('is_admin', False):
             conversation_count = db.session.query(Conversation).filter(
                 Conversation.project_id == project.id
             ).count()
