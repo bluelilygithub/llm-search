@@ -404,24 +404,24 @@
         
         <form id="loginForm">
             <div class="form-group">
+                <input type="text" id="username" name="username" placeholder="Username (optional for admin)" autocomplete="username">
+            </div>
+            
+            <div class="form-group">
                 <div class="password-container">
-                    <input type="password" id="password" name="password" placeholder="Enter your password" required>
+                    <input type="password" id="password" name="password" placeholder="Enter your password" required autocomplete="current-password">
                     <i class="fas fa-eye password-toggle" id="passwordToggle" onclick="togglePassword()"></i>
                 </div>
             </div>
             
-            <button type="submit" class="login-btn primary" id="loginBtn">
-                <i class="fas fa-lock"></i>
-                Sign In for Unlimited Access
-            </button>
-            
-            <div class="divider">
-                <span>OR</span>
+            <div style="font-size: 12px; color: #666; margin-bottom: 16px;">
+                <strong>Admin:</strong> Leave username blank, enter password<br>
+                <strong>Users:</strong> Enter both username and password
             </div>
             
-            <button type="button" class="login-btn secondary" id="freeAccessBtn" onclick="useFreeAccess()">
-                <i class="fas fa-bolt"></i>
-                Continue with Free Access
+            <button type="submit" class="login-btn primary" id="loginBtn">
+                <i class="fas fa-lock"></i>
+                Sign In
             </button>
             
             <div class="error-message" id="errorMessage"></div>
@@ -431,7 +431,9 @@
         </form>
         
         <div class="footer-links">
-            <div class="signup-text">Don't have an account? <a href="#" class="footer-link" style="display: inline; margin: 0;">Sign up for free</a></div>
+            <div class="signup-text" style="font-size: 13px; color: #666;">
+                Need an account? Contact your administrator
+            </div>
         </div>
     </div>
 
@@ -454,6 +456,7 @@
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
+            const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value;
             const loginBtn = document.getElementById('loginBtn');
             const errorMessage = document.getElementById('errorMessage');
@@ -470,16 +473,28 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ password })
+                    body: JSON.stringify({ 
+                        username: username,
+                        password: password
+                    })
                 });
                 
                 const data = await response.json();
                 
                 if (data.success) {
-                    // Redirect to main app
-                    window.location.href = '/';
+                    // Show success message briefly
+                    if (data.user_type === 'admin') {
+                        loading.innerHTML = '<i class="fas fa-check-circle"></i> Admin login successful!';
+                    } else {
+                        loading.innerHTML = '<i class="fas fa-check-circle"></i> Welcome, ' + (data.display_name || data.username) + '!';
+                    }
+                    
+                    // Redirect to main app after brief delay
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 1000);
                 } else {
-                    errorMessage.textContent = data.error || 'Invalid password';
+                    errorMessage.textContent = data.error || 'Invalid credentials';
                     errorMessage.style.display = 'block';
                 }
             } catch (error) {
@@ -487,7 +502,11 @@
                 errorMessage.style.display = 'block';
             } finally {
                 loginBtn.disabled = false;
-                loading.style.display = 'none';
+                if (!errorMessage.style.display || errorMessage.style.display === 'none') {
+                    // Keep loading visible for success message
+                } else {
+                    loading.style.display = 'none';
+                }
             }
         });
         

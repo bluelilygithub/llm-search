@@ -21,9 +21,15 @@ class Project(db.Model):
     user_role = db.Column(db.String(500))
     output_format = db.Column(db.Text)
     
+    # User ownership
+    owner_id = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id'), nullable=True, index=True)
+    
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
     conversations = db.relationship('Conversation', backref='project', lazy=True, cascade='all, delete-orphan')
+    owner = db.relationship('User', backref='projects', foreign_keys=[owner_id])
 
 class Conversation(db.Model):
     __tablename__ = 'conversations'
@@ -35,11 +41,15 @@ class Conversation(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     tags = db.Column(db.JSON, default=list)
     context_documents = db.Column(db.JSON, default=None)  # New: stores uploaded context docs as list of dicts
-    # User identification fields
-    user_id = db.Column(db.String(100), nullable=True)  # For authenticated users
-    session_id = db.Column(db.String(100), nullable=True)  # For free/anonymous users
-    ip_address = db.Column(db.String(45), nullable=True)  # Additional tracking for free users
+    # User identification - linked to users table
+    user_id = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id'), nullable=True, index=True)  # For authenticated users
+    # Legacy fields for migration (will be deprecated)
+    session_id = db.Column(db.String(100), nullable=True)  # Legacy: For free/anonymous users
+    ip_address = db.Column(db.String(45), nullable=True)  # Legacy: Additional tracking for free users
+    
+    # Relationships
     messages = db.relationship('Message', backref='conversation', lazy=True, cascade='all, delete-orphan')
+    user = db.relationship('User', backref='conversations', foreign_keys=[user_id])
 
 class Message(db.Model):
     __tablename__ = 'messages'

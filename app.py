@@ -210,6 +210,7 @@ limiter.init_app(app)
 
 # Import models after db initialization
 from models import Conversation, Message, Attachment, Project
+from user_models import User, UserRole, UserStatus, Organization, UserSession, UserAuditLog
 from context_service import ContextService
 from llm_service import LLMService
 
@@ -395,27 +396,121 @@ def get_csrf_token():
 def logout_override():
     """Logout endpoint - bypassing auth.py registration to add CSRF exemption"""
     from flask import session
+    
+    # Log logout for regular users
+    user_id = session.get('user_id')
+    if user_id and user_id != 'admin':
+        try:
+            audit_log = UserAuditLog(
+                user_id=user_id,
+                action='logout',
+                ip_address=request.remote_addr,
+                user_agent=request.headers.get('User-Agent'),
+                success=True
+            )
+            db.session.add(audit_log)
+            db.session.commit()
+        except Exception as e:
+            app.logger.error(f"Error logging logout: {e}")
+    
+    # Clear all session data
     session.pop('authenticated', None)
     session.pop('user_id', None)
+    session.pop('user_type', None)
+    session.pop('user_role', None)
+    session.pop('username', None)
+    session.pop('display_name', None)
+    
     return jsonify({'success': True, 'message': 'Logged out'})
 
-@csrf.exempt  
+@csrf.exempt
 @app.route('/auth/login', methods=['POST'])
 def login_override():
-    """Login endpoint - bypassing auth.py registration to add CSRF exemption"""
+    """Login endpoint - supports both admin (password only) and users (username + password)"""
     from flask import session
-    if not auth.is_auth_enabled():
-        return jsonify({'success': True, 'message': 'Authentication disabled'})
+    from datetime import datetime
     
     data = request.get_json()
+    username = data.get('username', '').strip()
     password = data.get('password', '')
     
-    if auth.verify_password(password):
-        session['authenticated'] = True
-        session['user_id'] = 'admin'  # Simple single-user system
-        return jsonify({'success': True, 'message': 'Login successful'})
+    # Check if this is an admin login (password only, no username)
+    if not username and password:
+        if auth.verify_password(password):
+            session['authenticated'] = True
+            session['user_id'] = 'admin'
+            session['user_type'] = 'admin'
+            session['user_role'] = 'SUPER_ADMIN'
+            app.logger.info("Admin login successful")
+            return jsonify({
+                'success': True, 
+                'message': 'Admin login successful',
+                'user_type': 'admin',
+                'user_role': 'SUPER_ADMIN'
+            })
+        else:
+            return jsonify({'success': False, 'error': 'Invalid admin password'}), 401
+    
+    # Check if this is a regular user login (username + password)
+    elif username and password:
+        user = db.session.query(User).filter(
+            User.username == username,
+            User.status == UserStatus.ACTIVE
+        ).first()
+        
+        if user and user.check_password(password):
+            # Update user login stats
+            user.last_login_at = datetime.utcnow()
+            user.login_count += 1
+            user.last_activity_at = datetime.utcnow()
+            db.session.commit()
+            
+            # Set session
+            session['authenticated'] = True
+            session['user_id'] = str(user.id)
+            session['user_type'] = 'user'
+            session['user_role'] = user.role.value
+            session['username'] = user.username
+            session['display_name'] = user.display_name or user.username
+            
+            # Log the login
+            audit_log = UserAuditLog(
+                user_id=user.id,
+                action='login',
+                ip_address=request.remote_addr,
+                user_agent=request.headers.get('User-Agent'),
+                success=True
+            )
+            db.session.add(audit_log)
+            db.session.commit()
+            
+            app.logger.info(f"User login successful: {username} (role: {user.role.value})")
+            return jsonify({
+                'success': True,
+                'message': 'Login successful',
+                'user_type': 'user',
+                'user_role': user.role.value,
+                'username': user.username,
+                'display_name': user.display_name or user.username
+            })
+        else:
+            # Log failed attempt
+            if user:
+                audit_log = UserAuditLog(
+                    user_id=user.id,
+                    action='login',
+                    ip_address=request.remote_addr,
+                    user_agent=request.headers.get('User-Agent'),
+                    success=False,
+                    error_message='Invalid password'
+                )
+                db.session.add(audit_log)
+                db.session.commit()
+            
+            return jsonify({'success': False, 'error': 'Invalid username or password'}), 401
+    
     else:
-        return jsonify({'success': False, 'error': 'Invalid password'}), 401
+        return jsonify({'success': False, 'error': 'Please provide either admin password or username and password'}), 400
 
 
 @app.route('/init-db')
