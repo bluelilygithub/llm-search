@@ -41,14 +41,15 @@ class Conversation(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     tags = db.Column(db.JSON, default=list)
     context_documents = db.Column(db.JSON, default=None)  # New: stores uploaded context docs as list of dicts
-    # User identification - VARCHAR to match current database schema
-    user_id = db.Column(db.String(100), nullable=True, index=True)  # Stores UUID as string
+    # User identification - linked to users table
+    user_id = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id'), nullable=True, index=True)  # For authenticated users
     # Legacy fields for migration (will be deprecated)
     session_id = db.Column(db.String(100), nullable=True)  # Legacy: For free/anonymous users
     ip_address = db.Column(db.String(45), nullable=True)  # Legacy: Additional tracking for free users
     
     # Relationships
     messages = db.relationship('Message', backref='conversation', lazy=True, cascade='all, delete-orphan')
+    user = db.relationship('User', backref='conversations', foreign_keys=[user_id])
 
 class Message(db.Model):
     __tablename__ = 'messages'
