@@ -59,7 +59,10 @@ def check_conversation_access(conversation_id, user_identity=None):
         
         # Check ownership based on user type
         if user_identity['type'] == 'authenticated':
-            # Authenticated users check user_id
+            # Admin users (user_id is None) have access to everything
+            if user_identity['user_id'] is None:
+                return True, "Access granted (admin)"
+            # Regular authenticated users check user_id
             if conversation.user_id == user_identity['user_id']:
                 return True, "Access granted"
         else:
@@ -141,6 +144,9 @@ def check_context_item_access(context_item_id, user_identity=None):
         
         # Context items are user-specific
         if user_identity['type'] == 'authenticated':
+            # Admin users (user_id is None) have access to everything
+            if user_identity['user_id'] is None:
+                return True, "Access granted (admin)"
             if context_item.user_id == user_identity['user_id']:
                 return True, "Access granted"
         else:
