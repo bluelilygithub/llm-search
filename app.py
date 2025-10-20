@@ -855,6 +855,9 @@ def get_projects():
                 user_id = UUID(user_id)
             
             # Get project IDs that have conversations belonging to this user
+            # Use explicit UUID casting in the query to avoid type mismatch
+            from sqlalchemy import cast
+            from sqlalchemy.dialects.postgresql import UUID as PGUUID
             project_ids = db.session.query(Conversation.project_id).filter(
                 Conversation.user_id == user_id,
                 Conversation.project_id.isnot(None)
@@ -1306,13 +1309,19 @@ def create_conversation():
     
     app.logger.info(f"Creating conversation - identity: {identity}")
     
+    # Convert user_id string to UUID if needed
+    user_id = identity['user_id']
+    if user_id and isinstance(user_id, str):
+        from uuid import UUID
+        user_id = UUID(user_id)
+    
     from models import Conversation
     conversation = Conversation(
         title=data['title'],
         llm_model=data['llm_model'],
         tags=data.get('tags', []),
         project_id=data.get('project_id'),
-        user_id=identity['user_id'],
+        user_id=user_id,
         session_id=identity['session_id'],
         ip_address=None  # IP address not needed for access control with unified identity system
     )
