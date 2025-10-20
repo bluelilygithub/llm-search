@@ -1428,6 +1428,23 @@ body {
     background-color: #b91c1c;
 }
 
+/* Status Indicator */
+.status-indicator {
+    font-size: 12px;
+}
+
+.status-indicator.status-active {
+    color: #10b981;
+}
+
+.status-indicator.status-inactive {
+    color: #6b7280;
+}
+
+.status-indicator.status-suspended {
+    color: #ef4444;
+}
+
 /* ==================== STABILITY IMAGE UPLOAD STYLES ==================== */
 
 .stability-upload {

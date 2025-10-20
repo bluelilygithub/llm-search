@@ -4447,41 +4447,41 @@ window.refreshUsersList = async function() {
         
         if (data.users && data.users.length > 0) {
             usersList.innerHTML = `
-                <div class="users-table-wrapper" style="overflow-x: auto; width: 100%;">
-                    <table class="users-table">
-                        <thead>
+                <table class="users-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 50px;"></th>
+                            <th>Username</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.users.map(user => `
                             <tr>
-                                <th>Username</th>
-                                <th>Email</th>
-                                <th>Role</th>
-                                <th>Status</th>
-                                <th>Last Login</th>
-                                <th>Actions</th>
+                                <td style="text-align: center;">
+                                    <i class="fas fa-circle status-indicator status-${user.status}" 
+                                       title="${user.status === 'active' ? 'Active' : user.status === 'inactive' ? 'Inactive' : 'Suspended'}"></i>
+                                </td>
+                                <td>
+                                    <div><strong>${user.username}</strong></div>
+                                    ${user.display_name ? '<div><small style="color: #6b7280;">' + user.display_name + '</small></div>' : ''}
+                                    <div><small style="color: #9ca3af;">${user.email || 'No email'}</small></div>
+                                    <div><small style="color: #9ca3af;">${user.role}</small></div>
+                                </td>
+                                <td style="white-space: nowrap;">
+                                    <button class="btn-icon" onclick="editUser('${user.id}')" title="Edit user">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    ${user.username !== 'admin' ? `
+                                    <button class="btn-icon btn-danger" onclick="deleteUser('${user.id}', '${user.username}')" title="Delete user">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                    ` : ''}
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            ${data.users.map(user => `
-                                <tr>
-                                    <td><strong>${user.username}</strong>${user.display_name ? '<br><small>' + user.display_name + '</small>' : ''}</td>
-                                    <td>${user.email || 'N/A'}</td>
-                                    <td><span class="role-badge role-${user.role}">${user.role}</span></td>
-                                    <td><span class="status-badge status-${user.status}">${user.status}</span></td>
-                                    <td>${user.last_login_at ? new Date(user.last_login_at).toLocaleDateString() : 'Never'}</td>
-                                    <td style="white-space: nowrap;">
-                                        <button class="btn-icon" onclick="editUser('${user.id}')" title="Edit">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        ${user.username !== 'admin' ? `
-                                        <button class="btn-icon btn-danger" onclick="deleteUser('${user.id}', '${user.username}')" title="Delete">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                        ` : ''}
-                                    </td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
+                        `).join('')}
+                    </tbody>
+                </table>
             `;
         } else {
             usersList.innerHTML = '<p>No users found.</p>';
