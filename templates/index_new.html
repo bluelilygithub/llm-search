@@ -1,0 +1,1728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <title>Curam AI Kbase</title>
+    <!-- Cache bust: 2025-10-21 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="static/css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Improved Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <!-- Header -->
+            <div class="sidebar-header">
+                <div class="sidebar-header-content">
+                    <div class="sidebar-logo">
+                        <div class="logo-icon">
+                            <i class="fas fa-comments"></i>
+                        </div>
+                        <div class="logo-text" id="logo-text">
+                            <h1>Curam AI</h1>
+                        </div>
+                    </div>
+                    <button class="inline-flex items-center justify-center relative shrink-0 can-focus select-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none disabled:drop-shadow-none text-text-300 border-transparent transition font-ui tracking-tight duration-300 ease-[cubic-bezier(0.165,0.85,0.45,1)] hover:bg-bg-300 aria-checked:bg-bg-400 aria-expanded:bg-bg-400 hover:text-text-100 aria-pressed:text-text-100 aria-checked:text-text-100 aria-expanded:text-text-100 h-8 w-8 rounded-md active:scale-95 text-text-400/60 hover:text-text-200 sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()" type="button">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256" id="toggle-icon">
+                            <path d="M232,128a8,8,0,0,1-8,8H91.31l58.35,58.34a8,8,0,0,1-11.32,11.32l-72-72a8,8,0,0,1,0-11.32l72-72a8,8,0,0,1,11.32,11.32L91.31,120H224A8,8,0,0,1,232,128ZM40,32a8,8,0,0,0-8,8V216a8,8,0,0,0,16,0V40A8,8,0,0,0,40,32Z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Search & New Chat (Visible when expanded) -->
+            <div class="sidebar-main-actions" id="sidebar-main-actions">
+                <div class="search-container">
+                    <div class="search-input-wrapper">
+                        <i class="fas fa-search search-icon"></i>
+                        <input type="text" id="conversation-search" placeholder="Search everything..." oninput="debouncedSearchConversations()">
+                    </div>
+                </div>
+
+                <div class="new-chat-container">
+                    <button class="new-chat-btn" id="new-chat-btn" onclick="startNewChat()">
+                        <i class="fas fa-plus"></i>
+                        <span>New Chat</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Navigation Content -->
+            <div class="sidebar-content" id="sidebar-content">
+                <!-- Recent Conversations Section -->
+                <div class="nav-section">
+                    <button class="section-header" onclick="toggleSection('recent')" id="recent-header">
+                        <div class="section-header-content">
+                            <div class="section-title">
+                                <i class="fas fa-clock"></i>
+                                <span class="section-label">Recent</span>
+                            </div>
+                            <div class="section-toggle">
+                                <i class="fas fa-minus" id="recent-toggle"></i>
+                            </div>
+                        </div>
+                    </button>
+                    
+                    <div class="section-content expanded" id="recent-content">
+                        <div class="conversations-scroll-area">
+                            <div class="conversations-list" id="conversations-list">
+                                <!-- Recent conversations will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Templates Section -->
+                <div class="nav-section">
+                    <button class="section-header" onclick="toggleSection('templates')" id="templates-header">
+                        <div class="section-header-content">
+                            <div class="section-title">
+                                <i class="fas fa-file-alt"></i>
+                                <span class="section-label">Templates</span>
+                            </div>
+                            <div class="section-toggle">
+                                <i class="fas fa-plus" id="templates-toggle"></i>
+                            </div>
+                        </div>
+                    </button>
+                    
+                    <div class="section-content collapsed" id="templates-content">
+                        <div class="templates-scroll-area">
+                            <div class="templates-list" id="templates-list">
+                                <!-- Template categories will be loaded here -->
+                                <div class="template-category">
+                                    <div class="template-category-header">
+                                        <i class="fas fa-star"></i>
+                                        <span>Favorites</span>
+                                    </div>
+                                    <div class="template-items">
+                                        <div class="template-item" onclick="window.app.selectTemplate('email-template')">
+                                            <i class="fas fa-envelope"></i>
+                                            <span>Email Template</span>
+                                        </div>
+                                        <div class="template-item" onclick="window.app.selectTemplate('code-review')">
+                                            <i class="fas fa-code"></i>
+                                            <span>Code Review</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="template-category">
+                                    <div class="template-category-header">
+                                        <i class="fas fa-fire"></i>
+                                        <span>Popular</span>
+                                    </div>
+                                    <div class="template-items">
+                                        <div class="template-item" onclick="window.app.selectTemplate('meeting-notes')">
+                                            <i class="fas fa-clipboard"></i>
+                                            <span>Meeting Notes</span>
+                                        </div>
+                                        <div class="template-item" onclick="window.app.selectTemplate('brainstorming')">
+                                            <i class="fas fa-lightbulb"></i>
+                                            <span>Brainstorming</span>
+                                        </div>
+                                        <div class="template-item" onclick="window.app.selectTemplate('research')">
+                                            <i class="fas fa-search"></i>
+                                            <span>Research</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Collapsed Sidebar Icons -->
+            <div class="sidebar-collapsed-content" id="sidebar-collapsed-content" style="display: none;">
+                <div class="collapsed-nav-icons">
+                    <button class="collapsed-nav-btn" onclick="toggleSection('recent')" title="Recent">
+                        <i class="fas fa-clock"></i>
+                    </button>
+                    <button class="collapsed-nav-btn" onclick="toggleSection('projects')" title="Projects">
+                        <i class="fas fa-folder"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Bottom Settings -->
+            <div class="sidebar-footer" id="sidebar-footer">
+                <button class="settings-btn" id="sidebar-settings-btn" onclick="window.app.openSettingsPanel()" title="Settings" style="display: none;">
+                    <i class="fas fa-cog"></i>
+                    <span class="settings-label">Settings</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content" id="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <div class="top-bar-left">
+                    <div class="model-selector-container">
+                        <select class="model-selector" id="llm-model" onchange="updateModel()">
+                            <optgroup label="OpenAI">
+                                <option value="gpt-3.5-turbo" selected>GPT-3.5 Turbo</option>
+                                <option value="gpt-4">GPT-4</option>
+                                <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                                <option value="gpt-4o">GPT-4o</option>
+                                <option value="gpt-4o-mini">GPT-4o Mini</option>
+                                <option value="gpt-5">ChatGPT 5</option>
+                                <option value="o1-preview">O1 Preview</option>
+                                <option value="o1-mini">O1 Mini</option>
+                            </optgroup>
+                            <optgroup label="Anthropic">
+                                <option value="claude-3.5-sonnet">Claude 3.5 Sonnet</option>
+                                <option value="claude-3-opus">Claude 3 Opus</option>
+                                <option value="claude-3-sonnet-v2">Claude 3 Sonnet</option>
+                                <option value="claude-3-haiku">Claude 3 Haiku</option>
+                            </optgroup>
+                            <optgroup label="Google">
+                                <option value="gemini-pro">Gemini Pro</option>
+                                <option value="gemini-flash">Gemini Flash</option>
+                            </optgroup>
+                            <optgroup label="Hugging Face">
+                                <option value="llama2-70b">GPT-2 (via HF)</option>
+                                <option value="mixtral-8x7b">DistilGPT-2 (via HF)</option>
+                                <option value="codellama-34b">Tiny GPT-2 (via HF)</option>
+                            </optgroup>
+                            <optgroup label="Stability AI">
+                                <option value="stable-image-ultra">Stable Image Ultra</option>
+                                <option value="stable-image-core">Stable Image Core</option>
+                                <option value="stable-image-sd3">Stable Image SD3</option>
+                                <option value="stable-audio-2">Stable Audio 2</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <button class="template-btn" onclick="window.app.openTemplatePicker()" title="Templates & Prompts" style="display: flex !important; background: #ff6b6b !important; color: white !important; padding: 10px 20px !important; border: none !important; border-radius: 8px !important; margin-left: 16px !important;">
+                        <i class="fas fa-file-alt"></i>
+                        <span>Templates</span>
+                    </button>
+                </div>
+                
+                <div class="top-bar-right">
+                    <button class="top-bar-btn" onclick="toggleContextPanel()" title="Context Panel" id="context-toggle-btn">
+                        <i class="fas fa-layer-group"></i>
+                    </button>
+                    <button class="top-bar-btn" onclick="exportConversation()" title="Export to Markdown">
+                        <i class="fas fa-download"></i>
+                    </button>
+                    <button class="top-bar-btn" onclick="tagConversation()" title="Organize with Tags">
+                        <i class="fas fa-tags"></i>
+                    </button>
+                    <!-- Admin only: Reports & Analytics -->
+                    <button class="top-bar-btn" id="admin-reports-btn" onclick="window.app.openSettingsPanel()" title="Reports & Analytics" style="display:none;">
+                        <i class="fas fa-chart-bar"></i>
+                    </button>
+                    <span id="username-display" style="display:none; margin-right: 10px; color: #666; font-size: 14px;"></span>
+                    <button class="top-bar-btn logout-btn" onclick="logout()" title="Logout" id="logout-btn" style="display:none;">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Chat Messages Area -->
+            <div class="chat-messages-container">
+                <!-- Chat Header (for project/conversation context) -->
+                <div class="chat-header" id="chat-header" style="display: none;">
+                    <div class="chat-breadcrumb">
+                        <span class="breadcrumb-item breadcrumb-clickable" id="projects-breadcrumb" onclick="window.app.showProjectsView()">
+                            <i class="fas fa-folder"></i>
+                            <span>Projects</span>
+                        </span>
+                        <span class="breadcrumb-separator"><i class="fas fa-chevron-right"></i></span>
+                        <span class="breadcrumb-item breadcrumb-clickable" id="project-breadcrumb" onclick="window.app.goBackToProject()">
+                            <i class="fas fa-folder-open"></i>
+                            <span id="project-name"></span>
+                        </span>
+                        <span class="breadcrumb-separator"><i class="fas fa-chevron-right"></i></span>
+                        <span class="breadcrumb-item active">
+                            <i class="fas fa-comment"></i>
+                            <span id="conversation-title"></span>
+                        </span>
+                    </div>
+                    <div class="chat-header-actions">
+                        <button class="chat-header-btn" onclick="window.app.goToHome()" title="Go to Home">
+                            <i class="fas fa-home"></i>
+                            <span>Home</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="chat-messages" id="chat-messages">
+                    <!-- Empty State -->
+                    <div class="empty-state" id="empty-state">
+                        <div class="empty-state-icon">
+                            <i class="fas fa-comments"></i>
+                        </div>
+                        <h2 class="empty-state-title">New Conversation</h2>
+                        <p class="empty-state-description">Start a conversation or search your knowledge base.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Context Panel -->
+            <div class="context-panel" id="context-panel" style="display: none;">
+                <div class="context-header">
+                    <h4><i class="fas fa-layer-group"></i> Active Context</h4>
+                    <div class="context-actions">
+                        <button class="context-btn" onclick="addNewContext()" title="Add Context">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                        <button class="context-btn" onclick="refreshContextPanel()" title="Refresh">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button class="context-btn" onclick="toggleContextPanel()" title="Close Panel">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="context-content">
+                    <!-- Context Statistics -->
+                    <div class="context-stats" id="context-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">Total Items:</span>
+                            <span class="stat-value" id="total-context-items">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Total Tokens:</span>
+                            <span class="stat-value" id="total-context-tokens">0</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Current Conversation Context Section -->
+                    <div class="context-conversation-section" id="context-conversation-section" style="display: none;">
+                        <div class="section-header">
+                            <h5><i class="fas fa-comment"></i> Context for This Conversation</h5>
+                            <span class="section-count" id="conversation-context-count">0 items</span>
+                        </div>
+                        <div class="conversation-context-list" id="conversation-context-list">
+                            <div class="empty-context">No context items added to this conversation yet.</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Available Context Items Section -->
+                    <div class="context-items-section">
+                        <div class="section-header">
+                            <h5><i class="fas fa-folder-open"></i> Available Context Items</h5>
+                            <span class="section-count" id="available-context-count">0 items</span>
+                        </div>
+                        
+                        <!-- Search functionality moved to top of this section -->
+                        <div class="context-search-container">
+                            <div class="search-input-wrapper">
+                                <i class="fas fa-search search-icon"></i>
+                                <input type="text" 
+                                       id="context-search" 
+                                       placeholder="Search available context items..." 
+                                       onkeyup="searchContextItems()"
+                                       title="Search by name, description, content type, or filename">
+                                <button class="search-clear-btn" 
+                                        id="search-clear-btn" 
+                                        onclick="clearContextSearch()" 
+                                        title="Clear search"
+                                        style="display: none;">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                        </div>
+                            <div class="search-help">
+                                <small>Search through names, descriptions, and content types</small>
+                            </div>
+                        </div>
+                        
+                        <div class="context-items-list" id="context-items-list">
+                            <div class="loading-context">Loading context items...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Input -->
+            <div class="bottom-input-container">
+                <div class="kb-search-results" id="kb-search-results" style="display: none;">
+                    <!-- Knowledge base search results will appear here -->
+                </div>
+                
+                <div class="input-area">
+                    <div class="input-controls-left">
+                        <button class="input-control-btn" onclick="triggerFileUpload()" title="Add attachment">
+                            <i class="fas fa-paperclip"></i>
+                        </button>
+                        <button class="input-control-btn" onclick="startVoiceInput()" title="Voice Input" id="voice-btn">
+                            <i class="fas fa-microphone"></i>
+                        </button>
+                        <button class="input-control-btn" onclick="window.app.openTemplatePicker()" title="Templates & Prompts">
+                            <i class="fas fa-file-alt"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="message-input-container">
+                        <textarea id="message-input" placeholder="Ask a question or search knowledge base..." 
+                                rows="1" onkeydown="handleInputKeydown(event)" oninput="handleInputChange()"></textarea>
+                    </div>
+                    
+                    <button class="send-button" onclick="sendMessage()" id="send-btn">
+                        Send
+                    </button>
+                </div>
+                
+                <input type="file" id="file-input" multiple style="display: none;" onchange="window.app.handleContextUpload(event)">
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Slide-Out Panel -->
+    <div class="settings-panel" id="settings-panel">
+        <div class="settings-panel-overlay" onclick="closeSettingsPanel()"></div>
+        <div class="settings-panel-content">
+            <!-- Settings Header -->
+            <div class="settings-header">
+                <div class="settings-title">
+                    <i class="fas fa-cog"></i>
+                    <h2>Settings</h2>
+                </div>
+                <button class="settings-close-btn" onclick="closeSettingsPanel()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <!-- Settings Navigation -->
+            <div class="settings-nav">
+                <button class="settings-nav-btn active" data-section="models" onclick="showSettingsSection('models')">
+                    <i class="fas fa-robot"></i>
+                    Models
+                </button>
+                <button class="settings-nav-btn" data-section="account" onclick="showSettingsSection('account')">
+                    <i class="fas fa-user"></i>
+                    Account
+                </button>
+                <button class="settings-nav-btn" data-section="preferences" onclick="showSettingsSection('preferences')" id="preferences-nav-btn">
+                    <i class="fas fa-sliders-h"></i>
+                    Preferences
+                </button>
+                <button class="settings-nav-btn" data-section="users" onclick="showSettingsSection('users')" id="users-nav-btn">
+                    <i class="fas fa-users"></i>
+                    Users
+                </button>
+            </div>
+
+            <!-- Settings Content -->
+            <div class="settings-content">
+                <!-- Models Section -->
+                <div class="settings-section active" id="models-section">
+                    <div class="section-header">
+                        <h3>Model Configuration</h3>
+                        <p>Manage which models are available in the dropdown and check their access status.</p>
+                    </div>
+
+                    <div class="models-container">
+                        <div class="models-header">
+                            <div class="models-actions">
+                                                                 <button class="btn-secondary" onclick="checkAllModelsAccess()">
+                                     <i class="fas fa-sync"></i>
+                                     Check All Access
+                                 </button>
+
+                                <button class="btn-primary" onclick="saveModelSettings()">
+                                    <i class="fas fa-save"></i>
+                                    Save Changes
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="models-list" id="models-list">
+                            <!-- Models will be populated by JavaScript -->
+                            <div class="loading-models">Loading model configurations...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Account Section -->
+                <div class="settings-section" id="account-section">
+                    <div class="section-header">
+                        <h3>Account Information</h3>
+                        <p>View your account details and usage statistics.</p>
+                    </div>
+                    <div class="account-info">
+                        <p>Account settings coming soon...</p>
+                    </div>
+                </div>
+
+                                 <!-- Preferences Section -->
+                 <div class="settings-section" id="preferences-section">
+                     <div class="section-header">
+                         <h3>User Preferences</h3>
+                         <p>Customize your application experience.</p>
+                     </div>
+                     <div class="preferences-info">
+                         <div class="preference-item">
+                             <label for="default-model-select"><strong>Default Model:</strong></label>
+                             <p class="preference-description">Select the model that will be automatically chosen when you start a new conversation.</p>
+                             <div id="preferences-debug" style="background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px; font-family: monospace; font-size: 12px;">
+                                 <strong>Debug Info:</strong><br>
+                                 <span id="debug-modelSettings">Loading...</span><br>
+                                 <span id="debug-userPreferences">Loading...</span><br>
+                                 <span id="debug-dropdown-status">Loading...</span>
+                             </div>
+                             <div id="preferences-visibility-test" style="background: #e8f5e8; padding: 10px; margin: 10px 0; border-radius: 5px; border: 2px solid #4caf50;">
+                                 <strong>✓ Preferences Section is Visible!</strong><br>
+                                 This section is working correctly.
+                             </div>
+                             <select id="default-model-select" onchange="updateDefaultModel()">
+                                 <option value="">Loading models...</option>
+                             </select>
+                             <button class="btn-secondary" onclick="savePreferences()" style="margin-top: 10px;">
+                                 <i class="fas fa-save"></i>
+                                 Save Preferences
+                             </button>
+                             <button class="btn-secondary" onclick="populateDefaultModelSelect()" style="margin-top: 10px; margin-left: 10px;">
+                                 <i class="fas fa-refresh"></i>
+                                 Refresh Models
+                             </button>
+                             
+                        </div>
+                    </div>
+                </div>
+
+                <!-- User Management Section (Admin Only) -->
+                <div class="settings-section" id="users-section">
+                    <div class="section-header">
+                        <h3>User Management</h3>
+                        <p>Create and manage user accounts for your team.</p>
+                    </div>
+
+                    <div class="users-container">
+                        <div class="users-header">
+                            <div class="users-actions">
+                                <button class="btn-primary" onclick="alert('Button clicked!'); openCreateUserModal();">
+                                    <i class="fas fa-user-plus"></i>
+                                    Create New User
+                                </button>
+                                <button class="btn-secondary" onclick="alert('Refresh clicked!'); refreshUsersList();">
+                                    <i class="fas fa-sync"></i>
+                                    Refresh
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="users-list" id="users-list">
+                            <div class="loading-users">Loading users...</div>
+                        </div>
+                    </div>
+                </div>
+           </div>
+        </div>
+    </div>
+
+    <!-- User Management Modal -->
+    {% include 'modals/user_management.html' %}
+
+    <!-- Modals (Keep existing modals unchanged) -->
+    <div id="tag-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-tags"></i> Organize Conversation</h3>
+                <span class="close" onclick="closeTagModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="tag-explanation">
+                    <p><strong>What are tags?</strong> Tags help you organize and find conversations by topic.</p>
+                    <p><strong>Examples:</strong> <code>python</code>, <code>work-project</code>, <code>tutorial</code>, <code>research</code></p>
+                    <p><strong>Benefits:</strong> Search conversations by tag, group related discussions, quick filtering</p>
+                    <p><strong>How to use:</strong> Type any tag name in the "Search conversations" box to find tagged discussions</p>
+                </div>
+                
+                <div class="tag-input-section">
+                    <label for="tag-input"><strong>Add tags to this conversation:</strong></label>
+                    <input type="text" id="tag-input" placeholder="Type tags separated by commas (e.g., python, tutorial, debugging)" onkeydown="handleTagInput(event)">
+                    <div class="tag-input-help">
+                        <small><i class="fas fa-lightbulb"></i> Tip: Use short, descriptive words. Tags are searchable in the conversation list.</small>
+                    </div>
+                </div>
+                
+                <div class="current-conversation-tags">
+                    <label><strong>Current tags for this conversation:</strong></label>
+                    <div class="conversation-current-tags" id="conversation-current-tags">
+                        <span class="no-tags">No tags yet</span>
+                    </div>
+                </div>
+                
+                <div class="suggested-tags-section">
+                    <label><strong>Quick add (click to add):</strong></label>
+                    <div class="existing-tags" id="existing-tags">
+                        <!-- Existing tags from other conversations will appear here -->
+                    </div>
+                </div>
+                
+                <div class="tag-modal-actions">
+                    <button class="btn-primary" onclick="saveTags()"><i class="fas fa-save"></i> Save Tags</button>
+                    <button class="btn-secondary" onclick="closeTagModal()">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="settings-modal" class="modal analytics-modal" style="display: none;">
+        <div class="modal-content analytics-dashboard-modal">
+            <!-- Analytics Dashboard Header -->
+            <div class="analytics-dashboard-header">
+                <div class="dashboard-header-left">
+                    <div class="dashboard-title-main">
+                        <h1>Analytics Dashboard</h1>
+                        <span class="live-indicator">
+                            <span class="live-dot"></span>
+                            Live
+                        </span>
+                    </div>
+                </div>
+                <div class="dashboard-header-right">
+                    <button class="dashboard-control-btn theme-toggle-btn" onclick="toggleDashboardTheme()" title="Toggle Theme">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                    <button class="dashboard-control-btn export-btn" onclick="exportDashboardData()" title="Export Data">
+                        <i class="fas fa-download"></i>
+                        Export
+                    </button>
+                    <button class="dashboard-control-btn close-btn" onclick="window.app.closeSettingsModal()" title="Close Dashboard">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Dashboard Controls Bar -->
+            <div class="dashboard-controls-bar">
+                <div class="controls-left">
+                    <button class="control-btn primary" onclick="addDashboardWidget()" title="Add Widget">
+                        <i class="fas fa-plus"></i>
+                        Add Widget
+                    </button>
+                    <div class="control-group">
+                        <label class="control-label">Time Range:</label>
+                        <select class="control-select time-range-selector" id="dashboard-time-range" onchange="updateDashboardTimeRange()">
+                            <option value="7">Last 7 days</option>
+                            <option value="30">Last 30 days</option>
+                            <option value="90">Last 3 months</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="controls-right">
+                    <div class="control-group">
+                        <label class="control-label">Auto-refresh:</label>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="auto-refresh-toggle" class="toggle-input" checked onchange="toggleAutoRefresh()">
+                            <label for="auto-refresh-toggle" class="toggle-label"></label>
+                        </div>
+                        <span class="refresh-interval">30s</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-body analytics-dashboard-body" id="settings-body">
+                <div class="settings-tabs">
+                    <button class="tab-btn active" onclick="showTab('usage')">Usage Stats</button>
+                    <button class="tab-btn" onclick="showTab('whitelist')" id="whitelist-tab" style="display:none;">IP Whitelist</button>
+                </div>
+                
+                <div id="usage-tab" class="tab-content analytics-main-content">
+                    <!-- Main Analytics Layout -->
+                    <div class="analytics-layout">
+                        <!-- Left Main Content -->
+                        <div class="analytics-main">
+                            <!-- Usage Metrics Chart -->
+                            <div class="analytics-widget usage-metrics-widget">
+                                <div class="widget-header">
+                                    <div class="widget-title">
+                                        <i class="fas fa-chart-bar widget-icon"></i>
+                                        <div class="widget-title-text">
+                                            <h3>Usage Metrics</h3>
+                                            <span class="widget-subtitle">Token usage and API calls</span>
+                                        </div>
+                                    </div>
+                                    <div class="widget-controls">
+                                        <button class="widget-control-btn" onclick="expandChart('usage-metrics')" title="Expand">
+                                            <i class="fas fa-expand"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="widget-content">
+                                    <canvas id="llm-usage-chart"></canvas>
+                                </div>
+                            </div>
+
+                            <!-- Activity Timeline Chart -->
+                            <div class="analytics-widget timeline-widget">
+                                <div class="widget-header">
+                                    <div class="widget-title">
+                                        <i class="fas fa-chart-line widget-icon"></i>
+                                        <div class="widget-title-text">
+                                            <h3>Activity Timeline</h3>
+                                            <span class="widget-subtitle">Model usage timeline</span>
+                                        </div>
+                                    </div>
+                                    <div class="widget-controls">
+                                        <button class="widget-control-btn" onclick="expandChart('activity-timeline')" title="Expand">
+                                            <i class="fas fa-expand"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="widget-content">
+                                    <canvas id="activity-timeline-chart"></canvas>
+                                </div>
+                            </div>
+
+                            <!-- Model Performance Table -->
+                            <div class="analytics-widget performance-widget">
+                                <div class="widget-header">
+                                    <div class="widget-title">
+                                        <i class="fas fa-server widget-icon"></i>
+                                        <div class="widget-title-text">
+                                            <h3>Model Performance</h3>
+                                            <span class="widget-subtitle">Detailed performance metrics</span>
+                                        </div>
+                                    </div>
+                                    <div class="widget-controls">
+                                        <button class="widget-control-btn" onclick="filterModelPerformance()" title="Filter">
+                                            <i class="fas fa-filter"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="widget-content">
+                                    <div class="performance-table" id="model-performance-table">
+                                        <!-- Table will be populated by JavaScript -->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Activity Log -->
+                            <div class="analytics-widget activity-widget">
+                                <div class="widget-header">
+                                    <div class="widget-title">
+                                        <i class="fas fa-list widget-icon"></i>
+                                        <div class="widget-title-text">
+                                            <h3>Activity Log</h3>
+                                            <span class="widget-subtitle">Recent system activities</span>
+                                        </div>
+                                    </div>
+                                    <div class="widget-controls">
+                                        <button class="widget-control-btn" onclick="searchActivityLog()" title="Search">
+                                            <i class="fas fa-search"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="widget-content">
+                                    <div class="activity-log" id="activity-log">
+                                        <!-- Activity log will be populated by JavaScript -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Sidebar - Quick Stats -->
+                        <div class="analytics-sidebar">
+                            <div class="analytics-widget quick-stats-widget">
+                                <div class="widget-header">
+                                    <div class="widget-title">
+                                        <i class="fas fa-tachometer-alt widget-icon"></i>
+                                        <div class="widget-title-text">
+                                            <h3>Quick Stats</h3>
+                                            <span class="widget-subtitle">Performance overview</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="widget-content quick-stats-content">
+                                    <div class="quick-stat-item">
+                                        <div class="stat-indicator">
+                                            <span class="stat-dot active-models"></span>
+                                            <span class="stat-label">Active Models</span>
+                                        </div>
+                                        <div class="stat-value" id="stat-active-models">12</div>
+                                    </div>
+                                    
+                                    <div class="quick-stat-item">
+                                        <div class="stat-indicator">
+                                            <span class="stat-dot total-requests"></span>
+                                            <span class="stat-label">Total Requests</span>
+                                        </div>
+                                        <div class="stat-value" id="stat-total-requests">1.2M</div>
+                                    </div>
+                                    
+                                    <div class="quick-stat-item">
+                                        <div class="stat-indicator">
+                                            <span class="stat-dot avg-response"></span>
+                                            <span class="stat-label">Avg Response</span>
+                                        </div>
+                                        <div class="stat-value" id="stat-avg-response">245ms</div>
+                                    </div>
+                                    
+                                    <div class="quick-stat-item">
+                                        <div class="stat-indicator">
+                                            <span class="stat-dot success-rate"></span>
+                                            <span class="stat-label">Success Rate</span>
+                                        </div>
+                                        <div class="stat-value success" id="stat-success-rate">99.8%</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="whitelist-tab-content" class="tab-content" style="display:none;">
+                    <div class="admin-section">
+                        <h4>Current IP Address</h4>
+                        <div id="current-ip-info" style="padding: 10px; background: #f8f9fa; border-radius: 4px; margin-bottom: 20px;">
+                            <div id="current-ip-display">Loading...</div>
+                            <button class="btn btn-sm btn-primary" onclick="whitelistCurrentIP()" id="whitelist-current-btn">
+                                Add to Whitelist
+                            </button>
+                        </div>
+                        
+                        <h4>Add IP to Whitelist</h4>
+                        <div style="margin-bottom: 20px;">
+                            <input type="text" id="new-ip-address" placeholder="192.168.1.1" style="margin-right: 10px; padding: 5px;">
+                            <input type="text" id="ip-description" placeholder="Description (optional)" style="margin-right: 10px; padding: 5px;">
+                            <button class="btn btn-primary" onclick="addIPToWhitelist()">Add IP</button>
+                        </div>
+                        
+                        <h4>Whitelisted IPs</h4>
+                        <div id="whitelist-table">
+                            <div class="loading">Loading whitelist...</div>
+                        </div>
+                        
+                        <h4>Usage Statistics</h4>
+                        <div id="usage-stats">
+                            <div class="loading">Loading stats...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="static/js/app.js"></script>
+
+
+
+
+
+        // Model management functions
+        const availableModels = {
+            openai: [
+                { value: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', description: 'Fast and efficient model for most tasks' },
+                { value: 'gpt-4', name: 'GPT-4', description: 'More capable model for complex reasoning' },
+                { value: 'gpt-4-turbo', name: 'GPT-4 Turbo', description: 'Faster GPT-4 with longer context' },
+                { value: 'gpt-4o', name: 'GPT-4o', description: 'Latest GPT-4 optimized model' },
+                { value: 'gpt-4o-mini', name: 'GPT-4o Mini', description: 'Smaller, faster GPT-4o variant' },
+                { value: 'gpt-5', name: 'ChatGPT 5', description: 'Next generation OpenAI model' },
+                { value: 'o1-preview', name: 'O1 Preview', description: 'Advanced reasoning model (preview)' },
+                { value: 'o1-mini', name: 'O1 Mini', description: 'Compact advanced reasoning model' }
+            ],
+            anthropic: [
+                { value: 'claude-3.5-sonnet', name: 'Claude 3.5 Sonnet', description: 'Latest high-performance Claude model' },
+                { value: 'claude-3-opus', name: 'Claude 3 Opus', description: 'Most capable Claude model' },
+                { value: 'claude-3-sonnet-v2', name: 'Claude 3 Sonnet', description: 'Balanced performance and speed' },
+                { value: 'claude-3-haiku', name: 'Claude 3 Haiku', description: 'Fast and efficient Claude model' }
+            ],
+            google: [
+                { value: 'gemini-pro', name: 'Gemini Pro', description: 'Google\'s flagship language model' },
+                { value: 'gemini-flash', name: 'Gemini Flash', description: 'Fast and lightweight Gemini variant' }
+            ],
+                         huggingface: [
+                 { value: 'llama2-70b', name: 'GPT-2 (via HF)', description: 'Standard GPT-2 model via Hugging Face' },
+                 { value: 'mixtral-8x7b', name: 'DistilGPT-2 (via HF)', description: 'Distilled GPT-2 model via Hugging Face' },
+                 { value: 'codellama-34b', name: 'Tiny GPT-2 (via HF)', description: 'Lightweight GPT-2 variant via Hugging Face' }
+             ],
+            stability: [
+                { value: 'stable-image-ultra', name: 'Stable Image Ultra', description: 'Highest quality image generation' },
+                { value: 'stable-image-core', name: 'Stable Image Core', description: 'Balanced image generation' },
+                { value: 'stable-image-sd3', name: 'Stable Image SD3', description: 'Latest Stable Diffusion model' },
+                { value: 'stable-audio-2', name: 'Stable Audio 2', description: 'Audio generation model' }
+            ]
+        };
+
+        let modelSettings = {};
+
+        async function loadModelConfigurations() {
+            const modelsList = document.getElementById('models-list');
+            modelsList.innerHTML = '<div class="loading-models">Loading model configurations...</div>';
+            
+            try {
+                // Load current model settings from server
+                console.log('Loading model configurations...');
+                const response = await fetch('/api/model-settings');
+                console.log('Response status:', response.status);
+                
+                if (response.ok) {
+                    modelSettings = await response.json();
+                    console.log('Loaded modelSettings from server:', modelSettings);
+                } else {
+                    // Initialize with default settings
+                    console.log('Response not OK, using default settings');
+                    modelSettings = {};
+                    Object.keys(availableModels).forEach(provider => {
+                        availableModels[provider].forEach(model => {
+                            modelSettings[model.value] = {
+                                enabled: model.value !== 'gpt-5', // GPT-5 disabled by default
+                                status: 'unknown'
+                            };
+                        });
+                    });
+                    console.log('Initialized default modelSettings:', modelSettings);
+                }
+                
+                renderModelsList();
+                
+            } catch (error) {
+                console.error('Failed to load model configurations:', error);
+                modelsList.innerHTML = '<div class="loading-models" style="color: red;">Failed to load model configurations</div>';
+            }
+        }
+
+        function renderModelsList() {
+            const modelsList = document.getElementById('models-list');
+            let html = '';
+            
+            console.log('Rendering models list with modelSettings:', modelSettings);
+            
+            Object.keys(availableModels).forEach(provider => {
+                const providerName = provider.charAt(0).toUpperCase() + provider.slice(1);
+                html += `
+                    <div class="model-group">
+                        <div class="model-group-header">
+                            <h4 class="model-group-title">
+                                <i class="fas fa-${getProviderIcon(provider)}"></i>
+                                ${providerName}
+                            </h4>
+                            <div class="model-group-actions">
+                                <button class="model-group-btn" onclick="toggleGroupModels('${provider}', true)">Enable All</button>
+                                <button class="model-group-btn" onclick="toggleGroupModels('${provider}', false)">Disable All</button>
+                                <button class="model-group-btn" onclick="checkGroupAccess('${provider}')">Check Access</button>
+                            </div>
+                        </div>
+                        <div class="models-grid">
+                `;
+                
+                availableModels[provider].forEach(model => {
+                    const settings = modelSettings[model.value] || { enabled: false, status: 'unknown' };
+                    console.log(`Model ${model.value}: settings =`, settings);
+                    html += `
+                        <div class="model-item">
+                            <div class="model-info">
+                                <input type="checkbox" class="model-checkbox" 
+                                       id="model-${model.value}" 
+                                       ${settings.enabled ? 'checked' : ''}
+                                       onchange="toggleModelEnabled('${model.value}')">
+                                <div class="model-details">
+                                    <h5 class="model-name">${model.name}</h5>
+                                    <p class="model-description">${model.description}</p>
+                                </div>
+                            </div>
+                            <div class="model-status">
+                                <div class="model-access-status ${settings.status}">
+                                    <span class="status-icon ${settings.status}"></span>
+                                    ${getStatusText(settings.status)}
+                                </div>
+                                <div class="model-actions">
+                                    <button class="model-action-btn" onclick="checkModelAccess('${model.value}')" title="Check Access">
+                                        <i class="fas fa-sync"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += `
+                        </div>
+                    </div>
+                `;
+            });
+            
+            modelsList.innerHTML = html;
+            console.log('Models list rendered');
+        }
+
+        function getProviderIcon(provider) {
+            const icons = {
+                openai: 'brain',
+                anthropic: 'robot',
+                google: 'search',
+                huggingface: 'heart',
+                stability: 'image'
+            };
+            return icons[provider] || 'cog';
+        }
+
+        function getStatusText(status) {
+            const statusTexts = {
+                active: 'Active',
+                limited: 'Limited',
+                unavailable: 'No Access',
+                checking: 'Checking...',
+                unknown: 'Unknown'
+            };
+            return statusTexts[status] || 'Unknown';
+        }
+
+        function toggleModelEnabled(modelValue) {
+            if (!modelSettings[modelValue]) {
+                modelSettings[modelValue] = { enabled: false, status: 'unknown' };
+            }
+            modelSettings[modelValue].enabled = document.getElementById(`model-${modelValue}`).checked;
+            console.log(`Model ${modelValue} enabled: ${modelSettings[modelValue].enabled}`);
+            console.log('Current modelSettings:', modelSettings);
+        }
+
+        function toggleGroupModels(provider, enabled) {
+            availableModels[provider].forEach(model => {
+                const checkbox = document.getElementById(`model-${model.value}`);
+                if (checkbox) {
+                    checkbox.checked = enabled;
+                    toggleModelEnabled(model.value);
+                }
+            });
+        }
+
+        async function checkModelAccess(modelValue) {
+            try {
+                // Find the model element and status elements
+                const modelElement = document.getElementById(`model-${modelValue}`);
+                if (!modelElement) {
+                    console.error(`Model element not found for: ${modelValue}`);
+                    return;
+                }
+                
+                const modelItem = modelElement.closest('.model-item');
+                if (!modelItem) {
+                    console.error(`Model item not found for: ${modelValue}`);
+                    return;
+                }
+                
+                const statusElement = modelItem.querySelector('.model-access-status');
+                if (!statusElement) {
+                    console.error(`Status element not found for: ${modelValue}`);
+                    return;
+                }
+                
+                const iconElement = statusElement.querySelector('.status-icon');
+                if (!iconElement) {
+                    console.error(`Icon element not found for: ${modelValue}`);
+                    return;
+                }
+                
+                // Set checking state
+                statusElement.className = 'model-access-status checking';
+                iconElement.className = 'status-icon checking';
+                statusElement.innerHTML = '<span class="status-icon checking"></span>Checking...';
+                
+                console.log(`Checking access for model: ${modelValue}`);
+                
+                const response = await fetch('/api/check-model-access', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': window.csrfToken || ''
+                    },
+                    body: JSON.stringify({ model: modelValue })
+                });
+                
+                console.log(`Response for ${modelValue}:`, response.status, response.statusText);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const result = await response.json();
+                console.log(`Result for ${modelValue}:`, result);
+                
+                const status = result.hasAccess ? 'active' : 'unavailable';
+                
+                modelSettings[modelValue] = modelSettings[modelValue] || {};
+                modelSettings[modelValue].status = status;
+                
+                statusElement.className = `model-access-status ${status}`;
+                iconElement.className = `status-icon ${status}`;
+                statusElement.innerHTML = `<span class="status-icon ${status}"></span>${getStatusText(status)}`;
+                
+                console.log(`Successfully updated status for ${modelValue} to: ${status}`);
+                
+            } catch (error) {
+                console.error(`Failed to check model access for ${modelValue}:`, error);
+                
+                // Try to update the status element if we can find it
+                try {
+                    const modelElement = document.getElementById(`model-${modelValue}`);
+                    if (modelElement) {
+                        const modelItem = modelElement.closest('.model-item');
+                        if (modelItem) {
+                            const statusElement = modelItem.querySelector('.model-access-status');
+                            if (statusElement) {
+                                statusElement.className = 'model-access-status unavailable';
+                                statusElement.innerHTML = '<span class="status-icon unavailable"></span>Error';
+                            }
+                        }
+                    }
+                } catch (domError) {
+                    console.error(`Failed to update DOM for ${modelValue}:`, domError);
+                }
+            }
+        }
+
+        async function checkGroupAccess(provider) {
+            const promises = availableModels[provider].map(model => checkModelAccess(model.value));
+            await Promise.all(promises);
+        }
+
+        async function checkAllModelsAccess() {
+            const checkBtn = document.querySelector('.btn-secondary');
+            const originalText = checkBtn.innerHTML;
+            
+            try {
+                // Show loading state
+                checkBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
+                checkBtn.disabled = true;
+                
+                console.log('Starting check for all models...');
+                
+                const allModels = Object.keys(availableModels).flatMap(provider => 
+                    availableModels[provider].map(model => model.value)
+                );
+                
+                console.log('Models to check:', allModels);
+                
+                // Check each model individually to catch specific errors
+                let successCount = 0;
+                let errorCount = 0;
+                
+                for (const modelValue of allModels) {
+                    try {
+                        await checkModelAccess(modelValue);
+                        successCount++;
+                    } catch (error) {
+                        console.error(`Error checking ${modelValue}:`, error);
+                        errorCount++;
+                    }
+                }
+                
+                console.log(`Check completed: ${successCount} successful, ${errorCount} errors`);
+                
+                if (errorCount === 0) {
+                    alert('Model access check completed successfully for all models!');
+                } else {
+                    alert(`Model access check completed with ${errorCount} errors. Check console for details.`);
+                }
+                
+            } catch (error) {
+                console.error('Failed to check all models access:', error);
+                alert(`Failed to check model access: ${error.message || 'Unknown error'}`);
+            } finally {
+                // Restore button state
+                checkBtn.innerHTML = originalText;
+                checkBtn.disabled = false;
+            }
+        }
+
+        async function saveModelSettings() {
+            const saveBtn = document.querySelector('.btn-primary');
+            const originalText = saveBtn.innerHTML;
+            
+            try {
+                // Show loading state
+                saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+                saveBtn.disabled = true;
+                
+                console.log('Saving model settings:', modelSettings);
+                
+                const response = await fetch('/api/model-settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(modelSettings)
+                });
+                
+                console.log('Response status:', response.status);
+                const result = await response.json();
+                console.log('Response result:', result);
+                
+                if (response.ok) {
+                    // Update the model dropdown based on enabled models
+                    updateModelDropdown();
+                    alert('Model settings saved successfully! The dropdown has been updated to show only enabled models.');
+                } else {
+                    alert(`Failed to save model settings: ${result.error || 'Unknown error'}`);
+                }
+                
+            } catch (error) {
+                console.error('Failed to save model settings:', error);
+                alert('Failed to save model settings: Network error');
+            } finally {
+                // Restore button state
+                saveBtn.innerHTML = originalText;
+                saveBtn.disabled = false;
+            }
+        }
+
+        function updateModelDropdown() {
+            const dropdown = document.getElementById('llm-model');
+            if (!dropdown) {
+                console.error('Model dropdown not found');
+                return;
+            }
+            
+            console.log('Updating model dropdown with modelSettings:', modelSettings);
+            
+            // Get all options, including those in optgroups
+            const allOptions = dropdown.querySelectorAll('option');
+            console.log('Found options:', allOptions.length);
+            
+            // First, hide ALL options by default
+            allOptions.forEach(option => {
+                option.style.display = 'none';
+                option.disabled = true;
+            });
+            
+            // Then show only the enabled models
+            Object.keys(modelSettings).forEach(modelValue => {
+                const settings = modelSettings[modelValue];
+                if (settings && settings.enabled) {
+                    const option = dropdown.querySelector(`option[value="${modelValue}"]`);
+                    if (option) {
+                        option.style.display = '';
+                        option.disabled = false;
+                        console.log(`Model ${modelValue}: showing (enabled)`);
+                    }
+                }
+            });
+            
+            // Only change the dropdown if there's no current selection or if current selection is invalid
+            const currentValue = dropdown.value;
+            const currentSettings = modelSettings[currentValue];
+            
+            console.log(`Current dropdown value: ${currentValue}`);
+            console.log(`Current settings for ${currentValue}:`, currentSettings);
+            console.log(`User preferred default: ${userPreferences.defaultModel}`);
+            console.log(`User manually changed model: ${userManuallyChangedModel}`);
+            
+            // Don't change the dropdown if user has manually selected a model and it's still valid
+            if (userManuallyChangedModel && currentValue && currentSettings && currentSettings.enabled) {
+                console.log(`Respecting user's manual selection: ${currentValue}`);
+                return;
+            }
+            
+            if (!currentValue || (currentSettings && !currentSettings.enabled)) {
+                // First try to use the user's saved preference if available and enabled
+                let newSelection = null;
+                if (userPreferences.defaultModel && modelSettings[userPreferences.defaultModel] && modelSettings[userPreferences.defaultModel].enabled) {
+                    newSelection = userPreferences.defaultModel;
+                    console.log(`Using user's saved preference: ${newSelection}`);
+                } else {
+                    // Fall back to first enabled model
+                    newSelection = Object.keys(modelSettings).find(model => 
+                        modelSettings[model] && modelSettings[model].enabled
+                    );
+                    console.log(`Falling back to first enabled model: ${newSelection}`);
+                }
+                
+                if (newSelection && dropdown.value !== newSelection) {
+                    // Find the actual option element to set
+                    const targetOption = dropdown.querySelector(`option[value="${newSelection}"]`);
+                    if (targetOption) {
+                        // Remove 'selected' attribute from all options first
+                        dropdown.querySelectorAll('option').forEach(option => {
+                            option.removeAttribute('selected');
+                        });
+                        
+                        // Set 'selected' attribute on the target option
+                        targetOption.setAttribute('selected', 'selected');
+                        
+                        dropdown.value = newSelection;
+                        console.log(`Set dropdown to: ${newSelection}`);
+                    } else {
+                        console.error(`Could not find option element for value: ${newSelection}`);
+                    }
+                }
+            } else {
+                console.log(`Keeping current selection: ${currentValue}`);
+            }
+        }
+        
+        // Test function for debugging single model access
+        async function testSingleModelAccess() {
+            try {
+                console.log('Testing single model access...');
+                console.log('Available models:', availableModels);
+                console.log('Model settings:', modelSettings);
+                
+                // Test with a simple model first
+                const testModel = 'gpt-3.5-turbo';
+                console.log(`Testing with model: ${testModel}`);
+                
+                const response = await fetch('/api/check-model-access', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': window.csrfToken || ''
+                    },
+                    body: JSON.stringify({ model: testModel })
+                });
+                
+                console.log('Test response status:', response.status);
+                console.log('Test response headers:', response.headers);
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('Test result:', result);
+                    alert(`Test successful! Model ${testModel} access: ${result.hasAccess ? 'Yes' : 'No'}`);
+                } else {
+                    const errorText = await response.text();
+                    console.error('Test failed:', errorText);
+                    alert(`Test failed: ${response.status} - ${errorText}`);
+                }
+                
+            } catch (error) {
+                console.error('Test function error:', error);
+                alert(`Test error: ${error.message}`);
+            }
+        }
+        
+        // Test function to check environment variables
+        async function testEnvironmentVariables() {
+            try {
+                console.log('Testing environment variables...');
+                
+                // Test each API endpoint to see what's configured
+                const apis = [
+                    { name: 'OpenAI', endpoint: '/api/check-model-access', model: 'gpt-3.5-turbo' },
+                    { name: 'Claude', endpoint: '/api/check-model-access', model: 'claude-3-haiku' },
+                    { name: 'Gemini', endpoint: '/api/check-model-access', model: 'gemini-pro' },
+                    { name: 'Hugging Face', endpoint: '/api/check-model-access', model: 'llama2-70b' },
+                    { name: 'Stability', endpoint: '/api/check-model-access', model: 'stable-image-core' }
+                ];
+                
+                const results = [];
+                
+                for (const api of apis) {
+                    try {
+                        const response = await fetch(api.endpoint, {
+                            method: 'POST',
+                            headers: { 
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': window.csrfToken || ''
+                            },
+                            body: JSON.stringify({ model: api.model })
+                        });
+                        
+                        if (response.ok) {
+                            const result = await response.json();
+                            results.push(`${api.name}: ${result.hasAccess ? '✓ Configured' : '✗ Not configured'}`);
+                        } else {
+                            results.push(`${api.name}: ✗ Error ${response.status}`);
+                        }
+                    } catch (error) {
+                        results.push(`${api.name}: ✗ Network error`);
+                    }
+                }
+                
+                console.log('Environment variable check results:', results);
+                alert('Environment Variables Check:\n\n' + results.join('\n'));
+                
+            } catch (error) {
+                console.error('Environment variable test error:', error);
+                alert(`Test error: ${error.message}`);
+            }
+        }
+        
+        // Preferences management
+         let userPreferences = {
+             defaultModel: ''
+         };
+         
+         function updateDefaultModel() {
+             const select = document.getElementById('default-model-select');
+             userPreferences.defaultModel = select.value;
+             console.log('Default model updated to:', userPreferences.defaultModel);
+         }
+         
+         async function savePreferences() {
+             const saveBtn = document.querySelector('#preferences-section .btn-secondary');
+             const originalText = saveBtn.innerHTML;
+             
+             try {
+                 // Show loading state
+                 saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+                 saveBtn.disabled = true;
+                 
+                 console.log('Saving preferences:', userPreferences);
+                 
+                 const response = await fetch('/api/preferences', {
+                     method: 'POST',
+                     headers: { 'Content-Type': 'application/json' },
+                     body: JSON.stringify(userPreferences)
+                 });
+                 
+                 if (response.ok) {
+                     // Update the main dropdown to reflect the new default
+                     if (userPreferences.defaultModel) {
+                         const mainDropdown = document.getElementById('llm-model');
+                         if (mainDropdown) {
+                             console.log(`Attempting to set main dropdown to: ${userPreferences.defaultModel}`);
+                             console.log('Current dropdown value before:', mainDropdown.value);
+                             
+                                                           // Find the actual option element
+                              const targetOption = mainDropdown.querySelector(`option[value="${userPreferences.defaultModel}"]`);
+                              if (targetOption) {
+                                  // Remove 'selected' attribute from all options first
+                                  mainDropdown.querySelectorAll('option').forEach(option => {
+                                      option.removeAttribute('selected');
+                                  });
+                                  
+                                  // Set 'selected' attribute on the target option
+                                  targetOption.setAttribute('selected', 'selected');
+                                  
+                                  // Update the dropdown value
+                                  mainDropdown.value = userPreferences.defaultModel;
+                                  
+                                  console.log('Successfully updated main dropdown to default model:', userPreferences.defaultModel);
+                                  console.log('New dropdown value:', mainDropdown.value);
+                                  console.log('Selected option text:', targetOption.textContent);
+                                  console.log('Selected attribute set on:', targetOption.value);
+                              } else {
+                                 console.error(`Could not find option with value: ${userPreferences.defaultModel}`);
+                                 console.log('Available options:');
+                                 mainDropdown.querySelectorAll('option').forEach(option => {
+                                     console.log(`- ${option.value}: ${option.textContent}`);
+                                 });
+                             }
+                         }
+                     }
+                     alert('Preferences saved successfully!');
+                 } else {
+                     const result = await response.json();
+                     alert(`Failed to save preferences: ${result.error || 'Unknown error'}`);
+                 }
+                 
+             } catch (error) {
+                 console.error('Failed to save preferences:', error);
+                 alert('Failed to save preferences: Network error');
+             } finally {
+                 // Restore button state
+                 saveBtn.innerHTML = originalText;
+                 saveBtn.disabled = false;
+             }
+         }
+         
+                 function populateDefaultModelSelect() {
+            const select = document.getElementById('default-model-select');
+            if (!select) {
+                console.error('Default model select element not found');
+                return;
+            }
+            
+            console.log('Populating default model select...');
+            console.log('Current modelSettings:', modelSettings);
+            console.log('Current userPreferences:', userPreferences);
+            
+            // Update debug info
+            const debugModelSettings = document.getElementById('debug-modelSettings');
+            const debugUserPreferences = document.getElementById('debug-userPreferences');
+            const debugDropdownStatus = document.getElementById('debug-dropdown-status');
+            
+            if (debugModelSettings) {
+                debugModelSettings.textContent = `modelSettings: ${Object.keys(modelSettings).length} models loaded`;
+            }
+            if (debugUserPreferences) {
+                debugUserPreferences.textContent = `userPreferences: ${userPreferences.defaultModel || 'none'}`;
+            }
+            
+            // Clear existing options
+            select.innerHTML = '';
+            
+            // Add a default option
+            select.innerHTML = '<option value="">Select a default model...</option>';
+            
+            // Check if modelSettings is loaded
+            if (Object.keys(modelSettings).length === 0) {
+                console.warn('modelSettings is empty, cannot populate preferences');
+                select.innerHTML = '<option value="">No models available - please load models first</option>';
+                if (debugDropdownStatus) {
+                    debugDropdownStatus.textContent = 'Status: No models available';
+                }
+                return;
+            }
+            
+            let enabledModelsCount = 0;
+            
+            // Add options for each enabled model
+            Object.keys(modelSettings).forEach(modelValue => {
+                const settings = modelSettings[modelValue];
+                if (settings && settings.enabled) {
+                    enabledModelsCount++;
+                    // Find the model name from availableModels
+                    let modelName = modelValue;
+                    Object.keys(availableModels).forEach(provider => {
+                        const model = availableModels[provider].find(m => m.value === modelValue);
+                        if (model) {
+                            modelName = model.name;
+                        }
+                    });
+                    
+                    const option = document.createElement('option');
+                    option.value = modelValue;
+                    option.textContent = modelName;
+                    
+                    // Mark as selected if it's the current preference
+                    if (modelValue === userPreferences.defaultModel) {
+                        option.selected = true;
+                        console.log(`Marked ${modelValue} as selected (user preference)`);
+                    }
+                    
+                    select.appendChild(option);
+                    console.log(`Added option: ${modelValue} - ${modelName}`);
+                }
+            });
+            
+            if (debugDropdownStatus) {
+                debugDropdownStatus.textContent = `Status: ${enabledModelsCount} models available`;
+            }
+            
+            console.log(`Populated preferences dropdown with ${enabledModelsCount} enabled models`);
+                 }
+         
+         // Debug function to check dropdown state
+         function debugDropdownState() {
+             const dropdown = document.getElementById('llm-model');
+             if (!dropdown) {
+                 console.error('Model dropdown not found');
+                 return;
+             }
+             
+             console.log('=== DROPDOWN DEBUG INFO ===');
+             console.log('Current dropdown value:', dropdown.value);
+             console.log('User preferences:', userPreferences);
+             console.log('Model settings:', modelSettings);
+             
+             const selectedOption = dropdown.querySelector(`option[value="${dropdown.value}"]`);
+             if (selectedOption) {
+                 console.log('Selected option text:', selectedOption.textContent);
+                 console.log('Selected option disabled:', selectedOption.disabled);
+                 console.log('Selected option display:', selectedOption.style.display);
+             }
+             
+             console.log('All options:');
+             dropdown.querySelectorAll('option').forEach(option => {
+                 console.log(`- ${option.value}: ${option.textContent} (disabled: ${option.disabled}, display: ${option.style.display})`);
+             });
+             console.log('=== END DEBUG INFO ===');
+         }
+         
+                   // Debug function to log current state
+          function debugCurrentState() {
+              console.log('=== CURRENT STATE DEBUG ===');
+              console.log('modelSettings:', modelSettings);
+              console.log('userPreferences:', userPreferences);
+              console.log('Current dropdown value:', document.getElementById('llm-model')?.value);
+              console.log('Current dropdown selected option:', document.getElementById('llm-model')?.selectedOptions[0]?.textContent);
+              console.log('=== END STATE DEBUG ===');
+          }
+          
+          // Debug function to manually set dropdown value
+          function debugSetDropdownValue(value) {
+             const dropdown = document.getElementById('llm-model');
+             if (!dropdown) {
+                 console.error('Model dropdown not found');
+                 return;
+             }
+             
+             console.log(`Attempting to set dropdown to: ${value}`);
+             
+             // Check if the option exists
+             const targetOption = dropdown.querySelector(`option[value="${value}"]`);
+             if (targetOption) {
+                 dropdown.value = value;
+                 console.log(`Successfully set dropdown to: ${value}`);
+                 console.log('Current dropdown value:', dropdown.value);
+                 console.log('Selected option:', targetOption.textContent);
+             } else {
+                 console.error(`Option with value "${value}" not found in dropdown`);
+                 console.log('Available options:');
+                 dropdown.querySelectorAll('option').forEach(option => {
+                     console.log(`- ${option.value}: ${option.textContent}`);
+                 });
+             }
+         }
+         
+         // Check auth status on load and show admin tab if authenticated
+         document.addEventListener('DOMContentLoaded', async () => {
+             const authStatus = await checkAuthStatus();
+             if (authStatus.authenticated) {
+                 document.getElementById('whitelist-tab').style.display = 'inline-block';
+                 // Show settings button for authenticated users
+                 document.getElementById('sidebar-settings-btn').style.display = 'flex';
+             }
+             
+                               // Load model settings and user preferences on page load
+              try {
+                  // Load both model settings and preferences in parallel
+                  const [modelResponse, prefsResponse] = await Promise.all([
+                      fetch('/api/model-settings'),
+                      fetch('/api/preferences')
+                  ]);
+                  
+                  if (modelResponse.ok) {
+                      modelSettings = await modelResponse.json();
+                      console.log('Loaded modelSettings on page load:', modelSettings);
+                  }
+                  
+                  if (prefsResponse.ok) {
+                      userPreferences = await prefsResponse.json();
+                      console.log('Loaded user preferences:', userPreferences);
+                  }
+                  
+                  // Now update the dropdown AFTER both are loaded
+                  updateModelDropdown();
+                  
+                  // Reset the manual change flag on page load so preferences can be applied
+                  userManuallyChangedModel = false;
+                  
+                  // Also ensure the preferences dropdown is populated if we're on the preferences section
+                  if (document.getElementById('preferences-section').classList.contains('active')) {
+                      populateDefaultModelSelect();
+                  }
+                  
+              } catch (error) {
+                  console.error('Failed to load data on page load:', error);
+              }
+         });
+    </script>
+
+    <!-- Template Picker Modal -->
+    <div class="template-modal" id="template-modal" style="display: none;">
+        <div class="template-modal-content">
+            <div class="template-modal-header">
+                <h3><i class="fas fa-file-alt"></i> Choose Template</h3>
+                <button class="template-modal-close" onclick="window.app.closeTemplatePicker()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="template-modal-body">
+                <div class="template-search">
+                    <div class="template-search-input">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="template-search" placeholder="Search templates..." oninput="window.app.searchTemplates(this.value)">
+                    </div>
+                </div>
+                
+                <div class="template-categories">
+                    <div class="template-category-tabs">
+                        <button class="category-tab active" onclick="window.app.filterTemplates('all')" data-category="all">All</button>
+                        <button class="category-tab" onclick="window.app.filterTemplates('writing')" data-category="writing">Writing</button>
+                        <button class="category-tab" onclick="window.app.filterTemplates('research')" data-category="research">Research</button>
+                        <button class="category-tab" onclick="window.app.filterTemplates('code')" data-category="code">Code</button>
+                        <button class="category-tab" onclick="window.app.filterTemplates('creative')" data-category="creative">Creative</button>
+                    </div>
+                </div>
+                
+                <div class="template-grid" id="template-grid">
+                    <!-- Templates will be populated here -->
+                    <div class="template-card" data-category="writing" onclick="window.app.selectTemplate('email-template')">
+                        <div class="template-icon">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <div class="template-info">
+                            <h4>Email Template</h4>
+                            <p>Professional email writing</p>
+                            <div class="template-meta">
+                                <span class="template-model">Claude-3.5-Sonnet</span>
+                                <span class="template-usage">⭐ 245 uses</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="template-card" data-category="code" onclick="window.app.selectTemplate('code-review')">
+                        <div class="template-icon">
+                            <i class="fas fa-code"></i>
+                        </div>
+                        <div class="template-info">
+                            <h4>Code Review</h4>
+                            <p>Comprehensive code analysis</p>
+                            <div class="template-meta">
+                                <span class="template-model">GPT-4</span>
+                                <span class="template-usage">⭐ 189 uses</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="template-card" data-category="writing" onclick="window.app.selectTemplate('meeting-notes')">
+                        <div class="template-icon">
+                            <i class="fas fa-clipboard"></i>
+                        </div>
+                        <div class="template-info">
+                            <h4>Meeting Notes</h4>
+                            <p>Structured meeting documentation</p>
+                            <div class="template-meta">
+                                <span class="template-model">Claude-3.5-Sonnet</span>
+                                <span class="template-usage">⭐ 156 uses</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="template-card" data-category="creative" onclick="window.app.selectTemplate('brainstorming')">
+                        <div class="template-icon">
+                            <i class="fas fa-lightbulb"></i>
+                        </div>
+                        <div class="template-info">
+                            <h4>Brainstorming</h4>
+                            <p>Creative idea generation</p>
+                            <div class="template-meta">
+                                <span class="template-model">Claude-3.5-Sonnet</span>
+                                <span class="template-usage">⭐ 134 uses</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="template-card" data-category="research" onclick="window.app.selectTemplate('research')">
+                        <div class="template-icon">
+                            <i class="fas fa-search"></i>
+                        </div>
+                        <div class="template-info">
+                            <h4>Research</h4>
+                            <p>Academic research assistance</p>
+                            <div class="template-meta">
+                                <span class="template-model">GPT-4</span>
+                                <span class="template-usage">⭐ 98 uses</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="template-card" data-category="writing" onclick="window.app.selectTemplate('blog-post')">
+                        <div class="template-icon">
+                            <i class="fas fa-blog"></i>
+                        </div>
+                        <div class="template-info">
+                            <h4>Blog Post</h4>
+                            <p>Engaging blog content</p>
+                            <div class="template-meta">
+                                <span class="template-model">Claude-3.5-Sonnet</span>
+                                <span class="template-usage">⭐ 87 uses</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="template-modal-footer">
+                <button class="template-btn-secondary" onclick="window.app.closeTemplatePicker()">Cancel</button>
+                <button class="template-btn-primary" onclick="window.app.createCustomTemplate()">
+                    <i class="fas fa-plus"></i> Create Custom Template
+                </button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
