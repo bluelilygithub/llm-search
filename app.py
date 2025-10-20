@@ -436,11 +436,36 @@ def login_override():
     
     # Check if this is an admin login (password only, no username)
     if not username and password:
-        if auth.verify_password(password):
+        # Look up admin user from database
+        admin_user = db.session.query(User).filter_by(username='admin').first()
+        
+        if admin_user and admin_user.check_password(password):
+            # Update admin login stats
+            admin_user.last_login_at = datetime.utcnow()
+            admin_user.login_count += 1
+            admin_user.last_activity_at = datetime.utcnow()
+            db.session.commit()
+            
             session['authenticated'] = True
-            session['user_id'] = 'admin'
+            session['user_id'] = str(admin_user.id)  # Use UUID from database
             session['user_type'] = 'admin'
             session['user_role'] = 'SUPER_ADMIN'
+            session['username'] = 'admin'
+            session['display_name'] = admin_user.display_name or 'Administrator'
+            
+            # Log the login
+            audit_log = UserAuditLog(
+                user_id=admin_user.id,
+                action='login',
+                resource_type='auth',
+                ip_address=request.remote_addr,
+                user_agent=request.user_agent.string,
+                details={'login_type': 'admin'},
+                success=True
+            )
+            db.session.add(audit_log)
+            db.session.commit()
+            
             app.logger.info("Admin login successful")
             return jsonify({
                 'success': True, 
