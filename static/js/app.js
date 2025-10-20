@@ -6178,6 +6178,9 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('📋 Template IDs:', Object.keys(TEMPLATE_DATA));
     });
     
+    // Check admin status and show/hide settings buttons
+    window.showUsersTabIfAdmin();
+    
     // Initialize image paste functionality
     window.app.setupImagePaste();
     
