@@ -4333,6 +4333,16 @@ window.openCreateUserModal = function() {
     document.getElementById('user-password').required = true;
     
     modal.style.display = 'flex';
+    
+    // Add click-outside-to-close functionality
+    setTimeout(() => {
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                window.closeUserModal();
+            }
+        }, { once: true });
+    }, 100);
+    
     console.log('✅ Modal opened successfully');
 };
 
