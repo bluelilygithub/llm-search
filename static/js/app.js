@@ -4313,6 +4313,14 @@ window.showUsersTabIfAdmin = async function() {
         if (sidebarSettingsBtn) {
             sidebarSettingsBtn.style.display = isAdmin ? 'flex' : 'none';
         }
+        
+        // Display username in top bar
+        const usernameDisplay = document.getElementById('username-display');
+        if (usernameDisplay && data.authenticated) {
+            const displayName = data.display_name || data.username || 'User';
+            usernameDisplay.textContent = displayName;
+            usernameDisplay.style.display = 'inline-block';
+        }
     } catch (error) {
         console.error('Error checking admin status:', error);
     }
