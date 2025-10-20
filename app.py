@@ -35,6 +35,10 @@ except ImportError:
 # Initialize Flask app
 app = Flask(__name__, static_folder='static', instance_path=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'instance'))
 
+# Force template reloading in production (Railway cache issue)
+app.config['TEMPLATES_AUTO_RELOAD'] = True
+app.jinja_env.auto_reload = True
+
 # Configure app based on environment
 from config import config
 config_name = os.getenv('FLASK_CONFIG', 'default')
