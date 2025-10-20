@@ -521,6 +521,258 @@ def init_database():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+# ==================== USER MANAGEMENT API ENDPOINTS ====================
+
+@app.route('/api/users', methods=['GET'])
+@auth.login_required
+def get_users():
+    """Get all users (admin only)"""
+    try:
+        # Check if user is admin
+        user_type = session.get('user_type')
+        user_role = session.get('user_role')
+        
+        if user_type != 'admin' and user_role not in ['super_admin', 'admin']:
+            return jsonify({'error': 'Unauthorized - Admin access required'}), 403
+        
+        users = db.session.query(User).all()
+        
+        users_list = []
+        for user in users:
+            users_list.append({
+                'id': str(user.id),
+                'username': user.username,
+                'email': user.email,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'display_name': user.display_name or f"{user.first_name or ''} {user.last_name or ''}".strip() or user.username,
+                'role': user.role.value,
+                'status': user.status.value,
+                'last_login_at': user.last_login_at.isoformat() if user.last_login_at else None,
+                'created_at': user.created_at.isoformat() if user.created_at else None,
+                'login_count': user.login_count
+            })
+        
+        return jsonify({'users': users_list, 'success': True})
+        
+    except Exception as e:
+        app.logger.error(f"Error fetching users: {str(e)}")
+        return jsonify({'error': 'Failed to fetch users'}), 500
+
+@app.route('/api/users/<user_id>', methods=['GET'])
+@auth.login_required
+def get_user(user_id):
+    """Get single user details (admin only)"""
+    try:
+        # Check if user is admin
+        user_type = session.get('user_type')
+        user_role = session.get('user_role')
+        
+        if user_type != 'admin' and user_role not in ['super_admin', 'admin']:
+            return jsonify({'error': 'Unauthorized - Admin access required'}), 403
+        
+        user = db.session.query(User).filter(User.id == user_id).first()
+        
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        user_data = {
+            'id': str(user.id),
+            'username': user.username,
+            'email': user.email,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'display_name': user.display_name,
+            'role': user.role.value,
+            'status': user.status.value,
+            'email_verified': user.email_verified,
+            'last_login_at': user.last_login_at.isoformat() if user.last_login_at else None,
+            'created_at': user.created_at.isoformat() if user.created_at else None,
+            'login_count': user.login_count
+        }
+        
+        return jsonify({'user': user_data, 'success': True})
+        
+    except Exception as e:
+        app.logger.error(f"Error fetching user: {str(e)}")
+        return jsonify({'error': 'Failed to fetch user'}), 500
+
+@app.route('/api/users', methods=['POST'])
+@auth.login_required
+def create_user():
+    """Create new user (admin only)"""
+    try:
+        # Check if user is admin
+        user_type = session.get('user_type')
+        user_role = session.get('user_role')
+        
+        if user_type != 'admin' and user_role not in ['super_admin', 'admin']:
+            return jsonify({'error': 'Unauthorized - Admin access required'}), 403
+        
+        data = request.get_json()
+        
+        # Validate required fields
+        if not data.get('username') or not data.get('email') or not data.get('password'):
+            return jsonify({'error': 'Username, email, and password are required'}), 400
+        
+        # Check if username exists
+        existing_user = db.session.query(User).filter(User.username == data['username']).first()
+        if existing_user:
+            return jsonify({'error': 'Username already exists'}), 400
+        
+        # Check if email exists
+        existing_email = db.session.query(User).filter(User.email == data['email']).first()
+        if existing_email:
+            return jsonify({'error': 'Email already exists'}), 400
+        
+        # Create new user
+        new_user = User(
+            username=data['username'],
+            email=data['email'],
+            password=data['password']
+        )
+        
+        # Set optional fields
+        if data.get('first_name'):
+            new_user.first_name = data['first_name']
+        if data.get('last_name'):
+            new_user.last_name = data['last_name']
+        if data.get('display_name'):
+            new_user.display_name = data['display_name']
+        if data.get('role'):
+            try:
+                new_user.role = UserRole(data['role'])
+            except ValueError:
+                return jsonify({'error': 'Invalid role'}), 400
+        if data.get('status'):
+            try:
+                new_user.status = UserStatus(data['status'])
+            except ValueError:
+                return jsonify({'error': 'Invalid status'}), 400
+        
+        db.session.add(new_user)
+        db.session.commit()
+        
+        app.logger.info(f"User created: {new_user.username} by {session.get('user_id')}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'User created successfully',
+            'user_id': str(new_user.id)
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error creating user: {str(e)}")
+        return jsonify({'error': 'Failed to create user'}), 500
+
+@app.route('/api/users/<user_id>', methods=['PUT'])
+@auth.login_required
+def update_user(user_id):
+    """Update user (admin only)"""
+    try:
+        # Check if user is admin
+        user_type = session.get('user_type')
+        user_role = session.get('user_role')
+        
+        if user_type != 'admin' and user_role not in ['super_admin', 'admin']:
+            return jsonify({'error': 'Unauthorized - Admin access required'}), 403
+        
+        user = db.session.query(User).filter(User.id == user_id).first()
+        
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        data = request.get_json()
+        
+        # Update username if changed
+        if data.get('username') and data['username'] != user.username:
+            existing = db.session.query(User).filter(User.username == data['username']).first()
+            if existing:
+                return jsonify({'error': 'Username already exists'}), 400
+            user.username = data['username']
+        
+        # Update email if changed
+        if data.get('email') and data['email'] != user.email:
+            existing = db.session.query(User).filter(User.email == data['email']).first()
+            if existing:
+                return jsonify({'error': 'Email already exists'}), 400
+            user.email = data['email']
+        
+        # Update password if provided
+        if data.get('password'):
+            user.set_password(data['password'])
+        
+        # Update other fields
+        if 'first_name' in data:
+            user.first_name = data['first_name']
+        if 'last_name' in data:
+            user.last_name = data['last_name']
+        if 'display_name' in data:
+            user.display_name = data['display_name']
+        if data.get('role'):
+            try:
+                user.role = UserRole(data['role'])
+            except ValueError:
+                return jsonify({'error': 'Invalid role'}), 400
+        if data.get('status'):
+            try:
+                user.status = UserStatus(data['status'])
+            except ValueError:
+                return jsonify({'error': 'Invalid status'}), 400
+        
+        user.updated_at = datetime.utcnow()
+        db.session.commit()
+        
+        app.logger.info(f"User updated: {user.username} by {session.get('user_id')}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'User updated successfully'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error updating user: {str(e)}")
+        return jsonify({'error': 'Failed to update user'}), 500
+
+@app.route('/api/users/<user_id>', methods=['DELETE'])
+@auth.login_required
+def delete_user(user_id):
+    """Delete user (admin only)"""
+    try:
+        # Check if user is admin
+        user_type = session.get('user_type')
+        user_role = session.get('user_role')
+        
+        if user_type != 'admin' and user_role not in ['super_admin', 'admin']:
+            return jsonify({'error': 'Unauthorized - Admin access required'}), 403
+        
+        user = db.session.query(User).filter(User.id == user_id).first()
+        
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        # Prevent deleting admin user
+        if user.username == 'admin':
+            return jsonify({'error': 'Cannot delete admin user'}), 400
+        
+        username = user.username
+        db.session.delete(user)
+        db.session.commit()
+        
+        app.logger.info(f"User deleted: {username} by {session.get('user_id')}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'User deleted successfully'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error deleting user: {str(e)}")
+        return jsonify({'error': 'Failed to delete user'}), 500
+
 @app.route('/migrate-project-template')
 def migrate_project_template():
     """Add new template fields to the projects table if they don't exist"""
