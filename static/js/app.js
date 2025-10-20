@@ -3378,6 +3378,8 @@ KnowledgeBaseApp.prototype.openSettingsPanel = function() {
         this.loadModelsForSettingsPanel();
         // Show Users tab if admin
         window.showUsersTabIfAdmin();
+        // Load account info
+        window.loadAccountInfo();
     }, 200);
 };
 
@@ -4494,6 +4496,113 @@ window.deleteUser = async function(userId, username) {
     } catch (error) {
         console.error('Error deleting user:', error);
         alert('Network error. Please try again.');
+    }
+};
+
+// ==================== ACCOUNT INFORMATION ====================
+
+window.loadAccountInfo = async function() {
+    const accountContent = document.getElementById('account-info-content');
+    
+    try {
+        const response = await fetch('/auth/status');
+        const data = await response.json();
+        
+        if (data.authenticated) {
+            const userType = data.user_type || 'unknown';
+            const userRole = data.user_role || 'N/A';
+            const username = data.username || 'Admin';
+            const displayName = data.display_name || username;
+            
+            accountContent.innerHTML = `
+                <div class="account-card">
+                    <div class="account-section">
+                        <h4><i class="fas fa-user-circle"></i> Profile</h4>
+                        <div class="account-details">
+                            <div class="detail-row">
+                                <span class="detail-label">Display Name:</span>
+                                <span class="detail-value"><strong>${displayName}</strong></span>
+                            </div>
+                            ${userType !== 'admin' ? `
+                            <div class="detail-row">
+                                <span class="detail-label">Username:</span>
+                                <span class="detail-value">${username}</span>
+                            </div>
+                            ` : ''}
+                            <div class="detail-row">
+                                <span class="detail-label">Account Type:</span>
+                                <span class="detail-value"><span class="role-badge role-${userRole}">${userRole.replace('_', ' ')}</span></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    ${userType === 'admin' ? `
+                    <div class="account-section">
+                        <h4><i class="fas fa-shield-alt"></i> Administrator Account</h4>
+                        <div class="account-details">
+                            <p style="color: #666; font-size: 14px;">
+                                You are logged in as the system administrator with full access to all features and settings.
+                            </p>
+                        </div>
+                    </div>
+                    ` : `
+                    <div class="account-section">
+                        <h4><i class="fas fa-info-circle"></i> Account Status</h4>
+                        <div class="account-details">
+                            <div class="detail-row">
+                                <span class="detail-label">Status:</span>
+                                <span class="detail-value"><span class="status-badge status-active">Active</span></span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Access Level:</span>
+                                <span class="detail-value">${getRoleDescription(userRole)}</span>
+                            </div>
+                        </div>
+                    </div>
+                    `}
+                    
+                    <div class="account-section">
+                        <h4><i class="fas fa-cog"></i> Actions</h4>
+                        <div class="account-actions">
+                            <button class="btn-secondary" onclick="changePassword()">
+                                <i class="fas fa-key"></i>
+                                Change Password
+                            </button>
+                            <button class="btn-danger" onclick="confirmLogout()">
+                                <i class="fas fa-sign-out-alt"></i>
+                                Sign Out
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else {
+            accountContent.innerHTML = '<p class="error-message">Not authenticated</p>';
+        }
+    } catch (error) {
+        console.error('Error loading account info:', error);
+        accountContent.innerHTML = '<p class="error-message">Failed to load account information.</p>';
+    }
+};
+
+function getRoleDescription(role) {
+    const descriptions = {
+        'super_admin': 'Full system access with all permissions',
+        'admin': 'Can manage users and organization settings',
+        'user': 'Standard access to create and manage conversations',
+        'viewer': 'Read-only access to view conversations',
+        'guest': 'Limited trial access'
+    };
+    return descriptions[role] || 'Standard user access';
+}
+
+window.changePassword = function() {
+    alert('Password change feature coming soon. Please contact your administrator.');
+};
+
+window.confirmLogout = function() {
+    if (confirm('Are you sure you want to sign out?')) {
+        logout();
     }
 };
 
