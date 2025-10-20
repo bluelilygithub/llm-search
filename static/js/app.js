@@ -766,12 +766,26 @@ class KnowledgeBaseApp {
         }
         
         // Initial message without follow-up questions
+        // Add speaker button for assistant messages
+        const speakerButton = message.role === 'assistant' ? 
+            `<button class="speaker-btn" onclick="window.app.speakMessage(this, '${message.id || Date.now()}')" title="Listen to response">
+                <i class="fas fa-volume-up"></i>
+            </button>` : '';
+        
         messageDiv.innerHTML = `
             <div class="message-content">
                 ${this.formatMessageContent(message.content)}
-                <div class="message-time">${timeString}</div>
+                <div class="message-time">
+                    ${timeString}
+                    ${speakerButton}
+                </div>
             </div>
         `;
+        
+        // Store message content for text-to-speech
+        if (message.role === 'assistant') {
+            messageDiv.dataset.messageText = message.content;
+        }
         
         container.appendChild(messageDiv);
         this.scrollToBottom();
@@ -1928,6 +1942,86 @@ class KnowledgeBaseApp {
 
     // Remove MediaRecorder and backend-based voice input methods
     stopVoiceInput() {}
+
+    // Text-to-Speech functionality
+    speakMessage(button, messageId) {
+        // Check if browser supports speech synthesis
+        if (!('speechSynthesis' in window)) {
+            this.showError('Text-to-speech is not supported in this browser.');
+            return;
+        }
+
+        const messageDiv = button.closest('.message');
+        const messageText = messageDiv.dataset.messageText;
+        
+        if (!messageText) {
+            this.showError('No message text found');
+            return;
+        }
+
+        // If already speaking this message, stop it
+        if (this.currentSpeechMessageId === messageId && window.speechSynthesis.speaking) {
+            window.speechSynthesis.cancel();
+            button.classList.remove('speaking');
+            button.innerHTML = '<i class="fas fa-volume-up"></i>';
+            this.currentSpeechMessageId = null;
+            return;
+        }
+
+        // Stop any ongoing speech
+        window.speechSynthesis.cancel();
+
+        // Remove speaking class from all buttons
+        document.querySelectorAll('.speaker-btn.speaking').forEach(btn => {
+            btn.classList.remove('speaking');
+            btn.innerHTML = '<i class="fas fa-volume-up"></i>';
+        });
+
+        // Create speech utterance
+        const utterance = new SpeechSynthesisUtterance(messageText);
+        
+        // Configure speech settings
+        utterance.rate = 1.0;  // Normal speed
+        utterance.pitch = 1.0; // Normal pitch
+        utterance.volume = 1.0; // Full volume
+        
+        // Visual feedback when speaking starts
+        utterance.onstart = () => {
+            button.classList.add('speaking');
+            button.innerHTML = '<i class="fas fa-stop"></i>';
+            this.currentSpeechMessageId = messageId;
+        };
+        
+        // Reset button when speech ends
+        utterance.onend = () => {
+            button.classList.remove('speaking');
+            button.innerHTML = '<i class="fas fa-volume-up"></i>';
+            this.currentSpeechMessageId = null;
+        };
+        
+        // Handle errors
+        utterance.onerror = (event) => {
+            console.error('Speech synthesis error:', event);
+            button.classList.remove('speaking');
+            button.innerHTML = '<i class="fas fa-volume-up"></i>';
+            this.currentSpeechMessageId = null;
+        };
+
+        // Start speaking
+        window.speechSynthesis.speak(utterance);
+    }
+
+    // Stop all speech
+    stopSpeech() {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            document.querySelectorAll('.speaker-btn.speaking').forEach(btn => {
+                btn.classList.remove('speaking');
+                btn.innerHTML = '<i class="fas fa-volume-up"></i>';
+            });
+            this.currentSpeechMessageId = null;
+        }
+    }
     async transcribeAudio(audioBlob) {}
 
     // URL reference functionality

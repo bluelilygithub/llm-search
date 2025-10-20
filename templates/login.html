@@ -431,53 +431,7 @@
         </form>
         
         <div class="footer-links">
-            <a href="#" class="footer-link" onclick="openForgotPasswordModal(); return false;">Forgot your password?</a>
             <div class="signup-text">Don't have an account? <a href="#" class="footer-link" style="display: inline; margin: 0;">Sign up for free</a></div>
-        </div>
-    </div>
-
-    <!-- Forgot Password Modal -->
-    <div class="modal-overlay" id="forgotPasswordModal">
-        <div class="modal-content" style="position: relative;">
-            <button class="modal-close" onclick="closeForgotPasswordModal()">&times;</button>
-            
-            <div class="modal-header">
-                <h2>🔐 Reset Admin Password</h2>
-                <p>Enter your email to receive a password reset link</p>
-            </div>
-            
-            <div id="resetRequestStep">
-                <p style="color: #4a5568; font-size: 14px; margin-bottom: 20px;">
-                    We'll send you a secure link to reset your password. Check your email after submitting.
-                </p>
-                
-                <input type="email" class="form-input" id="resetEmailInput" placeholder="Enter your email address" style="margin-bottom: 16px;">
-                
-                <button onclick="requestPasswordReset()" class="login-btn primary" id="requestResetBtn">
-                    <i class="fas fa-envelope"></i>
-                    Send Reset Link
-                </button>
-            </div>
-            
-            <div id="resetCodeStep" style="display: none;">
-                <div class="success-message">
-                    <i class="fas fa-check-circle"></i>
-                    <strong>Reset link sent!</strong><br>
-                    Check your email for a password reset link. It will be valid for 1 hour.
-                </div>
-                
-                <p style="color: #4a5568; font-size: 13px; margin: 20px 0;">
-                    Didn't receive the email? Check your spam folder or try again.
-                </p>
-                
-                <button onclick="goBackToRequest()" class="login-btn secondary">
-                    <i class="fas fa-arrow-left"></i>
-                    Try Different Email
-                </button>
-            </div>
-            
-            <div class="error-message" id="modalErrorMessage" style="margin-top: 16px;"></div>
-            <div class="success-message" id="modalSuccessMessage" style="display: none;"></div>
         </div>
     </div>
 
@@ -571,72 +525,6 @@
         
         // Check free access on load
         checkFreeAccess();
-        
-        // Forgot Password Modal Functions
-        function openForgotPasswordModal() {
-            document.getElementById('forgotPasswordModal').classList.add('active');
-            document.getElementById('resetRequestStep').style.display = 'block';
-            document.getElementById('resetCodeStep').style.display = 'none';
-            document.getElementById('modalErrorMessage').style.display = 'none';
-            document.getElementById('modalSuccessMessage').style.display = 'none';
-        }
-        
-        function closeForgotPasswordModal() {
-            document.getElementById('forgotPasswordModal').classList.remove('active');
-        }
-        
-        function goBackToRequest() {
-            document.getElementById('resetRequestStep').style.display = 'block';
-            document.getElementById('resetCodeStep').style.display = 'none';
-            document.getElementById('resetEmailInput').value = '';
-        }
-        
-        async function requestPasswordReset() {
-            const email = document.getElementById('resetEmailInput').value.trim();
-            const requestBtn = document.getElementById('requestResetBtn');
-            const errorMsg = document.getElementById('modalErrorMessage');
-            
-            if (!email) {
-                errorMsg.textContent = 'Please enter your email address';
-                errorMsg.style.display = 'block';
-                return;
-            }
-            
-            try {
-                requestBtn.disabled = true;
-                requestBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
-                errorMsg.style.display = 'none';
-                
-                const response = await fetch('/auth/request-password-reset', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: email })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    document.getElementById('resetRequestStep').style.display = 'none';
-                    document.getElementById('resetCodeStep').style.display = 'block';
-                } else {
-                    errorMsg.textContent = data.error || 'Failed to send reset email';
-                    errorMsg.style.display = 'block';
-                }
-            } catch (error) {
-                errorMsg.textContent = 'Network error. Please try again.';
-                errorMsg.style.display = 'block';
-            } finally {
-                requestBtn.disabled = false;
-                requestBtn.innerHTML = '<i class="fas fa-envelope"></i> Send Reset Link';
-            }
-        }
-        
-        // Close modal when clicking outside
-        document.getElementById('forgotPasswordModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeForgotPasswordModal();
-            }
-        });
     </script>
 </body>
 </html>

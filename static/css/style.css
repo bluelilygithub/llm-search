@@ -1091,6 +1091,17 @@ body {
     font-size: 20px;
 }
 
+/* Voice input recording state */
+.input-control-btn.recording {
+    background-color: #dc2626;
+    color: white;
+    animation: pulse 1.5s infinite;
+}
+
+.input-control-btn.recording:hover {
+    background-color: #b91c1c;
+}
+
 .message-input-container {
     flex: 1;
     position: relative;
@@ -1180,6 +1191,58 @@ body {
     background-color: var(--gray-100);
     color: var(--gray-700);
     font-style: italic;
+}
+
+.message-time {
+    margin-top: var(--spacing-sm);
+    font-size: var(--font-size-xs);
+    color: var(--gray-500);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.message.user .message-time {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* Speaker button for text-to-speech */
+.speaker-btn {
+    background: transparent;
+    border: none;
+    color: var(--gray-500);
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+    transition: all var(--transition-fast);
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: var(--spacing-sm);
+}
+
+.speaker-btn:hover {
+    background-color: var(--gray-100);
+    color: var(--primary-blue);
+}
+
+.speaker-btn.speaking {
+    color: var(--primary-blue);
+    animation: pulse 1.5s infinite;
+}
+
+.speaker-btn i {
+    font-size: 14px;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.6;
+    }
 }
 
 /* ==================== STABILITY IMAGE UPLOAD STYLES ==================== */
