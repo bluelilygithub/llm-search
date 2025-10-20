@@ -56,40 +56,6 @@
             font-weight: 400;
         }
         
-        .free-access-banner {
-            background: #e6fffa;
-            border: 1px solid #81e6d9;
-            border-left: 4px solid #38b2ac;
-            border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 32px;
-            display: flex;
-            align-items: center;
-            text-align: left;
-        }
-        
-        .free-access-icon {
-            color: #38b2ac;
-            font-size: 20px;
-            margin-right: 12px;
-        }
-        
-        .free-access-content {
-            flex: 1;
-        }
-        
-        .free-access-title {
-            color: #2d3748;
-            font-weight: 600;
-            font-size: 14px;
-            margin-bottom: 2px;
-        }
-        
-        .free-access-text {
-            color: #4a5568;
-            font-size: 13px;
-            font-weight: 400;
-        }
         
         .form-group {
             margin-bottom: 24px;
@@ -345,6 +311,16 @@
             background: white;
         }
         
+        .login-hint {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 16px;
+            padding: 12px;
+            background: #f7fafc;
+            border-radius: 6px;
+            border-left: 3px solid #3182ce;
+        }
+        
         .success-message {
             background: #c6f6d5;
             color: #22543d;
@@ -392,29 +368,19 @@
             <p>Please enter your password to continue</p>
         </div>
         
-        <div class="free-access-banner">
-            <div class="free-access-icon">
-                <i class="fas fa-check-circle"></i>
-            </div>
-            <div class="free-access-content">
-                <div class="free-access-title">🔥 Free Access Available!</div>
-                <div class="free-access-text" id="free-access-text">9/10 free queries remaining today</div>
-            </div>
-        </div>
-        
         <form id="loginForm">
             <div class="form-group">
-                <input type="text" id="username" name="username" placeholder="Username (optional for admin)" autocomplete="username">
+                <input type="text" id="username" name="username" class="form-input" placeholder="Username (optional for admin)" autocomplete="username">
             </div>
             
             <div class="form-group">
                 <div class="password-container">
-                    <input type="password" id="password" name="password" placeholder="Enter your password" required autocomplete="current-password">
+                    <input type="password" id="password" name="password" class="form-input" placeholder="Enter your password" required autocomplete="current-password">
                     <i class="fas fa-eye password-toggle" id="passwordToggle" onclick="togglePassword()"></i>
                 </div>
             </div>
             
-            <div style="font-size: 12px; color: #666; margin-bottom: 16px;">
+            <div class="login-hint">
                 <strong>Admin:</strong> Leave username blank, enter password<br>
                 <strong>Users:</strong> Enter both username and password
             </div>
@@ -510,40 +476,8 @@
             }
         });
         
-        // Focus password field on load
-        document.getElementById('password').focus();
-        
-        // Check and display free access info
-        async function checkFreeAccess() {
-            try {
-                const response = await fetch('/auth/status');
-                const data = await response.json();
-                
-                if (data.free_access) {
-                    const remaining = data.free_access.queries_remaining;
-                    const total = data.free_access.limit;
-                    const freeAccessText = document.getElementById('free-access-text');
-                    
-                    if (remaining > 0) {
-                        freeAccessText.textContent = `${remaining}/${total} free queries remaining today`;
-                    } else {
-                        freeAccessText.textContent = 'Free queries exhausted for today';
-                        document.getElementById('freeAccessBtn').disabled = true;
-                        document.getElementById('freeAccessBtn').innerHTML = '<i class="fas fa-times-circle"></i> Free Access Exhausted';
-                    }
-                }
-            } catch (error) {
-                console.error('Failed to check free access:', error);
-            }
-        }
-        
-        function useFreeAccess() {
-            // Just redirect to main page - the access check will handle it
-            window.location.href = '/';
-        }
-        
-        // Check free access on load
-        checkFreeAccess();
+        // Focus username field on load
+        document.getElementById('username').focus();
     </script>
 </body>
 </html>
