@@ -1298,6 +1298,8 @@ def create_conversation():
     # Get user identity for ownership
     identity = get_user_identity()
     
+    app.logger.info(f"Creating conversation - identity: {identity}")
+    
     from models import Conversation
     conversation = Conversation(
         title=data['title'],
@@ -1308,6 +1310,8 @@ def create_conversation():
         session_id=identity['session_id'],
         ip_address=None  # IP address not needed for access control with unified identity system
     )
+    
+    app.logger.info(f"Conversation user_id set to: {conversation.user_id}")
     db.session.add(conversation)
     db.session.commit()
     
