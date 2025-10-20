@@ -849,6 +849,11 @@ def get_projects():
         # Regular users see only projects that contain their conversations
         user_id = identity.get('user_id')
         if user_id:
+            # Convert user_id to UUID if it's a string
+            from uuid import UUID
+            if isinstance(user_id, str):
+                user_id = UUID(user_id)
+            
             # Get project IDs that have conversations belonging to this user
             project_ids = db.session.query(Conversation.project_id).filter(
                 Conversation.user_id == user_id,
