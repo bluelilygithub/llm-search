@@ -270,11 +270,20 @@ class SimpleAuth:
             if auth_enabled and not authenticated:
                 free_access_info = FreeAccessManager.check_free_access()
             
-            return jsonify({
+            response_data = {
                 'authenticated': authenticated,
                 'auth_enabled': auth_enabled,
                 'free_access': free_access_info
-            })
+            }
+            
+            # Add user information if authenticated
+            if authenticated:
+                response_data['user_type'] = session.get('user_type')
+                response_data['user_role'] = session.get('user_role')
+                response_data['username'] = session.get('username')
+                response_data['display_name'] = session.get('display_name')
+            
+            return jsonify(response_data)
         
         # Login route is now handled in app.py with CSRF exemption
         
