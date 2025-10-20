@@ -1369,11 +1369,11 @@ body {
 
 .users-table {
     width: 100%;
-    min-width: 800px;
     border-collapse: collapse;
     background: white;
     border-radius: 8px;
     overflow: hidden;
+    table-layout: fixed;
 }
 
 .users-table thead {

@@ -4450,9 +4450,9 @@ window.refreshUsersList = async function() {
                 <table class="users-table">
                     <thead>
                         <tr>
-                            <th style="width: 50px;"></th>
-                            <th>Username</th>
-                            <th>Actions</th>
+                            <th style="width: 40px;"></th>
+                            <th style="width: auto;">Username</th>
+                            <th style="width: 100px; text-align: right;">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -4468,7 +4468,7 @@ window.refreshUsersList = async function() {
                                     <div><small style="color: #9ca3af;">${user.email || 'No email'}</small></div>
                                     <div><small style="color: #9ca3af;">${user.role}</small></div>
                                 </td>
-                                <td style="white-space: nowrap;">
+                                <td style="white-space: nowrap; text-align: right;">
                                     <button class="btn-icon" onclick="editUser('${user.id}')" title="Edit user">
                                         <i class="fas fa-edit"></i>
                                     </button>
