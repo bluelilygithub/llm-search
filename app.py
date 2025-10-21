@@ -1664,15 +1664,26 @@ def chat():
             except (ValueError, TypeError):
                 app.logger.warning(f"Invalid project_id format: {project_id}")
         
+        # Get user's display name for personalized responses
+        user_display_name = session.get('display_name') or session.get('username') or 'User'
+        
         # Apply project template if we have a project
         if project:
             project_system_prompt = build_project_system_prompt(project)
             if project_system_prompt:
+                # Add personalization instruction
+                personalized_prompt = f"{project_system_prompt}\n\nNote: You are assisting {user_display_name}. Address them naturally by name in your responses when appropriate."
                 messages.append({
                     'role': 'system',
-                    'content': project_system_prompt
+                    'content': personalized_prompt
                 })
                 app.logger.info(f"Applied project template for project: {project.name}")
+        else:
+            # Add a default personalized system prompt if no project
+            messages.append({
+                'role': 'system',
+                'content': f"You are a helpful AI assistant. You are currently assisting {user_display_name}. Address them naturally by name in your responses when appropriate, making the conversation feel personal and engaging."
+            })
         
         # Load conversation history if conversation exists
         if conversation_id:

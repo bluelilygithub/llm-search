@@ -3589,6 +3589,34 @@ window.togglePasswordVisibility = function(inputId) {
     }
 };
 
+// Update welcome messages with user's name
+window.updateWelcomeMessages = function(displayName) {
+    // Update all welcome headers
+    const welcomeHeaders = document.querySelectorAll('h2:contains("Welcome to Your Knowledge Base")');
+    welcomeHeaders.forEach(header => {
+        if (header.textContent.includes('Welcome to')) {
+            header.textContent = `Welcome to ${displayName}'s Knowledge Base`;
+        }
+    });
+    
+    // More robust selector
+    document.querySelectorAll('h2').forEach(header => {
+        if (header.textContent.trim() === 'Welcome to Your Knowledge Base') {
+            header.textContent = `Welcome to ${displayName}'s Knowledge Base`;
+        }
+    });
+    
+    // Update empty state descriptions
+    document.querySelectorAll('.empty-state-description').forEach(desc => {
+        if (desc.textContent.includes('Start a conversation')) {
+            desc.textContent = `Hi ${displayName}! Start a conversation or search your knowledge base.`;
+        }
+    });
+    
+    // Store the display name globally for use in AI responses
+    window.userDisplayName = displayName;
+};
+
 console.log('✅ Global window.openSettingsPanel and openAccountPanel registered');
 
 // Function to load dynamic models and API key status
@@ -4533,6 +4561,9 @@ window.showUsersTabIfAdmin = async function() {
             const displayName = data.display_name || data.username || 'User';
             usernameDisplay.textContent = displayName;
             usernameDisplay.style.display = 'inline-block';
+            
+            // Update welcome messages with the user's name
+            window.updateWelcomeMessages(displayName);
         }
     } catch (error) {
         console.error('Error checking admin status:', error);
