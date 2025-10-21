@@ -1141,10 +1141,13 @@ def generate_followup_questions():
     try:
         data = request.get_json()
         if not data or not data.get('latest_response'):
+            app.logger.warning("Follow-up questions: Missing latest_response")
             return jsonify({'error': 'Latest response is required'}), 400
         
         latest_response = data['latest_response']
         model = data.get('model', 'gpt-3.5-turbo')
+        
+        app.logger.info(f"Generating follow-up questions using model: {model}, response length: {len(latest_response)}")
         
         # Create a focused prompt for generating follow-up questions based only on the latest response
         system_prompt = """You are an expert at generating relevant follow-up questions. Based ONLY on the AI response provided, generate exactly 3 highly relevant, specific follow-up questions that would naturally continue the conversation.
@@ -1176,9 +1179,11 @@ Return only the 3 questions, one per line, without numbering or bullet points.""
             model, 
             followup_messages, 
             max_tokens=150,  # Keep it short
-            temperature=0.7,
+            temperature=0.9,  # Increased for more variety
             is_authenticated=is_authenticated
         )
+        
+        app.logger.info(f"Follow-up AI response: {ai_response}")
         
         # Parse the response into individual questions
         questions = []
@@ -1191,6 +1196,8 @@ Return only the 3 questions, one per line, without numbering or bullet points.""
                 if question and len(question) > 5:  # Basic validation
                     questions.append(question)
         
+        app.logger.info(f"Parsed {len(questions)} questions from AI response")
+        
         # Ensure we have exactly 3 questions, pad with fallbacks if needed
         while len(questions) < 3:
             fallback_questions = [
@@ -1201,14 +1208,18 @@ Return only the 3 questions, one per line, without numbering or bullet points.""
             for fallback in fallback_questions:
                 if fallback not in questions and len(questions) < 3:
                     questions.append(fallback)
+                    app.logger.info(f"Added fallback question: {fallback}")
         
         # Return only first 3 questions
         questions = questions[:3]
         
+        app.logger.info(f"Returning follow-up questions: {questions}")
         return jsonify({'questions': questions}), 200
         
     except Exception as e:
         app.logger.error(f"Error generating follow-up questions: {str(e)}")
+        import traceback
+        app.logger.error(traceback.format_exc())
         # Return fallback questions on error
         fallback_questions = [
             "Can you explain this further?",
