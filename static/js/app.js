@@ -2270,10 +2270,16 @@ class KnowledgeBaseApp {
         
         resultsHtml += '</div>';
         
-        // Hide chat container instead of removing it (so we can restore it later)
-        const existingChatContainer = mainContent.querySelector('.chat-messages-container');
-        if (existingChatContainer) {
-            existingChatContainer.style.display = 'none';
+        // Hide the entire content-area (which contains the chat) instead of removing it
+        const contentArea = document.getElementById('content-area');
+        if (contentArea) {
+            contentArea.style.display = 'none';
+        }
+        
+        // Also hide the bottom input area during search
+        const bottomInput = mainContent.querySelector('.bottom-input');
+        if (bottomInput) {
+            bottomInput.style.display = 'none';
         }
         
         // Remove any existing search container
@@ -2373,10 +2379,16 @@ class KnowledgeBaseApp {
         this.currentView = 'search-results';
         const mainContent = document.getElementById('main-content');
         
-        // Clear only the chat messages area, preserve top bar
-        const existingChatContainer = mainContent.querySelector('.chat-messages-container');
-        if (existingChatContainer) {
-            existingChatContainer.remove();
+        // Hide the entire content-area instead of removing chat container
+        const contentArea = document.getElementById('content-area');
+        if (contentArea) {
+            contentArea.style.display = 'none';
+        }
+        
+        // Hide the bottom input area during search
+        const bottomInput = mainContent.querySelector('.bottom-input');
+        if (bottomInput) {
+            bottomInput.style.display = 'none';
         }
         
         const searchResultsContainer = document.createElement('div');
@@ -8066,6 +8078,8 @@ KnowledgeBaseApp.prototype.showChatView = function() {
     const contentArea = document.getElementById('content-area');
     if (!contentArea) {
         console.error('content-area container not found for chat view');
+        console.log('DEBUG: main-content exists?', document.getElementById('main-content'));
+        console.log('DEBUG: All children of main-content:', Array.from(document.getElementById('main-content')?.children || []));
         return;
     }
     
@@ -8185,9 +8199,14 @@ KnowledgeBaseApp.prototype.showChatView = function() {
         searchResults.remove();
     }
     
-    // Restore chat container if it was hidden during search
-    if (chatMessagesContainer) {
-        chatMessagesContainer.style.display = '';
+    // Restore content-area and bottom input if they were hidden during search
+    if (contentArea) {
+        contentArea.style.display = '';
+    }
+    
+    const bottomInput = document.querySelector('.bottom-input');
+    if (bottomInput) {
+        bottomInput.style.display = '';
     }
     
     // Show empty state for new conversation
