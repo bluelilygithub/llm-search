@@ -4307,9 +4307,14 @@ window.showUsersTabIfAdmin = async function() {
         const response = await fetch('/auth/status');
         const data = await response.json();
         
+        console.log('🔍 Auth status data:', data);
+        console.log('🔍 user_role:', data.user_role, 'user_type:', data.user_type);
+        
         // Show Users tab and settings buttons if admin or super_admin
         const isAdmin = data.authenticated && 
                        (data.user_role === 'super_admin' || data.user_role === 'admin' || data.user_type === 'admin');
+        
+        console.log('🔍 isAdmin:', isAdmin);
         
         // Show/hide Users tab in settings
         const usersTab = document.getElementById('users-nav-btn');
@@ -4327,6 +4332,7 @@ window.showUsersTabIfAdmin = async function() {
         const sidebarSettingsBtn = document.getElementById('sidebar-settings-btn');
         if (sidebarSettingsBtn) {
             sidebarSettingsBtn.style.display = isAdmin ? 'flex' : 'none';
+            console.log(`🔧 Settings button in footer: ${isAdmin ? 'VISIBLE (admin)' : 'HIDDEN (user)'}`);
         }
         
         // Show/hide Account button in top bar (all authenticated users)
