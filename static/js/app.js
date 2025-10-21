@@ -214,17 +214,29 @@ class KnowledgeBaseApp {
             this.startNewConversationInProject(this.currentViewProject.id);
         } else {
             // No project context, start a general conversation
+            // First, ensure we're in chat view
+            this.showChatView();
+            
             this.currentConversationId = null;
-            document.getElementById('chat-messages').innerHTML = `
-                <div class="empty-state" id="empty-state">
-                    <div class="empty-state-icon">
-                        <i class="fas fa-comments"></i>
+            const chatMessages = document.getElementById('chat-messages');
+            if (chatMessages) {
+                chatMessages.innerHTML = `
+                    <div class="empty-state" id="empty-state">
+                        <div class="empty-state-icon">
+                            <i class="fas fa-comments"></i>
+                        </div>
+                        <h2 class="empty-state-title" id="new-conversation-title">New Conversation</h2>
+                        <p class="empty-state-description">Start a conversation or search your knowledge base.</p>
                     </div>
-                    <h2 class="empty-state-title" id="new-conversation-title">New Conversation</h2>
-                    <p class="empty-state-description">Start a conversation or search your knowledge base.</p>
-                </div>
-            `;
-            this.updateNewConversationTitle();
+                `;
+                this.updateNewConversationTitle();
+            }
+            
+            // Focus the input field
+            const messageInput = document.getElementById('message-input');
+            if (messageInput) {
+                messageInput.focus();
+            }
         }
     }
 
