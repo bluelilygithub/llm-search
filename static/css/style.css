@@ -1722,6 +1722,113 @@ body {
     font-style: italic;
 }
 
+/* ==================== ACCOUNT PANEL (for regular users) ==================== */
+
+.account-panel {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 3000;
+    display: none;
+    opacity: 0;
+    transition: opacity var(--transition-normal);
+}
+
+.account-panel.open {
+    display: block;
+    opacity: 1;
+}
+
+.account-panel-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(2px);
+}
+
+.account-panel-content {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 420px;
+    height: 100%;
+    background-color: white;
+    box-shadow: var(--shadow-lg);
+    display: flex;
+    flex-direction: column;
+    transform: translateX(100%);
+    transition: transform var(--transition-normal);
+}
+
+.account-panel.open .account-panel-content {
+    transform: translateX(0);
+}
+
+/* Account Header */
+.account-header {
+    padding: var(--spacing-xl);
+    border-bottom: 1px solid var(--gray-200);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+}
+
+.account-title {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.account-title i {
+    color: var(--primary-blue);
+    font-size: var(--font-size-lg);
+}
+
+.account-title h2 {
+    font-size: var(--font-size-xl);
+    font-weight: 600;
+    color: var(--gray-900);
+    margin: 0;
+}
+
+.account-close-btn {
+    width: 40px;
+    height: 40px;
+    background: none;
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--gray-500);
+    transition: all var(--transition-fast);
+}
+
+.account-close-btn:hover {
+    background-color: var(--gray-100);
+    color: var(--gray-700);
+}
+
+/* Account Content */
+.account-content-wrapper {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--spacing-xl);
+}
+
+.account-info-card {
+    background: var(--gray-50);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-xl);
+}
+
 /* ==================== MODALS ==================== */
 
 .modal {

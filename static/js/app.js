@@ -3393,17 +3393,92 @@ window.openSettingsPanel = function() {
     }
 };
 
-// Open account panel (settings panel but directly to Account section)
+// Open account panel (simplified panel for regular users)
 window.openAccountPanel = function() {
     console.log('✅ window.openAccountPanel called');
-    if (window.app) {
-        window.app.openSettingsPanel();
-        // Switch to account section after a brief delay to ensure panel is open
+    const panel = document.getElementById('account-panel');
+    if (panel) {
+        panel.classList.add('open');
+        // Load account info
         setTimeout(() => {
-            window.showSettingsSection('account');
+            window.loadAccountPanelInfo();
         }, 100);
     } else {
-        console.error('❌ App not initialized yet - window.app is undefined');
+        console.error('❌ Account panel not found in DOM');
+    }
+};
+
+// Close account panel
+window.closeAccountPanel = function() {
+    const panel = document.getElementById('account-panel');
+    if (panel) {
+        panel.classList.remove('open');
+    }
+};
+
+// Load account info into the account panel (simplified version for users)
+window.loadAccountPanelInfo = async function() {
+    const accountContent = document.getElementById('account-panel-info');
+    
+    try {
+        const response = await fetch('/auth/status');
+        const data = await response.json();
+        
+        if (data.authenticated) {
+            const username = data.username || 'User';
+            const displayName = data.display_name || username;
+            const email = data.email || 'Not provided';
+            const firstName = data.first_name || '';
+            const lastName = data.last_name || '';
+            
+            accountContent.innerHTML = `
+                <div class="account-card">
+                    <div class="account-section">
+                        <h4><i class="fas fa-user-circle"></i> Profile Information</h4>
+                        <div class="account-details">
+                            <div class="detail-row">
+                                <span class="detail-label">Display Name:</span>
+                                <span class="detail-value"><strong>${displayName}</strong></span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Username:</span>
+                                <span class="detail-value">${username}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Email:</span>
+                                <span class="detail-value">${email}</span>
+                            </div>
+                            ${firstName || lastName ? `
+                            <div class="detail-row">
+                                <span class="detail-label">Name:</span>
+                                <span class="detail-value">${firstName} ${lastName}</span>
+                            </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                    
+                    <div class="account-section">
+                        <p style="color: #666; font-size: 14px; margin-top: 16px;">
+                            <i class="fas fa-info-circle"></i>
+                            To update your profile information, please contact your administrator.
+                        </p>
+                    </div>
+                </div>
+            `;
+        } else {
+            accountContent.innerHTML = `
+                <div class="account-card">
+                    <p style="color: #666;">Not authenticated</p>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Error loading account info:', error);
+        accountContent.innerHTML = `
+            <div class="account-card">
+                <p style="color: #e74c3c;">Failed to load account information.</p>
+            </div>
+        `;
     }
 };
 

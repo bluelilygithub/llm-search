@@ -480,6 +480,9 @@ def login_override():
             session['user_role'] = user.role.value
             session['username'] = user.username
             session['display_name'] = user.display_name or user.username
+            session['email'] = user.email
+            session['first_name'] = user.first_name
+            session['last_name'] = user.last_name
             
             # Log the login
             audit_log = UserAuditLog(

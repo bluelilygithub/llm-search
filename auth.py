@@ -282,6 +282,9 @@ class SimpleAuth:
                 response_data['user_role'] = session.get('user_role')
                 response_data['username'] = session.get('username')
                 response_data['display_name'] = session.get('display_name')
+                response_data['email'] = session.get('email')
+                response_data['first_name'] = session.get('first_name')
+                response_data['last_name'] = session.get('last_name')
             
             return jsonify(response_data)
         

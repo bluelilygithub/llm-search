@@ -1,0 +1,24 @@
+<!-- Account Panel - Simplified for Regular Users -->
+<div class="account-panel" id="account-panel" style="display: none;">
+    <div class="account-panel-overlay" onclick="closeAccountPanel()"></div>
+    <div class="account-panel-content">
+        <!-- Account Header -->
+        <div class="account-header">
+            <div class="account-title">
+                <i class="fas fa-user-circle"></i>
+                <h2>My Account</h2>
+            </div>
+            <button class="account-close-btn" onclick="closeAccountPanel()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <!-- Account Content -->
+        <div class="account-content-wrapper">
+            <div class="account-info-card" id="account-panel-info">
+                <div class="loading-account">Loading account information...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
