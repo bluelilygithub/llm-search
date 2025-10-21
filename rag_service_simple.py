@@ -102,10 +102,10 @@ class SimpleRAGService:
             
             print(f"Generated {len(chunks)} chunks")
             
-            # Limit number of chunks to prevent timeout
-            if len(chunks) > 20:
-                print(f"Too many chunks ({len(chunks)}), limiting to 20")
-                chunks = chunks[:20]
+            # Limit number of chunks to prevent timeout (Railway has 30s limit)
+            if len(chunks) > 10:
+                print(f"Too many chunks ({len(chunks)}), limiting to 10 for Railway timeout")
+                chunks = chunks[:10]
             
             # Generate embeddings for each chunk (with progress)
             chunk_embeddings = []

@@ -3847,7 +3847,59 @@ def rag_get_context():
         app.logger.error(f"Error getting context: {str(e)}")
         return jsonify({'error': f'Context retrieval failed: {str(e)}'}), 500
 
-# ==================== END RAG PIPELINE API ====================
+@app.route('/api/rag/process-single', methods=['POST'])
+def rag_process_single():
+    """Process a single document to avoid timeout issues"""
+    try:
+        data = request.get_json()
+        context_item_id = data.get('context_item_id')
+        
+        if not context_item_id:
+            return jsonify({'error': 'Context item ID is required'}), 400
+        
+        # Get the context item
+        from models import ContextItem
+        context_item = ContextItem.query.get(context_item_id)
+        
+        if not context_item:
+            return jsonify({'error': 'Context item not found'}), 404
+        
+        # Check access permissions
+        identity = get_user_identity()
+        if identity.get('user_id') and str(context_item.user_id) != str(identity['user_id']):
+            return jsonify({'error': 'Access denied'}), 403
+        
+        if not context_item.content_text:
+            return jsonify({'error': 'No content text available for processing'}), 400
+        
+        # Initialize RAG service
+        from rag_service_simple import SimpleRAGService
+        rag_service = SimpleRAGService(openai_api_key=os.getenv('OPENAI_API_KEY'))
+        
+        # Process the document
+        success = rag_service.process_document(
+            context_item_id=context_item_id,
+            text=context_item.content_text,
+            metadata={
+                'document_name': context_item.name,
+                'content_type': context_item.content_type,
+                'created_at': context_item.created_at.isoformat() if context_item.created_at else None
+            }
+        )
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'message': 'Document processed successfully',
+                'context_item_id': context_item_id,
+                'document_name': context_item.name
+            })
+        else:
+            return jsonify({'error': 'Failed to process document'}), 500
+        
+    except Exception as e:
+        app.logger.error(f"Error processing document: {str(e)}")
+        return jsonify({'error': f'Document processing failed: {str(e)}'}), 500
 
 # ==================== DYNAMIC MODEL MANAGEMENT API ====================
 
