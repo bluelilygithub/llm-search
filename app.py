@@ -3733,7 +3733,6 @@ def rag_search():
         return jsonify({'error': f'RAG search failed: {str(e)}'}), 500
 
 @app.route('/api/rag/process-document', methods=['POST'])
-@require_conversation_access
 def rag_process_document():
     """Process a document to generate embeddings"""
     try:
