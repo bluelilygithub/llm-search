@@ -7540,9 +7540,28 @@ KnowledgeBaseApp.prototype.showHomeView = function() {
         return;
     }
     
-    // Clear existing content in content-area, not main-content
-    contentArea.innerHTML = `
-        <div class="main-view">
+    // Remove any existing main-view elements from content-area
+    const existingMainViews = contentArea.querySelectorAll('.main-view');
+    existingMainViews.forEach(view => view.remove());
+    
+    // Hide the dynamic-content wrapper (contains chat and context panel)
+    const dynamicContent = document.getElementById('dynamic-content');
+    if (dynamicContent) {
+        dynamicContent.style.display = 'none';
+        dynamicContent.style.height = '0';
+        dynamicContent.style.overflow = 'hidden';
+    }
+    
+    // Also hide bottom input area for this view
+    const bottomInput = document.querySelector('.bottom-input');
+    if (bottomInput) {
+        bottomInput.style.display = 'none';
+    }
+    
+    // Create the home view content
+    const homeContent = document.createElement('div');
+    homeContent.className = 'main-view';
+    homeContent.innerHTML = `
             <nav class="breadcrumb">
                 <span class="breadcrumb-item active">
                     <i class="fas fa-home"></i>
@@ -7600,6 +7619,9 @@ KnowledgeBaseApp.prototype.showHomeView = function() {
         </div>
     `;
     
+    // Append to content-area
+    contentArea.appendChild(homeContent);
+    
     // Load home statistics
     this.loadHomeStats();
 };
@@ -7629,6 +7651,12 @@ KnowledgeBaseApp.prototype.showConversationsView = function() {
         dynamicContent.style.display = 'none';
         dynamicContent.style.height = '0';
         dynamicContent.style.overflow = 'hidden';
+    }
+    
+    // Also hide bottom input area for this view
+    const bottomInput = document.querySelector('.bottom-input');
+    if (bottomInput) {
+        bottomInput.style.display = 'none';
     }
     
     // Create the conversations view content
@@ -7698,6 +7726,13 @@ KnowledgeBaseApp.prototype.showProjectsView = function() {
         dynamicContent.style.display = 'none';
         dynamicContent.style.height = '0';
         dynamicContent.style.overflow = 'hidden';
+    }
+    
+    // Also hide bottom input area for this view
+    const bottomInput = document.querySelector('.bottom-input');
+    if (bottomInput) {
+        console.log('🔵 Hiding bottom input');
+        bottomInput.style.display = 'none';
     }
     
     // Create the projects view content
