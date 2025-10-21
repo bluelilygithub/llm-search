@@ -3646,7 +3646,6 @@ def check_model_access():
 # ==================== RAG PIPELINE API ====================
 
 @app.route('/api/rag/search', methods=['POST'])
-@require_conversation_access
 def rag_search():
     """Search for relevant documents using semantic similarity"""
     try:
@@ -3740,7 +3739,6 @@ def rag_process_document():
         return jsonify({'error': f'Document processing failed: {str(e)}'}), 500
 
 @app.route('/api/rag/process-all', methods=['POST'])
-@require_conversation_access
 def rag_process_all():
     """Process all unprocessed documents for the current user"""
     try:
@@ -3766,7 +3764,6 @@ def rag_process_all():
         return jsonify({'error': f'Batch processing failed: {str(e)}'}), 500
 
 @app.route('/api/rag/get-context', methods=['POST'])
-@require_conversation_access
 def rag_get_context():
     """Get relevant context for a query to include in AI response"""
     try:
