@@ -1769,6 +1769,49 @@ Please use this context information appropriately when responding to user questi
         is_authenticated = getattr(request, 'access_type', None) != 'free_tier'
         
         app.logger.info(f"Calling LLM service for model: {model} (API id: {model_identifier}), authenticated: {is_authenticated}")
+        
+        # Get RAG context if available
+        rag_context = ""
+        rag_sources = []
+        try:
+            from rag_service import RAGService
+            rag_service = RAGService(openai_api_key=os.getenv('OPENAI_API_KEY'))
+            
+            # Get relevant context for the user's message
+            rag_context = rag_service.get_context_for_query(
+                query=user_message,
+                max_context_length=2000,  # Limit context length
+                user_id=str(user_identity['user_id']) if user_identity['user_id'] else None
+            )
+            
+            if rag_context:
+                # Get source documents for citation
+                search_results = rag_service.search_similar_chunks(
+                    query=user_message,
+                    similarity_threshold=0.6,
+                    max_results=3,
+                    user_id=str(user_identity['user_id']) if user_identity['user_id'] else None
+                )
+                rag_sources = [{'document': r['document_name'], 'score': r['similarity_score']} for r in search_results]
+                
+                # Add RAG context to the system prompt
+                rag_system_message = f"""
+RELEVANT KNOWLEDGE BASE CONTEXT:
+{rag_context}
+
+Use this context to provide accurate, detailed responses. When referencing information from the knowledge base, be specific about what you're drawing from. If the context doesn't contain relevant information for the user's question, say so clearly.
+"""
+                messages.append({
+                    'role': 'system',
+                    'content': rag_system_message
+                })
+                
+                app.logger.info(f"RAG context retrieved: {len(rag_context)} chars from {len(rag_sources)} sources")
+        except Exception as e:
+            app.logger.error(f"RAG context retrieval failed: {str(e)}")
+            rag_context = ""
+            rag_sources = []
+        
         # Get AI response and usage info - use model_identifier for API call
         ai_response, tokens, estimated_cost = llm_service.get_response(model_identifier, messages)
         app.logger.info(f"Got response from {model}: {tokens} tokens, cost: ${estimated_cost:.4f}")
@@ -1792,7 +1835,9 @@ Please use this context information appropriately when responding to user questi
         response_data = {
             'response': ai_response,
             'model': model,
-            'timestamp': datetime.utcnow().isoformat()
+            'timestamp': datetime.utcnow().isoformat(),
+            'rag_used': bool(rag_context),
+            'rag_sources': rag_sources if rag_context else []
         }
         
         # Add updated free access info if applicable

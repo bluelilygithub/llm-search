@@ -787,6 +787,7 @@ class KnowledgeBaseApp {
         messageDiv.innerHTML = `
             <div class="message-content">
                 ${this.formatMessageContent(message.content)}
+                ${message.rag_used && message.rag_sources ? this.formatRAGSources(message.rag_sources) : ''}
                 <div class="message-time">
                     ${timeString}
                     ${speakerButton}
@@ -867,6 +868,30 @@ class KnowledgeBaseApp {
             .replace(/`(.*?)`/g, '<code>$1</code>')
             .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width: 100%; height: auto; border-radius: 8px; margin: 10px 0;">')
             .replace(/\n/g, '<br>');
+    }
+
+    formatRAGSources(sources) {
+        if (!sources || sources.length === 0) return '';
+        
+        const sourcesHtml = sources.map(source => 
+            `<div class="rag-source">
+                <i class="fas fa-file-alt"></i>
+                <span class="source-document">${source.document}</span>
+                <span class="source-score">(${(source.score * 100).toFixed(1)}% match)</span>
+            </div>`
+        ).join('');
+        
+        return `
+            <div class="rag-sources">
+                <div class="rag-indicator">
+                    <i class="fas fa-database"></i>
+                    <span>Knowledge Base Sources:</span>
+                </div>
+                <div class="rag-source-list">
+                    ${sourcesHtml}
+                </div>
+            </div>
+        `;
     }
 
     generateFollowUpQuestions(aiResponse) {
@@ -1052,7 +1077,12 @@ class KnowledgeBaseApp {
             await this.saveMessage('user', content);
 
             // Get AI response (placeholder for now)
-            const aiResponse = await this.getAIResponse(content);
+            const aiResponseData = await this.getAIResponse(content);
+            
+            // Extract response and RAG data
+            const aiResponse = aiResponseData.response || aiResponseData;
+            const ragUsed = aiResponseData.rag_used || false;
+            const ragSources = aiResponseData.rag_sources || [];
             
             // Save AI message
             await this.saveMessage('assistant', aiResponse);
@@ -1062,7 +1092,9 @@ class KnowledgeBaseApp {
             const aiMessage = {
                 role: 'assistant',
                 content: aiResponse,
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
+                rag_used: ragUsed,
+                rag_sources: ragSources
             };
             this.addMessageToChat(aiMessage, true); // true = new AI message, generate follow-ups
 
@@ -1169,7 +1201,12 @@ class KnowledgeBaseApp {
                     this.updateUsageIndicator(data.free_access);
                 }
                 
-                return data.response;
+                // Return both response and RAG data
+                return {
+                    response: data.response,
+                    rag_used: data.rag_used || false,
+                    rag_sources: data.rag_sources || []
+                };
             }
             
         } catch (error) {
