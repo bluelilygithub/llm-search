@@ -7529,18 +7529,19 @@ KnowledgeBaseApp.prototype.loadConversation = function(conversationId) {
 // Show home view in main content area
 KnowledgeBaseApp.prototype.showHomeView = function() {
     this.currentView = 'home';
-    const container = document.getElementById('main-content');
+    const contentArea = document.getElementById('content-area');
     
     // Update top bar to hide context toggle
     const contextToggle = document.getElementById('context-toggle-btn');
     if (contextToggle) contextToggle.style.display = 'none';
     
-    if (!container) {
-        console.error('main-content div not found');
+    if (!contentArea) {
+        console.error('content-area div not found');
         return;
     }
     
-    container.innerHTML = `
+    // Clear existing content in content-area, not main-content
+    contentArea.innerHTML = `
         <div class="main-view">
             <nav class="breadcrumb">
                 <span class="breadcrumb-item active">
