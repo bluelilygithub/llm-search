@@ -626,13 +626,41 @@ def create_user():
         if not data.get('username') or not data.get('email') or not data.get('password'):
             return jsonify({'error': 'Username, email, and password are required'}), 400
         
+        username = data['username'].strip()
+        email = data['email'].strip()
+        password = data['password']
+        
+        # Username validation
+        if len(username) < 3:
+            return jsonify({'error': 'Username must be at least 3 characters'}), 400
+        if not username.replace('_', '').replace('-', '').replace('.', '').isalnum():
+            return jsonify({'error': 'Username can only contain letters, numbers, hyphens, underscores, and periods'}), 400
+        
+        # Email validation
+        import re
+        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        if not re.match(email_pattern, email):
+            return jsonify({'error': 'Invalid email format'}), 400
+        
+        # Password strength validation
+        if len(password) < 8:
+            return jsonify({'error': 'Password must be at least 8 characters'}), 400
+        if not re.search(r'[A-Z]', password):
+            return jsonify({'error': 'Password must contain at least one uppercase letter'}), 400
+        if not re.search(r'[a-z]', password):
+            return jsonify({'error': 'Password must contain at least one lowercase letter'}), 400
+        if not re.search(r'\d', password):
+            return jsonify({'error': 'Password must contain at least one number'}), 400
+        if not re.search(r'[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\\/~`]', password):
+            return jsonify({'error': 'Password must contain at least one special character'}), 400
+        
         # Check if username exists
-        existing_user = db.session.query(User).filter(User.username == data['username']).first()
+        existing_user = db.session.query(User).filter(User.username == username).first()
         if existing_user:
             return jsonify({'error': 'Username already exists'}), 400
         
         # Check if email exists
-        existing_email = db.session.query(User).filter(User.email == data['email']).first()
+        existing_email = db.session.query(User).filter(User.email == email).first()
         if existing_email:
             return jsonify({'error': 'Email already exists'}), 400
         
@@ -712,7 +740,19 @@ def update_user(user_id):
         
         # Update password if provided
         if data.get('password'):
-            user.set_password(data['password'])
+            password = data['password']
+            import re
+            if len(password) < 8:
+                return jsonify({'error': 'Password must be at least 8 characters'}), 400
+            if not re.search(r'[A-Z]', password):
+                return jsonify({'error': 'Password must contain at least one uppercase letter'}), 400
+            if not re.search(r'[a-z]', password):
+                return jsonify({'error': 'Password must contain at least one lowercase letter'}), 400
+            if not re.search(r'\d', password):
+                return jsonify({'error': 'Password must contain at least one number'}), 400
+            if not re.search(r'[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\\/~`]', password):
+                return jsonify({'error': 'Password must contain at least one special character'}), 400
+            user.set_password(password)
         
         # Update other fields
         if 'first_name' in data:
@@ -817,8 +857,17 @@ def update_user_profile():
         
         # Update password if provided
         if new_password:
+            import re
             if len(new_password) < 8:
                 return jsonify({'error': 'New password must be at least 8 characters'}), 400
+            if not re.search(r'[A-Z]', new_password):
+                return jsonify({'error': 'Password must contain at least one uppercase letter'}), 400
+            if not re.search(r'[a-z]', new_password):
+                return jsonify({'error': 'Password must contain at least one lowercase letter'}), 400
+            if not re.search(r'\d', new_password):
+                return jsonify({'error': 'Password must contain at least one number'}), 400
+            if not re.search(r'[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\\/~`]', new_password):
+                return jsonify({'error': 'Password must contain at least one special character'}), 400
             user.set_password(new_password)
         
         # Update last activity

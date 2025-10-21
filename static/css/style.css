@@ -1889,6 +1889,14 @@ body {
     font-size: var(--font-size-sm);
 }
 
+.account-update-form .form-hint {
+    display: block;
+    margin-top: var(--spacing-sm);
+    color: var(--gray-600);
+    font-size: var(--font-size-xs);
+    line-height: 1.5;
+}
+
 /* ==================== MODALS ==================== */
 
 .modal {
