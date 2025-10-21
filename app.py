@@ -3433,6 +3433,10 @@ def save_model_settings():
         
         app.logger.info(f"Received settings: {settings}")
         
+        # Remove csrf_token if present (it's not a model setting)
+        if 'csrf_token' in settings:
+            del settings['csrf_token']
+        
         # Save settings to database
         from models import ModelSettings, db
         
