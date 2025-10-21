@@ -3908,7 +3908,13 @@ KnowledgeBaseApp.prototype.loadMainModelDropdown = async function() {
         // Filter to only enabled models
         const enabledModels = Array.from(allModels.values()).filter(model => {
             const settings = modelSettings[model.name];
-            return settings && settings.enabled;
+            const isEnabled = settings && settings.enabled === true;
+            
+            // Debug log for each model
+            console.log(`Model: ${model.name}, Settings:`, settings, `Enabled: ${isEnabled}`);
+            
+            // Explicitly check that enabled is true (not just truthy)
+            return isEnabled;
         });
         
         console.log('Enabled models for main dropdown:', enabledModels);
