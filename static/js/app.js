@@ -3871,10 +3871,15 @@ KnowledgeBaseApp.prototype.loadMainModelDropdown = async function() {
         const allModels = new Map();
         
         // Add dynamic models first
+        // Use model_value (API identifier) as the key, not display name
         availableModels.forEach(model => {
-            allModels.set(model.name, {
+            const modelKey = model.model_value || model.name; // Fallback to name for legacy models
+            allModels.set(modelKey, {
                 ...model,
-                isDynamic: true
+                isDynamic: true,
+                // Ensure we have both name and model_value
+                name: model.name,
+                model_value: modelKey
             });
         });
         
@@ -3907,11 +3912,13 @@ KnowledgeBaseApp.prototype.loadMainModelDropdown = async function() {
         
         // Filter to only enabled models
         const enabledModels = Array.from(allModels.values()).filter(model => {
-            const settings = modelSettings[model.name];
+            // Use model_value (API identifier) to look up settings, not display name
+            const modelKey = model.model_value || model.name;
+            const settings = modelSettings[modelKey];
             const isEnabled = settings && settings.enabled === true;
             
             // Debug log for each model
-            console.log(`Model: ${model.name}, Settings:`, settings, `Enabled: ${isEnabled}`);
+            console.log(`Model: ${model.name} (${modelKey}), Settings:`, settings, `Enabled: ${isEnabled}`);
             
             // Explicitly check that enabled is true (not just truthy)
             return isEnabled;
@@ -3937,7 +3944,9 @@ KnowledgeBaseApp.prototype.loadMainModelDropdown = async function() {
             Object.keys(modelsByProvider).sort().forEach(provider => {
                 html += `<optgroup label="${provider}">`;
                 modelsByProvider[provider].forEach(model => {
-                    html += `<option value="${model.name}">${model.name}</option>`;
+                    // Use model_value as the value (API identifier), display name as text
+                    const modelValue = model.model_value || model.name;
+                    html += `<option value="${modelValue}">${model.name}</option>`;
                 });
                 html += '</optgroup>';
             });
