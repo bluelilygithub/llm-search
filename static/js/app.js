@@ -2415,6 +2415,10 @@ class KnowledgeBaseApp {
     
     // Open conversation from search results (switches to chat view first)
     openConversationFromSearch(conversationId) {
+        // Set current view to chat BEFORE clearing search
+        // This prevents showHomeView() from being called
+        this.currentView = 'chat';
+        
         // Clear search first
         this.clearSearchResults();
         
