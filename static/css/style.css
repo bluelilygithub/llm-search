@@ -1897,6 +1897,46 @@ body {
     line-height: 1.5;
 }
 
+/* Password Toggle */
+.password-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.password-input-wrapper .form-control {
+    padding-right: 40px;
+    flex: 1;
+}
+
+.password-toggle {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--gray-500);
+    padding: 4px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color var(--transition-fast);
+}
+
+.password-toggle:hover {
+    color: var(--gray-700);
+}
+
+.password-toggle i {
+    font-size: 16px;
+}
+
+.password-toggle-inline:hover {
+    color: var(--gray-900) !important;
+}
+
 /* ==================== MODALS ==================== */
 
 .modal {

@@ -3572,6 +3572,23 @@ window.updateUserProfile = async function() {
     }
 };
 
+// Toggle password visibility
+window.togglePasswordVisibility = function(inputId) {
+    const input = document.getElementById(inputId);
+    const button = input.parentElement.querySelector('.password-toggle, .password-toggle-inline');
+    const icon = button.querySelector('i');
+    
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+    }
+};
+
 console.log('✅ Global window.openSettingsPanel and openAccountPanel registered');
 
 // Function to load dynamic models and API key status
