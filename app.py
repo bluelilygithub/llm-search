@@ -1777,11 +1777,14 @@ Please use this context information appropriately when responding to user questi
             from rag_service import RAGService
             rag_service = RAGService(openai_api_key=os.getenv('OPENAI_API_KEY'))
             
+            # Get user identity for filtering
+            identity = get_user_identity()
+            
             # Get relevant context for the user's message
             rag_context = rag_service.get_context_for_query(
                 query=user_message,
                 max_context_length=2000,  # Limit context length
-                user_id=str(user_identity['user_id']) if user_identity['user_id'] else None
+                user_id=str(identity['user_id']) if identity['user_id'] else None
             )
             
             if rag_context:
@@ -1790,7 +1793,7 @@ Please use this context information appropriately when responding to user questi
                     query=user_message,
                     similarity_threshold=0.6,
                     max_results=3,
-                    user_id=str(user_identity['user_id']) if user_identity['user_id'] else None
+                    user_id=str(identity['user_id']) if identity['user_id'] else None
                 )
                 rag_sources = [{'document': r['document_name'], 'score': r['similarity_score']} for r in search_results]
                 
