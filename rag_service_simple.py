@@ -89,7 +89,12 @@ class SimpleRAGService:
             print(f"Processing document: {context_item.name}")
             print(f"Content length: {len(text)} characters")
             
-            # Chunk the text
+            # Limit text size to prevent memory issues
+            if len(text) > 50000:  # 50KB limit
+                print(f"Document too large ({len(text)} chars), truncating to 50KB")
+                text = text[:50000]
+            
+            # Chunk the text with smaller chunks
             chunks = self.chunk_text(text)
             if not chunks:
                 print(f"No chunks generated for {context_item.name}")
@@ -97,17 +102,27 @@ class SimpleRAGService:
             
             print(f"Generated {len(chunks)} chunks")
             
+            # Limit number of chunks to prevent timeout
+            if len(chunks) > 20:
+                print(f"Too many chunks ({len(chunks)}), limiting to 20")
+                chunks = chunks[:20]
+            
             # Generate embeddings for each chunk (with progress)
             chunk_embeddings = []
             for i, chunk in enumerate(chunks):
                 print(f"Processing chunk {i+1}/{len(chunks)}...")
                 
-                embedding = self.generate_embedding(chunk['text'])
+                # Limit chunk size
+                chunk_text = chunk['text']
+                if len(chunk_text) > 2000:
+                    chunk_text = chunk_text[:2000]
+                
+                embedding = self.generate_embedding(chunk_text)
                 if embedding:
                     chunk_embeddings.append({
                         'chunk_index': i,
-                        'chunk_text': chunk['text'],
-                        'chunk_tokens': len(chunk['text'].split()),
+                        'chunk_text': chunk_text,
+                        'chunk_tokens': len(chunk_text.split()),
                         'embedding': embedding,
                         'metadata': {
                             **(metadata or {}),
@@ -253,7 +268,7 @@ class SimpleRAGService:
             return ""
     
     def process_all_documents(self, user_id: str = None) -> Dict[str, Any]:
-        """Process all unprocessed documents"""
+        """Process all unprocessed documents (one at a time to prevent memory issues)"""
         try:
             from models import ContextItem, db
             
@@ -271,11 +286,16 @@ class SimpleRAGService:
             processed_count = 0
             error_count = 0
             
-            for doc in documents:
+            print(f"Found {len(documents)} documents to process")
+            
+            for i, doc in enumerate(documents):
                 try:
+                    print(f"\n--- Processing document {i+1}/{len(documents)}: {doc.name} ---")
+                    
                     # Check if already processed
                     extra_data = doc.extra_data or {}
                     if extra_data.get('embeddings_processed'):
+                        print(f"Document {doc.name} already processed, skipping")
                         continue
                     
                     success = self.process_document(
@@ -290,12 +310,19 @@ class SimpleRAGService:
                     
                     if success:
                         processed_count += 1
+                        print(f"✅ Document {doc.name} processed successfully")
                     else:
                         error_count += 1
+                        print(f"❌ Document {doc.name} failed to process")
                         
                 except Exception as e:
-                    print(f"Error processing {doc.name}: {str(e)}")
+                    print(f"❌ Error processing {doc.name}: {str(e)}")
                     error_count += 1
+            
+            print(f"\n📊 Processing Summary:")
+            print(f"  ✅ Successfully processed: {processed_count}")
+            print(f"  ❌ Errors: {error_count}")
+            print(f"  📄 Total documents: {len(documents)}")
             
             return {
                 'success': True,
@@ -305,7 +332,7 @@ class SimpleRAGService:
             }
             
         except Exception as e:
-            print(f"Error processing all documents: {str(e)}")
+            print(f"❌ Error processing all documents: {str(e)}")
             return {
                 'success': False,
                 'error': str(e)
