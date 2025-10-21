@@ -143,8 +143,7 @@ class SimpleRAGService:
             
             # Get all processed documents
             query_filter = ContextItem.query.filter(
-                ContextItem.content_type == 'document',
-                ContextItem.extra_data['embeddings_processed'].astext == 'true'
+                ContextItem.content_type == 'document'
             )
             
             if user_id:
@@ -152,10 +151,17 @@ class SimpleRAGService:
             
             documents = query_filter.all()
             
+            # Filter documents that have embeddings processed
+            processed_documents = []
+            for doc in documents:
+                extra_data = doc.extra_data or {}
+                if extra_data.get('embeddings_processed'):
+                    processed_documents.append(doc)
+            
             all_chunks = []
             
             # Extract chunks from each document
-            for doc in documents:
+            for doc in processed_documents:
                 extra_data = doc.extra_data or {}
                 embeddings = extra_data.get('embeddings', [])
                 
