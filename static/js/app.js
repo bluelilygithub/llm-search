@@ -4139,7 +4139,7 @@ window.checkAllModelsAccess = async function() {
 };
 
 window.saveModelSettings = async function() {
-    const saveBtn = document.querySelector('.btn-primary');
+    const saveBtn = document.getElementById('save-model-settings-btn');
     if (!saveBtn) {
         console.error('Save button not found');
         return;
