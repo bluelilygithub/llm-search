@@ -4331,7 +4331,11 @@ window.showUsersTabIfAdmin = async function() {
         // Show/hide Settings button in sidebar footer (admin only)
         const sidebarSettingsBtn = document.getElementById('sidebar-settings-btn');
         if (sidebarSettingsBtn) {
-            sidebarSettingsBtn.style.display = isAdmin ? 'flex' : 'none';
+            if (isAdmin) {
+                sidebarSettingsBtn.classList.add('show-for-admin');
+            } else {
+                sidebarSettingsBtn.classList.remove('show-for-admin');
+            }
             console.log(`🔧 Settings button in footer: ${isAdmin ? 'VISIBLE (admin)' : 'HIDDEN (user)'}`);
         }
         

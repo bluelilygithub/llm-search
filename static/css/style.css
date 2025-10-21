@@ -684,6 +684,16 @@ body {
     color: var(--gray-900);
 }
 
+/* Force hide sidebar settings button by default - only shown for admin via JavaScript */
+#sidebar-settings-btn {
+    display: none !important;
+}
+
+/* Allow JavaScript to override and show for admin */
+#sidebar-settings-btn.show-for-admin {
+    display: flex !important;
+}
+
 /* ==================== MAIN CONTENT ==================== */
 
 .main-content {
