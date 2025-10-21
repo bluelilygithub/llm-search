@@ -2402,15 +2402,11 @@ class KnowledgeBaseApp {
     
     // Open conversation from search results (switches to chat view first)
     openConversationFromSearch(conversationId) {
-        // Switch to chat view first to ensure proper DOM structure
-        this.showChatView();
+        // Clear search first
+        this.clearSearchResults();
         
-        // Note: chat-interface element doesn't exist in HTML, so we skip that
-        
-        // Then load the conversation
-        setTimeout(() => {
-            this.loadConversation(conversationId);
-        }, 100);
+        // Load the conversation directly - it will handle showing the correct view
+        this.loadConversation(conversationId);
     }
 
     // Clear search results and restore normal view
