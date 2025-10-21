@@ -86,15 +86,22 @@ class SimpleRAGService:
                 print(f"Document {context_item.name} already processed")
                 return True
             
+            print(f"Processing document: {context_item.name}")
+            print(f"Content length: {len(text)} characters")
+            
             # Chunk the text
             chunks = self.chunk_text(text)
             if not chunks:
                 print(f"No chunks generated for {context_item.name}")
                 return False
             
-            # Generate embeddings for each chunk
+            print(f"Generated {len(chunks)} chunks")
+            
+            # Generate embeddings for each chunk (with progress)
             chunk_embeddings = []
             for i, chunk in enumerate(chunks):
+                print(f"Processing chunk {i+1}/{len(chunks)}...")
+                
                 embedding = self.generate_embedding(chunk['text'])
                 if embedding:
                     chunk_embeddings.append({
@@ -109,10 +116,15 @@ class SimpleRAGService:
                             'end_char': chunk['end']
                         }
                     })
+                    print(f"  ✅ Chunk {i+1} processed")
+                else:
+                    print(f"  ❌ Chunk {i+1} failed")
             
             if not chunk_embeddings:
                 print(f"No embeddings generated for {context_item.name}")
                 return False
+            
+            print(f"Successfully generated {len(chunk_embeddings)} embeddings")
             
             # Store embeddings in extra_data
             extra_data['embeddings'] = chunk_embeddings
@@ -123,11 +135,13 @@ class SimpleRAGService:
             context_item.extra_data = extra_data
             db.session.commit()
             
-            print(f"Successfully processed {context_item.name}: {len(chunk_embeddings)} chunks")
+            print(f"✅ Successfully processed {context_item.name}: {len(chunk_embeddings)} chunks")
             return True
             
         except Exception as e:
-            print(f"Error processing document {context_item_id}: {str(e)}")
+            print(f"❌ Error processing document {context_item_id}: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return False
     
     def search_similar_chunks(self, query: str, similarity_threshold: float = 0.7, 
