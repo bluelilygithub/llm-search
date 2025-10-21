@@ -1827,6 +1827,66 @@ body {
     background: var(--gray-50);
     border-radius: var(--radius-lg);
     padding: var(--spacing-xl);
+    margin-bottom: var(--spacing-lg);
+}
+
+.account-update-form {
+    background: white;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-xl);
+}
+
+.account-update-form h4 {
+    margin: 0 0 var(--spacing-lg) 0;
+    color: var(--gray-900);
+    font-size: var(--font-size-lg);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.account-update-form h4 i {
+    color: var(--primary-blue);
+}
+
+.account-update-form .form-group {
+    margin-bottom: var(--spacing-lg);
+}
+
+.account-update-form label {
+    display: block;
+    margin-bottom: var(--spacing-sm);
+    font-weight: 500;
+    color: var(--gray-700);
+    font-size: var(--font-size-sm);
+}
+
+.account-update-form .form-control {
+    width: 100%;
+    padding: var(--spacing-md);
+    border: 1px solid var(--gray-300);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-base);
+    transition: border-color var(--transition-fast);
+}
+
+.account-update-form .form-control:focus {
+    outline: none;
+    border-color: var(--primary-blue);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.account-update-form .form-actions {
+    margin-top: var(--spacing-xl);
+}
+
+.account-update-form .update-message {
+    margin-top: var(--spacing-lg);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+    background: var(--gray-50);
+    font-size: var(--font-size-sm);
 }
 
 /* ==================== MODALS ==================== */

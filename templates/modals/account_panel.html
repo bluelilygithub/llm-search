@@ -18,6 +18,39 @@
             <div class="account-info-card" id="account-panel-info">
                 <div class="loading-account">Loading account information...</div>
             </div>
+            
+            <!-- Update Profile Form -->
+            <div class="account-update-form" id="account-update-form" style="display: none;">
+                <h4><i class="fas fa-edit"></i> Update Profile</h4>
+                
+                <div class="form-group">
+                    <label for="update-display-name">Display Name</label>
+                    <input type="text" id="update-display-name" class="form-control" placeholder="Enter display name">
+                </div>
+                
+                <div class="form-group">
+                    <label for="update-current-password">Current Password</label>
+                    <input type="password" id="update-current-password" class="form-control" placeholder="Enter current password">
+                </div>
+                
+                <div class="form-group">
+                    <label for="update-new-password">New Password (optional)</label>
+                    <input type="password" id="update-new-password" class="form-control" placeholder="Leave blank to keep current">
+                </div>
+                
+                <div class="form-group">
+                    <label for="update-confirm-password">Confirm New Password</label>
+                    <input type="password" id="update-confirm-password" class="form-control" placeholder="Confirm new password">
+                </div>
+                
+                <div class="form-actions">
+                    <button class="btn-primary" onclick="updateUserProfile()">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                </div>
+                
+                <div class="update-message" id="update-message" style="display: none;"></div>
+            </div>
         </div>
     </div>
 </div>

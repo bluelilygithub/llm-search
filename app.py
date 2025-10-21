@@ -784,6 +784,64 @@ def delete_user(user_id):
         app.logger.error(f"Error deleting user: {str(e)}")
         return jsonify({'error': 'Failed to delete user'}), 500
 
+@csrf.exempt
+@app.route('/api/users/update-profile', methods=['PUT'])
+@auth.login_required
+def update_user_profile():
+    """Allow users to update their own display name and password"""
+    try:
+        data = request.get_json()
+        display_name = data.get('display_name', '').strip()
+        current_password = data.get('current_password', '')
+        new_password = data.get('new_password')
+        
+        # Get current user from session
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({'error': 'Not authenticated'}), 401
+        
+        user = db.session.query(User).filter(User.id == user_id).first()
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        # Verify current password
+        if not user.check_password(current_password):
+            return jsonify({'error': 'Current password is incorrect'}), 401
+        
+        # Validation
+        if not display_name:
+            return jsonify({'error': 'Display name is required'}), 400
+        
+        # Update display name
+        user.display_name = display_name
+        
+        # Update password if provided
+        if new_password:
+            if len(new_password) < 8:
+                return jsonify({'error': 'New password must be at least 8 characters'}), 400
+            user.set_password(new_password)
+        
+        # Update last activity
+        from datetime import datetime
+        user.last_activity_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        # Update session
+        session['display_name'] = display_name
+        
+        app.logger.info(f"User profile updated: {user.username}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Profile updated successfully'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error updating user profile: {str(e)}")
+        return jsonify({'error': 'Failed to update profile'}), 500
+
 @app.route('/migrate-project-template')
 def migrate_project_template():
     """Add new template fields to the projects table if they don't exist"""

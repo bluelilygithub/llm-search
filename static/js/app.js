@@ -3424,6 +3424,7 @@ window.closeAccountPanel = function() {
 // Load account info into the account panel (simplified version for users)
 window.loadAccountPanelInfo = async function() {
     const accountContent = document.getElementById('account-panel-info');
+    const updateForm = document.getElementById('account-update-form');
     
     try {
         const response = await fetch('/auth/status');
@@ -3461,15 +3462,14 @@ window.loadAccountPanelInfo = async function() {
                             ` : ''}
                         </div>
                     </div>
-                    
-                    <div class="account-section">
-                        <p style="color: #666; font-size: 14px; margin-top: 16px;">
-                            <i class="fas fa-info-circle"></i>
-                            To update your profile information, please contact your administrator.
-                        </p>
-                    </div>
                 </div>
             `;
+            
+            // Show update form and populate it
+            if (updateForm) {
+                updateForm.style.display = 'block';
+                document.getElementById('update-display-name').value = displayName;
+            }
         } else {
             accountContent.innerHTML = `
                 <div class="account-card">
@@ -3484,6 +3484,91 @@ window.loadAccountPanelInfo = async function() {
                 <p style="color: #e74c3c;">Failed to load account information.</p>
             </div>
         `;
+    }
+};
+
+// Update user profile (display name and password)
+window.updateUserProfile = async function() {
+    const displayName = document.getElementById('update-display-name').value.trim();
+    const currentPassword = document.getElementById('update-current-password').value;
+    const newPassword = document.getElementById('update-new-password').value;
+    const confirmPassword = document.getElementById('update-confirm-password').value;
+    const messageDiv = document.getElementById('update-message');
+    
+    // Validation
+    if (!displayName) {
+        messageDiv.style.display = 'block';
+        messageDiv.style.color = '#e74c3c';
+        messageDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> Display name is required';
+        return;
+    }
+    
+    if (!currentPassword) {
+        messageDiv.style.display = 'block';
+        messageDiv.style.color = '#e74c3c';
+        messageDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> Current password is required';
+        return;
+    }
+    
+    // If changing password, validate new password
+    if (newPassword || confirmPassword) {
+        if (newPassword !== confirmPassword) {
+            messageDiv.style.display = 'block';
+            messageDiv.style.color = '#e74c3c';
+            messageDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> New passwords do not match';
+            return;
+        }
+        
+        if (newPassword.length < 8) {
+            messageDiv.style.display = 'block';
+            messageDiv.style.color = '#e74c3c';
+            messageDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> New password must be at least 8 characters';
+            return;
+        }
+    }
+    
+    try {
+        messageDiv.style.display = 'block';
+        messageDiv.style.color = '#666';
+        messageDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating profile...';
+        
+        const response = await fetch('/api/users/update-profile', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                display_name: displayName,
+                current_password: currentPassword,
+                new_password: newPassword || null
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            messageDiv.style.color = '#27ae60';
+            messageDiv.innerHTML = '<i class="fas fa-check-circle"></i> Profile updated successfully!';
+            
+            // Clear password fields
+            document.getElementById('update-current-password').value = '';
+            document.getElementById('update-new-password').value = '';
+            document.getElementById('update-confirm-password').value = '';
+            
+            // Reload account info after a delay
+            setTimeout(() => {
+                window.loadAccountPanelInfo();
+                messageDiv.style.display = 'none';
+            }, 2000);
+        } else {
+            messageDiv.style.color = '#e74c3c';
+            messageDiv.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${data.error || 'Failed to update profile'}`;
+        }
+    } catch (error) {
+        console.error('Error updating profile:', error);
+        messageDiv.style.display = 'block';
+        messageDiv.style.color = '#e74c3c';
+        messageDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> Error updating profile';
     }
 };
 
