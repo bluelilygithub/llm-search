@@ -1172,15 +1172,11 @@ Return only the 3 questions, one per line, without numbering or bullet points.""
         from llm_service import LLMService
         llm_service = LLMService()
         
-        # Check if user is authenticated
-        is_authenticated = getattr(request, 'access_type', None) != 'free_tier'
-        
         ai_response, tokens, estimated_cost = llm_service.get_response(
             model, 
             followup_messages, 
             max_tokens=150,  # Keep it short
-            temperature=0.9,  # Increased for more variety
-            is_authenticated=is_authenticated
+            temperature=0.9  # Increased for more variety
         )
         
         app.logger.info(f"Follow-up AI response: {ai_response}")
