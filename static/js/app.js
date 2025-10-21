@@ -3883,32 +3883,7 @@ KnowledgeBaseApp.prototype.loadMainModelDropdown = async function() {
             });
         });
         
-        // Add legacy models from settings that aren't in dynamic list
-        Object.keys(modelSettings).forEach(modelName => {
-            if (!allModels.has(modelName)) {
-                // This is a legacy model - try to detect provider from name
-                let provider = 'Unknown';
-                
-                if (modelName.startsWith('gpt-') || modelName.startsWith('o1-')) {
-                    provider = 'OpenAI';
-                } else if (modelName.startsWith('claude-')) {
-                    provider = 'Anthropic';
-                } else if (modelName.startsWith('gemini-')) {
-                    provider = 'Google';
-                } else if (modelName.includes('llama') || modelName.includes('mixtral') || modelName.includes('codellama')) {
-                    provider = 'Hugging Face';
-                } else if (modelName.startsWith('stable-')) {
-                    provider = 'Stability AI';
-                }
-                
-                allModels.set(modelName, {
-                    name: modelName,
-                    provider: provider,
-                    description: `Legacy ${provider} model`,
-                    isDynamic: false
-                });
-            }
-        });
+        // No longer adding legacy models - all models should be in the dynamic list
         
         // Filter to only enabled models
         const enabledModels = Array.from(allModels.values()).filter(model => {
@@ -5087,40 +5062,7 @@ async function loadCurrentModelsList() {
         
         console.log('After adding dynamic models:', Array.from(allModels.keys()));
         
-        // Add legacy models from settings that aren't in dynamic list
-        Object.keys(settings).forEach(modelName => {
-            if (!allModels.has(modelName)) {
-                console.log('Adding legacy model:', modelName);
-                // This is a legacy model - try to detect provider from name
-                let provider = 'Unknown';
-                let apiKey = null;
-                
-                if (modelName.startsWith('gpt-') || modelName.startsWith('o1-')) {
-                    provider = 'OpenAI';
-                    apiKey = 'OPENAI_API_KEY';
-                } else if (modelName.startsWith('claude-')) {
-                    provider = 'Anthropic';
-                    apiKey = 'CLAUDE_API_KEY';
-                } else if (modelName.startsWith('gemini-')) {
-                    provider = 'Google';
-                    apiKey = 'GEMINI_API_KEY';
-                } else if (modelName.includes('llama') || modelName.includes('mixtral') || modelName.includes('codellama')) {
-                    provider = 'Hugging Face';
-                    apiKey = 'HUGGING_FACE_API_KEY';
-                } else if (modelName.startsWith('stable-')) {
-                    provider = 'Stability AI';
-                    apiKey = 'STABILITY_API_KEY';
-                }
-                
-                allModels.set(modelName, {
-                    name: modelName,
-                    provider: provider,
-                    api_key: apiKey,
-                    description: `Legacy ${provider} model`,
-                    isDynamic: false
-                });
-            }
-        });
+        // No longer adding legacy models - all models should be in the dynamic list
         
         const modelsList = Array.from(allModels.values());
         console.log('Final models list:', modelsList);
