@@ -2092,7 +2092,16 @@ class KnowledgeBaseApp {
 
     // Search conversations, projects, and context items
     async searchConversations() {
-        const query = document.getElementById('conversation-search').value.trim();
+        const searchField = document.getElementById('conversation-search');
+        const query = searchField ? searchField.value.trim() : '';
+        
+        // SAFETY: If query looks like an email, clear it and abort
+        if (query.includes('@')) {
+            console.warn('⚠️ Email detected in search field, clearing it');
+            if (searchField) searchField.value = '';
+            this.clearSearchResults();
+            return;
+        }
         
         if (!query) {
             this.clearSearchResults();
@@ -6405,6 +6414,13 @@ window.migrateModel = async function(modelName) {
 
 // Initialize the app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
+    // CRITICAL FIX: Clear any autofilled content in search field
+    const searchField = document.getElementById('conversation-search');
+    if (searchField) {
+        searchField.value = '';
+        console.log('🔧 Cleared search field to prevent autofill issues');
+    }
+    
     window.app = new KnowledgeBaseApp();
     
     // Confirm template system is loaded
