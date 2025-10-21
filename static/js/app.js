@@ -2270,12 +2270,13 @@ class KnowledgeBaseApp {
         
         resultsHtml += '</div>';
         
-        // Clear any existing search results or chat containers, preserve top bar
+        // Hide chat container instead of removing it (so we can restore it later)
         const existingChatContainer = mainContent.querySelector('.chat-messages-container');
         if (existingChatContainer) {
-            existingChatContainer.remove();
+            existingChatContainer.style.display = 'none';
         }
         
+        // Remove any existing search container
         const existingSearchContainer = mainContent.querySelector('.search-results-container');
         if (existingSearchContainer) {
             existingSearchContainer.remove();
@@ -8178,10 +8179,15 @@ KnowledgeBaseApp.prototype.showChatView = function() {
     const contextToggle = document.getElementById('context-toggle-btn');
     if (contextToggle) contextToggle.style.display = 'block';
     
-    // Hide any remaining search results that might be interfering with the layout
+    // Remove any search results that might be interfering with the layout
     const searchResults = document.querySelector('.search-results-container');
     if (searchResults) {
-        searchResults.style.display = 'none';
+        searchResults.remove();
+    }
+    
+    // Restore chat container if it was hidden during search
+    if (chatMessagesContainer) {
+        chatMessagesContainer.style.display = '';
     }
     
     // Show empty state for new conversation
