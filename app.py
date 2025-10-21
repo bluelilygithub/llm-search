@@ -3643,6 +3643,168 @@ def check_model_access():
 
 # ==================== END MODEL SETTINGS API ====================
 
+# ==================== RAG PIPELINE API ====================
+
+@app.route('/api/rag/search', methods=['POST'])
+@require_conversation_access
+def rag_search():
+    """Search for relevant documents using semantic similarity"""
+    try:
+        data = request.get_json()
+        query = data.get('query', '').strip()
+        similarity_threshold = data.get('similarity_threshold', 0.7)
+        max_results = data.get('max_results', 10)
+        
+        if not query:
+            return jsonify({'error': 'Query is required'}), 400
+        
+        # Get user identity for filtering
+        identity = get_user_identity()
+        user_id = identity.get('user_id')
+        
+        # Initialize RAG service
+        from rag_service import RAGService
+        rag_service = RAGService(openai_api_key=os.getenv('OPENAI_API_KEY'))
+        
+        # Search for similar chunks
+        results = rag_service.search_similar_chunks(
+            query=query,
+            similarity_threshold=similarity_threshold,
+            max_results=max_results,
+            user_id=str(user_id) if user_id else None
+        )
+        
+        return jsonify({
+            'success': True,
+            'query': query,
+            'results': results,
+            'total_results': len(results)
+        })
+        
+    except Exception as e:
+        app.logger.error(f"Error in RAG search: {str(e)}")
+        return jsonify({'error': f'RAG search failed: {str(e)}'}), 500
+
+@app.route('/api/rag/process-document', methods=['POST'])
+@require_conversation_access
+def rag_process_document():
+    """Process a document to generate embeddings"""
+    try:
+        data = request.get_json()
+        context_item_id = data.get('context_item_id')
+        
+        if not context_item_id:
+            return jsonify({'error': 'Context item ID is required'}), 400
+        
+        # Get the context item
+        from models import ContextItem
+        context_item = ContextItem.query.get(context_item_id)
+        
+        if not context_item:
+            return jsonify({'error': 'Context item not found'}), 404
+        
+        # Check access permissions
+        identity = get_user_identity()
+        if identity.get('user_id') and str(context_item.user_id) != str(identity['user_id']):
+            return jsonify({'error': 'Access denied'}), 403
+        
+        if not context_item.content_text:
+            return jsonify({'error': 'No content text available for processing'}), 400
+        
+        # Initialize RAG service
+        from rag_service import RAGService
+        rag_service = RAGService(openai_api_key=os.getenv('OPENAI_API_KEY'))
+        
+        # Process the document
+        success = rag_service.process_document(
+            context_item_id=context_item_id,
+            text=context_item.content_text,
+            metadata={
+                'document_name': context_item.name,
+                'content_type': context_item.content_type,
+                'created_at': context_item.created_at.isoformat() if context_item.created_at else None
+            }
+        )
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'message': 'Document processed successfully',
+                'context_item_id': context_item_id
+            })
+        else:
+            return jsonify({'error': 'Failed to process document'}), 500
+        
+    except Exception as e:
+        app.logger.error(f"Error processing document: {str(e)}")
+        return jsonify({'error': f'Document processing failed: {str(e)}'}), 500
+
+@app.route('/api/rag/process-all', methods=['POST'])
+@require_conversation_access
+def rag_process_all():
+    """Process all unprocessed documents for the current user"""
+    try:
+        # Get user identity
+        identity = get_user_identity()
+        user_id = identity.get('user_id')
+        
+        # Initialize RAG service
+        from rag_service import RAGService
+        rag_service = RAGService(openai_api_key=os.getenv('OPENAI_API_KEY'))
+        
+        # Process all documents
+        result = rag_service.process_all_documents(user_id=str(user_id) if user_id else None)
+        
+        return jsonify({
+            'success': result['success'],
+            'message': f"Processed {result['processed_count']} documents",
+            'stats': result
+        })
+        
+    except Exception as e:
+        app.logger.error(f"Error processing all documents: {str(e)}")
+        return jsonify({'error': f'Batch processing failed: {str(e)}'}), 500
+
+@app.route('/api/rag/get-context', methods=['POST'])
+@require_conversation_access
+def rag_get_context():
+    """Get relevant context for a query to include in AI response"""
+    try:
+        data = request.get_json()
+        query = data.get('query', '').strip()
+        max_context_length = data.get('max_context_length', 4000)
+        
+        if not query:
+            return jsonify({'error': 'Query is required'}), 400
+        
+        # Get user identity
+        identity = get_user_identity()
+        user_id = identity.get('user_id')
+        
+        # Initialize RAG service
+        from rag_service import RAGService
+        rag_service = RAGService(openai_api_key=os.getenv('OPENAI_API_KEY'))
+        
+        # Get context for the query
+        context = rag_service.get_context_for_query(
+            query=query,
+            max_context_length=max_context_length,
+            user_id=str(user_id) if user_id else None
+        )
+        
+        return jsonify({
+            'success': True,
+            'query': query,
+            'context': context,
+            'context_length': len(context)
+        })
+        
+    except Exception as e:
+        app.logger.error(f"Error getting context: {str(e)}")
+        return jsonify({'error': f'Context retrieval failed: {str(e)}'}), 500
+
+# ==================== END RAG PIPELINE API ====================
+
 # ==================== DYNAMIC MODEL MANAGEMENT API ====================
 
 @app.route('/api/models', methods=['GET'])

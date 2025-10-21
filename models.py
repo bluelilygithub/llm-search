@@ -267,3 +267,29 @@ class ModelSettings(db.Model):
             'enabled': self.enabled,
             'status': self.status
         }
+
+class DocumentEmbedding(db.Model):
+    __tablename__ = 'document_embeddings'
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    context_item_id = db.Column(UUID(as_uuid=True), db.ForeignKey('context_items.id', ondelete='CASCADE'), nullable=False, index=True)
+    chunk_index = db.Column(db.Integer, nullable=False)
+    chunk_text = db.Column(db.Text, nullable=False)
+    chunk_tokens = db.Column(db.Integer, default=0)
+    embedding = db.Column(db.JSON)  # Store as JSON array (PostgreSQL vector would be better but requires extension)
+    metadata = db.Column(db.JSON)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    context_item = db.relationship('ContextItem', backref='embeddings')
+    
+    def to_dict(self):
+        return {
+            'id': str(self.id),
+            'context_item_id': str(self.context_item_id),
+            'chunk_index': self.chunk_index,
+            'chunk_text': self.chunk_text,
+            'chunk_tokens': self.chunk_tokens,
+            'metadata': self.metadata,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
