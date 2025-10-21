@@ -3392,7 +3392,22 @@ window.openSettingsPanel = function() {
         console.error('❌ App not initialized yet - window.app is undefined');
     }
 };
-console.log('✅ Global window.openSettingsPanel registered');
+
+// Open account panel (settings panel but directly to Account section)
+window.openAccountPanel = function() {
+    console.log('✅ window.openAccountPanel called');
+    if (window.app) {
+        window.app.openSettingsPanel();
+        // Switch to account section after a brief delay to ensure panel is open
+        setTimeout(() => {
+            window.showSettingsSection('account');
+        }, 100);
+    } else {
+        console.error('❌ App not initialized yet - window.app is undefined');
+    }
+};
+
+console.log('✅ Global window.openSettingsPanel and openAccountPanel registered');
 
 // Function to load dynamic models and API key status
 KnowledgeBaseApp.prototype.loadDynamicModels = async function() {
@@ -4312,6 +4327,12 @@ window.showUsersTabIfAdmin = async function() {
         const sidebarSettingsBtn = document.getElementById('sidebar-settings-btn');
         if (sidebarSettingsBtn) {
             sidebarSettingsBtn.style.display = isAdmin ? 'flex' : 'none';
+        }
+        
+        // Show/hide Account button in top bar (all authenticated users)
+        const accountBtn = document.getElementById('account-btn');
+        if (accountBtn) {
+            accountBtn.style.display = data.authenticated ? 'block' : 'none';
         }
         
         // Display username in top bar
