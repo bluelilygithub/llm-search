@@ -90,7 +90,7 @@ class RAGService:
                     chunk_text=chunk['text'],
                     chunk_tokens=len(chunk['text'].split()),  # Rough token count
                     embedding=embedding,
-                    metadata={
+                    chunk_metadata={
                         **(metadata or {}),
                         **chunk['metadata'],
                         'start_char': chunk['start'],
@@ -127,7 +127,7 @@ class RAGService:
                     de.id,
                     de.context_item_id,
                     de.chunk_text,
-                    de.metadata,
+                    de.chunk_metadata,
                     ci.name as document_name,
                     ci.description as document_description,
                     cosine_similarity(de.embedding, %s::jsonb) as similarity_score
@@ -159,7 +159,7 @@ class RAGService:
                     'document_name': row.document_name,
                     'document_description': row.document_description,
                     'similarity_score': float(row.similarity_score),
-                    'metadata': row.metadata
+                    'metadata': row.chunk_metadata
                 })
             
             return results

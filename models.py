@@ -276,7 +276,7 @@ class DocumentEmbedding(db.Model):
     chunk_text = db.Column(db.Text, nullable=False)
     chunk_tokens = db.Column(db.Integer, default=0)
     embedding = db.Column(db.JSON)  # Store as JSON array (PostgreSQL vector would be better but requires extension)
-    metadata = db.Column(db.JSON)
+    chunk_metadata = db.Column(db.JSON)  # Renamed from 'metadata' to avoid SQLAlchemy conflict
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -290,6 +290,6 @@ class DocumentEmbedding(db.Model):
             'chunk_index': self.chunk_index,
             'chunk_text': self.chunk_text,
             'chunk_tokens': self.chunk_tokens,
-            'metadata': self.metadata,
+            'chunk_metadata': self.chunk_metadata,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
