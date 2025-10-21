@@ -79,10 +79,31 @@ def check_conversation_access(conversation_id, user_identity=None):
         if user_identity['type'] == 'authenticated':
             # Admin users (user_id is None) have access to everything
             if user_identity['user_id'] is None:
+                security_logger.info(f"Admin access granted to conversation {conversation_id}")
                 return True, "Access granted (admin)"
-            # Regular authenticated users check user_id (stored as string in database)
-            if conversation.user_id == user_identity['user_id']:
-                return True, "Access granted"
+            # Regular authenticated users check user_id
+            # Convert both to UUID for comparison
+            try:
+                user_uuid = user_identity['user_id']
+                if isinstance(user_uuid, str):
+                    user_uuid = uuid.UUID(user_uuid)
+                
+                conv_uuid = conversation.user_id
+                if isinstance(conv_uuid, str):
+                    conv_uuid = uuid.UUID(conv_uuid)
+                
+                security_logger.info(
+                    f"Checking conversation access: "
+                    f"conversation.user_id={conv_uuid} (type: {type(conv_uuid).__name__}), "
+                    f"session user_id={user_uuid} (type: {type(user_uuid).__name__}), "
+                    f"match={conv_uuid == user_uuid}"
+                )
+                
+                if conv_uuid == user_uuid:
+                    return True, "Access granted"
+            except Exception as e:
+                security_logger.error(f"UUID comparison error: {e}")
+                return False, "Access check failed"
         else:
             # Free users check session_id
             if conversation.session_id == user_identity['session_id']:
