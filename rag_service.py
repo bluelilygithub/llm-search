@@ -148,7 +148,7 @@ class RAGService:
             
             # Execute query
             from sqlalchemy import text
-            result = db.session.execute(text(base_query), params)
+            result = db.session.execute(text(base_query), tuple(params))
             
             # Format results
             results = []
