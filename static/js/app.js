@@ -205,15 +205,22 @@ class KnowledgeBaseApp {
 
     // Methods called from the new HTML structure
     startNewConversation() {
+        console.log('🆕 startNewConversation called');
+        console.log('🆕 currentProject:', this.currentProject);
+        console.log('🆕 currentViewProject:', this.currentViewProject);
+        
         // Check if we're currently in a project context
         if (this.currentProject && this.currentProject.id) {
             // If we're in a project, start conversation in that project
+            console.log('🆕 Starting conversation in currentProject');
             this.startNewConversationInProject(this.currentProject.id);
         } else if (this.currentViewProject && this.currentViewProject.id) {
             // If we're viewing a specific project, start conversation in that project
+            console.log('🆕 Starting conversation in currentViewProject');
             this.startNewConversationInProject(this.currentViewProject.id);
         } else {
             // No project context, start a general conversation
+            console.log('🆕 Starting general conversation');
             // First, ensure we're in chat view
             this.showChatView();
             
