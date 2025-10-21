@@ -3395,9 +3395,10 @@ KnowledgeBaseApp.prototype.openSettingsPanel = function() {
         return;
     }
         panel.classList.add('open');
-        // Load original model settings when panel opens
+        // Initialize settings when panel opens
         setTimeout(() => {
-            this.loadModelsForSettingsPanel();
+            // No longer loading models list in settings panel - use Model Management modal instead
+            // this.loadModelsForSettingsPanel();
         // Show Users tab if admin
         window.showUsersTabIfAdmin();
         // Load account info
@@ -5605,10 +5606,10 @@ window.toggleModelEnabledInManagement = async function(modelName, newEnabledStat
                 }
             }
             
-            // Also reload the settings panel if it's open
-            if (window.app && window.app.loadModelsForSettingsPanel) {
-                window.app.loadModelsForSettingsPanel();
-            }
+            // No longer reloading settings panel models list - removed from UI
+            // if (window.app && window.app.loadModelsForSettingsPanel) {
+            //     window.app.loadModelsForSettingsPanel();
+            // }
             
             // Refresh the main model dropdown
             if (window.app && window.app.loadMainModelDropdown) {
