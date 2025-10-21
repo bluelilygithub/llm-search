@@ -130,25 +130,30 @@ class RAGService:
                     de.chunk_metadata,
                     ci.name as document_name,
                     ci.description as document_description,
-                    cosine_similarity(de.embedding, %s::jsonb) as similarity_score
+                    cosine_similarity(de.embedding, :embedding1::jsonb) as similarity_score
                 FROM document_embeddings de
                 JOIN context_items ci ON de.context_item_id = ci.id
-                WHERE cosine_similarity(de.embedding, %s::jsonb) > %s
+                WHERE cosine_similarity(de.embedding, :embedding2::jsonb) > :threshold
             """
             
-            params = [embedding_json, embedding_json, similarity_threshold]
+            params = {
+                'embedding1': embedding_json,
+                'embedding2': embedding_json,
+                'threshold': similarity_threshold
+            }
             
             # Add user filtering if provided
             if user_id:
-                base_query += " AND ci.user_id = %s"
-                params.append(user_id)
+                base_query += " AND ci.user_id = :user_id"
+                params['user_id'] = user_id
             
-            base_query += " ORDER BY cosine_similarity(de.embedding, %s::jsonb) DESC LIMIT %s"
-            params.extend([embedding_json, max_results])
+            base_query += " ORDER BY cosine_similarity(de.embedding, :embedding3::jsonb) DESC LIMIT :max_results"
+            params['embedding3'] = embedding_json
+            params['max_results'] = max_results
             
             # Execute query
             from sqlalchemy import text
-            result = db.session.execute(text(base_query), tuple(params))
+            result = db.session.execute(text(base_query), params)
             
             # Format results
             results = []

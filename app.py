@@ -1774,8 +1774,8 @@ Please use this context information appropriately when responding to user questi
         rag_context = ""
         rag_sources = []
         try:
-            from rag_service import RAGService
-            rag_service = RAGService(openai_api_key=os.getenv('OPENAI_API_KEY'))
+            from rag_service_simple import SimpleRAGService
+            rag_service = SimpleRAGService(openai_api_key=os.getenv('OPENAI_API_KEY'))
             
             # Get user identity for filtering
             identity = get_user_identity()
@@ -3710,8 +3710,8 @@ def rag_search():
         user_id = identity.get('user_id')
         
         # Initialize RAG service
-        from rag_service import RAGService
-        rag_service = RAGService(openai_api_key=os.getenv('OPENAI_API_KEY'))
+        from rag_service_simple import SimpleRAGService
+        rag_service = SimpleRAGService(openai_api_key=os.getenv('OPENAI_API_KEY'))
         
         # Search for similar chunks
         results = rag_service.search_similar_chunks(
@@ -3759,8 +3759,8 @@ def rag_process_document():
             return jsonify({'error': 'No content text available for processing'}), 400
         
         # Initialize RAG service
-        from rag_service import RAGService
-        rag_service = RAGService(openai_api_key=os.getenv('OPENAI_API_KEY'))
+        from rag_service_simple import SimpleRAGService
+        rag_service = SimpleRAGService(openai_api_key=os.getenv('OPENAI_API_KEY'))
         
         # Process the document
         success = rag_service.process_document(
@@ -3795,8 +3795,8 @@ def rag_process_all():
         user_id = identity.get('user_id')
         
         # Initialize RAG service
-        from rag_service import RAGService
-        rag_service = RAGService(openai_api_key=os.getenv('OPENAI_API_KEY'))
+        from rag_service_simple import SimpleRAGService
+        rag_service = SimpleRAGService(openai_api_key=os.getenv('OPENAI_API_KEY'))
         
         # Process all documents
         result = rag_service.process_all_documents(user_id=str(user_id) if user_id else None)
@@ -3827,8 +3827,8 @@ def rag_get_context():
         user_id = identity.get('user_id')
         
         # Initialize RAG service
-        from rag_service import RAGService
-        rag_service = RAGService(openai_api_key=os.getenv('OPENAI_API_KEY'))
+        from rag_service_simple import SimpleRAGService
+        rag_service = SimpleRAGService(openai_api_key=os.getenv('OPENAI_API_KEY'))
         
         # Get context for the query
         context = rag_service.get_context_for_query(
