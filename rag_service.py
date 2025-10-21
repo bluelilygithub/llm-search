@@ -147,7 +147,8 @@ class RAGService:
             params.extend([embedding_json, max_results])
             
             # Execute query
-            result = db.session.execute(base_query, params)
+            from sqlalchemy import text
+            result = db.session.execute(text(base_query), params)
             
             # Format results
             results = []
