@@ -1,28 +1,29 @@
-# AI Knowledge Base
+# Curam AI Knowledge Base
 
-A comprehensive AI-powered knowledge management and chat application that enables users to interact with multiple Large Language Models (LLMs), manage conversations, upload documents for context, and organize their knowledge through intelligent search and tagging systems.
+A comprehensive AI-powered knowledge management and chat application that enables users to interact with multiple Large Language Models (LLMs), manage conversations, upload documents for context, and organize their knowledge through intelligent search and tagging systems with advanced RAG (Retrieval-Augmented Generation) capabilities.
 
 ## 🚀 What It Does
 
-The AI Knowledge Base is a multi-LLM chat interface that allows users to:
+Curam AI Knowledge Base is a multi-LLM chat interface that allows users to:
 
 - **Chat with Multiple AI Models**: Interact with OpenAI GPT models (including O1), Anthropic Claude 3.5/4, Google Gemini, Hugging Face models, and Stability AI image/audio generation
-- **Advanced Context Management**: Upload documents (PDF, DOCX, TXT, CSV), extract content from URLs, and manage context items across conversations with the new Context Service
+- **Advanced RAG Pipeline**: Upload documents and get AI responses enhanced with relevant content from your knowledge base using semantic search and embeddings
+- **Multi-User System**: Admin and user roles with separate access controls, user management, and personalized experiences
 - **Intelligent Organization**: Tag conversations, organize them into projects, and search through your knowledge base with advanced filtering
-- **Dual Access System**: Robust free-tier access with IP tracking/whitelisting and authenticated users with unlimited access
 - **Real-time Search**: Search conversations by title, content, tags, or project with intelligent filtering and snippets
-- **Image & Audio Generation**: Create and edit images using Stability AI models, with Cloudinary integration for storage
+- **Voice Features**: Text-to-speech for AI responses and speech-to-text for input
+- **Model Management**: Enable/disable specific models and manage default model preferences
 
 ## 🏗️ Infrastructure & Technology Stack
 
 ### Backend
 - **Framework**: Flask 3.0.0 with modular architecture (app.py, config.py, models.py)
 - **Database**: PostgreSQL with SQLAlchemy ORM and Flask-Migrate for migrations
-- **Authentication**: SimpleAuth system with IP whitelisting, session-based auth, and dual access modes
+- **Authentication**: Multi-user system with admin and regular user roles, session-based auth
+- **RAG Pipeline**: OpenAI embeddings with semantic search and document chunking
 - **File Processing**: PyPDF2 for PDFs, python-docx for Word documents, BeautifulSoup for URL extraction
-- **Rate Limiting**: Flask-Limiter with comprehensive free-tier tracking
+- **Rate Limiting**: Flask-Limiter with comprehensive usage tracking
 - **CORS**: Flask-CORS for cross-origin requests
-- **Context Management**: New ContextService with advanced context item management
 - **Storage**: Cloudinary integration for generated image storage
 
 ### Frontend
@@ -31,7 +32,7 @@ The AI Knowledge Base is a multi-LLM chat interface that allows users to:
 - **Icons**: Font Awesome 6.0.0
 - **Charts**: Chart.js for advanced usage analytics and dashboard
 - **File Handling**: Drag-and-drop interface with multiple file format support
-- **Settings**: Comprehensive settings panel with model configuration and access checking
+- **Settings**: Comprehensive settings panel with model configuration and user management
 
 ### LLM Integration
 - **OpenAI**: GPT-3.5, GPT-4, GPT-4 Turbo, GPT-4o/4o-mini, O1-preview/mini models with updated pricing
@@ -53,10 +54,26 @@ The AI Knowledge Base is a multi-LLM chat interface that allows users to:
 - Real-time streaming responses with proper error handling
 - Message history and conversation continuity with user identification
 - Model-specific pricing, token tracking, and usage analytics
-- **New**: Image editing capabilities with Stability AI (remove background, search & replace, recoloring)
+- **Text-to-Speech**: Listen to AI responses with speaker button
+- **Speech-to-Text**: Voice input capabilities for hands-free interaction
+
+### 🧠 RAG (Retrieval-Augmented Generation) Pipeline
+- **Document Processing**: Upload documents (PDF, DOCX, TXT) and automatically generate embeddings
+- **Semantic Search**: Find relevant content using OpenAI embeddings and cosine similarity
+- **Context Integration**: AI responses enhanced with relevant knowledge base content
+- **Visual Indicators**: See which documents were used to generate responses
+- **Source Citations**: View document names and relevance scores for transparency
+- **User-Specific Knowledge**: Each user's documents are processed and searched independently
+
+### 👥 Multi-User Management System
+- **Admin Users**: Full access to all features, user management, and system settings
+- **Regular Users**: Access to their own conversations and documents
+- **User Roles**: SUPER_ADMIN, ADMIN, USER, VIEWER, GUEST with different permission levels
+- **User Management**: Create, edit, and manage user accounts with email validation
+- **Profile Management**: Users can update their display names and passwords
+- **Access Control**: Conversations and projects are filtered by user ownership
 
 ### 📁 Advanced Context Management System
-- **Context Service**: New centralized context management with ContextItem, ContextSession, and usage tracking
 - Upload multiple file formats (PDF, DOCX, TXT, CSV) with content extraction and sanitization
 - **URL Content Extraction**: Extract and process content from web URLs with BeautifulSoup
 - Context panel with search, statistics, and conversation-specific context management
@@ -69,92 +86,38 @@ The AI Knowledge Base is a multi-LLM chat interface that allows users to:
 - **Powerful Search API**: Backend search with conversation content, snippets, and project filtering
 - **Real-time Filtering**: Client-side and server-side search with visual highlighting
 
-### 👥 Robust User Management & Access Control
-- **Dual Access System**: SimpleAuth class with sophisticated free-tier and authenticated modes
-- **IP Whitelisting**: Dynamic IP management with admin controls and usage tracking
-- **Free Tier Tracking**: Multi-method tracking (session, IP, hash) with comprehensive logging
-- **Rate Limiting**: Advanced Flask-Limiter configuration with model-specific limits
-- **Admin Interface**: Full admin panel with whitelist management and usage statistics
+### ⚙️ Model Management
+- **Model Settings**: Enable/disable specific models for your organization
+- **Default Model**: Set preferred default model for new conversations
+- **Model Persistence**: Settings saved to database and persist across deployments
+- **Model Status**: Track model availability and performance
 
 ### 📊 Professional Analytics & Monitoring
 - **Comprehensive Usage Tracking**: LLMUsageLog and LLMErrorLog models with detailed metrics
 - **Advanced Dashboard**: Chart.js integration with timeline charts, model performance tables
 - **Context Analytics**: Track context item usage, token consumption, and effectiveness
 - **Real-time Monitoring**: Live dashboard with auto-refresh and export capabilities
-- **Free Access Analytics**: Detailed tracking of free tier usage with IP analytics
 
 ### 🔒 Enterprise-Grade Security
-- **Multi-layer Authentication**: SimpleAuth system with session-based and IP-based controls
+- **Multi-layer Authentication**: Multi-user system with role-based access control
 - **Input Sanitization**: Comprehensive content sanitization for documents and user inputs
 - **CORS & Security Headers**: Proper cross-origin request handling and security configurations
 - **Error Handling**: Structured error logging with client-side error reporting
-- **Rate Limiting**: Sophisticated rate limiting with free tier protections
+- **Rate Limiting**: Sophisticated rate limiting with usage protections
 
 ### 🎨 Modern User Experience
 - **Collapsible Sidebar**: Modern sidebar with project navigation and search
 - **Responsive Design**: Mobile-first design that works across all devices
-- **Settings Panel**: Comprehensive settings with model configuration and access checking
-- **Context Panel**: Advanced context management UI with drag-and-drop support
+- **Settings Panel**: Comprehensive settings with model configuration and user management
+- **Account Panel**: User profile management with password updates
 - **Export & Import**: Full conversation export with context preservation
-- **Voice Input**: Voice recording capabilities with Google Speech-to-Text integration
-
-## 🎯 Five Priority UI Features for Next Implementation
-
-### 1. **Advanced Search & Filters Interface**
-```
-Priority: High | Effort: Medium
-```
-- **Advanced Search Modal**: Date ranges, model filters, project filtering
-- **Saved Search Queries**: Bookmark frequently used search combinations  
-- **Search History**: Quick access to recent searches
-- **Filter Chips**: Visual filter indicators with easy removal
-- **Search Suggestions**: Auto-complete based on existing tags and content
-
-### 2. **Conversation Management Dashboard**
-```
-Priority: High | Effort: Medium
-```
-- **Conversation Overview**: Grid/list view toggle with thumbnails
-- **Bulk Operations**: Select multiple conversations for tagging, deletion, or export
-- **Conversation Stats**: Token usage, model distribution, creation dates
-- **Favorites System**: Star important conversations for quick access
-- **Archive/Unarchive**: Hide old conversations without deletion
-
-### 3. **Enhanced Context & Document Workspace**
-```
-Priority: Medium | Effort: High
-```
-- **Document Preview**: In-app PDF/document viewer with highlights
-- **Context Templates**: Pre-built context sets for different use cases
-- **Document Versioning**: Track changes to uploaded documents
-- **Collaborative Context**: Share document sets between authenticated users
-- **Smart Context Suggestions**: AI-powered recommendations for relevant documents
-
-### 4. **Real-time Collaboration Features**
-```
-Priority: Medium | Effort: High  
-```
-- **Shared Conversations**: Invite others to view/contribute to conversations
-- **Comment System**: Add notes and annotations to specific messages
-- **Conversation Branching**: Fork conversations to explore different paths
-- **Team Workspaces**: Shared project spaces for organizations
-- **Activity Feeds**: See recent activity across shared conversations
-
-### 5. **Advanced Customization & Personalization**
-```
-Priority: Low | Effort: Medium
-```
-- **Custom Themes**: User-selectable color schemes and layouts
-- **Personalized Dashboards**: Drag-and-drop widget arrangement
-- **Custom Shortcuts**: User-defined keyboard shortcuts and quick actions
-- **Model Presets**: Save preferred model settings and system prompts
-- **Notification Preferences**: Configurable alerts for various events
+- **Personalized Welcome**: Custom welcome messages with user's display name
 
 ## 🛠️ Development Setup
 
 ### Prerequisites
 - Python 3.9+
-- PostgreSQL 12+ (with vector extension support for future features)
+- PostgreSQL 12+
 - Node.js (optional, for frontend development tools)
 
 ### Installation
@@ -179,13 +142,9 @@ createdb llm_search_db  # or use your preferred database name
 
 # Run database migrations
 python -c "from app import db; db.create_all()"
-psql -d llm_search_db -f migration_add_user_columns.sql
 
-# Initialize database with extensions (optional for advanced features)
-python -c "from database import init_database; from app import app; init_database(app)"
-
-# Test database connection
-python -c "from database import test_connection; from app import app; test_connection(app)"
+# Run user system migration (if upgrading from older version)
+psql -d llm_search_db -f QUICK_MIGRATION.sql
 
 # Start development server
 python app.py
@@ -210,10 +169,6 @@ flask db upgrade
 ```bash
 # Database
 DATABASE_URL=postgresql://user:password@localhost/dbname
-DB_POOL_SIZE=10
-DB_POOL_TIMEOUT=30
-DB_POOL_RECYCLE=3600
-DB_MAX_OVERFLOW=20
 
 # AI Model APIs
 OPENAI_API_KEY=your_openai_key
@@ -241,35 +196,54 @@ FLASK_DEBUG=False
 ### Core Application Structure
 ```
 llm-search/
-├── app.py                    # Main Flask application with 1900+ lines of endpoints
+├── app.py                    # Main Flask application with 4000+ lines of endpoints
 ├── config.py                 # Multi-environment configuration
-├── models.py                 # Database models (19+ models including context management)
-├── auth.py                   # SimpleAuth system with FreeAccessManager
+├── models.py                 # Database models (20+ models including user management)
+├── auth.py                   # Multi-user authentication system
 ├── llm_service.py           # LLMService with 20+ model integrations
-├── context_service.py       # New ContextService for advanced context management  
+├── rag_service_simple.py    # RAG pipeline with embeddings and semantic search
+├── security_utils.py        # Security utilities and access control
+├── user_models.py           # User management models
 ├── database.py              # Database initialization and utilities
 ├── logger.py                # Structured logging configuration
-├── migration_add_user_columns.sql  # Database migration scripts
-├── requirements.txt         # Python dependencies (17 packages)
+├── requirements.txt         # Python dependencies (20+ packages)
 ├── Procfile                 # Production deployment configuration
 ├── templates/
-│   ├── index.html          # Main application UI (1330+ lines)
-│   └── login.html          # Authentication interface
+│   ├── app_main.html       # Main application UI
+│   ├── login.html          # Authentication interface
+│   ├── components/         # Reusable UI components
+│   └── modals/             # Modal dialogs
 └── static/
     ├── css/style.css       # Application styling
-    ├── js/app.js          # Frontend JavaScript (68+ functions)
+    ├── js/app.js          # Frontend JavaScript (8000+ lines)
     └── images/            # Static assets
 ```
 
 ### Key API Endpoints
 
 #### Chat & Conversations
-- `POST /chat` - Multi-LLM chat with context injection
+- `POST /chat` - Multi-LLM chat with RAG context injection
 - `GET/POST /conversations` - Conversation CRUD with user filtering  
 - `GET/POST /conversations/<id>/messages` - Message management
 - `POST /conversations/<id>/attachments` - File upload handling
 
-#### Context Management (New)
+#### RAG Pipeline
+- `POST /api/rag/process-document` - Process single document for embeddings
+- `POST /api/rag/process-all` - Process all documents for current user
+- `POST /api/rag/search` - Semantic search across knowledge base
+- `POST /api/rag/get-context` - Get relevant context for AI responses
+
+#### User Management
+- `GET/POST /api/users` - User CRUD operations (admin only)
+- `PUT /api/users/<id>` - Update user information
+- `DELETE /api/users/<id>` - Delete user account
+- `PUT /api/users/update-profile` - Update own profile (display name, password)
+
+#### Model Management
+- `GET/POST /api/model-settings` - Manage enabled/disabled models
+- `GET /api/models` - Get available models with status
+
+#### Context Management
 - `GET/POST /api/context` - Context item management
 - `GET /api/context/<item_id>` - Individual context item operations
 - `GET /api/context/suggestions` - AI-powered context suggestions
@@ -291,30 +265,53 @@ llm-search/
 - `GET /monthly-token-usage` - Time-series usage data
 - `GET /llm-error-log` - Error tracking and monitoring
 
-#### Administration
-- `GET/POST/DELETE /admin/whitelist` - IP whitelist management
-- `GET /admin/usage-stats` - Free tier usage analytics
-- `GET /admin/current-ip` - IP identification utilities
-
 ### Database Models
 
 #### Core Models
-- **Conversation**: Enhanced with user_id, session_id, ip_address for dual access
+- **Conversation**: Enhanced with user_id for multi-user support
 - **Message**: Core chat messages with UUID primary keys
-- **Project**: Organization system for conversations
+- **Project**: Organization system for conversations with owner_id
 - **Attachment**: File upload tracking
 
-#### Context Management (New)
-- **ContextItem**: Centralized context storage with analytics
-- **ContextSession**: Context-conversation relationships
-- **ContextUsageLog**: Detailed usage tracking
-- **ContextTemplate**: Reusable context sets
+#### User Management
+- **User**: User accounts with roles, status, and profile information
+- **UserRole**: Role definitions (SUPER_ADMIN, ADMIN, USER, VIEWER, GUEST)
+- **UserStatus**: User status tracking (ACTIVE, INACTIVE, SUSPENDED)
+- **UserAuditLog**: Audit trail for user actions
 
-#### Access Control & Analytics
-- **FreeAccessLog**: Comprehensive free tier tracking
-- **IPWhitelist**: Dynamic IP management
-- **IPUsageSummary**: Daily usage aggregation
+#### RAG Pipeline
+- **ContextItem**: Document storage with content extraction
+- **ModelSettings**: Model configuration and status tracking
+
+#### Analytics & Monitoring
 - **LLMUsageLog/LLMErrorLog**: Model usage and error tracking
+- **ContextUsageLog**: Context item usage tracking
+
+## 🚀 Recent Updates
+
+### RAG Implementation (Latest)
+- **Document Processing**: Automatic embedding generation for uploaded documents
+- **Semantic Search**: Find relevant content using OpenAI embeddings
+- **Context Integration**: AI responses enhanced with knowledge base content
+- **Visual Indicators**: See which documents informed each response
+- **User-Specific**: Each user's documents are processed independently
+
+### Multi-User System
+- **User Management**: Admin can create and manage user accounts
+- **Role-Based Access**: Different permission levels for different user types
+- **Profile Management**: Users can update their own information
+- **Access Control**: Conversations and projects filtered by user ownership
+
+### Model Management
+- **Model Settings**: Enable/disable specific models
+- **Default Model**: Set preferred model for new conversations
+- **Database Persistence**: Settings saved and persist across deployments
+
+### UI/UX Improvements
+- **Account Panel**: Simplified user profile management
+- **Settings Reorganization**: Better organization of settings options
+- **Visual Indicators**: RAG sources displayed in chat responses
+- **Personalized Experience**: Custom welcome messages and user-specific content
 
 ## 📄 License
 
