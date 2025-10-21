@@ -4563,7 +4563,11 @@ window.showUsersTabIfAdmin = async function() {
             usernameDisplay.style.display = 'inline-block';
             
             // Update welcome messages with the user's name
-            window.updateWelcomeMessages(displayName);
+            // Temporarily disabled to debug issues
+            // window.updateWelcomeMessages(displayName);
+            
+            // Just store the display name for now
+            window.userDisplayName = displayName;
         }
     } catch (error) {
         console.error('Error checking admin status:', error);
