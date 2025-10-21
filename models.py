@@ -252,3 +252,18 @@ class ContextAnalytics(db.Model):
     __table_args__ = (
         db.UniqueConstraint('user_id', 'date', name='unique_user_date'),
     )
+
+class ModelSettings(db.Model):
+    __tablename__ = 'model_settings'
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    model_name = db.Column(db.String(100), nullable=False, unique=True, index=True)
+    enabled = db.Column(db.Boolean, default=True, nullable=False)
+    status = db.Column(db.String(50), default='unknown')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def to_dict(self):
+        return {
+            'enabled': self.enabled,
+            'status': self.status
+        }

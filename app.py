@@ -3350,7 +3350,7 @@ def get_all_tags():
 
 @app.route('/api/model-settings', methods=['GET'])
 def get_model_settings():
-    """Get current model settings"""
+    """Get current model settings from database"""
     try:
         # Check if user is authenticated (but don't fail if auth is not available)
         user_id = None
@@ -3361,49 +3361,28 @@ def get_model_settings():
             # Auth module not available, continue without authentication
             pass
         
-        # For now, allow access even without authentication for demo purposes
-        # You can enhance this to require authentication in production
-        
-        # For now, return default settings stored in session or file
-        # You can enhance this to store in database per user
-        settings_file = os.path.join(app.instance_path, 'model_settings.json')
-        app.logger.info(f"Settings file path: {settings_file}")
+        # Load settings from database
+        from models import ModelSettings
         
         try:
-            if os.path.exists(settings_file):
-                import json
-                with open(settings_file, 'r') as f:
-                    settings = json.load(f)
-                app.logger.info(f"Loaded settings from file: {settings}")
-            else:
-                # Default settings - most models enabled except GPT-5
-                settings = {
-                    'gpt-3.5-turbo': {'enabled': True, 'status': 'unknown'},
-                    'gpt-4': {'enabled': True, 'status': 'unknown'},
-                    'gpt-4-turbo': {'enabled': True, 'status': 'unknown'},
-                    'gpt-4o': {'enabled': True, 'status': 'unknown'},
-                    'gpt-4o-mini': {'enabled': True, 'status': 'unknown'},
-                    'gpt-5': {'enabled': False, 'status': 'unknown'},  # Disabled by default
-                    'o1-preview': {'enabled': True, 'status': 'unknown'},
-                    'o1-mini': {'enabled': True, 'status': 'unknown'},
-                    'claude-3.5-sonnet': {'enabled': True, 'status': 'unknown'},
-                    'claude-3-opus': {'enabled': True, 'status': 'unknown'},
-                    'claude-3-sonnet': {'enabled': True, 'status': 'unknown'},
-                    'claude-3-haiku': {'enabled': True, 'status': 'unknown'},
-                    'gemini-pro': {'enabled': True, 'status': 'unknown'},
-                    'gemini-flash': {'enabled': True, 'status': 'unknown'},
-                    'llama2-70b': {'enabled': True, 'status': 'unknown'},
-                    'mixtral-8x7b': {'enabled': True, 'status': 'unknown'},
-                    'codellama-34b': {'enabled': True, 'status': 'unknown'},
-                    'stable-image-ultra': {'enabled': True, 'status': 'unknown'},
-                    'stable-image-core': {'enabled': True, 'status': 'unknown'},
-                    'stable-image-sd3': {'enabled': True, 'status': 'unknown'},
-                    'stable-audio-2': {'enabled': True, 'status': 'unknown'}
+            # Get all model settings from database
+            model_settings = ModelSettings.query.all()
+            
+            # Convert to dictionary format expected by frontend
+            settings = {}
+            for model_setting in model_settings:
+                settings[model_setting.model_name] = {
+                    'enabled': model_setting.enabled,
+                    'status': model_setting.status
                 }
-                app.logger.info(f"Using default settings: {settings}")
+            
+            app.logger.info(f"Loaded {len(settings)} model settings from database")
+            app.logger.info(f"Model settings retrieved for user {user_id}")
+            return jsonify(settings)
+            
         except Exception as e:
-            app.logger.error(f"Failed to load or create settings: {str(e)}")
-            # Return default settings on error
+            app.logger.error(f"Failed to load model settings from database: {str(e)}")
+            # Fallback to default settings if database fails
             settings = {
                 'gpt-3.5-turbo': {'enabled': True, 'status': 'unknown'},
                 'gpt-4': {'enabled': True, 'status': 'unknown'},
@@ -3427,8 +3406,8 @@ def get_model_settings():
                 'stable-image-sd3': {'enabled': True, 'status': 'unknown'},
                 'stable-audio-2': {'enabled': True, 'status': 'unknown'}
             }
-        
-        return jsonify(settings)
+            app.logger.info(f"Using fallback default settings: {settings}")
+            return jsonify(settings)
     
     except Exception as e:
         app.logger.error(f"Error getting model settings: {str(e)}")
@@ -3437,7 +3416,7 @@ def get_model_settings():
 @csrf.exempt
 @app.route('/api/model-settings', methods=['POST'])
 def save_model_settings():
-    """Save model settings"""
+    """Save model settings to database"""
     try:
         # Check if user is authenticated (but don't fail if auth is not available)
         user_id = None
@@ -3448,37 +3427,43 @@ def save_model_settings():
             # Auth module not available, continue without authentication
             pass
         
-        # For now, allow access even without authentication for demo purposes
-        # You can enhance this to require authentication in production
-        
         settings = request.get_json()
         if not settings:
             return jsonify({'error': 'No settings provided'}), 400
         
         app.logger.info(f"Received settings: {settings}")
         
-        # Ensure instance path exists
-        try:
-            os.makedirs(app.instance_path, exist_ok=True)
-            app.logger.info(f"Instance path: {app.instance_path}")
-        except Exception as e:
-            app.logger.error(f"Failed to create instance path: {str(e)}")
-            return jsonify({'error': f'Failed to create instance path: {str(e)}'}), 500
-        
-        # Save settings to file (you can enhance this to use database)
-        settings_file = os.path.join(app.instance_path, 'model_settings.json')
-        app.logger.info(f"Settings file path: {settings_file}")
+        # Save settings to database
+        from models import ModelSettings, db
         
         try:
-            import json
-            with open(settings_file, 'w') as f:
-                json.dump(settings, f, indent=2)
+            # Update or create each model setting
+            for model_name, model_data in settings.items():
+                model_setting = ModelSettings.query.filter_by(model_name=model_name).first()
+                
+                if model_setting:
+                    # Update existing setting
+                    model_setting.enabled = model_data.get('enabled', True)
+                    model_setting.status = model_data.get('status', 'unknown')
+                    model_setting.updated_at = datetime.utcnow()
+                else:
+                    # Create new setting
+                    model_setting = ModelSettings(
+                        model_name=model_name,
+                        enabled=model_data.get('enabled', True),
+                        status=model_data.get('status', 'unknown')
+                    )
+                    db.session.add(model_setting)
+            
+            # Commit all changes
+            db.session.commit()
+            app.logger.info(f"Model settings saved to database for user {user_id}")
+            return jsonify({'success': True, 'message': 'Settings saved successfully'})
+            
         except Exception as e:
-            app.logger.error(f"Failed to write settings file: {str(e)}")
-            return jsonify({'error': f'Failed to write settings file: {str(e)}'}), 500
-        
-        app.logger.info(f"Model settings saved for user {user_id}")
-        return jsonify({'success': True, 'message': 'Settings saved successfully'})
+            db.session.rollback()
+            app.logger.error(f"Failed to save model settings to database: {str(e)}")
+            return jsonify({'error': f'Failed to save model settings: {str(e)}'}), 500
     
     except Exception as e:
         app.logger.error(f"Error saving model settings: {str(e)}")
