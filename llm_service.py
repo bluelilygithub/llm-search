@@ -12,10 +12,10 @@ class LLMService:
         self.anthropic_available = False
         self.gemini_available = False
         
-        # Initialize OpenAI (v0.28 style - no client object)
+        # Initialize OpenAI client (v1.0+ style)
         openai_key = os.getenv('OPENAI_API_KEY')
         if openai_key:
-            openai.api_key = openai_key
+            self.openai_client = openai.OpenAI(api_key=openai_key)
             self.openai_available = True
             print("OpenAI API key configured")
         
@@ -79,14 +79,14 @@ class LLMService:
             if estimated_tokens + max_tokens > model_limits['context_window']:
                 raise Exception(f"Request too large for {model}. Estimated {estimated_tokens} tokens, max allowed {model_limits['context_window']}. Try using Gemini Pro or Claude for large documents.")
             
-            response = openai.ChatCompletion.create(
+            response = self.openai_client.chat.completions.create(
                 model=model,
                 messages=messages,
                 max_tokens=max_tokens,
                 temperature=temperature
             )
             text = response.choices[0].message.content
-            tokens = response['usage']['total_tokens'] if 'usage' in response else 0
+            tokens = response.usage.total_tokens if response.usage else 0
             # Example pricing (update as needed):
             # gpt-4: $0.03/1K prompt, $0.06/1K completion; gpt-3.5: $0.001/1K
             if model.startswith('gpt-4'):
