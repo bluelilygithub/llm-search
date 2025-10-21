@@ -3397,14 +3397,19 @@ window.openSettingsPanel = function() {
 window.openAccountPanel = function() {
     console.log('✅ window.openAccountPanel called');
     const panel = document.getElementById('account-panel');
+    console.log('🔍 Account panel element:', panel);
     if (panel) {
+        console.log('✅ Account panel found, adding open class');
         panel.classList.add('open');
+        console.log('✅ Panel classes after add:', panel.className);
         // Load account info
         setTimeout(() => {
+            console.log('🔄 Loading account panel info');
             window.loadAccountPanelInfo();
         }, 100);
     } else {
         console.error('❌ Account panel not found in DOM');
+        console.log('🔍 All elements with id containing "account":', document.querySelectorAll('[id*="account"]'));
     }
 };
 
