@@ -5085,41 +5085,43 @@ async function loadCurrentModelsList() {
                `;
         
         modelsList.forEach(model => {
-            const modelSettings = settings[model.name] || { enabled: false };
+            // Use model_value (API identifier) to look up settings, not display name
+            const modelKey = model.model_value || model.name;
+            const modelSettings = settings[modelKey] || { enabled: false };
             const enabledStatus = modelSettings.enabled ? '✅ Yes' : '❌ No';
             const enabledClass = modelSettings.enabled ? 'enabled' : 'disabled';
             const modelType = model.isDynamic ? '' : ' (Legacy)';
-            const isDefault = preferences.defaultModel === model.name;
+            const isDefault = preferences.defaultModel === modelKey;
             
                    html += `
-                       <div class="model-row" data-model="${model.name}">
+                       <div class="model-row" data-model="${modelKey}">
                            <div class="model-name">
                                ${model.name}${modelType}
-                               ${!model.isDynamic ? '<button class="btn-tiny btn-migrate" onclick="migrateModel(\''+model.name+'\')" title="Migrate to dynamic system"><i class="fas fa-arrow-up"></i></button>' : ''}
+                               ${!model.isDynamic ? '<button class="btn-tiny btn-migrate" onclick="migrateModel(\''+modelKey+'\')" title="Migrate to dynamic system"><i class="fas fa-arrow-up"></i></button>' : ''}
                            </div>
                            <div class="model-provider">${model.provider}</div>
                            <div class="model-api-key">${model.api_key || 'Auto-detected'}</div>
                            <div class="model-enabled ${enabledClass}">
                                <label class="toggle-switch" title="Toggle model enabled/disabled">
                                    <input type="checkbox" ${modelSettings.enabled ? 'checked' : ''} 
-                                          onchange="toggleModelEnabledInManagement('${model.name}', this.checked)">
+                                          onchange="toggleModelEnabledInManagement('${modelKey}', this.checked)">
                                    <span class="toggle-slider"></span>
                                </label>
                            </div>
                            <div class="model-default">
                                <label class="radio-container" title="Set as default model">
-                                   <input type="radio" name="default-model" value="${model.name}" 
+                                   <input type="radio" name="default-model" value="${modelKey}" 
                                           ${isDefault ? 'checked' : ''} 
                                           ${!modelSettings.enabled ? 'disabled' : ''}
-                                          onchange="setDefaultModel('${model.name}')">
+                                          onchange="setDefaultModel('${modelKey}')">
                                    <span class="radio-checkmark"></span>
                                </label>
                            </div>
-                           <div class="model-status" id="mgmt-status-${model.name}">
+                           <div class="model-status" id="mgmt-status-${modelKey}">
                                <span class="status-unknown">Unknown</span>
                            </div>
                           <div class="model-actions">
-                              <button class="btn-small btn-secondary" onclick="testModelInManagement('${model.name}')" title="Test Access">
+                              <button class="btn-small btn-secondary" onclick="testModelInManagement('${modelKey}')" title="Test Access">
                                   <i class="fas fa-flask"></i>
                               </button>
                               ${model.isDynamic ? '<button class="btn-small btn-secondary btn-edit-model" data-model-name="'+model.name+'" data-model-value="'+(model.model_value||model.name)+'" data-model-provider="'+model.provider+'" data-model-apikey="'+(model.api_key||'')+'" data-model-description="'+(model.description||'')+'" title="Edit Model"><i class="fas fa-edit"></i></button>' : ''}
