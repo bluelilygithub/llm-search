@@ -6426,6 +6426,15 @@ document.addEventListener('DOMContentLoaded', () => {
     
     window.app = new KnowledgeBaseApp();
     
+    // Test if window.app is accessible
+    console.log('🔍 window.app exists:', !!window.app);
+    console.log('🔍 window.app.startNewConversation exists:', typeof window.app.startNewConversation);
+    
+    // Test onclick handler
+    window.testButtonClick = function() {
+        console.log('🧪 Test button click handler called!');
+    };
+    
     // Confirm template system is loaded
     console.log('📝 Template & Prompt Library: LOADED');
     
@@ -7592,7 +7601,7 @@ KnowledgeBaseApp.prototype.showHomeView = function() {
                 </div>
                 
                 <div class="home-actions">
-                    <div class="action-card" onclick="window.app.startNewConversation()">
+                    <div class="action-card" onclick="window.testButtonClick(); window.app.startNewConversation()">
                         <i class="fas fa-comments"></i>
                         <h3>Start New Chat</h3>
                         <p>Begin a new conversation or ask questions about your knowledge base</p>
