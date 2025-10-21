@@ -3463,7 +3463,20 @@ def save_model_settings():
         except Exception as e:
             db.session.rollback()
             app.logger.error(f"Failed to save model settings to database: {str(e)}")
-            return jsonify({'error': f'Failed to save model settings: {str(e)}'}), 500
+            
+            # Fallback to file system if database fails
+            app.logger.info("Falling back to file system storage")
+            try:
+                os.makedirs(app.instance_path, exist_ok=True)
+                settings_file = os.path.join(app.instance_path, 'model_settings.json')
+                import json
+                with open(settings_file, 'w') as f:
+                    json.dump(settings, f, indent=2)
+                app.logger.info(f"Model settings saved to file as fallback for user {user_id}")
+                return jsonify({'success': True, 'message': 'Settings saved successfully (file fallback)'})
+            except Exception as file_error:
+                app.logger.error(f"File fallback also failed: {str(file_error)}")
+                return jsonify({'error': f'Failed to save model settings: Database error: {str(e)}, File error: {str(file_error)}'}), 500
     
     except Exception as e:
         app.logger.error(f"Error saving model settings: {str(e)}")
