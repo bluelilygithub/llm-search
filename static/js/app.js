@@ -205,22 +205,15 @@ class KnowledgeBaseApp {
 
     // Methods called from the new HTML structure
     startNewConversation() {
-        console.log('🆕 startNewConversation called');
-        console.log('🆕 currentProject:', this.currentProject);
-        console.log('🆕 currentViewProject:', this.currentViewProject);
-        
         // Check if we're currently in a project context
         if (this.currentProject && this.currentProject.id) {
             // If we're in a project, start conversation in that project
-            console.log('🆕 Starting conversation in currentProject');
             this.startNewConversationInProject(this.currentProject.id);
         } else if (this.currentViewProject && this.currentViewProject.id) {
             // If we're viewing a specific project, start conversation in that project
-            console.log('🆕 Starting conversation in currentViewProject');
             this.startNewConversationInProject(this.currentViewProject.id);
         } else {
             // No project context, start a general conversation
-            console.log('🆕 Starting general conversation');
             // First, ensure we're in chat view
             this.showChatView();
             
@@ -6426,15 +6419,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     window.app = new KnowledgeBaseApp();
     
-    // Test if window.app is accessible
-    console.log('🔍 window.app exists:', !!window.app);
-    console.log('🔍 window.app.startNewConversation exists:', typeof window.app.startNewConversation);
-    
-    // Test onclick handler
-    window.testButtonClick = function() {
-        console.log('🧪 Test button click handler called!');
-    };
-    
     // Confirm template system is loaded
     console.log('📝 Template & Prompt Library: LOADED');
     
@@ -7573,7 +7557,7 @@ KnowledgeBaseApp.prototype.showHomeView = function() {
                     <h2>Welcome to Your Knowledge Base</h2>
                 </div>
                 <div class="view-actions">
-                    <button class="view-action-btn" onclick="window.app.startNewConversation()">
+                    <button class="view-action-btn" onclick="window.app.startNewChat()">
                         <i class="fas fa-plus"></i>
                         New Chat
                     </button>
@@ -7601,7 +7585,7 @@ KnowledgeBaseApp.prototype.showHomeView = function() {
                 </div>
                 
                 <div class="home-actions">
-                    <div class="action-card" onclick="window.testButtonClick(); window.app.startNewConversation()">
+                    <div class="action-card" onclick="window.app.startNewChat()">
                         <i class="fas fa-comments"></i>
                         <h3>Start New Chat</h3>
                         <p>Begin a new conversation or ask questions about your knowledge base</p>
@@ -7674,7 +7658,7 @@ KnowledgeBaseApp.prototype.showConversationsView = function() {
                 <h2>Recent Conversations</h2>
             </div>
             <div class="view-actions">
-                <button class="view-action-btn" onclick="window.app.startNewConversationFromConversations()">
+                <button class="view-action-btn" onclick="window.app.startNewChat()">
                     <i class="fas fa-plus"></i>
                     New Chat
                 </button>
