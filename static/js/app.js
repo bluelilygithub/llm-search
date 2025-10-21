@@ -3934,8 +3934,16 @@ KnowledgeBaseApp.prototype.loadMainModelDropdown = async function() {
             const prefsResponse = await fetch('/api/preferences');
             if (prefsResponse.ok) {
                 const prefs = await prefsResponse.json();
-                if (prefs.defaultModel && enabledModels.some(m => m.name === prefs.defaultModel)) {
-                    dropdown.value = prefs.defaultModel;
+                // Check if default model exists in enabled models (using model_value/API identifier)
+                if (prefs.defaultModel) {
+                    const modelExists = enabledModels.some(m => {
+                        const modelValue = m.model_value || m.name;
+                        return modelValue === prefs.defaultModel;
+                    });
+                    if (modelExists) {
+                        dropdown.value = prefs.defaultModel;
+                        console.log('Set default model to:', prefs.defaultModel);
+                    }
                 }
             }
         } catch (error) {
@@ -3944,7 +3952,10 @@ KnowledgeBaseApp.prototype.loadMainModelDropdown = async function() {
         
         // If no default set, select first enabled model
         if (!dropdown.value && enabledModels.length > 0) {
-            dropdown.value = enabledModels[0].name;
+            const firstModel = enabledModels[0];
+            const firstModelValue = firstModel.model_value || firstModel.name;
+            dropdown.value = firstModelValue;
+            console.log('No default set, using first enabled model:', firstModelValue);
         }
         
         console.log('Main dropdown populated with', enabledModels.length, 'enabled models');
