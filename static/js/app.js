@@ -6853,7 +6853,10 @@ KnowledgeBaseApp.prototype.loadContextItems = async function() {
 // Load context statistics
 KnowledgeBaseApp.prototype.loadContextStats = async function() {
     try {
-        const response = await fetch('/api/context/stats');
+        const url = this.currentConversationId ? 
+            `/api/context/stats?conversation_id=${this.currentConversationId}` : 
+            '/api/context/stats';
+        const response = await fetch(url);
         const data = await response.json();
         
         if (data.success) {

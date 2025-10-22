@@ -2871,10 +2871,41 @@ def get_context_suggestions():
 def get_conversation_context(conversation_id):
     """Get all active context for a conversation"""
     try:
+        # Get new context items from ContextService
         context = ContextService.get_conversation_context(conversation_id)
+        
+        # Also get legacy context_documents from conversation
+        conversation = Conversation.query.get_or_404(conversation_id)
+        legacy_docs = []
+        
+        if conversation.context_documents:
+            import json
+            docs = conversation.context_documents
+            if isinstance(docs, str):
+                docs = json.loads(docs)
+            
+            for i, doc in enumerate(docs):
+                legacy_docs.append({
+                    'session_id': f'legacy_{i}',
+                    'item_id': f'legacy_{i}',
+                    'name': doc.get('filename', 'Unknown'),
+                    'description': f"Legacy document - {doc.get('task_type', 'instructions')}",
+                    'content_type': 'document',
+                    'content_text': doc.get('content', ''),
+                    'content_summary': doc.get('content', '')[:200] + '...' if len(doc.get('content', '')) > 200 else doc.get('content', ''),
+                    'token_count': len(doc.get('content', '').split()) if doc.get('content') else 0,
+                    'relevance_score': 1.0,
+                    'added_at': conversation.updated_at.isoformat() if conversation.updated_at else conversation.created_at.isoformat(),
+                    'last_accessed_at': conversation.updated_at.isoformat() if conversation.updated_at else conversation.created_at.isoformat(),
+                    'is_legacy': True
+                })
+        
+        # Combine both sources
+        all_context = context + legacy_docs
+        
         return jsonify({
             'success': True,
-            'context': context
+            'context': all_context
         })
     
     except Exception as e:
@@ -2936,6 +2967,28 @@ def get_context_stats():
     """Get user context statistics"""
     try:
         stats = ContextService.get_user_stats()
+        
+        # Add legacy document stats from current conversation
+        conversation_id = request.args.get('conversation_id')
+        if conversation_id:
+            try:
+                conversation = Conversation.query.get(conversation_id)
+                if conversation and conversation.context_documents:
+                    import json
+                    docs = conversation.context_documents
+                    if isinstance(docs, str):
+                        docs = json.loads(docs)
+                    
+                    legacy_count = len(docs)
+                    legacy_tokens = sum(len(doc.get('content', '').split()) for doc in docs)
+                    
+                    stats['total_items'] += legacy_count
+                    stats['total_tokens'] += legacy_tokens
+                    stats['legacy_items'] = legacy_count
+                    stats['legacy_tokens'] = legacy_tokens
+            except Exception as e:
+                app.logger.warning(f"Could not add legacy stats: {e}")
+        
         return jsonify({
             'success': True,
             'stats': stats
