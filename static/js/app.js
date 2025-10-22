@@ -7664,6 +7664,25 @@ KnowledgeBaseApp.prototype.loadConversation = function(conversationId) {
 
 // ==================== MAIN CONTENT VIEW METHODS ====================
 
+// Start new chat and focus input area
+KnowledgeBaseApp.prototype.startNewChatAndFocus = function() {
+    console.log('🚀 Starting new chat and focusing input...');
+    
+    // Start a new conversation
+    this.startNewChat();
+    
+    // Focus the input area after a short delay to ensure it's visible
+    setTimeout(() => {
+        const inputArea = document.getElementById('user-input');
+        if (inputArea) {
+            inputArea.focus();
+            console.log('✅ Input area focused');
+        } else {
+            console.warn('⚠️ Input area not found');
+        }
+    }, 500);
+};
+
 // Show home view in main content area
 KnowledgeBaseApp.prototype.showHomeView = function() {
     this.currentView = 'home';
@@ -7722,26 +7741,8 @@ KnowledgeBaseApp.prototype.showHomeView = function() {
             </div>
             
             <div class="home-content">
-                <div class="home-stats">
-                    <div class="stat-card">
-                        <i class="fas fa-comments"></i>
-                        <div class="stat-info">
-                            <span class="stat-number" id="total-conversations">-</span>
-                            <span class="stat-label">Conversations</span>
-                        </div>
-                    </div>
-
-                    <div class="stat-card">
-                        <i class="fas fa-file-alt"></i>
-                        <div class="stat-info">
-                            <span class="stat-number" id="total-context-items">-</span>
-                            <span class="stat-label">Context Items</span>
-                        </div>
-                    </div>
-                </div>
-                
                 <div class="home-actions">
-                    <div class="action-card" onclick="window.app.startNewChat()">
+                    <div class="action-card" onclick="window.app.startNewChatAndFocus()">
                         <i class="fas fa-comments"></i>
                         <h3>Start New Chat</h3>
                         <p>Begin a new conversation or ask questions about your knowledge base</p>

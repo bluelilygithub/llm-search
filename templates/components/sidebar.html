@@ -3,7 +3,7 @@
     <!-- Header -->
     <div class="sidebar-header">
         <div class="sidebar-header-content">
-            <div class="sidebar-logo">
+            <div class="sidebar-logo" onclick="window.app.showHomeView()" style="cursor: pointer;">
                 <div class="logo-icon">
                     <i class="fas fa-comments"></i>
                 </div>
@@ -29,7 +29,7 @@
         </div>
 
         <div class="new-chat-container">
-            <button class="new-chat-btn" id="new-chat-btn" onclick="startNewChat()">
+            <button class="new-chat-btn" id="new-chat-btn" onclick="window.app.startNewChatAndFocus()">
                 <i class="fas fa-plus"></i>
                 <span>New Chat</span>
             </button>
