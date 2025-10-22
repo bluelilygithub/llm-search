@@ -2690,8 +2690,11 @@ def get_current_ip():
 def get_context_items():
     """Get all context items for current user"""
     try:
+        app.logger.info("🔍 API: Getting context items")
         include_inactive = request.args.get('include_inactive', 'false').lower() == 'true'
         items = ContextService.get_user_context_items(include_inactive=include_inactive)
+        
+        app.logger.info(f"📋 Found {len(items)} context items")
         
         return jsonify({
             'success': True,
@@ -2715,7 +2718,7 @@ def get_context_items():
             ]
         })
     except Exception as e:
-        app.logger.error(f"Error fetching context items: {str(e)}")
+        app.logger.error(f"❌ Error fetching context items: {str(e)}", exc_info=True)
         return jsonify({'success': False, 'error': 'Failed to fetch context items'}), 500
 
 @app.route('/api/context', methods=['POST'])
@@ -2871,8 +2874,11 @@ def get_context_suggestions():
 def get_conversation_context(conversation_id):
     """Get all active context for a conversation"""
     try:
+        app.logger.info(f"💬 API: Getting conversation context for {conversation_id}")
+        
         # Get new context items from ContextService
         context = ContextService.get_conversation_context(conversation_id)
+        app.logger.info(f"💬 ContextService returned {len(context)} items")
         
         # Also get legacy context_documents from conversation
         conversation = Conversation.query.get_or_404(conversation_id)
@@ -2883,6 +2889,8 @@ def get_conversation_context(conversation_id):
             docs = conversation.context_documents
             if isinstance(docs, str):
                 docs = json.loads(docs)
+            
+            app.logger.info(f"💬 Found {len(docs)} legacy documents")
             
             for i, doc in enumerate(docs):
                 legacy_docs.append({
@@ -2899,9 +2907,12 @@ def get_conversation_context(conversation_id):
                     'last_accessed_at': conversation.updated_at.isoformat() if conversation.updated_at else conversation.created_at.isoformat(),
                     'is_legacy': True
                 })
+        else:
+            app.logger.info("💬 No legacy documents found")
         
         # Combine both sources
         all_context = context + legacy_docs
+        app.logger.info(f"💬 Returning {len(all_context)} total context items")
         
         return jsonify({
             'success': True,
@@ -2909,7 +2920,7 @@ def get_conversation_context(conversation_id):
         })
     
     except Exception as e:
-        app.logger.error(f"Error fetching conversation context: {str(e)}")
+        app.logger.error(f"❌ Error fetching conversation context: {str(e)}", exc_info=True)
         return jsonify({'success': False, 'error': 'Failed to fetch conversation context'}), 500
 
 @app.route('/api/conversation/<conversation_id>/context/<context_item_id>', methods=['POST'])
@@ -2966,10 +2977,14 @@ def remove_context_from_conversation(conversation_id, context_item_id):
 def get_context_stats():
     """Get user context statistics"""
     try:
+        app.logger.info("📊 API: Getting context stats")
+        conversation_id = request.args.get('conversation_id')
+        app.logger.info(f"📊 Conversation ID: {conversation_id}")
+        
         stats = ContextService.get_user_stats()
+        app.logger.info(f"📊 Base stats: {stats}")
         
         # Add legacy document stats from current conversation
-        conversation_id = request.args.get('conversation_id')
         if conversation_id:
             try:
                 conversation = Conversation.query.get(conversation_id)
@@ -2986,8 +3001,12 @@ def get_context_stats():
                     stats['total_tokens'] += legacy_tokens
                     stats['legacy_items'] = legacy_count
                     stats['legacy_tokens'] = legacy_tokens
+                    
+                    app.logger.info(f"📊 Added legacy stats: {legacy_count} items, {legacy_tokens} tokens")
             except Exception as e:
-                app.logger.warning(f"Could not add legacy stats: {e}")
+                app.logger.warning(f"⚠️ Could not add legacy stats: {e}")
+        
+        app.logger.info(f"📊 Final stats: {stats}")
         
         return jsonify({
             'success': True,
@@ -2995,7 +3014,7 @@ def get_context_stats():
         })
     
     except Exception as e:
-        app.logger.error(f"Error fetching context stats: {str(e)}")
+        app.logger.error(f"❌ Error fetching context stats: {str(e)}", exc_info=True)
         return jsonify({'success': False, 'error': 'Failed to fetch context stats'}), 500
 
 # ==================== END CONTEXT MANAGEMENT API ====================
