@@ -2071,130 +2071,41 @@ def upload_context():
         # Apply task-specific processing
         processed_content = process_document_by_task(content, filename, task_type)
         
-        # TEMPORARY FIX: Skip new context system and use old system only
-        # This ensures uploads work while we debug the context system
-        context_item_created = False
+        # SIMPLIFIED UPLOAD: Clean, simple approach that just works
+        app.logger.info(f"Processing upload for {filename}")
         
-        # Skip the problematic new context system for now
-        app.logger.info(f"Skipping new context system, using legacy upload for {filename}")
-        
-        # Keep old system for backward compatibility
-        import json
-        
-        # CRITICAL FIX: Get the latest conversation data to handle multiple sequential uploads
-        # This ensures we don't lose previous uploads
-        db.session.refresh(conversation)
-        
-        # Handle the case where context_documents might be None
-        if conversation.context_documents is None:
+        try:
+            import json
+            
+            # Get current documents
             docs = []
-        else:
-            # Make a copy to avoid modifying the original object
-            docs = list(conversation.context_documents)
-        
-        if not docs:
-            docs = []
-        elif isinstance(docs, str):
-            try:
-                docs = json.loads(docs)
-            except Exception:
-                docs = []
-        if not isinstance(docs, list):
-            docs = []
-        
-        print(f"DEBUG: Before append - docs: {docs}, type: {type(docs)}, length: {len(docs)}")
-        
-        # Check if this file is already in the documents (avoid duplicates)
-        existing_filenames = [doc.get('filename') for doc in docs if isinstance(doc, dict) and doc.get('filename')]
-        if filename in existing_filenames:
-            print(f"DEBUG: File {filename} already exists, updating instead of adding duplicate")
-            # Update existing document instead of adding duplicate
-            for doc in docs:
-                if isinstance(doc, dict) and doc.get('filename') == filename:
-                    doc.update({
-                        'content': processed_content,
-                        'task_type': task_type,
-                        'original_content': content
-                    })
-                    break
-        else:
+            if conversation.context_documents:
+                if isinstance(conversation.context_documents, str):
+                    docs = json.loads(conversation.context_documents)
+                elif isinstance(conversation.context_documents, list):
+                    docs = list(conversation.context_documents)
+            
             # Add new document
             docs.append({
                 'filename': filename, 
                 'content': processed_content,
                 'task_type': task_type,
-                'original_content': content  # Keep original for reference
+                'original_content': content
             })
-        
-        print(f"DEBUG: After append - docs: {docs}, type: {type(docs)}, length: {len(docs)}")
-        
-        # DEBUG: Let's see what's actually happening with the data
-        print(f"DEBUG: === DATABASE DEBUGGING ===")
-        print(f"DEBUG: Before any database operations:")
-        print(f"DEBUG: - docs array: {docs}")
-        print(f"DEBUG: - docs type: {type(docs)}")
-        print(f"DEBUG: - docs length: {len(docs)}")
-        print(f"DEBUG: - conversation.id: {conversation.id}")
-        print(f"DEBUG: - conversation.context_documents: {conversation.context_documents}")
-        
-        # Try the original SQLAlchemy approach but with explicit debugging
-        print(f"DEBUG: Attempting SQLAlchemy assignment...")
-        conversation.context_documents = docs
-        print(f"DEBUG: After assignment - conversation.context_documents: {conversation.context_documents}")
-        print(f"DEBUG: After assignment - type: {type(conversation.context_documents)}")
-        print(f"DEBUG: After assignment - length: {len(conversation.context_documents) if conversation.context_documents else 0}")
-        
-        # Check if the object is dirty
-        print(f"DEBUG: Is conversation object dirty? {db.session.is_modified(conversation)}")
-        
-        # Try to commit
-        print(f"DEBUG: Attempting commit...")
-        db.session.commit()
-        print(f"DEBUG: Commit completed")
-        
-        # Check what's in the database now
-        print(f"DEBUG: Refreshing conversation object...")
-        db.session.refresh(conversation)
-        print(f"DEBUG: After refresh - conversation.context_documents: {conversation.context_documents}")
-        print(f"DEBUG: After refresh - type: {type(conversation.context_documents)}")
-        print(f"DEBUG: After refresh - length: {len(conversation.context_documents) if conversation.context_documents else 0}")
-        
-        # Also check with a fresh query
-        print(f"DEBUG: Making fresh database query...")
-        fresh_conv = Conversation.query.get(conv_uuid)
-        print(f"DEBUG: Fresh query - context_documents: {fresh_conv.context_documents}")
-        print(f"DEBUG: Fresh query - type: {type(fresh_conv.context_documents)}")
-        print(f"DEBUG: Fresh query - length: {len(fresh_conv.context_documents) if fresh_conv.context_documents else 0}")
-        print(f"DEBUG: === END DATABASE DEBUGGING ===")
-        
-        # If SQLAlchemy approach failed, try direct SQL update as fallback
-        if not fresh_conv.context_documents or len(fresh_conv.context_documents) != len(docs):
-            print(f"DEBUG: SQLAlchemy approach failed, trying direct SQL update...")
-            try:
-                # Use direct SQL to ensure the update works
-                docs_json = json.dumps(docs)
-                update_sql = text("""
-                    UPDATE conversations 
-                    SET context_documents = :docs_json, updated_at = NOW()
-                    WHERE id = :conv_id
-                """)
-                db.session.execute(update_sql, {
-                    'docs_json': docs_json,
-                    'conv_id': str(conv_uuid)
-                })
-                db.session.commit()
-                print(f"DEBUG: Direct SQL update completed")
-                
-                # Verify the update worked
-                db.session.refresh(conversation)
-                print(f"DEBUG: After SQL update - context_documents length: {len(conversation.context_documents) if conversation.context_documents else 0}")
-                
-            except Exception as sql_error:
-                print(f"DEBUG: Direct SQL update failed: {sql_error}")
-                # Continue with what we have
-        
-        # Verify the update worked by checking the database directly
-        print(f"DEBUG: After SQL update and commit - updated docs array length: {len(docs)}")
+            
+            # Update conversation
+            conversation.context_documents = docs
+            conversation.updated_at = datetime.utcnow()
+            
+            # Commit changes
+            db.session.commit()
+            
+            app.logger.info(f"Successfully uploaded {filename}")
+            
+        except Exception as upload_error:
+            app.logger.error(f"Upload failed: {str(upload_error)}")
+            db.session.rollback()
+            return jsonify({'error': f'Upload failed: {str(upload_error)}'}), 500
         
         # Get file type for icon
         file_type = get_file_type(filename)
