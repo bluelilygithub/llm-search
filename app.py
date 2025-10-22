@@ -213,7 +213,7 @@ limiter = Limiter(
 limiter.init_app(app)
 
 # Import models after db initialization
-from models import Conversation, Message, Attachment, Project
+from models import Conversation, Message, Attachment, Project, ContextItem
 from user_models import User, UserRole, UserStatus, Organization, UserSession, UserAuditLog
 from context_service import ContextService
 from llm_service import LLMService
@@ -2072,20 +2072,38 @@ def upload_context():
         processed_content = process_document_by_task(content, filename, task_type)
         
         # Create context item using new context management system
+        context_item_created = False
         try:
-            context_item = ContextService.create_context_item(
+            # Get user identity for context item
+            identity = get_user_identity()
+            user_id = identity.get('user_id')
+            
+            # If no user_id, use session-based fallback
+            if user_id is None:
+                from flask import session
+                if 'user_id' not in session:
+                    session['user_id'] = str(uuid.uuid4())
+                user_id = session['user_id']
+            
+            # Create context item directly to avoid ContextService issues
+            context_item = ContextItem(
+                user_id=user_id,
+                project_id=str(conversation.project_id) if conversation.project_id else None,
                 name=filename,
+                description=f"Uploaded document - {task_type}",
                 content_type='document',
                 content_text=processed_content,
-                description=f"Uploaded document - {task_type}",
                 original_filename=filename,
                 file_size=len(content) if content else 0,
-                project_id=str(conversation.project_id) if conversation.project_id else None,
+                token_count=int(len(processed_content.split()) * 1.3) if processed_content else 0,
                 extra_data={
                     'task_type': task_type,
-                    'original_content': content[:1000] if content else None  # Store first 1000 chars of original
+                    'original_content': content[:1000] if content else None
                 }
             )
+            
+            db.session.add(context_item)
+            db.session.commit()
             
             # Automatically add context item to current conversation
             ContextService.add_context_to_conversation(
@@ -2095,6 +2113,7 @@ def upload_context():
             )
             
             app.logger.info(f"Created context item {context_item.id} for conversation {conversation_id}")
+            context_item_created = True
             
             # Return success response
             return jsonify({
