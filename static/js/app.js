@@ -625,6 +625,9 @@ class KnowledgeBaseApp {
             // Ensure we're in chat view with proper layout
             this.showChatView();
             
+            // Ensure context button is visible
+            this.ensureContextButtonVisible();
+            
             // Update active conversation in sidebar
             document.querySelectorAll('.conversation-item').forEach(item => {
                 item.classList.remove('active');
@@ -6456,6 +6459,11 @@ document.addEventListener('DOMContentLoaded', () => {
     
     window.app = new KnowledgeBaseApp();
     
+    // Ensure context button is visible
+    setTimeout(() => {
+        window.app.ensureContextButtonVisible();
+    }, 100);
+    
     // Confirm template system is loaded
     console.log('📝 Template & Prompt Library: LOADED');
     
@@ -6790,6 +6798,19 @@ KnowledgeBaseApp.prototype.contextPanelOpen = false;
 KnowledgeBaseApp.prototype.contextItems = [];
 KnowledgeBaseApp.prototype.conversationContext = [];
 KnowledgeBaseApp.prototype.contextStats = { total_items: 0, total_tokens: 0 };
+
+// Ensure context button is visible when appropriate
+KnowledgeBaseApp.prototype.ensureContextButtonVisible = function() {
+    const contextToggle = document.getElementById('context-toggle-btn');
+    if (contextToggle) {
+        // Show context button if we have a current conversation
+        if (this.currentConversationId) {
+            contextToggle.style.display = 'block';
+        } else {
+            contextToggle.style.display = 'block'; // Always show it
+        }
+    }
+};
 
 // Global map to store document content for view/download
 KnowledgeBaseApp.prototype.documentContentMap = new Map();
@@ -7527,6 +7548,9 @@ function submitNewContext() {
 const originalLoadConversation = KnowledgeBaseApp.prototype.loadConversation;
 KnowledgeBaseApp.prototype.loadConversation = function(conversationId) {
     originalLoadConversation.call(this, conversationId);
+    
+    // Ensure context button is visible
+    this.ensureContextButtonVisible();
     
     // Update conversation context if panel is open
     if (this.contextPanelOpen) {
