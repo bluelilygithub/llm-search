@@ -444,8 +444,8 @@ def login_override():
     
     # Check if this is an admin login (password only, no username)
     if not username and password:
-    if auth.verify_password(password):
-        session['authenticated'] = True
+        if auth.verify_password(password):
+            session['authenticated'] = True
             session['user_id'] = None  # Set to None for now - will fix after database is properly migrated
             session['user_type'] = 'admin'
             session['user_role'] = 'SUPER_ADMIN'
@@ -456,7 +456,7 @@ def login_override():
                 'user_type': 'admin',
                 'user_role': 'SUPER_ADMIN'
             })
-    else:
+        else:
             return jsonify({'success': False, 'error': 'Invalid admin password'}), 401
     
     # Check if this is a regular user login (username + password)
@@ -959,7 +959,7 @@ def get_projects():
     # Admin sees all projects, regular users see only their own projects
     if identity.get('is_admin', False):
         # Admin sees all projects
-    projects = Project.query.order_by(Project.created_at.desc()).all()
+        projects = Project.query.order_by(Project.created_at.desc()).all()
     else:
         # Regular users see only projects they own
         user_id = identity.get('user_id')
@@ -972,9 +972,9 @@ def get_projects():
     for project in projects:
         # Count conversations for this project (filtered by user if not admin)
         if identity.get('is_admin', False):
-        conversation_count = db.session.query(Conversation).filter(
-            Conversation.project_id == project.id
-        ).count()
+            conversation_count = db.session.query(Conversation).filter(
+                Conversation.project_id == project.id
+            ).count()
         else:
             conversation_count = db.session.query(Conversation).filter(
                 Conversation.project_id == project.id,
@@ -3546,13 +3546,13 @@ def save_model_settings():
             # Fallback to file system if database fails
             app.logger.info("Falling back to file system storage")
             try:
+                import json
                 os.makedirs(app.instance_path, exist_ok=True)
                 settings_file = os.path.join(app.instance_path, 'model_settings.json')
-            import json
-            with open(settings_file, 'w') as f:
-                json.dump(settings, f, indent=2)
-                app.logger.info(f"Model settings saved to file as fallback for user {user_id}")
-                return jsonify({'success': True, 'message': 'Settings saved successfully (file fallback)'})
+                with open(settings_file, 'w') as f:
+                    json.dump(settings, f, indent=2)
+                    app.logger.info(f"Model settings saved to file as fallback for user {user_id}")
+                    return jsonify({'success': True, 'message': 'Settings saved successfully (file fallback)'})
             except Exception as file_error:
                 app.logger.error(f"File fallback also failed: {str(file_error)}")
                 return jsonify({'error': f'Failed to save model settings: Database error: {str(e)}, File error: {str(file_error)}'}), 500
