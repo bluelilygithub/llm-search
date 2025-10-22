@@ -6881,40 +6881,57 @@ function toggleContextPanel() {
 
 // Load all context data
 KnowledgeBaseApp.prototype.loadContextData = async function() {
+    console.log('🔄 Loading context data...');
     try {
         // Load user context items
+        console.log('📋 Loading context items...');
         await this.loadContextItems();
         
         // Load context stats
+        console.log('📊 Loading context stats...');
         await this.loadContextStats();
         
         // Load conversation context if we have a current conversation
         if (this.currentConversationId) {
+            console.log('💬 Loading conversation context for:', this.currentConversationId);
             await this.loadConversationContext();
+        } else {
+            console.log('⚠️ No current conversation ID, skipping conversation context');
         }
         
+        console.log('✅ Context data loaded successfully');
+        
     } catch (error) {
-        console.error('Error loading context data:', error);
+        console.error('❌ Error loading context data:', error);
         this.showErrorNotification('Failed to load context data');
+        
+        // Don't close the panel on error, just show the error
+        // The panel should stay open so user can see what went wrong
     }
 };
 
 // Load user context items
 KnowledgeBaseApp.prototype.loadContextItems = async function() {
     try {
+        console.log('🌐 Fetching context items from /api/context');
         const response = await fetch('/api/context');
+        console.log('📡 Response status:', response.status);
+        
         const data = await response.json();
+        console.log('📦 Response data:', data);
         
         if (data.success) {
             this.contextItems = data.items;
+            console.log('📋 Loaded', data.items.length, 'context items');
             this.renderContextItems();
         } else {
             throw new Error(data.error || 'Failed to load context items');
         }
     } catch (error) {
-        console.error('Error loading context items:', error);
+        console.error('❌ Error loading context items:', error);
         document.getElementById('context-items-list').innerHTML = 
-            '<div class="empty-context">Failed to load context items</div>';
+            '<div class="empty-context">Failed to load context items: ' + error.message + '</div>';
+        throw error; // Re-throw to be caught by parent function
     }
 };
 
@@ -6924,15 +6941,24 @@ KnowledgeBaseApp.prototype.loadContextStats = async function() {
         const url = this.currentConversationId ? 
             `/api/context/stats?conversation_id=${this.currentConversationId}` : 
             '/api/context/stats';
+        
+        console.log('🌐 Fetching context stats from:', url);
         const response = await fetch(url);
+        console.log('📡 Stats response status:', response.status);
+        
         const data = await response.json();
+        console.log('📊 Stats response data:', data);
         
         if (data.success) {
             this.contextStats = data.stats;
+            console.log('📊 Loaded context stats:', data.stats);
             this.renderContextStats();
+        } else {
+            throw new Error(data.error || 'Failed to load context stats');
         }
     } catch (error) {
-        console.error('Error loading context stats:', error);
+        console.error('❌ Error loading context stats:', error);
+        throw error; // Re-throw to be caught by parent function
     }
 };
 
@@ -6941,19 +6967,32 @@ KnowledgeBaseApp.prototype.loadConversationContext = async function() {
     if (!this.currentConversationId) return;
     
     try {
-        const response = await fetch(`/api/conversation/${this.currentConversationId}/context`);
+        const url = `/api/conversation/${this.currentConversationId}/context`;
+        console.log('🌐 Fetching conversation context from:', url);
+        const response = await fetch(url);
+        console.log('📡 Conversation context response status:', response.status);
+        
         const data = await response.json();
+        console.log('💬 Conversation context response data:', data);
         
         if (data.success) {
             this.conversationContext = data.context;
+            console.log('💬 Loaded', data.context.length, 'conversation context items');
             this.renderConversationContext();
             
             // Show conversation context section
             const section = document.getElementById('context-conversation-section');
-            section.style.display = data.context.length > 0 ? 'block' : 'none';
+            if (section) {
+                section.style.display = data.context.length > 0 ? 'block' : 'none';
+            } else {
+                console.warn('⚠️ context-conversation-section element not found');
+            }
+        } else {
+            throw new Error(data.error || 'Failed to load conversation context');
         }
     } catch (error) {
-        console.error('Error loading conversation context:', error);
+        console.error('❌ Error loading conversation context:', error);
+        throw error; // Re-throw to be caught by parent function
     }
 };
 
