@@ -2096,8 +2096,19 @@ def upload_context():
             
             app.logger.info(f"Created context item {context_item.id} for conversation {conversation_id}")
             
+            # Return success response
+            return jsonify({
+                'success': True,
+                'message': f'File {filename} uploaded and processed successfully',
+                'context_item_id': str(context_item.id),
+                'filename': filename,
+                'task_type': task_type
+            })
+            
         except Exception as context_error:
             app.logger.error(f"Failed to create context item: {context_error}")
+            # Rollback the session to clean state
+            db.session.rollback()
             # Continue with old system as fallback
         
         # Keep old system for backward compatibility
