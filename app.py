@@ -213,7 +213,7 @@ limiter = Limiter(
 limiter.init_app(app)
 
 # Import models after db initialization
-from models import Conversation, Message, Attachment, Project, ContextItem
+from models import Conversation, Message, Attachment, Project, ContextItem, Persona
 from user_models import User, UserRole, UserStatus, Organization, UserSession, UserAuditLog
 from context_service import ContextService
 from llm_service import LLMService
@@ -2684,6 +2684,133 @@ def get_current_ip():
             'created_at': whitelist_entry.created_at.isoformat() if whitelist_entry else None
         } if whitelist_entry else None
     })
+
+# ==================== PERSONA MANAGEMENT API ENDPOINTS ====================
+
+@app.route('/api/personas', methods=['GET'])
+def get_personas():
+    """Get all personas"""
+    try:
+        personas = Persona.query.filter_by(is_active=True).order_by(Persona.category, Persona.name).all()
+        return jsonify({
+            'success': True,
+            'personas': [persona.to_dict() for persona in personas]
+        })
+    except Exception as e:
+        app.logger.error(f"Error fetching personas: {str(e)}")
+        return jsonify({'success': False, 'error': 'Failed to fetch personas'}), 500
+
+@app.route('/api/personas', methods=['POST'])
+def create_persona():
+    """Create a new persona"""
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        required_fields = ['name', 'agent_name', 'role', 'traits', 'category']
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({'success': False, 'error': f'Missing required field: {field}'}), 400
+        
+        # Get current user
+        identity = get_user_identity()
+        created_by = identity.get('user_id') or 'admin'
+        
+        persona = Persona(
+            name=data['name'],
+            agent_name=data['agent_name'],
+            role=data['role'],
+            traits=data['traits'],
+            category=data['category'],
+            description=data.get('description', ''),
+            created_by=created_by
+        )
+        
+        db.session.add(persona)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'persona': persona.to_dict()
+        })
+    except Exception as e:
+        app.logger.error(f"Error creating persona: {str(e)}")
+        db.session.rollback()
+        return jsonify({'success': False, 'error': 'Failed to create persona'}), 500
+
+@app.route('/api/personas/<persona_id>', methods=['PUT'])
+def update_persona(persona_id):
+    """Update a persona"""
+    try:
+        persona = Persona.query.get_or_404(persona_id)
+        data = request.get_json()
+        
+        # Update fields
+        if 'name' in data:
+            persona.name = data['name']
+        if 'agent_name' in data:
+            persona.agent_name = data['agent_name']
+        if 'role' in data:
+            persona.role = data['role']
+        if 'traits' in data:
+            persona.traits = data['traits']
+        if 'category' in data:
+            persona.category = data['category']
+        if 'description' in data:
+            persona.description = data['description']
+        if 'is_active' in data:
+            persona.is_active = data['is_active']
+        
+        persona.updated_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'persona': persona.to_dict()
+        })
+    except Exception as e:
+        app.logger.error(f"Error updating persona: {str(e)}")
+        db.session.rollback()
+        return jsonify({'success': False, 'error': 'Failed to update persona'}), 500
+
+@app.route('/api/personas/<persona_id>', methods=['DELETE'])
+def delete_persona(persona_id):
+    """Delete a persona"""
+    try:
+        persona = Persona.query.get_or_404(persona_id)
+        
+        # Check if persona is being used by any projects
+        projects_using_persona = Project.query.filter_by(persona_id=persona.id).count()
+        if projects_using_persona > 0:
+            return jsonify({
+                'success': False, 
+                'error': f'Cannot delete persona. It is being used by {projects_using_persona} project(s).'
+            }), 400
+        
+        db.session.delete(persona)
+        db.session.commit()
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        app.logger.error(f"Error deleting persona: {str(e)}")
+        db.session.rollback()
+        return jsonify({'success': False, 'error': 'Failed to delete persona'}), 500
+
+@app.route('/api/personas/categories', methods=['GET'])
+def get_persona_categories():
+    """Get all persona categories"""
+    try:
+        categories = db.session.query(Persona.category).filter_by(is_active=True).distinct().all()
+        return jsonify({
+            'success': True,
+            'categories': [cat[0] for cat in categories]
+        })
+    except Exception as e:
+        app.logger.error(f"Error fetching persona categories: {str(e)}")
+        return jsonify({'success': False, 'error': 'Failed to fetch categories'}), 500
+
+# ==================== END PERSONA MANAGEMENT API ====================
 
 # ==================== CONTEXT MANAGEMENT API ENDPOINTS ====================
 

@@ -4,6 +4,36 @@ from sqlalchemy.dialects.postgresql import UUID
 import uuid
 from pgvector.sqlalchemy import Vector
 
+class Persona(db.Model):
+    __tablename__ = 'personas'
+    
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = db.Column(db.String(255), nullable=False)
+    agent_name = db.Column(db.String(255), nullable=False)
+    role = db.Column(db.Text, nullable=False)
+    traits = db.Column(db.Text, nullable=False)
+    category = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_by = db.Column(db.String(255), nullable=True)  # User who created it
+    
+    def to_dict(self):
+        return {
+            'id': str(self.id),
+            'name': self.name,
+            'agent_name': self.agent_name,
+            'role': self.role,
+            'traits': self.traits,
+            'category': self.category,
+            'description': self.description,
+            'is_active': self.is_active,
+            'created_at': self.created_at.isoformat(),
+            'updated_at': self.updated_at.isoformat(),
+            'created_by': self.created_by
+        }
+
 class Project(db.Model):
     __tablename__ = 'projects'
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -22,6 +52,9 @@ class Project(db.Model):
     user_role = db.Column(db.String(500))
     output_format = db.Column(db.Text)
     
+    # Persona reference
+    persona_id = db.Column(UUID(as_uuid=True), db.ForeignKey('personas.id'), nullable=True, index=True)
+    
     # User ownership
     owner_id = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id'), nullable=True, index=True)
     
@@ -31,6 +64,7 @@ class Project(db.Model):
     # Relationships
     conversations = db.relationship('Conversation', backref='project', lazy=True, cascade='all, delete-orphan')
     owner = db.relationship('User', backref='projects', foreign_keys=[owner_id])
+    persona = db.relationship('Persona', backref='projects')
 
 class Conversation(db.Model):
     __tablename__ = 'conversations'
