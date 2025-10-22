@@ -6943,6 +6943,7 @@ KnowledgeBaseApp.prototype.loadContextStats = async function() {
             '/api/context/stats';
         
         console.log('🌐 Fetching context stats from:', url);
+        console.log('🔍 Current conversation ID:', this.currentConversationId);
         const response = await fetch(url);
         console.log('📡 Stats response status:', response.status);
         
@@ -6964,7 +6965,16 @@ KnowledgeBaseApp.prototype.loadContextStats = async function() {
 
 // Load conversation context
 KnowledgeBaseApp.prototype.loadConversationContext = async function() {
-    if (!this.currentConversationId) return;
+    if (!this.currentConversationId) {
+        console.log('⚠️ No current conversation ID, skipping conversation context');
+        // Show helpful message in the context panel
+        const section = document.getElementById('context-conversation-section');
+        if (section) {
+            section.innerHTML = '<div class="empty-context">Select a conversation to view its context documents</div>';
+            section.style.display = 'block';
+        }
+        return;
+    }
     
     try {
         const url = `/api/conversation/${this.currentConversationId}/context`;
