@@ -6699,12 +6699,34 @@ KnowledgeBaseApp.prototype.handleContextUpload = async function(event) {
 };
 
 KnowledgeBaseApp.prototype.showContextUploadMessage = function(filename, preview, fileType, wordCount, taskType) {
-    // Simple approach: just show a success message
+    console.log('📄 Showing upload message for:', filename);
+    
+    // Show success message
     this.showMessage(`✅ File uploaded successfully: ${filename}`, 'success');
+    
+    // Add visual indicator to context button
+    const contextBtn = document.getElementById('context-toggle-btn');
+    if (contextBtn) {
+        contextBtn.style.backgroundColor = '#4CAF50';
+        contextBtn.style.color = 'white';
+        contextBtn.title = `Context Panel - ${filename} uploaded`;
+        
+        // Reset after 3 seconds
+        setTimeout(() => {
+            contextBtn.style.backgroundColor = '';
+            contextBtn.style.color = '';
+            contextBtn.title = 'Context Panel';
+        }, 3000);
+    }
     
     // Refresh context panel if it's open
     if (this.contextPanelOpen) {
-        this.loadContextData();
+        console.log('🔄 Refreshing context panel...');
+        setTimeout(() => {
+            this.loadContextData().catch(error => {
+                console.error('❌ Error refreshing context panel:', error);
+            });
+        }, 500); // Small delay to ensure backend is updated
     }
     
     // Refresh the document display to show newly uploaded files
@@ -6817,18 +6839,43 @@ KnowledgeBaseApp.prototype.documentContentMap = new Map();
 
 // Toggle context panel visibility
 function toggleContextPanel() {
+    console.log('🔄 Toggling context panel...');
     const panel = document.getElementById('context-panel');
     const toggleBtn = document.getElementById('context-toggle-btn');
     
+    console.log('Panel element:', panel);
+    console.log('Toggle button:', toggleBtn);
+    console.log('Current state:', window.app.contextPanelOpen);
+    
+    if (!panel) {
+        console.error('❌ Context panel not found in DOM');
+        return;
+    }
+    
+    if (!toggleBtn) {
+        console.error('❌ Context toggle button not found in DOM');
+        return;
+    }
+    
     if (window.app.contextPanelOpen) {
+        console.log('📤 Closing context panel');
         panel.style.display = 'none';
         toggleBtn.classList.remove('active');
         window.app.contextPanelOpen = false;
     } else {
+        console.log('📥 Opening context panel');
         panel.style.display = 'flex';
         toggleBtn.classList.add('active');
         window.app.contextPanelOpen = true;
-        window.app.loadContextData();
+        
+        // Load context data with error handling
+        try {
+            window.app.loadContextData();
+        } catch (error) {
+            console.error('❌ Error loading context data:', error);
+            // Show error message to user
+            window.app.showMessage('Failed to load context data. Please try again.', 'error');
+        }
     }
 }
 
