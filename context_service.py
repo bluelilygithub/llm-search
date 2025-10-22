@@ -14,7 +14,16 @@ class ContextService:
         """Get user identifier using the same authentication system as the rest of the app"""
         from security_utils import get_user_identity
         identity = get_user_identity()
-        return identity.get('user_id')
+        user_id = identity.get('user_id')
+        
+        # If no user_id (admin or unauthenticated), use session-based fallback
+        if user_id is None:
+            from flask import session
+            if 'user_id' not in session:
+                session['user_id'] = str(uuid.uuid4())
+            return session['user_id']
+        
+        return user_id
     
     @staticmethod
     def create_context_item(
@@ -51,10 +60,13 @@ class ContextService:
             extra_data=extra_data or {}
         )
         
-        db.session.add(context_item)
-        db.session.commit()
-        
-        return context_item
+        try:
+            db.session.add(context_item)
+            db.session.commit()
+            return context_item
+        except Exception as e:
+            db.session.rollback()
+            raise e
     
     @staticmethod
     def get_user_context_items(include_inactive: bool = False) -> List[ContextItem]:
