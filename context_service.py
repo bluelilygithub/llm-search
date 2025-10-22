@@ -11,11 +11,10 @@ class ContextService:
     
     @staticmethod
     def get_user_id():
-        """Get user identifier (session-based for now, can be enhanced later)"""
-        from flask import session
-        if 'user_id' not in session:
-            session['user_id'] = str(uuid.uuid4())
-        return session['user_id']
+        """Get user identifier using the same authentication system as the rest of the app"""
+        from security_utils import get_user_identity
+        identity = get_user_identity()
+        return identity.get('user_id')
     
     @staticmethod
     def create_context_item(
