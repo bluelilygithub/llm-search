@@ -4064,6 +4064,11 @@ window.showSettingsSection = function(sectionName) {
         window.app.renderTemplatesManagementList();
     }
     
+    // Special handling for personas section
+    if (sectionName === 'personas') {
+        window.app.renderPersonasManagementList();
+    }
+    
     // Special handling for users section
     if (sectionName === 'users') {
         window.refreshUsersList();
@@ -6410,6 +6415,151 @@ function applyTestTemplate() {
 function refreshTemplatesList() {
     window.app.refreshTemplatesList();
 }
+
+// ==================== PERSONA MANAGEMENT FUNCTIONS ====================
+
+// Render personas management list
+KnowledgeBaseApp.prototype.renderPersonasManagementList = async function() {
+    const container = document.getElementById('personas-list');
+    if (!container) return;
+    
+    container.innerHTML = '<div class="loading-personas">Loading personas...</div>';
+    
+    try {
+        const response = await fetch('/api/personas');
+        const data = await response.json();
+        
+        if (data.success) {
+            this.displayPersonasList(data.personas);
+        } else {
+            container.innerHTML = `
+                <div class="error-personas">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h4>Error loading personas</h4>
+                    <p>${data.error || 'Failed to load personas'}</p>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Error loading personas:', error);
+        container.innerHTML = `
+            <div class="error-personas">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h4>Error loading personas</h4>
+                <p>Network error occurred</p>
+            </div>
+        `;
+    }
+};
+
+// Display personas list
+KnowledgeBaseApp.prototype.displayPersonasList = function(personas) {
+    const container = document.getElementById('personas-list');
+    if (!container) return;
+    
+    if (personas.length === 0) {
+        container.innerHTML = `
+            <div class="empty-personas">
+                <i class="fas fa-user-tie"></i>
+                <h4>No personas yet</h4>
+                <p>Create your first persona to get started!</p>
+                <button class="btn-primary" onclick="openPersonaEditor()">
+                    <i class="fas fa-plus"></i>
+                    Create Persona
+                </button>
+            </div>
+        `;
+        return;
+    }
+    
+    // Group personas by category
+    const personasByCategory = {};
+    personas.forEach(persona => {
+        if (!personasByCategory[persona.category]) {
+            personasByCategory[persona.category] = [];
+        }
+        personasByCategory[persona.category].push(persona);
+    });
+    
+    let html = '';
+    Object.keys(personasByCategory).sort().forEach(category => {
+        html += `
+            <div class="personas-category">
+                <h4 class="personas-category-title">${category}</h4>
+                <div class="personas-category-items">
+        `;
+        
+        personasByCategory[category].forEach(persona => {
+            html += `
+                <div class="persona-management-item" data-persona-id="${persona.id}">
+                    <div class="persona-item-info">
+                        <div class="persona-item-header">
+                            <div class="persona-item-icon">
+                                <i class="fas fa-user-tie"></i>
+                            </div>
+                            <div class="persona-item-details">
+                                <h5 class="persona-item-name">${persona.name}</h5>
+                                <p class="persona-item-agent">${persona.agent_name}</p>
+                                <p class="persona-item-description">${persona.description || 'No description'}</p>
+                            </div>
+                        </div>
+                        <div class="persona-item-preview">
+                            <div class="persona-preview-section">
+                                <strong>Role:</strong> ${persona.role}
+                            </div>
+                            <div class="persona-preview-section">
+                                <strong>Traits:</strong> ${persona.traits}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="persona-item-actions">
+                        <button class="btn-secondary" onclick="editPersona('${persona.id}')" title="Edit Persona">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn-danger" onclick="deletePersona('${persona.id}')" title="Delete Persona">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += `
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+};
+
+// Refresh personas list
+KnowledgeBaseApp.prototype.refreshPersonasList = async function() {
+    await this.renderPersonasManagementList();
+};
+
+// Global functions for persona management
+function refreshPersonasList() {
+    window.app.refreshPersonasList();
+}
+
+function openPersonaEditor(personaId = null) {
+    // TODO: Implement persona editor modal
+    console.log('Opening persona editor for:', personaId);
+}
+
+function editPersona(personaId) {
+    openPersonaEditor(personaId);
+}
+
+function deletePersona(personaId) {
+    if (confirm('Are you sure you want to delete this persona?')) {
+        // TODO: Implement persona deletion
+        console.log('Deleting persona:', personaId);
+    }
+}
+
+// ==================== END PERSONA MANAGEMENT FUNCTIONS ====================
 
 // Function to migrate a legacy model to the dynamic system
 window.migrateModel = async function(modelName) {
