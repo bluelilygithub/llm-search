@@ -6491,32 +6491,28 @@ KnowledgeBaseApp.prototype.displayPersonasList = function(personas) {
         
         personasByCategory[category].forEach(persona => {
             html += `
-                <div class="persona-management-item" data-persona-id="${persona.id}">
-                    <div class="persona-item-info">
-                        <div class="persona-item-header">
-                            <div class="persona-item-icon">
+                <div class="template-management-item" data-persona-id="${persona.id}">
+                    <div class="template-item-info">
+                        <div class="template-item-header">
+                            <div class="template-item-icon">
                                 <i class="fas fa-user-tie"></i>
                             </div>
-                            <div class="persona-item-details">
-                                <h5 class="persona-item-name">${persona.name}</h5>
-                                <p class="persona-item-agent">${persona.agent_name}</p>
-                                <p class="persona-item-description">${persona.description || 'No description'}</p>
+                            <div class="template-item-details">
+                                <h4>${persona.name}</h4>
+                                <p class="template-item-category">${persona.category}</p>
+                                <p class="template-item-description">${persona.description || 'No description'}</p>
                             </div>
                         </div>
-                        <div class="persona-item-preview">
-                            <div class="persona-preview-section">
-                                <strong>Role:</strong> ${persona.role}
-                            </div>
-                            <div class="persona-preview-section">
-                                <strong>Traits:</strong> ${persona.traits}
-                            </div>
+                        <div class="template-item-meta">
+                            <span class="template-item-model">${persona.agent_name}</span>
+                            <span class="template-item-usage">🎭 ${persona.role}</span>
                         </div>
                     </div>
-                    <div class="persona-item-actions">
-                        <button class="btn-secondary" onclick="editPersona('${persona.id}')" title="Edit Persona">
+                    <div class="template-item-actions">
+                        <button class="btn-sm btn-secondary" onclick="editPersona('${persona.id}')" title="Edit Persona">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="btn-danger" onclick="deletePersona('${persona.id}')" title="Delete Persona">
+                        <button class="btn-sm btn-danger" onclick="deletePersona('${persona.id}')" title="Delete Persona">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
@@ -6544,18 +6540,167 @@ function refreshPersonasList() {
 }
 
 function openPersonaEditor(personaId = null) {
-    // TODO: Implement persona editor modal
-    console.log('Opening persona editor for:', personaId);
+    // Create persona editor modal
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+        <div class="modal-content persona-editor-modal">
+            <div class="modal-header">
+                <h3>${personaId ? 'Edit Persona' : 'Create New Persona'}</h3>
+                <button class="modal-close" onclick="closePersonaEditor()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="persona-form">
+                    <div class="form-group">
+                        <label for="persona-name">Persona Name</label>
+                        <input type="text" id="persona-name" name="name" required placeholder="e.g., Technical Assistant">
+                    </div>
+                    <div class="form-group">
+                        <label for="persona-agent-name">Agent Name</label>
+                        <input type="text" id="persona-agent-name" name="agent_name" required placeholder="e.g., TechBot">
+                    </div>
+                    <div class="form-group">
+                        <label for="persona-category">Category</label>
+                        <select id="persona-category" name="category" required>
+                            <option value="">Select Category</option>
+                            <option value="Technical">Technical</option>
+                            <option value="Creative">Creative</option>
+                            <option value="Business">Business</option>
+                            <option value="Educational">Educational</option>
+                            <option value="Customer Service">Customer Service</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="persona-role">Role</label>
+                        <textarea id="persona-role" name="role" required placeholder="e.g., Technical Support Specialist"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="persona-traits">Traits</label>
+                        <textarea id="persona-traits" name="traits" required placeholder="e.g., Analytical, methodical, detail-oriented"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="persona-description">Description</label>
+                        <textarea id="persona-description" name="description" placeholder="Optional description"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="closePersonaEditor()">Cancel</button>
+                <button type="button" class="btn-primary" onclick="savePersona('${personaId || ''}')">
+                    ${personaId ? 'Update Persona' : 'Create Persona'}
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Load existing persona data if editing
+    if (personaId) {
+        loadPersonaData(personaId);
+    }
 }
 
 function editPersona(personaId) {
     openPersonaEditor(personaId);
 }
 
-function deletePersona(personaId) {
-    if (confirm('Are you sure you want to delete this persona?')) {
-        // TODO: Implement persona deletion
-        console.log('Deleting persona:', personaId);
+async function loadPersonaData(personaId) {
+    try {
+        const response = await fetch(`/api/personas/${personaId}`);
+        const data = await response.json();
+        
+        if (data.success) {
+            const persona = data.persona;
+            document.getElementById('persona-name').value = persona.name;
+            document.getElementById('persona-agent-name').value = persona.agent_name;
+            document.getElementById('persona-category').value = persona.category;
+            document.getElementById('persona-role').value = persona.role;
+            document.getElementById('persona-traits').value = persona.traits;
+            document.getElementById('persona-description').value = persona.description || '';
+        }
+    } catch (error) {
+        console.error('Error loading persona data:', error);
+    }
+}
+
+async function savePersona(personaId) {
+    const form = document.getElementById('persona-form');
+    const formData = new FormData(form);
+    
+    const personaData = {
+        name: formData.get('name'),
+        agent_name: formData.get('agent_name'),
+        category: formData.get('category'),
+        role: formData.get('role'),
+        traits: formData.get('traits'),
+        description: formData.get('description')
+    };
+    
+    try {
+        const url = personaId ? `/api/personas/${personaId}` : '/api/personas';
+        const method = personaId ? 'PUT' : 'POST';
+        
+        const response = await fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(personaData)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            closePersonaEditor();
+            refreshPersonasList();
+            if (window.app && window.app.showNotification) {
+                window.app.showNotification(
+                    `Persona ${personaId ? 'updated' : 'created'} successfully!`, 
+                    'success'
+                );
+            }
+        } else {
+            alert(`Error: ${data.error}`);
+        }
+    } catch (error) {
+        console.error('Error saving persona:', error);
+        alert('Failed to save persona. Please try again.');
+    }
+}
+
+function closePersonaEditor() {
+    const modal = document.querySelector('.persona-editor-modal');
+    if (modal) {
+        modal.closest('.modal-overlay').remove();
+    }
+}
+
+async function deletePersona(personaId) {
+    if (!confirm('Are you sure you want to delete this persona? This action cannot be undone.')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/personas/${personaId}`, {
+            method: 'DELETE'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            refreshPersonasList();
+            if (window.app && window.app.showNotification) {
+                window.app.showNotification('Persona deleted successfully!', 'success');
+            }
+        } else {
+            alert(`Error: ${data.error}`);
+        }
+    } catch (error) {
+        console.error('Error deleting persona:', error);
+        alert('Failed to delete persona. Please try again.');
     }
 }
 

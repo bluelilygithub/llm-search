@@ -2738,6 +2738,19 @@ def create_persona():
         db.session.rollback()
         return jsonify({'success': False, 'error': 'Failed to create persona'}), 500
 
+@app.route('/api/personas/<persona_id>', methods=['GET'])
+def get_persona(persona_id):
+    """Get a single persona by ID"""
+    try:
+        persona = Persona.query.get_or_404(persona_id)
+        return jsonify({
+            'success': True,
+            'persona': persona.to_dict()
+        })
+    except Exception as e:
+        app.logger.error(f"Error fetching persona {persona_id}: {str(e)}")
+        return jsonify({'success': False, 'error': 'Failed to fetch persona'}), 500
+
 @app.route('/api/personas/<persona_id>', methods=['PUT'])
 def update_persona(persona_id):
     """Update a persona"""
