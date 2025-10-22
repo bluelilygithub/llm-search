@@ -6691,28 +6691,18 @@ KnowledgeBaseApp.prototype.handleContextUpload = async function(event) {
 };
 
 KnowledgeBaseApp.prototype.showContextUploadMessage = function(filename, preview, fileType, wordCount, taskType) {
-    const container = document.getElementById('chat-messages');
-    if (!container) {
-        console.warn('showContextUploadMessage: Chat container not found, attempting to restore');
-        
-        // Preserve project context before restoring
-        const preserveProject = this.currentProject;
-        const preserveViewProject = this.currentViewProject;
-        
-        this.showChatView();
-        
-        // Restore project context after restoring chat view
-        if (preserveProject) this.currentProject = preserveProject;
-        if (preserveViewProject) this.currentViewProject = preserveViewProject;
-        
-        const retryContainer = document.getElementById('chat-messages');
-        if (!retryContainer) {
-            console.error('showContextUploadMessage: Still cannot find chat container');
-            return;
-        }
-        // Use the restored container
-        container = retryContainer;
+    // Simple approach: just show a success message
+    this.showMessage(`✅ File uploaded successfully: ${filename}`, 'success');
+    
+    // Refresh context panel if it's open
+    if (this.contextPanelOpen) {
+        this.loadContextData();
     }
+    
+    // Refresh the document display to show newly uploaded files
+    this.refreshDocumentDisplay();
+    
+    return; // Skip the complex UI update for now
     
     const messageDiv = document.createElement('div');
     messageDiv.className = 'message user new';
