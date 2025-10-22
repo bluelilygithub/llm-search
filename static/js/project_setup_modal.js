@@ -14,6 +14,9 @@ window.showProjectSetupModal = function() {
         // Prevent body scrolling
         document.body.style.overflow = 'hidden';
         
+        // Load personas into dropdown
+        loadPersonasIntoDropdown();
+        
         // Focus on first input
         setTimeout(() => {
             const firstInput = modal.querySelector('input, textarea');
@@ -75,7 +78,8 @@ window.saveProjectSetup = function() {
         rules_dont: document.getElementById('rules-dont').value.trim(),
         context_background: document.getElementById('context-background').value.trim(),
         user_role: document.getElementById('project-user-role').value.trim(),
-        output_format: document.getElementById('output-format').value.trim()
+        output_format: document.getElementById('output-format').value.trim(),
+        persona_id: document.getElementById('persona-select').value || null
     };
     
     // Remove empty fields (except for name)
@@ -248,6 +252,11 @@ function populateProjectSetupForm(template) {
     document.getElementById('context-background').value = template.context_background || '';
     document.getElementById('project-user-role').value = template.user_role || '';
     document.getElementById('output-format').value = template.output_format || '';
+    
+    // Set persona dropdown if persona_id exists
+    if (template.persona_id) {
+        document.getElementById('persona-select').value = template.persona_id;
+    }
 }
 
 // Function to show template preview
@@ -361,4 +370,100 @@ function generateSystemPromptPreview(template) {
     }
     
     return prompt || 'No template configured';
+}
+
+// ==================== PERSONA INTEGRATION FUNCTIONS ====================
+
+// Load personas into the dropdown
+async function loadPersonasIntoDropdown() {
+    const dropdown = document.getElementById('persona-select');
+    if (!dropdown) return;
+    
+    try {
+        const response = await fetch('/api/personas');
+        const data = await response.json();
+        
+        if (data.success) {
+            // Clear existing options except the first one
+            dropdown.innerHTML = '<option value="">Select a persona or create custom...</option>';
+            
+            // Group personas by category
+            const personasByCategory = {};
+            data.personas.forEach(persona => {
+                if (!personasByCategory[persona.category]) {
+                    personasByCategory[persona.category] = [];
+                }
+                personasByCategory[persona.category].push(persona);
+            });
+            
+            // Add personas grouped by category
+            Object.keys(personasByCategory).sort().forEach(category => {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = category;
+                
+                personasByCategory[category].forEach(persona => {
+                    const option = document.createElement('option');
+                    option.value = persona.id;
+                    option.textContent = `${persona.name} (${persona.agent_name})`;
+                    optgroup.appendChild(option);
+                });
+                
+                dropdown.appendChild(optgroup);
+            });
+        }
+    } catch (error) {
+        console.error('Error loading personas:', error);
+    }
+}
+
+// Handle persona selection and populate fields
+window.loadPersonaData = function() {
+    const dropdown = document.getElementById('persona-select');
+    const selectedPersonaId = dropdown.value;
+    
+    if (!selectedPersonaId) {
+        // Clear fields if no persona selected
+        clearPersonaFields();
+        return;
+    }
+    
+    // Find the selected persona from the dropdown options
+    const selectedOption = dropdown.querySelector(`option[value="${selectedPersonaId}"]`);
+    if (!selectedOption) return;
+    
+    // Extract persona name and agent name from option text
+    const optionText = selectedOption.textContent;
+    const match = optionText.match(/^(.+?) \((.+?)\)$/);
+    
+    if (match) {
+        const personaName = match[1];
+        const agentName = match[2];
+        
+        // Populate the fields with basic info
+        document.getElementById('agent-name').value = agentName;
+        
+        // Fetch full persona data to get role and traits
+        fetch(`/api/personas/${selectedPersonaId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const persona = data.persona;
+                    document.getElementById('agent-name').value = persona.agent_name;
+                    document.getElementById('agent-role').value = persona.role;
+                    document.getElementById('agent-personality').value = persona.traits;
+                }
+            })
+            .catch(error => {
+                console.error('Error loading persona details:', error);
+                // Fallback to basic info
+                document.getElementById('agent-name').value = agentName;
+            });
+    }
+};
+
+// Clear persona fields
+function clearPersonaFields() {
+    document.getElementById('agent-name').value = '';
+    document.getElementById('agent-role').value = '';
+    document.getElementById('agent-personality').value = '';
 }

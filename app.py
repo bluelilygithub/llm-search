@@ -1032,6 +1032,7 @@ def create_project():
         context_background=data.get('context_background'),
         user_role=data.get('user_role'),
         output_format=data.get('output_format'),
+        persona_id=data.get('persona_id'),
         owner_id=owner_id
     )
     
@@ -1083,7 +1084,8 @@ def get_project_template(project_id):
             'rules_dont': json.loads(project.rules_dont) if project.rules_dont else [],
             'context_background': project.context_background,
             'user_role': project.user_role,
-            'output_format': project.output_format
+            'output_format': project.output_format,
+            'persona_id': str(project.persona_id) if project.persona_id else None
         }
         
         return jsonify({
@@ -1139,6 +1141,7 @@ def update_project_template(project_id):
         project.context_background = data.get('context_background')
         project.user_role = data.get('user_role')
         project.output_format = data.get('output_format')
+        project.persona_id = data.get('persona_id')
         project.updated_at = datetime.utcnow()
         
         db.session.commit()

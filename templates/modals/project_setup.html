@@ -22,6 +22,14 @@
                         </h6>
                         
                         <div class="form-group">
+                            <label for="persona-select">Choose Persona (Optional)</label>
+                            <select id="persona-select" class="form-control" onchange="loadPersonaData()">
+                                <option value="">Select a persona or create custom...</option>
+                            </select>
+                            <small class="form-text text-muted">Choose from predefined personas or create your own below</small>
+                        </div>
+                        
+                        <div class="form-group">
                             <label for="agent-name">Agent's Name</label>
                             <input type="text" id="agent-name" class="form-control" placeholder="e.g., Alex, Assistant, Coach Sarah" />
                             <small class="form-text text-muted">What should the AI be called?</small>
