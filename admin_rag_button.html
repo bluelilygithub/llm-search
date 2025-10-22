@@ -1,0 +1,27 @@
+<!-- Add this button to your admin interface -->
+<button onclick="processAllConversations()" class="btn btn-primary">
+    Process All Conversations for RAG
+</button>
+
+<script>
+async function processAllConversations() {
+    try {
+        const response = await fetch('/api/rag/process-all-conversations', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert(`Success! Processed ${result.processed_conversations}/${result.total_conversations} conversations and ${result.processed_messages}/${result.total_messages} messages.`);
+        } else {
+            alert(`Error: ${result.error}`);
+        }
+    } catch (error) {
+        alert(`Error: ${error.message}`);
+    }
+}
+</script>

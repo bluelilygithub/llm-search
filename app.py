@@ -1770,26 +1770,25 @@ Please use this context information appropriately when responding to user questi
         
         app.logger.info(f"Calling LLM service for model: {model} (API id: {model_identifier}), authenticated: {is_authenticated}")
         
-        # Get RAG context if available (using enhanced RAG service)
+        # Get RAG context if available (using simple RAG service until migration is confirmed)
         rag_context = ""
         rag_sources = []
         try:
-            from rag_service_enhanced import EnhancedRAGService
+            from rag_service_simple import SimpleRAGService
             
             # Get user identity for filtering
             identity = get_user_identity()
             user_id = str(identity['user_id']) if identity['user_id'] else None
             
-            # Initialize enhanced RAG service
-            rag_service = EnhancedRAGService(
-                openai_api_key=os.getenv('OPENAI_API_KEY'),
-                db_session=db.session
+            # Initialize simple RAG service (documents only for now)
+            rag_service = SimpleRAGService(
+                openai_api_key=os.getenv('OPENAI_API_KEY')
             )
             
-            # Get relevant context from all sources (documents, conversations, messages)
+            # Get relevant context from documents
             rag_context = rag_service.get_context_for_query(
                 query=user_message,
-                max_context_length=3000,  # Increased limit for richer context
+                max_context_length=2000,
                 user_id=user_id
             )
             
