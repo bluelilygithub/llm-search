@@ -176,7 +176,7 @@
 </div>
 
 <script>
-// Simple accordion functionality
+// Enhanced accordion functionality with smooth animations
 document.addEventListener('DOMContentLoaded', function() {
     const accordionButtons = document.querySelectorAll('.accordion-button');
     
@@ -186,7 +186,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const target = document.querySelector(targetId);
             const isExpanded = this.getAttribute('aria-expanded') === 'true';
             
-            // Close all other accordion items
+            // Close all other accordion items with animation
             accordionButtons.forEach(otherButton => {
                 if (otherButton !== this) {
                     otherButton.classList.add('collapsed');
@@ -194,23 +194,44 @@ document.addEventListener('DOMContentLoaded', function() {
                     const otherTargetId = otherButton.getAttribute('data-bs-target');
                     const otherTarget = document.querySelector(otherTargetId);
                     if (otherTarget) {
-                        otherTarget.classList.remove('show');
+                        animateCollapse(otherTarget);
                     }
                 }
             });
             
-            // Toggle current accordion item
+            // Toggle current accordion item with animation
             if (isExpanded) {
                 this.classList.add('collapsed');
                 this.setAttribute('aria-expanded', 'false');
-                target.classList.remove('show');
+                animateCollapse(target);
             } else {
                 this.classList.remove('collapsed');
                 this.setAttribute('aria-expanded', 'true');
-                target.classList.add('show');
+                animateExpand(target);
             }
         });
     });
+    
+    // Animation functions
+    function animateCollapse(element) {
+        element.style.height = element.scrollHeight + 'px';
+        element.offsetHeight; // Force reflow
+        element.style.height = '0px';
+        setTimeout(() => {
+            element.classList.remove('show');
+            element.style.height = '';
+        }, 300);
+    }
+    
+    function animateExpand(element) {
+        element.classList.add('show');
+        element.style.height = '0px';
+        element.offsetHeight; // Force reflow
+        element.style.height = element.scrollHeight + 'px';
+        setTimeout(() => {
+            element.style.height = '';
+        }, 300);
+    }
 });
 </script>
 
@@ -363,22 +384,39 @@ document.addEventListener('DOMContentLoaded', function() {
 
 .accordion-button::after {
     margin-left: auto;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23212529'%3e%3cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e");
-    width: 1.25rem;
-    height: 1.25rem;
-    background-size: 1.25rem;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%236c757d'%3e%3cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e");
+    width: 1.5rem;
+    height: 1.5rem;
+    background-size: 1.5rem;
     background-repeat: no-repeat;
     background-position: center;
-    transition: transform 0.2s ease-in-out;
+    transition: transform 0.3s ease-in-out;
+    flex-shrink: 0;
 }
 
 .accordion-button:not(.collapsed)::after {
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23ffffff'%3e%3cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e");
-    transform: rotate(-180deg);
+    transform: rotate(180deg);
+}
+
+.accordion-button.collapsed::after {
+    transform: rotate(0deg);
 }
 
 .accordion-collapse {
     border-top: 1px solid #dee2e6;
+    transition: height 0.3s ease-in-out;
+}
+
+.accordion-collapse.collapse {
+    height: 0;
+    overflow: hidden;
+    transition: height 0.3s ease-in-out;
+}
+
+.accordion-collapse.collapse.show {
+    height: auto;
+    transition: height 0.3s ease-in-out;
 }
 
 .accordion-body {
