@@ -2071,64 +2071,12 @@ def upload_context():
         # Apply task-specific processing
         processed_content = process_document_by_task(content, filename, task_type)
         
-        # Create context item using new context management system
+        # TEMPORARY FIX: Skip new context system and use old system only
+        # This ensures uploads work while we debug the context system
         context_item_created = False
-        try:
-            # Get user identity for context item
-            identity = get_user_identity()
-            user_id = identity.get('user_id')
-            
-            # If no user_id, use session-based fallback
-            if user_id is None:
-                from flask import session
-                if 'user_id' not in session:
-                    session['user_id'] = str(uuid.uuid4())
-                user_id = session['user_id']
-            
-            # Create context item directly to avoid ContextService issues
-            context_item = ContextItem(
-                user_id=user_id,
-                project_id=str(conversation.project_id) if conversation.project_id else None,
-                name=filename,
-                description=f"Uploaded document - {task_type}",
-                content_type='document',
-                content_text=processed_content,
-                original_filename=filename,
-                file_size=len(content) if content else 0,
-                token_count=int(len(processed_content.split()) * 1.3) if processed_content else 0,
-                extra_data={
-                    'task_type': task_type,
-                    'original_content': content[:1000] if content else None
-                }
-            )
-            
-            db.session.add(context_item)
-            db.session.commit()
-            
-            # Automatically add context item to current conversation
-            ContextService.add_context_to_conversation(
-                conversation_id=conversation_id,
-                context_item_id=str(context_item.id),
-                relevance_score=1.0
-            )
-            
-            app.logger.info(f"Created context item {context_item.id} for conversation {conversation_id}")
-            context_item_created = True
-            
-            # Return success response
-            return jsonify({
-                'success': True,
-                'message': f'File {filename} uploaded and processed successfully',
-                'context_item_id': str(context_item.id),
-                'filename': filename,
-                'task_type': task_type
-            })
-            
-        except Exception as context_error:
-            app.logger.error(f"Failed to create context item: {context_error}")
-            # Rollback the session to clean state
-            db.session.rollback()
-            # Continue with old system as fallback
+        
+        # Skip the problematic new context system for now
+        app.logger.info(f"Skipping new context system, using legacy upload for {filename}")
         
         # Keep old system for backward compatibility
         import json
