@@ -64,6 +64,7 @@ Curam AI Knowledge Base is a multi-LLM chat interface that allows users to:
 - **Visual Indicators**: See which documents were used to generate responses
 - **Source Citations**: View document names and relevance scores for transparency
 - **User-Specific Knowledge**: Each user's documents are processed and searched independently
+- **Stable Implementation**: Document-only RAG for reliable performance (conversation embeddings removed for stability)
 
 ### 👥 Multi-User Management System
 - **Admin Users**: Full access to all features, user management, and system settings
@@ -289,12 +290,36 @@ llm-search/
 
 ## 🚀 Recent Updates
 
-### RAG Implementation (Latest)
+### RAG Implementation (Current)
 - **Document Processing**: Automatic embedding generation for uploaded documents
 - **Semantic Search**: Find relevant content using OpenAI embeddings
 - **Context Integration**: AI responses enhanced with knowledge base content
 - **Visual Indicators**: See which documents informed each response
 - **User-Specific**: Each user's documents are processed independently
+
+### RAG Enhancement Attempt (October 2025)
+**Status**: Unsuccessful - Rolled back to stable version
+
+We attempted to enhance the RAG system with the following features:
+- **Conversation Embeddings**: Generate embeddings for conversation summaries
+- **Message Embeddings**: Create embeddings for individual messages
+- **Cross-Source Search**: Search across documents, conversations, and messages
+- **Vector Database Integration**: Implement pgvector for PostgreSQL
+
+**Challenges Encountered**:
+- Railway PostgreSQL doesn't support pgvector extension
+- JSONB-based vector storage proved complex and unreliable
+- Database migration issues with vector columns
+- Performance degradation with large datasets
+
+**Decision**: Rolled back to the stable document-only RAG implementation that provides reliable semantic search across uploaded documents without the complexity of conversation/message embeddings.
+
+**Current RAG Capabilities**:
+- ✅ Document processing and embedding generation
+- ✅ Semantic search across knowledge base
+- ✅ Context injection into AI responses
+- ✅ Source citations and relevance scoring
+- ❌ Conversation/message embeddings (removed for stability)
 
 ### Multi-User System
 - **User Management**: Admin can create and manage user accounts
