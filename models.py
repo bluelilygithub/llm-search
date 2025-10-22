@@ -2,6 +2,7 @@ from database import db
 from datetime import datetime
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
+from pgvector.sqlalchemy import Vector
 
 class Project(db.Model):
     __tablename__ = 'projects'
@@ -46,6 +47,10 @@ class Conversation(db.Model):
     # Legacy fields for migration (will be deprecated)
     session_id = db.Column(db.String(100), nullable=True)  # Legacy: For free/anonymous users
     ip_address = db.Column(db.String(45), nullable=True)  # Legacy: Additional tracking for free users
+    # RAG: Vector embedding for conversation summary (for semantic search)
+    embedding = db.Column(Vector(1536), nullable=True)
+    embedding_processed = db.Column(db.Boolean, default=False)
+    embedding_processed_at = db.Column(db.DateTime, nullable=True)
     
     # Relationships
     messages = db.relationship('Message', backref='conversation', lazy=True, cascade='all, delete-orphan')
@@ -58,7 +63,9 @@ class Message(db.Model):
     conversation_id = db.Column(UUID(as_uuid=True), db.ForeignKey('conversations.id'), nullable=False)
     role = db.Column(db.String(20), nullable=False)  # 'user' or 'assistant'
     content = db.Column(db.Text, nullable=False)
-    # embeddings = db.Column(Vector(1536))  # Will add back with pgvector
+    # RAG: Vector embedding for message content (for semantic search)
+    embedding = db.Column(Vector(1536), nullable=True)
+    embedding_processed = db.Column(db.Boolean, default=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     
     attachments = db.relationship('Attachment', backref='message', lazy=True, cascade='all, delete-orphan')

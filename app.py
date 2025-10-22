@@ -444,8 +444,8 @@ def login_override():
     
     # Check if this is an admin login (password only, no username)
     if not username and password:
-        if auth.verify_password(password):
-            session['authenticated'] = True
+    if auth.verify_password(password):
+        session['authenticated'] = True
             session['user_id'] = None  # Set to None for now - will fix after database is properly migrated
             session['user_type'] = 'admin'
             session['user_role'] = 'SUPER_ADMIN'
@@ -456,7 +456,7 @@ def login_override():
                 'user_type': 'admin',
                 'user_role': 'SUPER_ADMIN'
             })
-        else:
+    else:
             return jsonify({'success': False, 'error': 'Invalid admin password'}), 401
     
     # Check if this is a regular user login (username + password)
@@ -959,7 +959,7 @@ def get_projects():
     # Admin sees all projects, regular users see only their own projects
     if identity.get('is_admin', False):
         # Admin sees all projects
-        projects = Project.query.order_by(Project.created_at.desc()).all()
+    projects = Project.query.order_by(Project.created_at.desc()).all()
     else:
         # Regular users see only projects they own
         user_id = identity.get('user_id')
@@ -972,9 +972,9 @@ def get_projects():
     for project in projects:
         # Count conversations for this project (filtered by user if not admin)
         if identity.get('is_admin', False):
-            conversation_count = db.session.query(Conversation).filter(
-                Conversation.project_id == project.id
-            ).count()
+        conversation_count = db.session.query(Conversation).filter(
+            Conversation.project_id == project.id
+        ).count()
         else:
             conversation_count = db.session.query(Conversation).filter(
                 Conversation.project_id == project.id,
@@ -1770,39 +1770,66 @@ Please use this context information appropriately when responding to user questi
         
         app.logger.info(f"Calling LLM service for model: {model} (API id: {model_identifier}), authenticated: {is_authenticated}")
         
-        # Get RAG context if available
+        # Get RAG context if available (using enhanced RAG service)
         rag_context = ""
         rag_sources = []
         try:
-            from rag_service_simple import SimpleRAGService
-            rag_service = SimpleRAGService(openai_api_key=os.getenv('OPENAI_API_KEY'))
+            from rag_service_enhanced import EnhancedRAGService
             
             # Get user identity for filtering
             identity = get_user_identity()
+            user_id = str(identity['user_id']) if identity['user_id'] else None
             
-            # Get relevant context for the user's message
+            # Initialize enhanced RAG service
+            rag_service = EnhancedRAGService(
+                openai_api_key=os.getenv('OPENAI_API_KEY'),
+                db_session=db.session
+            )
+            
+            # Get relevant context from all sources (documents, conversations, messages)
             rag_context = rag_service.get_context_for_query(
                 query=user_message,
-                max_context_length=2000,  # Limit context length
-                user_id=str(identity['user_id']) if identity['user_id'] else None
+                max_context_length=3000,  # Increased limit for richer context
+                user_id=user_id
             )
             
             if rag_context:
-                # Get source documents for citation
-                search_results = rag_service.search_similar_chunks(
+                # Get source details for citation
+                search_results = rag_service.search_all(
                     query=user_message,
-                    similarity_threshold=0.6,
-                    max_results=3,
-                    user_id=str(identity['user_id']) if identity['user_id'] else None
+                    user_id=user_id,
+                    similarity_threshold=0.65,
+                    max_results=5
                 )
-                rag_sources = [{'document': r['document_name'], 'score': r['similarity_score']} for r in search_results]
+                
+                # Format sources for display
+                for result in search_results.get('all_results', [])[:5]:
+                    source_type = result.get('source_type')
+                    if source_type == 'document':
+                        rag_sources.append({
+                            'type': 'document',
+                            'name': result.get('document_name'),
+                            'score': result.get('similarity_score')
+                        })
+                    elif source_type == 'message':
+                        rag_sources.append({
+                            'type': 'conversation',
+                            'name': result.get('conversation_title'),
+                            'score': result.get('similarity_score')
+                        })
+                    elif source_type == 'conversation':
+                        rag_sources.append({
+                            'type': 'conversation',
+                            'name': result.get('title'),
+                            'score': result.get('similarity_score')
+                        })
                 
                 # Add RAG context to the system prompt
                 rag_system_message = f"""
 RELEVANT KNOWLEDGE BASE CONTEXT:
 {rag_context}
 
-Use this context to provide accurate, detailed responses. When referencing information from the knowledge base, be specific about what you're drawing from. If the context doesn't contain relevant information for the user's question, say so clearly.
+This context includes information from uploaded documents, previous conversations, and past AI responses. Use this context to provide accurate, detailed, and consistent responses. When referencing information from the knowledge base, be specific about what you're drawing from. If the context doesn't contain relevant information for the user's question, say so clearly.
 """
                 messages.append({
                     'role': 'system',
@@ -3455,7 +3482,7 @@ def get_model_settings():
                 'stable-audio-2': {'enabled': True, 'status': 'unknown'}
             }
             app.logger.info(f"Using fallback default settings: {settings}")
-            return jsonify(settings)
+        return jsonify(settings)
     
     except Exception as e:
         app.logger.error(f"Error getting model settings: {str(e)}")
@@ -3521,9 +3548,9 @@ def save_model_settings():
             try:
                 os.makedirs(app.instance_path, exist_ok=True)
                 settings_file = os.path.join(app.instance_path, 'model_settings.json')
-                import json
-                with open(settings_file, 'w') as f:
-                    json.dump(settings, f, indent=2)
+            import json
+            with open(settings_file, 'w') as f:
+                json.dump(settings, f, indent=2)
                 app.logger.info(f"Model settings saved to file as fallback for user {user_id}")
                 return jsonify({'success': True, 'message': 'Settings saved successfully (file fallback)'})
             except Exception as file_error:
@@ -3900,6 +3927,225 @@ def rag_process_single():
     except Exception as e:
         app.logger.error(f"Error processing document: {str(e)}")
         return jsonify({'error': f'Document processing failed: {str(e)}'}), 500
+
+# ==================== CONVERSATIONAL RAG API ====================
+
+@app.route('/api/rag/process-conversation', methods=['POST'])
+def rag_process_conversation():
+    """Process a conversation to generate embeddings for semantic search"""
+    try:
+        data = request.get_json()
+        conversation_id = data.get('conversation_id')
+        
+        if not conversation_id:
+            return jsonify({'error': 'Conversation ID is required'}), 400
+        
+        # Get the conversation
+        from models import Conversation
+        conversation = Conversation.query.get(conversation_id)
+        
+        if not conversation:
+            return jsonify({'error': 'Conversation not found'}), 404
+        
+        # Check access permissions
+        identity = get_user_identity()
+        if identity.get('user_id') and str(conversation.user_id) != str(identity['user_id']):
+            return jsonify({'error': 'Access denied'}), 403
+        
+        # Initialize enhanced RAG service
+        from rag_service_enhanced import EnhancedRAGService
+        rag_service = EnhancedRAGService(
+            openai_api_key=os.getenv('OPENAI_API_KEY'),
+            db_session=db.session
+        )
+        
+        # Process the conversation
+        success = rag_service.process_conversation(conversation_id)
+        
+        if success:
+            # Also process all messages in the conversation
+            result = rag_service.process_conversation_messages(conversation_id)
+            
+            return jsonify({
+                'success': True,
+                'message': 'Conversation processed successfully',
+                'conversation_id': conversation_id,
+                'conversation_title': conversation.title,
+                'processed_messages': result.get('processed_count', 0),
+                'total_messages': result.get('total_messages', 0)
+            })
+        else:
+            return jsonify({'error': 'Failed to process conversation'}), 500
+        
+    except Exception as e:
+        app.logger.error(f"Error processing conversation: {str(e)}")
+        return jsonify({'error': f'Conversation processing failed: {str(e)}'}), 500
+
+@app.route('/api/rag/process-all-conversations', methods=['POST'])
+def rag_process_all_conversations():
+    """Process all conversations for the current user"""
+    try:
+        # Get user identity
+        identity = get_user_identity()
+        user_id = identity.get('user_id')
+        
+        if not user_id:
+            return jsonify({'error': 'User authentication required'}), 401
+        
+        # Initialize enhanced RAG service
+        from rag_service_enhanced import EnhancedRAGService
+        rag_service = EnhancedRAGService(
+            openai_api_key=os.getenv('OPENAI_API_KEY'),
+            db_session=db.session
+        )
+        
+        # Process all user data
+        result = rag_service.process_all_user_data(str(user_id))
+        
+        if result.get('success'):
+            return jsonify({
+                'success': True,
+                'message': 'All conversations processed successfully',
+                'total_conversations': result.get('total_conversations', 0),
+                'processed_conversations': result.get('processed_conversations', 0),
+                'total_messages': result.get('total_messages', 0),
+                'processed_messages': result.get('processed_messages', 0)
+            })
+        else:
+            return jsonify({'error': result.get('error', 'Unknown error')}), 500
+        
+    except Exception as e:
+        app.logger.error(f"Error processing all conversations: {str(e)}")
+        return jsonify({'error': f'Batch processing failed: {str(e)}'}), 500
+
+@app.route('/api/rag/search-conversations', methods=['POST'])
+def rag_search_conversations():
+    """Search conversations using semantic similarity"""
+    try:
+        data = request.get_json()
+        query = data.get('query', '')
+        max_results = data.get('max_results', 10)
+        similarity_threshold = data.get('similarity_threshold', 0.7)
+        
+        if not query:
+            return jsonify({'error': 'Query is required'}), 400
+        
+        # Get user identity
+        identity = get_user_identity()
+        user_id = str(identity['user_id']) if identity.get('user_id') else None
+        
+        # Initialize enhanced RAG service
+        from rag_service_enhanced import EnhancedRAGService
+        rag_service = EnhancedRAGService(
+            openai_api_key=os.getenv('OPENAI_API_KEY'),
+            db_session=db.session
+        )
+        
+        # Search conversations
+        results = rag_service.search_conversations(
+            query=query,
+            user_id=user_id,
+            similarity_threshold=similarity_threshold,
+            max_results=max_results
+        )
+        
+        return jsonify({
+            'success': True,
+            'query': query,
+            'results': results,
+            'count': len(results)
+        })
+        
+    except Exception as e:
+        app.logger.error(f"Error searching conversations: {str(e)}")
+        return jsonify({'error': f'Conversation search failed: {str(e)}'}), 500
+
+@app.route('/api/rag/search-messages', methods=['POST'])
+def rag_search_messages():
+    """Search messages using semantic similarity"""
+    try:
+        data = request.get_json()
+        query = data.get('query', '')
+        max_results = data.get('max_results', 10)
+        similarity_threshold = data.get('similarity_threshold', 0.7)
+        
+        if not query:
+            return jsonify({'error': 'Query is required'}), 400
+        
+        # Get user identity
+        identity = get_user_identity()
+        user_id = str(identity['user_id']) if identity.get('user_id') else None
+        
+        # Initialize enhanced RAG service
+        from rag_service_enhanced import EnhancedRAGService
+        rag_service = EnhancedRAGService(
+            openai_api_key=os.getenv('OPENAI_API_KEY'),
+            db_session=db.session
+        )
+        
+        # Search messages
+        results = rag_service.search_messages(
+            query=query,
+            user_id=user_id,
+            similarity_threshold=similarity_threshold,
+            max_results=max_results
+        )
+        
+        return jsonify({
+            'success': True,
+            'query': query,
+            'results': results,
+            'count': len(results)
+        })
+        
+    except Exception as e:
+        app.logger.error(f"Error searching messages: {str(e)}")
+        return jsonify({'error': f'Message search failed: {str(e)}'}), 500
+
+@app.route('/api/rag/search-all', methods=['POST'])
+def rag_search_all():
+    """Search across documents, conversations, and messages"""
+    try:
+        data = request.get_json()
+        query = data.get('query', '')
+        max_results = data.get('max_results', 20)
+        similarity_threshold = data.get('similarity_threshold', 0.65)
+        
+        if not query:
+            return jsonify({'error': 'Query is required'}), 400
+        
+        # Get user identity
+        identity = get_user_identity()
+        user_id = str(identity['user_id']) if identity.get('user_id') else None
+        
+        # Initialize enhanced RAG service
+        from rag_service_enhanced import EnhancedRAGService
+        rag_service = EnhancedRAGService(
+            openai_api_key=os.getenv('OPENAI_API_KEY'),
+            db_session=db.session
+        )
+        
+        # Search all sources
+        results = rag_service.search_all(
+            query=query,
+            user_id=user_id,
+            similarity_threshold=similarity_threshold,
+            max_results=max_results
+        )
+        
+        return jsonify({
+            'success': True,
+            'query': query,
+            'results': results,
+            'total_results': len(results.get('all_results', [])),
+            'messages_count': len(results.get('messages', [])),
+            'conversations_count': len(results.get('conversations', [])),
+            'documents_count': len(results.get('documents', []))
+        })
+        
+    except Exception as e:
+        app.logger.error(f"Error in comprehensive search: {str(e)}")
+        return jsonify({'error': f'Search failed: {str(e)}'}), 500
 
 # ==================== DYNAMIC MODEL MANAGEMENT API ====================
 
