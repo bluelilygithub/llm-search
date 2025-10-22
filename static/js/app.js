@@ -594,13 +594,19 @@ class KnowledgeBaseApp {
                 </span>`
             ).join('');
             
+            // Add attachment count to meta info
+            const messageCount = conv.message_count || 0;
+            const attachmentCount = conv.attachment_count || 0;
+            let metaInfo = `${conv.llm_model} • ${this.formatDate(conv.updated_at)}`;
+            if (attachmentCount > 0) {
+                metaInfo += ` • ${attachmentCount} attachment${attachmentCount !== 1 ? 's' : ''}`;
+            }
+            
             item.innerHTML = `
                 <div class="conversation-content">
                     <div class="conversation-title">${conv.title}</div>
                     <div class="conversation-meta">
-                        <span>${conv.llm_model}</span>
-                        <span>•</span>
-                        <span>${this.formatDate(conv.updated_at)}</span>
+                        ${metaInfo}
                     </div>
                     <div class="conversation-tags">${tags}</div>
                 </div>
@@ -8109,11 +8115,20 @@ KnowledgeBaseApp.prototype.renderConversationsGrid = function(conversations, con
             `<span class="tag">${tag}</span>`
         ).join('');
         
-        // Show message count as preview since we don't have message content in the API
+        // Show message count and attachment count as preview
         const messageCount = conv.message_count || 0;
-        const preview = messageCount > 0 
-            ? `${messageCount} message${messageCount !== 1 ? 's' : ''}`
-            : 'No messages yet';
+        const attachmentCount = conv.attachment_count || 0;
+        
+        let preview = '';
+        if (messageCount > 0 && attachmentCount > 0) {
+            preview = `${messageCount} message${messageCount !== 1 ? 's' : ''} • ${attachmentCount} attachment${attachmentCount !== 1 ? 's' : ''}`;
+        } else if (messageCount > 0) {
+            preview = `${messageCount} message${messageCount !== 1 ? 's' : ''}`;
+        } else if (attachmentCount > 0) {
+            preview = `${attachmentCount} attachment${attachmentCount !== 1 ? 's' : ''}`;
+        } else {
+            preview = 'No messages yet';
+        }
             
         return `
             <div class="conversation-card" onclick="window.app.openConversationFromGrid('${conv.id}')">

@@ -1391,7 +1391,8 @@ def get_conversations():
             'created_at': conv.created_at.isoformat(),
             'updated_at': conv.updated_at.isoformat(),
             'tags': conv.tags or [],
-            'message_count': len(conv.messages)
+            'message_count': len(conv.messages),
+            'attachment_count': len(conv.context_documents) if conv.context_documents else 0
         }
         for conv in conversations
     ]
