@@ -7673,7 +7673,7 @@ KnowledgeBaseApp.prototype.startNewChatAndFocus = function() {
     
     // Focus the input area after a short delay to ensure it's visible
     setTimeout(() => {
-        const inputArea = document.getElementById('user-input');
+        const inputArea = document.getElementById('message-input');
         if (inputArea) {
             inputArea.focus();
             console.log('✅ Input area focused');
