@@ -1795,41 +1795,22 @@ Please use this context information appropriately when responding to user questi
             
             if rag_context:
                 # Get source details for citation
-                search_results = rag_service.search_all(
+                search_results = rag_service.search_similar_chunks(
                     query=user_message,
                     user_id=user_id,
-                    similarity_threshold=0.65,
-                    max_results=5
+                    similarity_threshold=0.6,
+                    max_results=3
                 )
                 
                 # Format sources for display
-                for result in search_results.get('all_results', [])[:5]:
-                    source_type = result.get('source_type')
-                    if source_type == 'document':
-                        rag_sources.append({
-                            'type': 'document',
-                            'name': result.get('document_name'),
-                            'score': result.get('similarity_score')
-                        })
-                    elif source_type == 'message':
-                        rag_sources.append({
-                            'type': 'conversation',
-                            'name': result.get('conversation_title'),
-                            'score': result.get('similarity_score')
-                        })
-                    elif source_type == 'conversation':
-                        rag_sources.append({
-                            'type': 'conversation',
-                            'name': result.get('title'),
-                            'score': result.get('similarity_score')
-                        })
+                rag_sources = [{'document': r['document_name'], 'score': r['similarity_score']} for r in search_results]
                 
                 # Add RAG context to the system prompt
                 rag_system_message = f"""
 RELEVANT KNOWLEDGE BASE CONTEXT:
 {rag_context}
 
-This context includes information from uploaded documents, previous conversations, and past AI responses. Use this context to provide accurate, detailed, and consistent responses. When referencing information from the knowledge base, be specific about what you're drawing from. If the context doesn't contain relevant information for the user's question, say so clearly.
+Use this context to provide accurate, detailed responses. When referencing information from the knowledge base, be specific about what you're drawing from. If the context doesn't contain relevant information for the user's question, say so clearly.
 """
                 messages.append({
                     'role': 'system',
