@@ -254,13 +254,19 @@ class KnowledgeBaseApp {
 
     async updateConversationTitle(conversationId, newTitle) {
         try {
+            // Get CSRF token
+            const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || 
+                             document.querySelector('input[name=csrf_token]')?.value;
+            
             const response = await fetch(`/conversations/${conversationId}`, {
                 method: 'PUT',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
                 },
                 body: JSON.stringify({
-                    title: newTitle
+                    title: newTitle,
+                    csrf_token: csrfToken
                 })
             });
 
@@ -313,8 +319,18 @@ class KnowledgeBaseApp {
 
     async deleteConversationById(conversationId) {
         try {
+            // Get CSRF token
+            const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || 
+                             document.querySelector('input[name=csrf_token]')?.value;
+            
             const response = await fetch(`/conversations/${conversationId}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({
+                    csrf_token: csrfToken
+                })
             });
 
             if (response.ok) {
@@ -322,8 +338,13 @@ class KnowledgeBaseApp {
                     this.startNewConversation();
                 }
                 this.loadConversations();
+                
+                // Show success notification
+                this.showSuccessNotification('Conversation deleted successfully!');
             } else {
-                console.error('Failed to delete conversation');
+                const errorData = await response.json();
+                console.error('Failed to delete conversation:', errorData.error);
+                this.showError(`Failed to delete conversation: ${errorData.error || 'Unknown error'}`);
             }
         } catch (error) {
             console.error('Error deleting conversation:', error);
@@ -611,10 +632,10 @@ class KnowledgeBaseApp {
                     <div class="conversation-tags">${tags}</div>
                 </div>
                 <div class="conversation-actions">
-                    <button class="conversation-action-btn" onclick="event.stopPropagation(); window.app.editConversationTitle(${conv.id}, '${conv.title.replace(/'/g, '\\\'')}')" title="Edit">
+                    <button class="conversation-action-btn" onclick="event.stopPropagation(); window.app.editConversationTitle('${conv.id}', '${conv.title.replace(/'/g, '\\\'')}')" title="Edit">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="conversation-action-btn" onclick="event.stopPropagation(); window.app.deleteConversation(${conv.id})" title="Delete">
+                    <button class="conversation-action-btn" onclick="event.stopPropagation(); window.app.deleteConversation('${conv.id}')" title="Delete">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
