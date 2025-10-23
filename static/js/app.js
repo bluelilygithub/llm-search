@@ -337,7 +337,26 @@ class KnowledgeBaseApp {
                 if (this.currentConversationId === conversationId) {
                     this.startNewConversation();
                 }
+                
+                // Refresh both sidebar and main content area
                 this.loadConversations();
+                
+                // If we're currently viewing conversations, refresh the grid
+                if (this.currentView === 'conversations') {
+                    await this.loadConversationsGrid();
+                } else if (this.currentView === 'project-conversations') {
+                    // If viewing project conversations, refresh that view
+                    await this.loadProjectConversationsGrid(this.currentViewProject.id);
+                }
+                
+                // If we're currently viewing search results, refresh them
+                if (this.currentView === 'search-results') {
+                    const searchInput = document.getElementById('conversation-search');
+                    if (searchInput && searchInput.value.trim()) {
+                        // Re-run the search to refresh results
+                        this.searchConversations();
+                    }
+                }
                 
                 // Show success notification
                 this.showSuccessNotification('Conversation deleted successfully!');
