@@ -55,6 +55,12 @@ class Project(db.Model):
     # Persona reference
     persona_id = db.Column(UUID(as_uuid=True), db.ForeignKey('personas.id'), nullable=True, index=True)
     
+    # Math-specific fields
+    math_level = db.Column(db.String(50), nullable=True)
+    math_subject = db.Column(db.String(50), nullable=True)
+    learning_style = db.Column(db.String(50), nullable=True)
+    difficulty_preference = db.Column(db.String(50), nullable=True)
+    
     # User ownership
     owner_id = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id'), nullable=True, index=True)
     

@@ -79,7 +79,12 @@ window.saveProjectSetup = function() {
         context_background: document.getElementById('context-background').value.trim(),
         user_role: document.getElementById('project-user-role').value.trim(),
         output_format: document.getElementById('output-format').value.trim(),
-        persona_id: document.getElementById('persona-select').value || null
+        persona_id: document.getElementById('persona-select').value || null,
+        // Math-specific fields
+        math_level: document.getElementById('math-level').value || null,
+        math_subject: document.getElementById('math-subject').value || null,
+        learning_style: document.getElementById('learning-style').value || null,
+        difficulty_preference: document.getElementById('difficulty-preference').value || null
     };
     
     // Remove empty fields (except for name)

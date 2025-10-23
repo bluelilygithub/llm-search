@@ -5958,6 +5958,66 @@ const TEMPLATE_DATA_FALLBACK = {
         usageCount: 98,
         isPublic: true
     },
+    'math-problem-solver': {
+        name: 'Math Problem Solver',
+        content: 'Help me solve this math problem step by step:\n\n{{problem}}\n\nPlease:\n1. Identify what type of problem this is\n2. Show each step clearly\n3. Explain the reasoning\n4. Provide a similar practice problem',
+        category: 'mathematics',
+        defaultModel: 'gpt-4',
+        icon: 'fas fa-calculator',
+        description: 'Step-by-step math problem solving',
+        usageCount: 0,
+        isPublic: true
+    },
+    'concept-explainer': {
+        name: 'Math Concept Explainer',
+        content: 'Explain the mathematical concept of {{concept}} to a {{grade_level}} student. Include:\n1. Simple definition\n2. Real-world examples\n3. Visual analogies\n4. Common misconceptions to avoid',
+        category: 'mathematics',
+        defaultModel: 'claude-3.5-sonnet',
+        icon: 'fas fa-lightbulb',
+        description: 'Clear mathematical concept explanations',
+        usageCount: 0,
+        isPublic: true
+    },
+    'homework-helper': {
+        name: 'Math Homework Helper',
+        content: 'Help me with my math homework on {{topic}}. The problem is:\n\n{{homework_problem}}\n\nPlease guide me through the solution without giving the answer directly.',
+        category: 'mathematics',
+        defaultModel: 'gpt-4',
+        icon: 'fas fa-book',
+        description: 'Guided homework assistance',
+        usageCount: 0,
+        isPublic: true
+    },
+    'practice-generator': {
+        name: 'Practice Problem Generator',
+        content: 'Generate {{number}} practice problems for {{math_topic}} at {{difficulty_level}} level. Include:\n1. The problems\n2. Step-by-step solutions\n3. Answer key',
+        category: 'mathematics',
+        defaultModel: 'gpt-4',
+        icon: 'fas fa-dumbbell',
+        description: 'Custom math practice problems',
+        usageCount: 0,
+        isPublic: true
+    },
+    'formula-reference': {
+        name: 'Formula Reference',
+        content: 'Help me understand and apply the formula: {{formula}}\n\nPlease explain:\n1. What each variable represents\n2. When to use this formula\n3. Work through an example\n4. Common mistakes to avoid',
+        category: 'mathematics',
+        defaultModel: 'claude-3.5-sonnet',
+        icon: 'fas fa-square-root-alt',
+        description: 'Mathematical formula explanations',
+        usageCount: 0,
+        isPublic: true
+    },
+    'word-problem-solver': {
+        name: 'Word Problem Solver',
+        content: 'Help me solve this word problem:\n\n{{word_problem}}\n\nPlease:\n1. Identify the key information\n2. Determine what we need to find\n3. Choose the appropriate method\n4. Solve step by step\n5. Check the answer makes sense',
+        category: 'mathematics',
+        defaultModel: 'gpt-4',
+        icon: 'fas fa-question-circle',
+        description: 'Word problem analysis and solving',
+        usageCount: 0,
+        isPublic: true
+    },
     'blog-post': {
         name: 'Blog Post',
         content: 'Help me write an engaging blog post about {{topic}}. Target audience: {{audience}}. Tone: {{tone}}. Length: {{length}} words.',
@@ -8087,6 +8147,31 @@ KnowledgeBaseApp.prototype.showHomeView = function() {
                         <i class="fas fa-clock"></i>
                         <h3>View All Conversations</h3>
                         <p>Browse through your conversation history</p>
+                    </div>
+                    
+                    <!-- Math-specific cards -->
+                    <div class="action-card math-template-card" onclick="window.app.selectTemplate('math-problem-solver')">
+                        <i class="fas fa-calculator"></i>
+                        <h3>Solve Math Problems</h3>
+                        <p>Get step-by-step solutions to any math problem</p>
+                    </div>
+
+                    <div class="action-card math-template-card" onclick="window.app.selectTemplate('concept-explainer')">
+                        <i class="fas fa-lightbulb"></i>
+                        <h3>Learn Math Concepts</h3>
+                        <p>Understand mathematical concepts with clear explanations</p>
+                    </div>
+
+                    <div class="action-card math-template-card" onclick="window.app.selectTemplate('homework-helper')">
+                        <i class="fas fa-book"></i>
+                        <h3>Homework Helper</h3>
+                        <p>Get guided help with your math homework</p>
+                    </div>
+
+                    <div class="action-card math-template-card" onclick="window.app.selectTemplate('practice-generator')">
+                        <i class="fas fa-dumbbell"></i>
+                        <h3>Practice Problems</h3>
+                        <p>Generate custom practice problems for any topic</p>
                     </div>
                 </div>
             </div>

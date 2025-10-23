@@ -56,6 +56,75 @@
                             </div>
                         </div>
                         
+                        <!-- Math-Specific Settings Section -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingMath">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseMath" aria-expanded="false" aria-controls="collapseMath">
+                                    <i class="fas fa-calculator"></i>
+                                    <span>Math Settings</span>
+                                </button>
+                            </h2>
+                            <div id="collapseMath" class="accordion-collapse collapse" aria-labelledby="headingMath" data-bs-parent="#projectSetupAccordion">
+                                <div class="accordion-body">
+                                    <div class="form-group">
+                                        <label for="math-level">Math Level</label>
+                                        <select id="math-level" class="form-control">
+                                            <option value="">Select math level...</option>
+                                            <option value="elementary">Elementary (K-5)</option>
+                                            <option value="middle-school">Middle School (6-8)</option>
+                                            <option value="high-school">High School (9-12)</option>
+                                            <option value="college">College/University</option>
+                                            <option value="advanced">Advanced/Graduate</option>
+                                        </select>
+                                        <small class="form-text text-muted">What math level are you working at?</small>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="math-subject">Primary Math Subject</label>
+                                        <select id="math-subject" class="form-control">
+                                            <option value="">Select subject...</option>
+                                            <option value="arithmetic">Arithmetic</option>
+                                            <option value="algebra">Algebra</option>
+                                            <option value="geometry">Geometry</option>
+                                            <option value="trigonometry">Trigonometry</option>
+                                            <option value="pre-calculus">Pre-Calculus</option>
+                                            <option value="calculus">Calculus</option>
+                                            <option value="statistics">Statistics</option>
+                                            <option value="linear-algebra">Linear Algebra</option>
+                                            <option value="discrete-math">Discrete Mathematics</option>
+                                            <option value="other">Other</option>
+                                        </select>
+                                        <small class="form-text text-muted">Main math subject focus</small>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="learning-style">Learning Style Preference</label>
+                                        <select id="learning-style" class="form-control">
+                                            <option value="">Select learning style...</option>
+                                            <option value="visual">Visual (diagrams, graphs, charts)</option>
+                                            <option value="step-by-step">Step-by-step (detailed explanations)</option>
+                                            <option value="examples">Example-driven (many worked examples)</option>
+                                            <option value="interactive">Interactive (guided problem solving)</option>
+                                            <option value="mixed">Mixed approach</option>
+                                        </select>
+                                        <small class="form-text text-muted">How do you prefer to learn math concepts?</small>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="difficulty-preference">Difficulty Preference</label>
+                                        <select id="difficulty-preference" class="form-control">
+                                            <option value="">Select difficulty...</option>
+                                            <option value="beginner">Beginner (basic concepts)</option>
+                                            <option value="intermediate">Intermediate (standard problems)</option>
+                                            <option value="advanced">Advanced (challenging problems)</option>
+                                            <option value="adaptive">Adaptive (adjusts to my level)</option>
+                                        </select>
+                                        <small class="form-text text-muted">Preferred difficulty level for problems</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
                         <!-- Task & Goal Section -->
                         <div class="accordion-item">
                             <h2 class="accordion-header" id="headingTask">
