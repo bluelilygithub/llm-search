@@ -1056,7 +1056,7 @@
         try {
             // Get the last AI response from the conversation
             // Messages use class "message assistant" not "message ai"
-            const messages = document.querySelectorAll('.message.assistant');
+            const messages = document.querySelectorAll('.message.assistant'); console.log('Messages found:', messages.length);
             if (messages.length === 0) {
                 alert('No AI response found to generate diagram from');
                 return;
