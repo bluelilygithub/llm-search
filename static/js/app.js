@@ -950,6 +950,12 @@ class KnowledgeBaseApp {
 
     async generateSmartFollowUpQuestions(aiResponse) {
         try {
+            // Detect if current project is a math project
+            const isMathProject = this.currentProject && (
+                this.currentProject.math_level || 
+                this.currentProject.math_subject
+            );
+            
             // Send a request to generate follow-up questions based only on the latest response
             const response = await fetch('/api/generate-followup-questions', {
                 method: 'POST',
@@ -958,7 +964,9 @@ class KnowledgeBaseApp {
                 },
                 body: JSON.stringify({
                     latest_response: aiResponse,
-                    model: this.selectedModel || 'gpt-3.5-turbo'
+                    model: this.selectedModel || 'gpt-3.5-turbo',
+                    project_id: this.currentProject?.id || null,
+                    is_math_project: isMathProject
                 })
             });
 
@@ -6151,7 +6159,6 @@ KnowledgeBaseApp.prototype.renderTemplateCards = function() {
     
     console.log(`✅ Rendered ${Object.keys(TEMPLATE_DATA).length} template cards`);
 };
-
 KnowledgeBaseApp.prototype.createTemplateCard = function(id, template) {
     const card = document.createElement('div');
     card.className = 'template-card';
@@ -6925,7 +6932,6 @@ window.migrateModel = async function(modelName) {
         alert(`✗ Network error: ${error.message}`);
     }
 };
-
 // Initialize the app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     // CRITICAL FIX: Clear any autofilled content in search field
@@ -7698,7 +7704,6 @@ KnowledgeBaseApp.prototype.escapeHtml = function(text) {
     div.textContent = text;
     return div.innerHTML;
 };
-
 // Add context item to conversation
 KnowledgeBaseApp.prototype.addContextToConversation = async function(contextItemId) {
     if (!this.currentConversationId) {
@@ -8485,7 +8490,6 @@ KnowledgeBaseApp.prototype.showProjectConversationsView = function(project) {
     
     this.loadProjectConversationsGrid(project.id);
 };
-
 // Load conversations grid data
 KnowledgeBaseApp.prototype.loadConversationsGrid = async function() {
     try {

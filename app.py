@@ -1274,8 +1274,19 @@ def generate_followup_questions():
         
         latest_response = data['latest_response']
         model = data.get('model', 'gpt-3.5-turbo')
+        project_id = data.get('project_id')  # Optional: for math project detection
+        is_math_project = data.get('is_math_project', False)
         
-        app.logger.info(f"Generating follow-up questions using model: {model}, response length: {len(latest_response)}")
+        # Check if this is a math project by looking up project_id if provided
+        if project_id and not is_math_project:
+            try:
+                from models import Project
+                project = Project.query.get(project_id)
+                is_math_project = project and (project.math_level or project.math_subject)
+            except:
+                pass
+        
+        app.logger.info(f"Generating follow-up questions using model: {model}, response length: {len(latest_response)}, is_math: {is_math_project}")
         
         # Create a focused prompt for generating follow-up questions based only on the latest response
         system_prompt = """You are an expert at generating relevant follow-up questions. Based ONLY on the AI response provided, generate exactly 3 highly relevant, specific follow-up questions that would naturally continue the conversation.
@@ -1336,6 +1347,16 @@ Return only the 3 questions, one per line, without numbering or bullet points.""
         
         # Return only first 3 questions
         questions = questions[:3]
+        
+        # For math projects, add 3 additional math-specific questions
+        if is_math_project:
+            math_specific_questions = [
+                "Explain this to me as if I was 2 years younger",
+                "Illustrate the answer with a diagram or graphic",
+                "Give me a practical, real-world example"
+            ]
+            questions.extend(math_specific_questions)
+            app.logger.info(f"Added {len(math_specific_questions)} math-specific questions")
         
         app.logger.info(f"Returning follow-up questions: {questions}")
         return jsonify({'questions': questions}), 200
