@@ -4540,10 +4540,6 @@ def create_starter_models():
         {'name': 'CodeLlama 34B', 'model_value': 'codellama-34b', 'provider': 'Hugging Face', 'api_key': 'HUGGING_FACE_API_KEY', 'description': 'Code generation model'},
         
         # Stability AI Models
-        {'name': 'Stable Image Ultra', 'model_value': 'stable-image-ultra', 'provider': 'Stability AI', 'api_key': 'STABILITY_API_KEY', 'description': 'Ultra-high quality image generation'},
-        {'name': 'Stable Image Core', 'model_value': 'stable-image-core', 'provider': 'Stability AI', 'api_key': 'STABILITY_API_KEY', 'description': 'Core image generation model'},
-        {'name': 'Stable Diffusion 3', 'model_value': 'stable-image-sd3', 'provider': 'Stability AI', 'api_key': 'STABILITY_API_KEY', 'description': 'Stable Diffusion 3 model'},
-        {'name': 'Stable Audio 2', 'model_value': 'stable-audio-2', 'provider': 'Stability AI', 'api_key': 'STABILITY_API_KEY', 'description': 'Audio generation model'}
     ]
     
     # Save starter models to file
