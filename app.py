@@ -3816,15 +3816,42 @@ def _test_anthropic_model(model, api_key):
         import anthropic
         client = anthropic.Anthropic(api_key=api_key)
         
-        # Make a minimal test call
-        response = client.messages.create(
-            model=model,
-            max_tokens=10,
-            messages=[{"role": "user", "content": "test"}]
-        )
+        # List of Claude models to try (same as in llm_service.py)
+        claude_models = [
+            'claude-sonnet-4-20250514',
+            'claude-opus-4',
+            'claude-3-5-sonnet-20241022',
+            'claude-3-5-haiku-20241022',
+            'claude-3-opus-20240229',
+            'claude-3-sonnet-20240229',
+            'claude-3.5-sonnet-20240620',
+            'claude-3-haiku-20240307'
+        ]
         
-        app.logger.info(f"Anthropic model {model} test successful")
-        return True, None
+        # Try the specified model first, then fallback to other available models
+        try_models = [model] + [m for m in claude_models if m != model]
+        
+        last_error = None
+        for try_model in try_models:
+            try:
+                response = client.messages.create(
+                    model=try_model,
+                    max_tokens=10,
+                    messages=[{"role": "user", "content": "test"}]
+                )
+                
+                app.logger.info(f"Anthropic model {model} test successful (using {try_model})")
+                return True, None
+            except Exception as e:
+                last_error = str(e)
+                app.logger.debug(f"Tried {try_model}: {last_error}")
+                continue
+        
+        # If we get here, none of the models worked
+        error_msg = f"No Claude models available. Last error: {last_error}"
+        app.logger.warning(f"Anthropic model {model} test failed: {error_msg}")
+        return False, error_msg
+        
     except Exception as e:
         error_msg = str(e)
         app.logger.warning(f"Anthropic model {model} test failed: {error_msg}")
