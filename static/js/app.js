@@ -1,4 +1,4 @@
-class KnowledgeBaseApp {
+﻿class KnowledgeBaseApp {
     constructor() {
         this.currentConversationId = null;
         this.selectedModel = 'gpt-4';
@@ -1597,7 +1597,6 @@ class KnowledgeBaseApp {
             }
         }
     }
-
     triggerImageUpload() {
         // Create a dedicated image file input for Stability
         let imageInput = document.getElementById('stability-image-input');
