@@ -1025,12 +1025,96 @@ class KnowledgeBaseApp {
     }
 
     async askFollowUpQuestion(question) {
-        // Use the follow-up question as the next prompt
-        const input = document.getElementById('message-input');
-        if (input) {
-            input.value = question;
-            // Trigger the send message function
-            await this.sendMessage();
+        // Check if this is a diagram/illustration request for math
+        if (question.toLowerCase().includes('illustrate') || 
+            question.toLowerCase().includes('diagram') || 
+            question.toLowerCase().includes('graphic')) {
+            
+            // Try to generate a diagram instead of asking it as a follow-up question
+            await this.generateAndDisplayDiagram();
+            return;
+        }
+        
+        const messageInput = document.querySelector('#message-input');
+        if (messageInput) {
+            messageInput.value = question;
+            messageInput.focus();
+            // Simulate Enter key press to send the message
+            const event = new KeyboardEvent('keypress', {
+                key: 'Enter',
+                code: 'Enter',
+                keyCode: 13,
+                which: 13,
+                bubbles: true
+            });
+            messageInput.dispatchEvent(event);
+        }
+    }
+    
+    async generateAndDisplayDiagram() {
+        try {
+            // Get the last AI response from the conversation
+            const messages = document.querySelectorAll('.message.ai');
+            if (messages.length === 0) {
+                alert('No AI response found to generate diagram from');
+                return;
+            }
+            
+            const lastAIMessage = messages[messages.length - 1];
+            const responseText = lastAIMessage.querySelector('.message-content')?.textContent || '';
+            
+            // Show loading indicator
+            const chatArea = document.querySelector('.chat-area');
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'diagram-loading';
+            loadingDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating professional diagram...';
+            chatArea.appendChild(loadingDiv);
+            
+            // Generate the diagram
+            const response = await fetch('/api/generate-diagram', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    response: responseText,
+                    problem: this.lastUserMessage || '',
+                    model: this.selectedModel || 'stable-image-ultra'
+                })
+            });
+            
+            loadingDiv.remove();
+            
+            if (response.ok) {
+                const data = await response.json();
+                
+                // Display the generated diagram
+                const diagramDiv = document.createElement('div');
+                diagramDiv.className = 'generated-diagram';
+                diagramDiv.innerHTML = `
+                    <div class="diagram-container">
+                        <div class="diagram-title">
+                            <i class="fas fa-image"></i>
+                            Professional Diagram
+                        </div>
+                        <img src="${data.image_url}" alt="Generated diagram" class="diagram-image" />
+                        <div class="diagram-info">
+                            <small>Generated with Stability AI • ${data.prompt_used}</small>
+                        </div>
+                    </div>
+                `;
+                
+                chatArea.appendChild(diagramDiv);
+                chatArea.scrollTop = chatArea.scrollHeight;
+                
+                this.showSuccessNotification('📊 Diagram generated successfully!');
+            } else {
+                const error = await response.json();
+                alert(`Failed to generate diagram: ${error.error || 'Unknown error'}`);
+            }
+        } catch (error) {
+            console.error('Diagram generation error:', error);
+            alert(`Error generating diagram: ${error.message}`);
         }
     }
 
@@ -1115,6 +1199,9 @@ class KnowledgeBaseApp {
             content: content,
             timestamp: new Date().toISOString()
         };
+        
+        // Track the last user message for diagram generation
+        this.lastUserMessage = content;
         
         this.addMessageToChat(userMessage, true); // true = new message (though user messages don't get follow-ups anyway)
         input.value = '';
@@ -1510,7 +1597,6 @@ class KnowledgeBaseApp {
         }
         imageInput.click();
     }
-
     async handleStabilityImageUpload(event) {
         const files = Array.from(event.target.files);
         if (!files.length) return;
@@ -1584,7 +1670,6 @@ class KnowledgeBaseApp {
         document.getElementById('search-modal').style.display = 'flex';
         document.getElementById('kb-search-input').focus();
     }
-
     async performKnowledgeBaseSearch() {
         const query = document.getElementById('kb-search-input').value.trim();
         if (!query) return;
