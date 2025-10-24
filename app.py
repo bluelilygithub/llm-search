@@ -5150,22 +5150,22 @@ Return ONLY the image prompt, nothing else."""
             return jsonify({'error': 'Stability AI API key not configured'}), 503
         
         headers = {
-            "authorization": f"Bearer {stability_api_key}",
-            "accept": "application/json"
+            "authorization": f"Bearer {stability_api_key}"
         }
         
         url = "https://api.stability.ai/v2beta/stable-image/generate/core"
         
-        payload = {
-            "prompt": image_prompt_response.strip(),
-            "negative_prompt": "blurry, low quality, distorted",
-            "aspect_ratio": "16:9",
-            "seed": 0,
-            "output_format": "png"
+        # Use multipart/form-data instead of JSON
+        files = {
+            "prompt": (None, image_prompt_response.strip()),
+            "negative_prompt": (None, "blurry, low quality, distorted"),
+            "aspect_ratio": (None, "16:9"),
+            "seed": (None, "0"),
+            "output_format": (None, "png")
         }
         
         # Generate the image
-        response = requests.post(url, headers=headers, json=payload, timeout=30)
+        response = requests.post(url, headers=headers, files=files, timeout=30)
         
         app.logger.info(f"Stability AI response status: {response.status_code}")
         app.logger.info(f"Stability AI response headers: {dict(response.headers)}")
