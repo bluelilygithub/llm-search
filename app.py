@@ -1274,22 +1274,41 @@ def generate_followup_questions():
         
         latest_response = data['latest_response']
         model = data.get('model', 'gpt-3.5-turbo')
-        project_id = data.get('project_id')  # Optional: for math project detection
+        project_id = data.get('project_id')
+        conversation_id = data.get('conversation_id')
         is_math_project = data.get('is_math_project', False)
         
-        # Check if this is a math project by looking up project_id if provided
-        if project_id and not is_math_project:
+        # Try to determine if this is a math project
+        # First, check the frontend's is_math_project flag
+        if not is_math_project and (project_id or conversation_id):
             try:
-                from models import Project
+                from models import Project, Conversation
                 import uuid
-                project_uuid = uuid.UUID(project_id) if isinstance(project_id, str) else project_id
-                project = Project.query.get(project_uuid)
-                is_math_project = project and (project.math_level or project.math_subject)
+                
+                # Try to get project from conversation if we have conversation_id
+                if conversation_id and not project_id:
+                    try:
+                        conv_uuid = uuid.UUID(conversation_id)
+                        conversation = Conversation.query.get(conv_uuid)
+                        if conversation and conversation.project_id:
+                            project_id = str(conversation.project_id)
+                    except Exception as e:
+                        app.logger.debug(f"Could not get project from conversation: {e}")
+                
+                # Now check if the project has math fields
+                if project_id:
+                    try:
+                        project_uuid = uuid.UUID(project_id)
+                        project = Project.query.get(project_uuid)
+                        if project:
+                            is_math_project = bool(project.math_level or project.math_subject)
+                            app.logger.info(f"Detected math project from DB: math_level={project.math_level}, math_subject={project.math_subject}")
+                    except Exception as e:
+                        app.logger.debug(f"Could not fetch project from DB: {e}")
             except Exception as e:
-                app.logger.debug(f"Could not determine if math project: {str(e)}")
-                pass
+                app.logger.debug(f"Could not determine if math project: {e}")
         
-        app.logger.info(f"Generating follow-up questions using model: {model}, response length: {len(latest_response)}, is_math: {is_math_project}")
+        app.logger.info(f"Generating follow-up questions using model: {model}, is_math: {is_math_project}")
         
         # Create a focused prompt for generating follow-up questions based only on the latest response
         system_prompt = """You are an expert at generating relevant follow-up questions. Based ONLY on the AI response provided, generate exactly 3 highly relevant, specific follow-up questions that would naturally continue the conversation.
@@ -1359,7 +1378,7 @@ Return only the 3 questions, one per line, without numbering or bullet points.""
                 "Give me a practical, real-world example"
             ]
             questions.extend(math_specific_questions)
-            app.logger.info(f"Added {len(math_specific_questions)} math-specific questions")
+            app.logger.info(f"Added {len(math_specific_questions)} math-specific questions - total now {len(questions)}")
         
         app.logger.info(f"Returning follow-up questions: {questions}")
         return jsonify({'questions': questions}), 200

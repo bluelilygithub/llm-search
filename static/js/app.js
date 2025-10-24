@@ -966,6 +966,7 @@ class KnowledgeBaseApp {
                     latest_response: aiResponse,
                     model: this.selectedModel || 'gpt-3.5-turbo',
                     project_id: this.currentProject?.id || null,
+                    conversation_id: this.currentConversationId || null,
                     is_math_project: isMathProject
                 })
             });
