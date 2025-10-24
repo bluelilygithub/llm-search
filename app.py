@@ -1019,27 +1019,27 @@ def create_project():
     if isinstance(rules_dont, str):
         rules_dont = [rule.strip() for rule in rules_dont.split('\n') if rule.strip()]
     
-    project = Project(
-        name=data['name'],
-        description=data.get('description', ''),
-        agent_name=data.get('agent_name'),
-        agent_role=data.get('agent_role'),
-        agent_personality=data.get('agent_personality'),
-        primary_goal=data.get('primary_goal'),
-        goal_steps=json.dumps(goal_steps) if goal_steps else None,
-        rules_do=json.dumps(rules_do) if rules_do else None,
-        rules_dont=json.dumps(rules_dont) if rules_dont else None,
-        context_background=data.get('context_background'),
-        user_role=data.get('user_role'),
-        output_format=data.get('output_format'),
-        persona_id=data.get('persona_id'),
-        # Math-specific fields
-        math_level=data.get('math_level'),
-        math_subject=data.get('math_subject'),
-        learning_style=data.get('learning_style'),
-        difficulty_preference=data.get('difficulty_preference'),
-        owner_id=owner_id
-    )
+        project = Project(
+            name=data['name'],
+            description=data.get('description', ''),
+            agent_name=data.get('agent_name'),
+            agent_role=data.get('agent_role'),
+            agent_personality=data.get('agent_personality'),
+            primary_goal=data.get('primary_goal'),
+            goal_steps=json.dumps(goal_steps) if goal_steps else None,
+            rules_do=json.dumps(rules_do) if rules_do else None,
+            rules_dont=json.dumps(rules_dont) if rules_dont else None,
+            context_background=data.get('context_background'),
+            user_role=data.get('user_role'),
+            output_format=data.get('output_format'),
+            persona_id=data.get('persona_id'),
+            # Math-specific fields
+            math_level=data.get('math_level'),
+            math_subject=data.get('math_subject'),
+            learning_style=data.get('learning_style'),
+            difficulty_preference=data.get('difficulty_preference'),
+            owner_id=owner_id
+        )
     
     db.session.add(project)
     db.session.commit()
@@ -1888,7 +1888,7 @@ Use this context to provide accurate, detailed responses. When referencing infor
         if model_identifier.startswith('stable-image') or model_identifier.startswith('stable-audio'):
             app.logger.error(f"Attempted to use image generation model {model_identifier} for chat")
             return jsonify({'error': f'Model {model} is for image generation only. Use the Illustrate follow-up question for diagrams.'}), 400
-
+        
         # Get AI response and usage info - use model_identifier for API call
         ai_response, tokens, estimated_cost = llm_service.get_response(model_identifier, messages)
         app.logger.info(f"Got response from {model}: {tokens} tokens, cost: ${estimated_cost:.4f}")
@@ -3801,9 +3801,9 @@ def check_model_access():
             'status': 'Available' if has_access else 'Not accessible',
             'error': error_details,
             'debugInfo': {
-                'model': model,
-                'provider': provider,
-                'api_key_name': api_key_name,
+            'model': model,
+            'provider': provider,
+            'api_key_name': api_key_name,
                 'tested': True
             }
         })
