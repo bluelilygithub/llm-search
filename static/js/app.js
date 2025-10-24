@@ -1112,7 +1112,7 @@
                             <i class="fas fa-image"></i>
                             Professional Diagram
                         </div>
-                        <img src="${data.image_url}" alt="Generated diagram" class="diagram-image" />
+                        <img src="${data.image_data}" alt="Generated diagram" class="diagram-image" />
                         <div class="diagram-info">
                             <small>Generated with Stability AI • ${data.prompt_used}</small>
                         </div>

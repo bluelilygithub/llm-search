@@ -5107,7 +5107,7 @@ except ImportError as e:
 @limiter.limit("20 per minute")
 @auth.access_required(allow_free=True)
 def generate_diagram():
-    """Generate a professional diagram/chart for a math problem using Stability AI"""
+    """Generate an educational diagram/chart for a math problem using matplotlib"""
     try:
         data = request.get_json()
         if not data or not data.get('response'):
@@ -5115,116 +5115,28 @@ def generate_diagram():
         
         response_content = data['response']
         problem_context = data.get('problem', '')
-        model = data.get('model', 'stable-image-ultra')
         
-        app.logger.info(f"Generating diagram using model: {model}")
+        app.logger.info(f"Generating mathematical diagram for problem: {problem_context[:100]}")
         
-        # First, use an LLM to generate a detailed image prompt for the diagram
-        # Based on the math response
-        from llm_service import LLMService
-        llm_service = LLMService()
+        # Use MathVisualizer to generate the diagram
+        from math_visualization import MathVisualizer
+        visualizer = MathVisualizer()
         
-        image_prompt_instruction = f"""Based on this math problem and solution, generate a detailed visual description for an image generation AI.
+        # Generate base64 encoded image
+        image_base64 = visualizer.generate_diagram(problem_context, response_content)
         
-Problem: {problem_context}
-Solution: {response_content}
-
-Create a prompt for an image generator that would create a clear, professional diagram or chart illustrating this math problem.
-The prompt should describe:
-- Chart type (bar chart, line graph, pie chart, scatter plot, etc.)
-- Specific elements to include
-- Layout and styling
-- Color scheme (professional, clean)
-- Any labels, numbers, or annotations needed
-
-Return ONLY the image prompt, nothing else."""
+        if not image_base64:
+            return jsonify({'error': 'Failed to generate diagram'}), 500
         
-        image_prompt_messages = [
-            {'role': 'user', 'content': image_prompt_instruction}
-        ]
+        app.logger.info(f"Diagram generated successfully, size: {len(image_base64)} bytes")
         
-        image_prompt_response, _, _ = llm_service.get_response(
-            'gpt-3.5-turbo',  # Use GPT for generating the image prompt
-            image_prompt_messages,
-            max_tokens=500,
-            temperature=0.7
-        )
-        
-        app.logger.info(f"Generated image prompt: {image_prompt_response[:200]}...")
-        
-        # Now generate the actual image using Stability AI
-        import requests
-        
-        stability_api_key = os.getenv('STABILITY_API_KEY')
-        if not stability_api_key:
-            return jsonify({'error': 'Stability AI API key not configured'}), 503
-        
-        headers = {
-            "authorization": f"Bearer {stability_api_key}",
-            "accept": "image/*"
-        }
-        
-        # Build the endpoint based on model
-        if 'ultra' in model.lower():
-            endpoint_model = 'ultra'
-        elif 'sd3' in model.lower() or 'diffusion' in model.lower():
-            endpoint_model = 'sd3'
-        else:
-            endpoint_model = 'core'
-        
-        url = f"https://api.stability.ai/v2beta/stable-image/generate/{endpoint_model}"
-        app.logger.info(f"Using Stability AI endpoint: {url}")
-        
-        # Use multipart/form-data instead of JSON
-        files = {
-            "prompt": (None, image_prompt_response.strip()),
-            "negative_prompt": (None, "blurry, low quality, distorted"),
-            "aspect_ratio": (None, "16:9"),
-            "seed": (None, "0"),
-            "output_format": (None, "png")
-        }
-        
-        # Generate the image
-        response = requests.post(url, headers=headers, files=files, timeout=30)
-        
-        app.logger.info(f"Stability AI response status: {response.status_code}")
-        app.logger.info(f"Stability AI response headers: {dict(response.headers)}")
-        
-        if response.status_code == 200:
-            # Get the image data
-            image_bytes = response.content
-            
-            # Save the generated image
-            import base64
-            import uuid
-            
-            # Create a unique filename
-            image_filename = f"diagram_{uuid.uuid4().hex[:8]}.png"
-            images_dir = os.path.join(os.path.dirname(__file__), 'static', 'generated_images')
-            os.makedirs(images_dir, exist_ok=True)
-            
-            image_path = os.path.join(images_dir, image_filename)
-            with open(image_path, 'wb') as f:
-                f.write(image_bytes)
-            
-            app.logger.info(f"Diagram saved: {image_filename}, size: {len(image_bytes)} bytes")
-            
-            return jsonify({
-                'success': True,
-                'image_url': f'/static/generated_images/{image_filename}',
-                'prompt_used': image_prompt_response[:200] + '...',
-                'message': 'Professional diagram generated successfully'
-            }), 200
-        else:
-            error_msg = f"Stability AI error: {response.status_code}"
-            try:
-                error_details = response.json()
-                app.logger.error(f"Stability AI error details: {error_details}")
-                error_msg += f" - {error_details}"
-            except:
-                error_msg += f" - {response.text[:500]}"
-            app.logger.error(error_msg)
-            return jsonify({'error': error_msg}), 500
+        # Return the base64 image directly (no need to save to disk)
+        return jsonify({
+            'success': True,
+            'image_data': f'data:image/png;base64,{image_base64}',
+            'message': 'Educational diagram generated successfully',
+            'diagram_type': 'math_visualization'
+        }), 200
             
     except Exception as e:
         app.logger.error(f"Diagram generation error: {str(e)}", exc_info=True)
