@@ -876,7 +876,7 @@
             // Remove loading indicator
             const loadingDiv = messageDiv.querySelector('.follow-up-questions');
             if (loadingDiv) {
-                loadingDiv.remove();
+                console.log('Removing loading indicator'); loadingDiv.remove(); console.log('Response received, status:', response.status);
             }
             
             // Add the actual follow-up questions
@@ -903,7 +903,7 @@
             // Remove loading indicator if still present
             const loadingDiv = messageDiv.querySelector('.follow-up-questions');
             if (loadingDiv) {
-                loadingDiv.remove();
+                console.log('Removing loading indicator'); loadingDiv.remove(); console.log('Response received, status:', response.status);
             }
         }
     }
@@ -1065,16 +1065,16 @@
             const lastAIMessage = messages[messages.length - 1]; console.log('Last message:', lastAIMessage);
             console.log('Extracting response text'); const responseText = lastAIMessage.querySelector('.message-content')?.textContent || '';
             
-            if (!responseText) {
+            console.log('Response text length:', responseText.length); if (!responseText) {
                 alert('Could not extract response content');
                 return;
             }
             
             // Find the chat area container
-            let chatArea = document.querySelector('.chat-messages-container') || 
+            console.log('Looking for chat area'); let chatArea = document.querySelector('.chat-messages-container') || 
                           document.getElementById('chat-messages');
             
-            if (!chatArea) {
+            console.log('Chat area found:', !!chatArea); if (!chatArea) {
                 alert('Could not find chat area to display diagram');
                 return;
             }
@@ -1083,10 +1083,10 @@
             const loadingDiv = document.createElement('div');
             loadingDiv.className = 'diagram-loading';
             loadingDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating professional diagram...';
-            chatArea.appendChild(loadingDiv);
+            console.log('Adding loading indicator'); chatArea.appendChild(loadingDiv); console.log('Loading indicator added');
             
             // Generate the diagram
-            const response = await fetch('/api/generate-diagram', {
+            console.log('Calling /api/generate-diagram'); const response = await fetch('/api/generate-diagram', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -1098,7 +1098,7 @@
                 })
             });
             
-            loadingDiv.remove();
+            console.log('Removing loading indicator'); loadingDiv.remove(); console.log('Response received, status:', response.status);
             
             if (response.ok) {
                 const data = await response.json();
