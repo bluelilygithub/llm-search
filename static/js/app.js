@@ -4630,7 +4630,6 @@ window.closeModelManagement = function() {
         }
     }
 };
-
 // ==================== USER MANAGEMENT FUNCTIONS ====================
 // Show Users tab for admin only
 window.showUsersTabIfAdmin = async function() {
@@ -5624,6 +5623,92 @@ window.testModelAccess = async function() {
 
 window.refreshModelManagement = async function() {
     await loadModelManagementData();
+};
+
+// Function to test all models
+window.testAllModels = async function() {
+    const testBtn = document.getElementById('test-all-models-btn');
+    const modelsList = document.getElementById('current-models-list');
+    
+    if (!modelsList) {
+        alert('Models list not found');
+        return;
+    }
+    
+    try {
+        testBtn.disabled = true;
+        testBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testing All Models...';
+        
+        // Get all model rows
+        const modelRows = modelsList.querySelectorAll('[data-model]');
+        
+        if (modelRows.length === 0) {
+            alert('No models found to test');
+            testBtn.disabled = false;
+            testBtn.innerHTML = '<i class="fas fa-flask"></i> Test All Models';
+            return;
+        }
+        
+        let successCount = 0;
+        let failCount = 0;
+        
+        // Test each model
+        for (const row of modelRows) {
+            const modelName = row.getAttribute('data-model');
+            const statusCell = row.querySelector('.model-status');
+            
+            try {
+                // Show testing status
+                if (statusCell) {
+                    statusCell.innerHTML = '<span class="status-testing">Testing...</span>';
+                }
+                
+                // Test model access
+                const response = await fetch('/api/check-model-access', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ model: modelName })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.hasAccess) {
+                    // Update status to available
+                    if (statusCell) {
+                        statusCell.innerHTML = '<span class="status-available">✓ Available</span>';
+                    }
+                    successCount++;
+                } else {
+                    // Update status to error
+                    if (statusCell) {
+                        statusCell.innerHTML = '<span class="status-error">✗ Error</span>';
+                    }
+                    failCount++;
+                }
+            } catch (error) {
+                console.error(`Error testing ${modelName}:`, error);
+                if (statusCell) {
+                    statusCell.innerHTML = '<span class="status-error">✗ Error</span>';
+                }
+                failCount++;
+            }
+            
+            // Small delay between requests to avoid rate limiting
+            await new Promise(resolve => setTimeout(resolve, 200));
+        }
+        
+        // Show summary
+        alert(`Test Complete:\n✓ Available: ${successCount}\n✗ Error: ${failCount}`);
+        
+    } catch (error) {
+        console.error('Error testing models:', error);
+        alert(`Error testing models: ${error.message}`);
+    } finally {
+        testBtn.disabled = false;
+        testBtn.innerHTML = '<i class="fas fa-flask"></i> Test All Models';
+    }
 };
 
 // Function to toggle model enabled status from Model Management
@@ -6937,7 +7022,6 @@ function testTemplateModal() {
         window.app.openTemplatePicker();
     }
 }
-
 console.log('💡 Debug tip: Type testTemplateModal() in console to test the template system');
 
 function sendMessage() {
