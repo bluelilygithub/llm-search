@@ -4118,7 +4118,7 @@ KnowledgeBaseApp.prototype.loadMainModelDropdown = async function() {
         } else {
             Object.keys(modelsByProvider).sort().forEach(provider => {
                 html += `<optgroup label="${provider}">`;
-                modelsByProvider[provider].forEach(model => {
+                modelsByProvider[provider].forEach(model => { if (model.type === 'image') return;
                     // Use model_value as the value (API identifier), display name as text
                     const modelValue = model.model_value || model.name;
                     html += `<option value="${modelValue}">${model.name}</option>`;
