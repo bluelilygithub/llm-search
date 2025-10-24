@@ -797,7 +797,6 @@ class KnowledgeBaseApp {
 
         this.scrollToBottom();
     }
-
     addMessageToChat(message, isNewMessage = false) {
         // Try to find the appropriate container
         let container = document.getElementById('chat-messages');
@@ -1594,7 +1593,6 @@ class KnowledgeBaseApp {
 
         this.renderSearchResults(results);
     }
-
     renderSearchResults(results) {
         const container = document.getElementById('search-results-container');
         container.innerHTML = '';
@@ -2272,7 +2270,6 @@ class KnowledgeBaseApp {
         
         return results;
     }
-    
     // Display comprehensive search results
     displaySearchResults(results, query) {
         this.currentView = 'search-results';
@@ -3065,7 +3062,6 @@ KnowledgeBaseApp.prototype.renderQuickStats = async function() {
         console.error('Error loading quick stats:', error);
     }
 };
-
 KnowledgeBaseApp.prototype.renderUsageChart = async function() {
     try {
         const response = await fetch('/llm-usage-stats');
@@ -3857,7 +3853,6 @@ KnowledgeBaseApp.prototype.loadCurrentModels = async function() {
         container.innerHTML = '<div class="error">Failed to load models</div>';
     }
 };
-
 // Function to load models into the settings panel
 KnowledgeBaseApp.prototype.loadModelsForSettingsPanel = async function() {
     const modelsList = document.getElementById('models-list');
@@ -4637,7 +4632,6 @@ window.closeModelManagement = function() {
 };
 
 // ==================== USER MANAGEMENT FUNCTIONS ====================
-
 // Show Users tab for admin only
 window.showUsersTabIfAdmin = async function() {
     try {
@@ -5368,7 +5362,6 @@ window.addModel = async function() {
         addBtn.innerHTML = '<i class="fas fa-plus"></i> Add Model';
     }
 };
-
 window.testModelInManagement = async function(modelName, showAlert = true) {
     const statusElement = document.getElementById(`mgmt-status-${modelName}`);
     
@@ -6144,7 +6137,6 @@ KnowledgeBaseApp.prototype.closeTemplatePicker = function() {
         }
     }
 };
-
 KnowledgeBaseApp.prototype.selectTemplate = async function(templateId) {
     console.log('📝 Selecting template:', templateId);
     const template = TEMPLATE_DATA[templateId];
@@ -6921,7 +6913,6 @@ document.addEventListener('DOMContentLoaded', () => {
 function startNewChat() {
     window.app.startNewChat();
 }
-
 // Global test function for template modal
 function testTemplateModal() {
     console.log('🧪 Testing Template Modal...');
@@ -7687,7 +7678,6 @@ KnowledgeBaseApp.prototype.removeContextFromConversation = async function(contex
 KnowledgeBaseApp.prototype.showContextItemDetails = function(contextItemId) {
     // This will be implemented in later increments
 };
-
 // Edit context item
 KnowledgeBaseApp.prototype.editContextItem = function(contextItemId) {
     // Find the context item to edit
@@ -8481,7 +8471,6 @@ KnowledgeBaseApp.prototype.loadProjectsGrid = async function() {
         `;
     }
 };
-
 // Load project conversations grid data
 KnowledgeBaseApp.prototype.loadProjectConversationsGrid = async function(projectId) {
     try {
