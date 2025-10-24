@@ -5150,7 +5150,14 @@ Return ONLY the image prompt, nothing else."""
             return jsonify({'error': 'Stability AI API key not configured'}), 503
         
         headers = {
-            "authorization": f"Bearer {stability_api_key}"
+
+        
+            "authorization": f"Bearer {stability_api_key}",
+
+        
+            "accept": "image/png"
+
+        
         }
         
         url = "https://api.stability.ai/v2beta/stable-image/generate/core"
