@@ -57,7 +57,7 @@ class LLMService:
             return self._get_anthropic_response(model, messages, max_tokens, temperature)
         elif model.startswith('gemini'):
             return self._get_gemini_response(model, messages, max_tokens, temperature)
-        elif model in ['llama2-70b', 'mixtral-8x7b', 'codellama-34b']:
+        elif model in ['llama2-70b', 'mixtral-8x7b', 'mistral-7b', 'codellama-34b']:
             return self._get_huggingface_response(model, messages, max_tokens, temperature)
         else:
             raise ValueError(f"Model {model} not available")
@@ -197,6 +197,7 @@ class LLMService:
             model_mapping = {
                 'llama2-70b': 'meta-llama/Llama-2-70b-chat-hf',
                 'mixtral-8x7b': 'mistralai/Mixtral-8x7B-Instruct-v0.1',
+                'mistral-7b': 'mistralai/Mistral-7B-Instruct-v0.3',
                 'codellama-34b': 'codellama/CodeLlama-34b-Instruct-hf'
             }
             
@@ -208,8 +209,9 @@ class LLMService:
                 role = msg['role'].capitalize()
                 conversation_text += f"{role}: {msg['content']}\n\n"
             
+            # Use the new Hugging Face Inference Providers API endpoint
             response = requests.post(
-                f"https://api-inference.huggingface.co/models/{hf_model}",
+                f"https://router.huggingface.co/hf-inference/{hf_model}",
                 headers=self.hf_headers,
                 json={
                     "inputs": conversation_text,
@@ -264,7 +266,8 @@ class LLMService:
             
             # Hugging Face Models - Limited
             'llama2-70b': {'max_tokens': 2000, 'context_window': 3000},
-            'mixtral-8x7b': {'max_tokens': 3000, 'context_window': 30000}, 
+            'mixtral-8x7b': {'max_tokens': 3000, 'context_window': 30000},
+            'mistral-7b': {'max_tokens': 2000, 'context_window': 8000},
             'codellama-34b': {'max_tokens': 3000, 'context_window': 14000}
         }
         return limits.get(model, {'max_tokens': 2000, 'context_window': 6000})

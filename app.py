@@ -3719,7 +3719,7 @@ def check_model_access():
                 elif model.startswith('gemini-'):
                     api_key_name = 'GEMINI_API_KEY'
                     api_key_value = os.getenv('GEMINI_API_KEY')
-                elif model in ['llama2-70b', 'mixtral-8x7b', 'codellama-34b']:
+                elif model in ['llama2-70b', 'mixtral-8x7b', 'mistral-7b', 'codellama-34b']:
                     api_key_name = 'HUGGING_FACE_API_KEY'
                     api_key_value = os.getenv('HUGGING_FACE_API_KEY')
                 elif model.startswith('stable-'):
@@ -3777,7 +3777,7 @@ def _test_model_api_call(model, api_key_name, api_key_value):
             return _test_anthropic_model(model, api_key_value)
         elif model.startswith('gemini-'):
             return _test_gemini_model(model, api_key_value)
-        elif model in ['llama2-70b', 'mixtral-8x7b', 'codellama-34b']:
+        elif model in ['llama2-70b', 'mixtral-8x7b', 'mistral-7b', 'codellama-34b']:
             return _test_huggingface_model(model, api_key_value)
         elif model.startswith('stable-'):
             return _test_stability_model(model, api_key_value)
@@ -3920,8 +3920,18 @@ def _test_huggingface_model(model, api_key):
             "parameters": {"max_length": 50}
         }
         
-        # Construct the Hugging Face API URL
-        url = f"https://api-inference.huggingface.co/models/{model}"
+        # Map model names to full Hugging Face repository paths
+        model_mapping = {
+            'llama2-70b': 'meta-llama/Llama-2-70b-chat-hf',
+            'mixtral-8x7b': 'mistralai/Mixtral-8x7B-Instruct-v0.1',
+            'mistral-7b': 'mistralai/Mistral-7B-Instruct-v0.3',
+            'codellama-34b': 'codellama/CodeLlama-34b-Instruct-hf'
+        }
+        
+        hf_model = model_mapping.get(model, model)
+        
+        # Use the new Hugging Face Inference Providers API endpoint
+        url = f"https://router.huggingface.co/hf-inference/{hf_model}"
         
         response = requests.post(url, headers=headers, json=payload, timeout=10)
         
@@ -4483,6 +4493,7 @@ def create_starter_models():
         # Hugging Face Models
         {'name': 'Llama 2 70B', 'model_value': 'llama2-70b', 'provider': 'Hugging Face', 'api_key': 'HUGGING_FACE_API_KEY', 'description': 'Large language model'},
         {'name': 'Mixtral 8x7B', 'model_value': 'mixtral-8x7b', 'provider': 'Hugging Face', 'api_key': 'HUGGING_FACE_API_KEY', 'description': 'Mixture of experts model'},
+        {'name': 'Mistral 7B', 'model_value': 'mistral-7b', 'provider': 'Hugging Face', 'api_key': 'HUGGING_FACE_API_KEY', 'description': 'Fast and efficient Mistral model'},
         {'name': 'CodeLlama 34B', 'model_value': 'codellama-34b', 'provider': 'Hugging Face', 'api_key': 'HUGGING_FACE_API_KEY', 'description': 'Code generation model'},
         
         # Stability AI Models
