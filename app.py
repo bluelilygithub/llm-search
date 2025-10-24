@@ -1281,9 +1281,12 @@ def generate_followup_questions():
         if project_id and not is_math_project:
             try:
                 from models import Project
-                project = Project.query.get(project_id)
+                import uuid
+                project_uuid = uuid.UUID(project_id) if isinstance(project_id, str) else project_id
+                project = Project.query.get(project_uuid)
                 is_math_project = project and (project.math_level or project.math_subject)
-            except:
+            except Exception as e:
+                app.logger.debug(f"Could not determine if math project: {str(e)}")
                 pass
         
         app.logger.info(f"Generating follow-up questions using model: {model}, response length: {len(latest_response)}, is_math: {is_math_project}")
