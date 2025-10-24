@@ -1062,8 +1062,8 @@
                 return;
             }
             
-            const lastAIMessage = messages[messages.length - 1];
-            const responseText = lastAIMessage.querySelector('.message-content')?.textContent || '';
+            const lastAIMessage = messages[messages.length - 1]; console.log('Last message:', lastAIMessage);
+            console.log('Extracting response text'); const responseText = lastAIMessage.querySelector('.message-content')?.textContent || '';
             
             if (!responseText) {
                 alert('Could not extract response content');
