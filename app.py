@@ -5173,38 +5173,29 @@ Return ONLY the image prompt, nothing else."""
         
         if response.status_code == 200:
             # Get the image data
-            image_data = response.json()
+            image_bytes = response.content
             
             # Save the generated image
             import base64
             import uuid
             
-            if 'image' in image_data:
-                image_base64 = image_data['image']
-                image_bytes = base64.b64decode(image_base64)
-                
-                # Create a unique filename
-                image_filename = f"diagram_{uuid.uuid4().hex[:8]}.png"
-                images_dir = os.path.join(os.path.dirname(__file__), 'static', 'generated_images')
-                os.makedirs(images_dir, exist_ok=True)
-                
-                image_path = os.path.join(images_dir, image_filename)
-                with open(image_path, 'wb') as f:
-                    f.write(image_bytes)
-                
-                app.logger.info(f"Diagram saved: {image_filename}")
-                
-                return jsonify({
-                    'success': True,
-                    'image_url': f'/static/generated_images/{image_filename}',
-                    'prompt_used': image_prompt_response[:200] + '...',
-                    'message': 'Professional diagram generated successfully'
-                }), 200
-            else:
-                error_msg = f"No 'image' field in response. Response keys: {list(image_data.keys())}"
-                app.logger.error(error_msg)
-                app.logger.error(f"Full response: {image_data}")
-                return jsonify({'error': error_msg}), 500
+            # Create a unique filename
+            image_filename = f"diagram_{uuid.uuid4().hex[:8]}.png"
+            images_dir = os.path.join(os.path.dirname(__file__), 'static', 'generated_images')
+            os.makedirs(images_dir, exist_ok=True)
+            
+            image_path = os.path.join(images_dir, image_filename)
+            with open(image_path, 'wb') as f:
+                f.write(image_bytes)
+            
+            app.logger.info(f"Diagram saved: {image_filename}, size: {len(image_bytes)} bytes")
+            
+            return jsonify({
+                'success': True,
+                'image_url': f'/static/generated_images/{image_filename}',
+                'prompt_used': image_prompt_response[:200] + '...',
+                'message': 'Professional diagram generated successfully'
+            }), 200
         else:
             error_msg = f"Stability AI error: {response.status_code}"
             try:
