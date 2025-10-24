@@ -1884,6 +1884,11 @@ Use this context to provide accurate, detailed responses. When referencing infor
             rag_context = ""
             rag_sources = []
         
+        # Reject Stability AI image models in chat (they're for diagram generation only)
+        if model_identifier.startswith('stable-image') or model_identifier.startswith('stable-audio'):
+            app.logger.error(f"Attempted to use image generation model {model_identifier} for chat")
+            return jsonify({'error': f'Model {model} is for image generation only. Use the Illustrate follow-up question for diagrams.'}), 400
+
         # Get AI response and usage info - use model_identifier for API call
         ai_response, tokens, estimated_cost = llm_service.get_response(model_identifier, messages)
         app.logger.info(f"Got response from {model}: {tokens} tokens, cost: ${estimated_cost:.4f}")
