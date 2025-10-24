@@ -1055,7 +1055,8 @@ class KnowledgeBaseApp {
     async generateAndDisplayDiagram() {
         try {
             // Get the last AI response from the conversation
-            const messages = document.querySelectorAll('.message.ai');
+            // Messages use class "message assistant" not "message ai"
+            const messages = document.querySelectorAll('.message.assistant');
             if (messages.length === 0) {
                 alert('No AI response found to generate diagram from');
                 return;
@@ -1064,8 +1065,21 @@ class KnowledgeBaseApp {
             const lastAIMessage = messages[messages.length - 1];
             const responseText = lastAIMessage.querySelector('.message-content')?.textContent || '';
             
+            if (!responseText) {
+                alert('Could not extract response content');
+                return;
+            }
+            
+            // Find the chat area container
+            let chatArea = document.querySelector('.chat-messages-container') || 
+                          document.getElementById('chat-messages');
+            
+            if (!chatArea) {
+                alert('Could not find chat area to display diagram');
+                return;
+            }
+            
             // Show loading indicator
-            const chatArea = document.querySelector('.chat-area');
             const loadingDiv = document.createElement('div');
             loadingDiv.className = 'diagram-loading';
             loadingDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating professional diagram...';
