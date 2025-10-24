@@ -3664,22 +3664,9 @@ def save_model_settings():
 @csrf.exempt
 @app.route('/api/check-model-access', methods=['POST'])
 def check_model_access():
-    """Check if a specific model is accessible"""
+    """Check if a specific model is accessible by attempting a real API call"""
     try:
         app.logger.info("check_model_access endpoint called")
-        
-        # Check if user is authenticated (but don't fail if auth is not available)
-        user_id = None
-        try:
-            from auth import current_user_id
-            user_id = current_user_id()
-        except ImportError:
-            # Auth module not available, continue without authentication
-            app.logger.info("Auth module not available, continuing without authentication")
-            pass
-        
-        # For now, allow access even without authentication for demo purposes
-        # You can enhance this to require authentication in production
         
         data = request.get_json()
         if not data:
@@ -3692,15 +3679,6 @@ def check_model_access():
             return jsonify({'error': 'Model not specified'}), 400
         
         app.logger.info(f"Checking access for model: {model}")
-        
-        # Import LLM service to check model access
-        try:
-            from llm_service import LLMService
-            llm_service = LLMService()
-            app.logger.info("LLMService imported successfully")
-        except Exception as import_error:
-            app.logger.error(f"Failed to import LLMService: {str(import_error)}")
-            return jsonify({'error': 'Service initialization failed'}), 500
         
         # Get model info from dynamic model list to find custom API key
         models_file = os.path.join(app.instance_path, 'available_models.json')
@@ -3719,88 +3697,52 @@ def check_model_access():
                     custom_api_key = model_info.get('api_key')
                     break
         
-        # Check if model is accessible by attempting to get info or make a test call
+        # Check if model is accessible by attempting a real test call
         has_access = False
         api_key_name = None
+        error_details = None
         
         try:
-            # Use custom API key if specified, otherwise fall back to pattern matching
+            # Determine provider and API key from model name or custom config
             if custom_api_key:
-                # Use the custom API key name directly
                 api_key_name = custom_api_key
                 api_key_value = os.getenv(custom_api_key)
                 app.logger.info(f"Checking custom API key {custom_api_key}: {'configured' if api_key_value and api_key_value.strip() else 'not configured'}")
-                has_access = bool(api_key_value and api_key_value.strip())
-                
             else:
-                # Fall back to pattern matching for legacy models
+                # Pattern matching for standard models
                 if model.startswith('gpt-') or model.startswith('o1-'):
-                    # OpenAI models - check if API key is configured
                     api_key_name = 'OPENAI_API_KEY'
-                    openai_key = os.getenv('OPENAI_API_KEY')
-                    app.logger.info(f"Checking OpenAI API key: {'configured' if openai_key and openai_key.strip() else 'not configured'}")
-                    has_access = bool(openai_key and openai_key.strip())
-                
+                    api_key_value = os.getenv('OPENAI_API_KEY')
                 elif model.startswith('claude-'):
-                    # Anthropic models - check if API key is configured
                     api_key_name = 'CLAUDE_API_KEY'
-                    anthropic_key = os.getenv('CLAUDE_API_KEY')
-                    app.logger.info(f"Checking Claude API key: {'configured' if anthropic_key and anthropic_key.strip() else 'not configured'}")
-                    has_access = bool(anthropic_key and anthropic_key.strip())
-                
+                    api_key_value = os.getenv('CLAUDE_API_KEY')
                 elif model.startswith('gemini-'):
-                    # Google models - check if API key is configured
                     api_key_name = 'GEMINI_API_KEY'
-                    gemini_key = os.getenv('GEMINI_API_KEY')
-                    app.logger.info(f"Checking Gemini API key: {'configured' if gemini_key and gemini_key.strip() else 'not configured'}")
-                    has_access = bool(gemini_key and gemini_key.strip())
-                
+                    api_key_value = os.getenv('GEMINI_API_KEY')
                 elif model in ['llama2-70b', 'mixtral-8x7b', 'codellama-34b']:
-                    # Hugging Face models - check if API key is configured
                     api_key_name = 'HUGGING_FACE_API_KEY'
-                    hf_key = os.getenv('HUGGING_FACE_API_KEY')
-                    app.logger.info(f"Checking Hugging Face API key: {'configured' if hf_key and hf_key.strip() else 'not configured'}")
-                    has_access = bool(hf_key and hf_key.strip())
-                
+                    api_key_value = os.getenv('HUGGING_FACE_API_KEY')
                 elif model.startswith('stable-'):
-                    # Stability AI models - check if API key is configured
                     api_key_name = 'STABILITY_API_KEY'
-                    stability_key = os.getenv('STABILITY_API_KEY')
-                    app.logger.info(f"Checking Stability API key: {'configured' if stability_key and stability_key.strip() else 'not configured'}")
-                    has_access = bool(stability_key and stability_key.strip())
-                
+                    api_key_value = os.getenv('STABILITY_API_KEY')
                 else:
-                    # Unknown model
-                    has_access = False
                     api_key_name = 'Unknown'
-                
-            # For GPT-5 specifically, you might want additional checks
-            if model == 'gpt-5':
-                # GPT-5 might have special access requirements
-                # For now, assume it's not available unless specifically enabled
-                has_access = False
+                    api_key_value = None
+            
+            # If no API key is configured, can't access
+            if not api_key_value or not api_key_value.strip():
+                error_details = f"API key {api_key_name} not configured"
+                app.logger.info(f"Model {model}: {error_details}")
+            else:
+                # Perform actual API test call
+                has_access, error_details = _test_model_api_call(model, api_key_name, api_key_value)
                 
         except Exception as model_error:
             app.logger.error(f"Error checking model {model} access: {str(model_error)}")
+            error_details = str(model_error)
             has_access = False
         
-        app.logger.info(f"Model {model} access check: {has_access} (API key: {api_key_name})")
-        
-        # Add debug info to help troubleshoot
-        debug_info = {
-            'model': model,
-            'provider': provider,
-            'custom_api_key': custom_api_key,
-            'api_key_name': api_key_name,
-            'hasAccess': has_access,
-            'envVars': {}
-        }
-        
-        # Log environment variable status for debugging (without exposing keys)
-        if api_key_name:
-            debug_info['envVars'][api_key_name] = 'configured' if has_access else 'not configured'
-        
-        app.logger.info(f"Debug info for {model}: {debug_info}")
+        app.logger.info(f"Model {model} access check result: {has_access} (API key: {api_key_name}, error: {error_details})")
         
         return jsonify({
             'success': True,
@@ -3808,13 +3750,167 @@ def check_model_access():
             'provider': provider,
             'api_key_name': api_key_name,
             'hasAccess': has_access,
-            'status': 'Available' if has_access else 'API key not configured',
-            'debugInfo': debug_info
+            'status': 'Available' if has_access else 'Not accessible',
+            'error': error_details,
+            'debugInfo': {
+                'model': model,
+                'provider': provider,
+                'api_key_name': api_key_name,
+                'tested': True
+            }
         })
     
     except Exception as e:
-        app.logger.error(f"Error checking model access: {str(e)}")
-        return jsonify({'error': 'Failed to check model access'}), 500
+        app.logger.error(f"Error in check_model_access: {str(e)}")
+        return jsonify({'error': f'Failed to check model access: {str(e)}'}), 500
+
+
+def _test_model_api_call(model, api_key_name, api_key_value):
+    """
+    Perform an actual API call to test if model is accessible.
+    Returns tuple: (has_access: bool, error_message: str or None)
+    """
+    try:
+        if model.startswith('gpt-') or model.startswith('o1-'):
+            return _test_openai_model(model, api_key_value)
+        elif model.startswith('claude-'):
+            return _test_anthropic_model(model, api_key_value)
+        elif model.startswith('gemini-'):
+            return _test_gemini_model(model, api_key_value)
+        elif model in ['llama2-70b', 'mixtral-8x7b', 'codellama-34b']:
+            return _test_huggingface_model(model, api_key_value)
+        elif model.startswith('stable-'):
+            return _test_stability_model(model, api_key_value)
+        else:
+            return False, f"Unknown model provider for {model}"
+    except Exception as e:
+        app.logger.error(f"Error testing model {model}: {str(e)}")
+        return False, str(e)
+
+
+def _test_openai_model(model, api_key):
+    """Test OpenAI model with a minimal API call"""
+    try:
+        import openai
+        client = openai.OpenAI(api_key=api_key)
+        
+        # Make a minimal test call
+        response = client.chat.completions.create(
+            model=model,
+            messages=[{"role": "user", "content": "test"}],
+            max_tokens=10,
+            temperature=0.5
+        )
+        
+        app.logger.info(f"OpenAI model {model} test successful")
+        return True, None
+    except Exception as e:
+        error_msg = str(e)
+        app.logger.warning(f"OpenAI model {model} test failed: {error_msg}")
+        return False, error_msg
+
+
+def _test_anthropic_model(model, api_key):
+    """Test Anthropic (Claude) model with a minimal API call"""
+    try:
+        import anthropic
+        client = anthropic.Anthropic(api_key=api_key)
+        
+        # Make a minimal test call
+        response = client.messages.create(
+            model=model,
+            max_tokens=10,
+            messages=[{"role": "user", "content": "test"}]
+        )
+        
+        app.logger.info(f"Anthropic model {model} test successful")
+        return True, None
+    except Exception as e:
+        error_msg = str(e)
+        app.logger.warning(f"Anthropic model {model} test failed: {error_msg}")
+        return False, error_msg
+
+
+def _test_gemini_model(model, api_key):
+    """Test Google Gemini model with a minimal API call"""
+    try:
+        import google.generativeai as genai
+        genai.configure(api_key=api_key)
+        
+        # Make a minimal test call
+        model_obj = genai.GenerativeModel(model)
+        response = model_obj.generate_content("test", stream=False)
+        
+        app.logger.info(f"Gemini model {model} test successful")
+        return True, None
+    except Exception as e:
+        error_msg = str(e)
+        app.logger.warning(f"Gemini model {model} test failed: {error_msg}")
+        return False, error_msg
+
+
+def _test_huggingface_model(model, api_key):
+    """Test Hugging Face model with a minimal API call"""
+    try:
+        import requests
+        
+        headers = {"Authorization": f"Bearer {api_key}"}
+        payload = {
+            "inputs": "test",
+            "parameters": {"max_length": 50}
+        }
+        
+        # Construct the Hugging Face API URL
+        url = f"https://api-inference.huggingface.co/models/{model}"
+        
+        response = requests.post(url, headers=headers, json=payload, timeout=10)
+        
+        # Check for successful response (200) or rate limit (503 is expected during testing)
+        if response.status_code == 200:
+            app.logger.info(f"Hugging Face model {model} test successful")
+            return True, None
+        elif response.status_code == 503:
+            # Model is loaded but rate limited - still accessible
+            app.logger.info(f"Hugging Face model {model} is accessible (rate limited)")
+            return True, None
+        else:
+            error_msg = f"HTTP {response.status_code}: {response.text[:200]}"
+            app.logger.warning(f"Hugging Face model {model} test failed: {error_msg}")
+            return False, error_msg
+            
+    except Exception as e:
+        error_msg = str(e)
+        app.logger.warning(f"Hugging Face model {model} test failed: {error_msg}")
+        return False, error_msg
+
+
+def _test_stability_model(model, api_key):
+    """Test Stability AI model with a minimal API call"""
+    try:
+        import requests
+        
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Accept": "application/json"
+        }
+        
+        # Test endpoint - just get account info
+        url = "https://api.stability.ai/v1/user/account"
+        
+        response = requests.get(url, headers=headers, timeout=10)
+        
+        if response.status_code == 200:
+            app.logger.info(f"Stability model {model} test successful")
+            return True, None
+        else:
+            error_msg = f"HTTP {response.status_code}: {response.text[:200]}"
+            app.logger.warning(f"Stability model {model} test failed: {error_msg}")
+            return False, error_msg
+            
+    except Exception as e:
+        error_msg = str(e)
+        app.logger.warning(f"Stability model {model} test failed: {error_msg}")
+        return False, error_msg
 
 # ==================== END MODEL SETTINGS API ====================
 
