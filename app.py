@@ -4480,6 +4480,12 @@ def get_available_models():
             models = create_starter_models()
             app.logger.info(f"Created starter models: {len(models)} models")
         
+        # Ensure all models have a type property (defaulting to 'chat' if not specified)
+        for model in models:
+            if 'type' not in model:
+                # Default to 'chat' for backwards compatibility
+                model['type'] = 'chat'
+        
         return jsonify(models)
     
     except Exception as e:
