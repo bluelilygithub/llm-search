@@ -876,7 +876,7 @@
             // Remove loading indicator
             const loadingDiv = messageDiv.querySelector('.follow-up-questions');
             if (loadingDiv) {
-                console.log('Removing loading indicator'); loadingDiv.remove(); console.log('Response received, status:', response.status);
+                console.log('Removing loading indicator'); loadingDiv.remove();
             }
             
             // Add the actual follow-up questions
@@ -903,7 +903,7 @@
             // Remove loading indicator if still present
             const loadingDiv = messageDiv.querySelector('.follow-up-questions');
             if (loadingDiv) {
-                console.log('Removing loading indicator'); loadingDiv.remove(); console.log('Response received, status:', response.status);
+                console.log('Removing loading indicator'); loadingDiv.remove();
             }
         }
     }
@@ -1098,7 +1098,7 @@
                 })
             });
             
-            console.log('Removing loading indicator'); loadingDiv.remove(); console.log('Response received, status:', response.status);
+            console.log('Removing loading indicator'); loadingDiv.remove();
             
             if (response.ok) {
                 const data = await response.json();
