@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request, render_template, send_from_directory, redirect, url_for, session, g
+﻿from flask import Flask, jsonify, request, render_template, send_from_directory, redirect, url_for, session, g
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -5150,14 +5150,8 @@ Return ONLY the image prompt, nothing else."""
             return jsonify({'error': 'Stability AI API key not configured'}), 503
         
         headers = {
-
-        
             "authorization": f"Bearer {stability_api_key}",
-
-        
-            "accept": "image/png"
-
-        
+            "accept": "image/*"
         }
         
         url = "https://api.stability.ai/v2beta/stable-image/generate/core"
