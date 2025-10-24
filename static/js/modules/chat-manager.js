@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Chat Manager Module
  * Handles all chat-related functionality including conversations, messages, and AI interactions
  * Manages chat state and provides clean API for chat operations
