@@ -1025,7 +1025,7 @@
             .replace(/'/g, '&#39;');
     }
 
-    async askFollowUpQuestion(question) {
+    async askFollowUpQuestion(question) { console.log('Follow-up question:', question);
         // Check if this is a diagram/illustration request for math
         if (question.toLowerCase().includes('illustrate') || 
             question.toLowerCase().includes('diagram') || 
@@ -1052,7 +1052,7 @@
         }
     }
     
-    async generateAndDisplayDiagram() {
+    async generateAndDisplayDiagram() { console.log('Starting diagram generation');
         try {
             // Get the last AI response from the conversation
             // Messages use class "message assistant" not "message ai"
