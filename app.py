@@ -1019,27 +1019,27 @@ def create_project():
     if isinstance(rules_dont, str):
         rules_dont = [rule.strip() for rule in rules_dont.split('\n') if rule.strip()]
     
-        project = Project(
-            name=data['name'],
-            description=data.get('description', ''),
-            agent_name=data.get('agent_name'),
-            agent_role=data.get('agent_role'),
-            agent_personality=data.get('agent_personality'),
-            primary_goal=data.get('primary_goal'),
-            goal_steps=json.dumps(goal_steps) if goal_steps else None,
-            rules_do=json.dumps(rules_do) if rules_do else None,
-            rules_dont=json.dumps(rules_dont) if rules_dont else None,
-            context_background=data.get('context_background'),
-            user_role=data.get('user_role'),
-            output_format=data.get('output_format'),
-            persona_id=data.get('persona_id'),
-            # Math-specific fields
-            math_level=data.get('math_level'),
-            math_subject=data.get('math_subject'),
-            learning_style=data.get('learning_style'),
-            difficulty_preference=data.get('difficulty_preference'),
-            owner_id=owner_id
-        )
+    project = Project(
+        name=data['name'],
+        description=data.get('description', ''),
+        agent_name=data.get('agent_name'),
+        agent_role=data.get('agent_role'),
+        agent_personality=data.get('agent_personality'),
+        primary_goal=data.get('primary_goal'),
+        goal_steps=json.dumps(goal_steps) if goal_steps else None,
+        rules_do=json.dumps(rules_do) if rules_do else None,
+        rules_dont=json.dumps(rules_dont) if rules_dont else None,
+        context_background=data.get('context_background'),
+        user_role=data.get('user_role'),
+        output_format=data.get('output_format'),
+        persona_id=data.get('persona_id'),
+        # Math-specific fields
+        math_level=data.get('math_level'),
+        math_subject=data.get('math_subject'),
+        learning_style=data.get('learning_style'),
+        difficulty_preference=data.get('difficulty_preference'),
+        owner_id=owner_id
+    )
     
     db.session.add(project)
     db.session.commit()
