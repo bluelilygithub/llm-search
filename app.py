@@ -3864,12 +3864,45 @@ def _test_gemini_model(model, api_key):
         import google.generativeai as genai
         genai.configure(api_key=api_key)
         
-        # Make a minimal test call
-        model_obj = genai.GenerativeModel(model)
-        response = model_obj.generate_content("test", stream=False)
+        # List of Gemini models to try (in order of preference)
+        # Newer models first, with fallbacks to older versions
+        gemini_models = [
+            'gemini-2.0-flash',
+            'gemini-2.0-flash-exp',
+            'gemini-1.5-pro',
+            'gemini-1.5-flash',
+            'gemini-1.5-pro-latest',
+            'gemini-1.5-flash-latest',
+            'gemini-pro',  # Older model, may not work
+            'gemini-1.0-pro',
+        ]
         
-        app.logger.info(f"Gemini model {model} test successful")
-        return True, None
+        # Try the specified model first, then fallback to other available models
+        try_models = [model] + [m for m in gemini_models if m != model]
+        
+        last_error = None
+        for try_model in try_models:
+            try:
+                model_obj = genai.GenerativeModel(try_model)
+                response = model_obj.generate_content("test", stream=False)
+                
+                app.logger.info(f"Gemini model {model} test successful (using {try_model})")
+                return True, None
+            except Exception as e:
+                last_error = str(e)
+                # Check if it's a 404 - if so, this model doesn't exist, try the next one
+                if "404" in last_error or "not found" in last_error.lower():
+                    app.logger.debug(f"Tried {try_model}: model not found")
+                    continue
+                # For other errors, might be temporary - still try next model
+                app.logger.debug(f"Tried {try_model}: {last_error}")
+                continue
+        
+        # If we get here, none of the models worked
+        error_msg = f"No Gemini models available. Last error: {last_error}"
+        app.logger.warning(f"Gemini model {model} test failed: {error_msg}")
+        return False, error_msg
+        
     except Exception as e:
         error_msg = str(e)
         app.logger.warning(f"Gemini model {model} test failed: {error_msg}")
@@ -4443,8 +4476,8 @@ def create_starter_models():
         {'name': 'Claude 3 Haiku', 'model_value': 'claude-3-haiku-20240307', 'provider': 'Anthropic', 'api_key': 'CLAUDE_API_KEY', 'description': 'Fastest Claude model'},
         
         # Google Models
-        {'name': 'Gemini Pro', 'model_value': 'gemini-pro', 'provider': 'Google', 'api_key': 'GEMINI_API_KEY', 'description': 'Google\'s advanced AI model'},
-        {'name': 'Gemini 1.5 Pro', 'model_value': 'gemini-1.5-pro', 'provider': 'Google', 'api_key': 'GEMINI_API_KEY', 'description': 'Latest Gemini Pro with long context'},
+        {'name': 'Gemini 2.0 Flash', 'model_value': 'gemini-2.0-flash', 'provider': 'Google', 'api_key': 'GEMINI_API_KEY', 'description': 'Latest fast Gemini model'},
+        {'name': 'Gemini 1.5 Pro', 'model_value': 'gemini-1.5-pro', 'provider': 'Google', 'api_key': 'GEMINI_API_KEY', 'description': 'High-performance Gemini with long context'},
         {'name': 'Gemini 1.5 Flash', 'model_value': 'gemini-1.5-flash', 'provider': 'Google', 'api_key': 'GEMINI_API_KEY', 'description': 'Fast Gemini model'},
         
         # Hugging Face Models
