@@ -5154,7 +5154,16 @@ Return ONLY the image prompt, nothing else."""
             "accept": "image/*"
         }
         
-        url = "https://api.stability.ai/v2beta/stable-image/generate/core"
+        # Build the endpoint based on model
+        if 'ultra' in model.lower():
+            endpoint_model = 'ultra'
+        elif 'sd3' in model.lower() or 'diffusion' in model.lower():
+            endpoint_model = 'sd3'
+        else:
+            endpoint_model = 'core'
+        
+        url = f"https://api.stability.ai/v2beta/stable-image/generate/{endpoint_model}"
+        app.logger.info(f"Using Stability AI endpoint: {url}")
         
         # Use multipart/form-data instead of JSON
         files = {
