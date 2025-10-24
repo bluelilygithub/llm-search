@@ -5167,6 +5167,9 @@ Return ONLY the image prompt, nothing else."""
         # Generate the image
         response = requests.post(url, headers=headers, json=payload, timeout=30)
         
+        app.logger.info(f"Stability AI response status: {response.status_code}")
+        app.logger.info(f"Stability AI response headers: {dict(response.headers)}")
+        
         if response.status_code == 200:
             # Get the image data
             image_data = response.json()
@@ -5197,11 +5200,20 @@ Return ONLY the image prompt, nothing else."""
                     'message': 'Professional diagram generated successfully'
                 }), 200
             else:
-                return jsonify({'error': 'Failed to generate image from Stability AI'}), 500
+                error_msg = f"No 'image' field in response. Response keys: {list(image_data.keys())}"
+                app.logger.error(error_msg)
+                app.logger.error(f"Full response: {image_data}")
+                return jsonify({'error': error_msg}), 500
         else:
-            error_msg = f"Stability AI error: {response.status_code} - {response.text}"
+            error_msg = f"Stability AI error: {response.status_code}"
+            try:
+                error_details = response.json()
+                app.logger.error(f"Stability AI error details: {error_details}")
+                error_msg += f" - {error_details}"
+            except:
+                error_msg += f" - {response.text[:500]}"
             app.logger.error(error_msg)
-            return jsonify({'error': 'Failed to generate image'}), 500
+            return jsonify({'error': error_msg}), 500
             
     except Exception as e:
         app.logger.error(f"Diagram generation error: {str(e)}", exc_info=True)
