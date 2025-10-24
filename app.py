@@ -4486,8 +4486,11 @@ def get_available_models():
                 # Default to 'chat' for backwards compatibility
                 model['type'] = 'chat'
         
-        return jsonify(models)
-    
+        response = jsonify(models)
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        return response
     except Exception as e:
         app.logger.error(f"Error getting available models: {str(e)}")
         return jsonify({'error': 'Failed to get available models'}), 500
