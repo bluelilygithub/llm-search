@@ -1370,11 +1370,10 @@ Return only the 3 questions, one per line, without numbering or bullet points.""
         # Return only first 3 questions
         questions = questions[:3]
         
-        # For math projects, add 3 additional math-specific questions
+        # For math projects, add 2 additional math-specific questions
         if is_math_project:
             math_specific_questions = [
                 "Explain this to me as if I was 2 years younger",
-                "Illustrate the answer with a diagram or graphic",
                 "Give me a practical, real-world example"
             ]
             questions.extend(math_specific_questions)
@@ -1884,10 +1883,10 @@ Use this context to provide accurate, detailed responses. When referencing infor
             rag_context = ""
             rag_sources = []
         
-        # Reject Stability AI image models in chat (they're for diagram generation only)
+        # Reject Stability AI image models in chat (they're for image generation only)
         if model_identifier.startswith('stable-image') or model_identifier.startswith('stable-audio'):
             app.logger.error(f"Attempted to use image generation model {model_identifier} for chat")
-            return jsonify({'error': f'Model {model} is for image generation only. Use the Illustrate follow-up question for diagrams.'}), 400
+            return jsonify({'error': f'Model {model} is for image generation only. Use a different model for text responses.'}), 400
         
         # Get AI response and usage info - use model_identifier for API call
         ai_response, tokens, estimated_cost = llm_service.get_response(model_identifier, messages)

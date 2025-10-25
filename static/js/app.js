@@ -1026,15 +1026,6 @@
     }
 
     async askFollowUpQuestion(question) { console.log('Follow-up question:', question);
-        // Check if this is a diagram/illustration request for math
-        if (question.toLowerCase().includes('illustrate') || 
-            question.toLowerCase().includes('diagram') || 
-            question.toLowerCase().includes('graphic')) {
-            
-            // Try to generate a diagram instead of asking it as a follow-up question
-            await this.generateAndDisplayDiagram();
-            return;
-        }
         
         const messageInput = document.querySelector('#message-input');
         if (messageInput) {
@@ -1052,87 +1043,6 @@
         }
     }
     
-    async generateAndDisplayDiagram() { console.log('Starting diagram generation');
-        try {
-            // Get the last AI response from the conversation
-            // Messages use class "message assistant" not "message ai"
-            const messages = document.querySelectorAll('.message.assistant'); console.log('Messages found:', messages.length);
-            if (messages.length === 0) {
-                alert('No AI response found to generate diagram from');
-                return;
-            }
-            
-            const lastAIMessage = messages[messages.length - 1]; console.log('Last message:', lastAIMessage);
-            console.log('Extracting response text'); const responseText = lastAIMessage.querySelector('.message-content')?.textContent || '';
-            
-            console.log('Response text length:', responseText.length); if (!responseText) {
-                alert('Could not extract response content');
-                return;
-            }
-            
-            // Find the chat area container
-            console.log('Looking for chat area'); let chatArea = document.querySelector('.chat-messages-container') || 
-                          document.getElementById('chat-messages');
-            
-            console.log('Chat area found:', !!chatArea); if (!chatArea) {
-                alert('Could not find chat area to display diagram');
-                return;
-            }
-            
-            // Show loading indicator
-            const loadingDiv = document.createElement('div');
-            loadingDiv.className = 'diagram-loading';
-            loadingDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating professional diagram...';
-            console.log('Adding loading indicator'); chatArea.appendChild(loadingDiv); console.log('Loading indicator added');
-            
-            // Generate the diagram
-            console.log('Calling /api/generate-diagram'); const response = await fetch('/api/generate-diagram', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    response: responseText,
-                    problem: this.lastUserMessage || '',
-                    model: this.selectedModel || 'stable-image-ultra'
-                })
-            });
-            
-            console.log('Removing loading indicator'); loadingDiv.remove();
-            
-            if (response.ok) {
-                const data = await response.json();
-                
-                // Display the generated diagram
-                const diagramDiv = document.createElement('div');
-                diagramDiv.className = 'generated-diagram';
-                diagramDiv.innerHTML = `
-                    <div class="diagram-container">
-                        <div class="diagram-title">
-                            <i class="fas fa-image"></i>
-                            Professional Diagram
-                        </div>
-                        <img src="${data.image_data}" alt="Generated diagram" class="diagram-image" />
-                        <div class="diagram-info">
-                            <small>Generated with Stability AI • ${data.prompt_used}</small>
-                        </div>
-                    </div>
-                `;
-                
-                chatArea.appendChild(diagramDiv);
-                chatArea.scrollTop = chatArea.scrollHeight;
-                
-                this.showSuccessNotification('📊 Diagram generated successfully!');
-            } else {
-                const error = await response.json();
-                alert(`Failed to generate diagram: ${error.error || 'Unknown error'}`);
-            }
-        } catch (error) {
-            console.error('Diagram generation error:', error);
-            alert(`Error generating diagram: ${error.message}`);
-        }
-    }
-
     async sendMessage() {
         // Check if we're in a chat context
         let chatContainer = document.getElementById('chat-messages');
@@ -1215,7 +1125,7 @@
             timestamp: new Date().toISOString()
         };
         
-        // Track the last user message for diagram generation
+        // Track the last user message
         this.lastUserMessage = content;
         
         this.addMessageToChat(userMessage, true); // true = new message (though user messages don't get follow-ups anyway)
