@@ -1060,7 +1060,7 @@
             messageInput.dispatchEvent(event);
         }
     }
-    
+
     async sendMessage() {
         // Check if we're in a chat context
         let chatContainer = document.getElementById('chat-messages');
@@ -3548,16 +3548,16 @@ KnowledgeBaseApp.prototype.openSettingsPanel = function() {
             panel.classList.remove('admin-user');
         });
     
-    panel.classList.add('open');
-    // Initialize settings when panel opens
-    setTimeout(() => {
-        // No longer loading models list in settings panel - use Model Management modal instead
-        // this.loadModelsForSettingsPanel();
+        panel.classList.add('open');
+        // Initialize settings when panel opens
+        setTimeout(() => {
+            // No longer loading models list in settings panel - use Model Management modal instead
+            // this.loadModelsForSettingsPanel();
         // Show Users tab if admin
         window.showUsersTabIfAdmin();
         // Load account info
         window.loadAccountInfo();
-    }, 200);
+        }, 200);
 };
 
 // Make openSettingsPanel available globally for onclick handlers
@@ -3814,6 +3814,11 @@ window.openUserSettings = function() {
     } else {
         console.error('❌ App not initialized yet - window.app is undefined');
     }
+};
+
+// Global function for editing project template/profile
+window.editProjectTemplate = function(projectId) {
+    window.showProjectEditModal(projectId);
 };
 
 console.log('✅ Global window.openSettingsPanel, openAccountPanel, and openSettingsModal registered');
@@ -8633,7 +8638,7 @@ KnowledgeBaseApp.prototype.showHomeView = async function() {
                         <h3>View All Chats</h3>
                         <p>Browse through your chat history</p>
                     </div>
-                </div>
+                    </div>
             </div>
         </div>
     `;
@@ -8753,7 +8758,7 @@ KnowledgeBaseApp.prototype.showConversationsView = function() {
         const conversationsGridAfterRAF = document.getElementById('conversations-grid');
         console.log('🔵 [Conversations] conversations-grid element after RAF:', conversationsGridAfterRAF);
         console.log('🔵 [Conversations] conversations-grid parent after RAF:', conversationsGridAfterRAF?.parentElement);
-        this.loadConversationsGrid();
+    this.loadConversationsGrid();
     });
 };
 
@@ -8870,7 +8875,7 @@ KnowledgeBaseApp.prototype.showProjectsView = function() {
         const projectsGridAfterRAF = document.getElementById('projects-grid');
         console.log('🔵 projects-grid element after RAF:', projectsGridAfterRAF);
         console.log('🔵 projects-grid parent after RAF:', projectsGridAfterRAF?.parentElement);
-        this.loadProjectsGrid();
+    this.loadProjectsGrid();
     });
 };
 
@@ -8955,16 +8960,16 @@ KnowledgeBaseApp.prototype.loadConversationsGrid = async function() {
         const container = document.getElementById('conversations-grid');
         if (container) {
             container.innerHTML = `
-                <div class="empty-state-large">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <h3>Failed to load conversations</h3>
-                    <p>Please try again later.</p>
-                    <button class="view-action-btn" onclick="window.app.loadConversationsGrid()">
-                        <i class="fas fa-refresh"></i>
-                        Retry
-                    </button>
-                </div>
-            `;
+            <div class="empty-state-large">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h3>Failed to load conversations</h3>
+                <p>Please try again later.</p>
+                <button class="view-action-btn" onclick="window.app.loadConversationsGrid()">
+                    <i class="fas fa-refresh"></i>
+                    Retry
+                </button>
+            </div>
+        `;
         } else {
             console.error('❌ [Conversations] conversations-grid container not found for error display');
         }
@@ -9008,16 +9013,16 @@ KnowledgeBaseApp.prototype.loadProjectsGrid = async function() {
         const container = document.getElementById('projects-grid');
         if (container) {
             container.innerHTML = `
-                <div class="empty-state-large">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <h3>Failed to load projects</h3>
-                    <p>Please try again later.</p>
-                    <button class="view-action-btn" onclick="window.app.loadProjectsGrid()">
-                        <i class="fas fa-refresh"></i>
-                        Retry
-                    </button>
-                </div>
-            `;
+            <div class="empty-state-large">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h3>Failed to load projects</h3>
+                <p>Please try again later.</p>
+                <button class="view-action-btn" onclick="window.app.loadProjectsGrid()">
+                    <i class="fas fa-refresh"></i>
+                    Retry
+                </button>
+            </div>
+        `;
         } else {
             console.error('❌ projects-grid container not found for error display');
         }
@@ -9221,10 +9226,6 @@ KnowledgeBaseApp.prototype.renderProjectsGrid = function(projects, retryCount = 
                     <button class="view-action-btn secondary" onclick="event.stopPropagation(); editProjectTemplate('${project.id}')" title="Edit Template">
                         <i class="fas fa-cogs"></i>
                         Setup
-                    </button>
-                    <button class="view-action-btn secondary" onclick="event.stopPropagation(); window.showProjectEditModal('${project.id}')" title="Edit Project Profile">
-                        <i class="fas fa-user-edit"></i>
-                        Edit Profile
                     </button>
                     <button class="view-action-btn secondary" onclick="event.stopPropagation(); window.app.editProject('${project.id}', '${project.name.replace(/'/g, "\\'")}')" title="Rename Project">
                         <i class="fas fa-edit"></i>
