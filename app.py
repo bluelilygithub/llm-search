@@ -1721,6 +1721,81 @@ def add_message(conversation_id):
     }), 201
 
 @csrf.exempt
+def fetch_nsw_math_curriculum_content():
+    """Fetch NSW Mathematics K-10 curriculum content for math context"""
+    try:
+        import requests
+        from bs4 import BeautifulSoup
+        
+        url = "https://curriculum.nsw.edu.au/learning-areas/mathematics/mathematics-k-10-2022/overview"
+        
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Accept-Encoding': 'gzip, deflate',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1'
+        }
+        
+        session = requests.Session()
+        session.headers.update(headers)
+        
+        try:
+            response = session.get(url, timeout=15, allow_redirects=True)
+            response.raise_for_status()
+        except requests.exceptions.SSLError:
+            response = session.get(url, timeout=15, allow_redirects=True, verify=False)
+            response.raise_for_status()
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+            if url.startswith('https://'):
+                http_url = url.replace('https://', 'http://', 1)
+                response = session.get(http_url, timeout=15, allow_redirects=True)
+                response.raise_for_status()
+            else:
+                raise
+        
+        # Parse HTML and extract text
+        soup = BeautifulSoup(response.content, 'html.parser')
+        
+        # Remove script and style elements
+        for script in soup(["script", "style", "nav", "footer", "header"]):
+            script.decompose()
+        
+        # Get text content
+        content = soup.get_text()
+        
+        # Clean up whitespace
+        lines = (line.strip() for line in content.splitlines())
+        content = '\n'.join(line for line in lines if line)
+        
+        # Limit content length to avoid token limits
+        if len(content) > 8000:
+            content = content[:8000] + "..."
+        
+        app.logger.info(f"Successfully fetched NSW Math curriculum content ({len(content)} chars)")
+        return content
+        
+    except Exception as e:
+        app.logger.error(f"Error fetching NSW Math curriculum content: {str(e)}")
+        return None
+
+def is_math_question(message):
+    """Check if the message is a math-related question"""
+    math_keywords = [
+        'math', 'mathematics', 'calculate', 'solve', 'equation', 'formula', 'algebra',
+        'geometry', 'trigonometry', 'calculus', 'statistics', 'probability', 'fraction',
+        'decimal', 'percentage', 'addition', 'subtraction', 'multiplication', 'division',
+        'number', 'numbers', 'problem', 'sum', 'difference', 'product', 'quotient',
+        'angle', 'triangle', 'circle', 'square', 'rectangle', 'area', 'perimeter',
+        'volume', 'surface area', 'graph', 'plot', 'coordinate', 'axis', 'slope',
+        'gradient', 'function', 'variable', 'unknown', 'solve for', 'find the value',
+        'what is', 'how many', 'how much', 'nsw curriculum', 'stage', 'year level'
+    ]
+    
+    message_lower = message.lower()
+    return any(keyword in message_lower for keyword in math_keywords)
+
 @app.route('/chat', methods=['POST'])
 @limiter.limit("30 per minute")
 @auth.access_required(allow_free=True)
@@ -1822,6 +1897,34 @@ Please use this context information appropriately when responding to user questi
                     
             except Exception as context_error:
                 app.logger.error(f"Failed to load context for conversation {conversation_id}: {context_error}")
+        
+        # Add NSW Math curriculum content for math questions
+        if is_math_question(user_message):
+            app.logger.info("Math question detected, fetching NSW Math curriculum content")
+            math_curriculum_content = fetch_nsw_math_curriculum_content()
+            if math_curriculum_content:
+                math_context_msg = f"""NSW Mathematics K-10 Curriculum Context:
+
+You have access to the official NSW Mathematics K-10 Syllabus (2022) content. Use this curriculum information to provide educationally appropriate responses that align with NSW educational standards and stage-appropriate content.
+
+Curriculum Content:
+{math_curriculum_content}
+
+---
+When responding to math questions, please:
+1. Reference appropriate NSW curriculum stages (Early Stage 1, Stage 1, Stage 2, Stage 3, Stage 4, Stage 5) when relevant
+2. Use curriculum-appropriate terminology and concepts
+3. Ensure explanations align with NSW educational standards
+4. Consider the Working mathematically processes: communicating, understanding and fluency, reasoning, and problem solving
+5. Reference the three content areas: Number and algebra, Measurement and space, Statistics and probability when applicable"""
+                
+                messages.insert(0, {
+                    'role': 'system',
+                    'content': math_context_msg
+                })
+                app.logger.info("Added NSW Math curriculum context to math question")
+            else:
+                app.logger.warning("Failed to fetch NSW Math curriculum content")
             
         # Fallback to old context_documents system for backward compatibility
         import json
