@@ -3530,17 +3530,23 @@ KnowledgeBaseApp.prototype.openSettingsPanel = function() {
     }
     
     // Check if user is admin and add appropriate class
-    this.checkAdminStatus().then(isAdmin => {
-        if (isAdmin) {
-            panel.classList.add('admin-user');
-        } else {
+    fetch('/auth/status')
+        .then(response => response.json())
+        .then(data => {
+            const isAdmin = data.authenticated && 
+                           (data.user_role === 'super_admin' || data.user_role === 'admin' || data.user_type === 'admin');
+            
+            if (isAdmin) {
+                panel.classList.add('admin-user');
+            } else {
+                panel.classList.remove('admin-user');
+            }
+        })
+        .catch(error => {
+            console.error('Error checking admin status:', error);
+            // Default to non-admin if check fails
             panel.classList.remove('admin-user');
-        }
-    }).catch(error => {
-        console.error('Error checking admin status:', error);
-        // Default to non-admin if check fails
-        panel.classList.remove('admin-user');
-    });
+        });
     
     panel.classList.add('open');
     // Initialize settings when panel opens
