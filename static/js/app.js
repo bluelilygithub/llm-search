@@ -7489,13 +7489,28 @@ function showInfoTooltip(button) {
         tooltip.style.left = left + 'px';
         tooltip.style.top = top + 'px';
         tooltip.style.visibility = 'visible';
+        
+        // Add mouseenter to keep tooltip visible when hovering over it
+        tooltip.addEventListener('mouseenter', function() {
+            tooltip.style.display = 'block';
+        });
+        
+        // Add mouseleave to hide tooltip when leaving it
+        tooltip.addEventListener('mouseleave', function() {
+            tooltip.style.display = 'none';
+        });
     }
 }
 
 function hideInfoTooltip(button) {
     const tooltip = button.querySelector('.info-tooltip');
     if (tooltip) {
-        tooltip.style.display = 'none';
+        // Only hide if mouse is not over the tooltip
+        setTimeout(() => {
+            if (!tooltip.matches(':hover')) {
+                tooltip.style.display = 'none';
+            }
+        }, 100);
     }
 }
 
