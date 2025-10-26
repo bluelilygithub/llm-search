@@ -1217,6 +1217,7 @@ body {
 }
 
 /* Speaker button for text-to-speech */
+.info-btn,
 .speaker-btn {
     background: transparent;
     border: none;
@@ -1232,6 +1233,7 @@ body {
     margin-left: var(--spacing-sm);
 }
 
+.info-btn:hover,
 .speaker-btn:hover {
     background-color: var(--gray-100);
     color: var(--primary-blue);
@@ -1242,6 +1244,7 @@ body {
     animation: pulse 1.5s infinite;
 }
 
+.info-btn i,
 .speaker-btn i {
     font-size: 14px;
 }

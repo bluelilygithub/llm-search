@@ -844,6 +844,14 @@
         }
         
         // Initial message without follow-up questions
+        // Add info button for assistant messages (for math curriculum sources)
+        const infoButton = message.role === 'assistant' ? 
+            `<button class="info-btn" title="Sources: NSW Mathematics K-10 Curriculum | Cluey Learning | Khan Academy" 
+                onmouseover="this.title='Sources: NSW Mathematics K-10 Curriculum (curriculum.nsw.edu.au) | Cluey Learning Year 10 Worksheets (clueylearning.com.au) | Khan Academy (khanacademy.org)'" 
+                onclick="return false;">
+                <i class="fas fa-info-circle"></i>
+            </button>` : '';
+        
         // Add speaker button for assistant messages
         const speakerButton = message.role === 'assistant' ? 
             `<button class="speaker-btn" onclick="window.app.speakMessage(this, '${message.id || Date.now()}')" title="Listen to response">
@@ -856,6 +864,7 @@
                 ${message.rag_used && message.rag_sources ? this.formatRAGSources(message.rag_sources) : ''}
                 <div class="message-time">
                     ${timeString}
+                    ${infoButton}
                     ${speakerButton}
                 </div>
             </div>
