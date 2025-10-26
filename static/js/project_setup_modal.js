@@ -81,8 +81,22 @@ window.showProjectEditModal = function(projectId) {
                 // Populate form with existing project data
                 populateProjectEditForm(project);
                 
-                // Load personas into dropdown
-                loadPersonasIntoDropdown();
+                // Load personas into dropdown AFTER populating to avoid clearing selected value
+                // Store the persona_id before loading dropdown
+                const savedPersonaId = project.persona_id;
+                console.log('🔍 Stored persona_id before loading dropdown:', savedPersonaId);
+                
+                // Load personas first, then set the selected value
+                loadPersonasIntoDropdown().then(() => {
+                    // Then set the selected persona after dropdown is loaded
+                    const personaSelect = document.getElementById('persona-select');
+                    if (personaSelect && savedPersonaId) {
+                        personaSelect.value = savedPersonaId;
+                        console.log('🔍 Persona selected:', personaSelect.value);
+                    } else {
+                        console.log('🔍 Could not set persona - select element or persona_id missing');
+                    }
+                });
                 
                 // Store project ID for update
                 modal.setAttribute('data-project-id', projectId);
