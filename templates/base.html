@@ -36,7 +36,7 @@
     
     <script src="static/js/csrf.js"></script>
     <script src="static/js/app.js"></script>
-    <script src="static/js/project_setup_modal.js?v={{ range(1000, 9999) | random }}"></script>
+    <script src="static/js/project_setup_modal.js?v={{ range(1000, 9999) | random }}" onerror="console.error('❌ Failed to load project_setup_modal.js:', this.src)"></script>
     <script>
         // Test script to verify script loading works
         console.log('🧪 Test script loaded successfully');
@@ -48,6 +48,13 @@
             console.log('  - projectModalScriptLoaded:', window.projectModalScriptLoaded);
             console.log('  - showProjectEditModal:', typeof window.showProjectEditModal);
             console.log('  - showProjectSetupModal:', typeof window.showProjectSetupModal);
+            console.log('  - testProjectModal:', typeof window.testProjectModal);
+            
+            // Check if functions exist but flags don't (timing issue)
+            if (typeof window.showProjectEditModal === 'function' && !window.projectModalScriptLoaded) {
+                console.log('⚠️ TIMING ISSUE: Functions exist but flags not set');
+                console.log('⚠️ This suggests script loaded but had an error before setting flags');
+            }
             
             // Fallback: If script didn't load, create minimal functions
             if (typeof window.showProjectEditModal !== 'function') {
