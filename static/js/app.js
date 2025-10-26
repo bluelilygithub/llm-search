@@ -7457,11 +7457,38 @@ function showInfoTooltip(button) {
         // Get button position
         const rect = button.getBoundingClientRect();
         
-        // Position tooltip to the right and top of the button
-        tooltip.style.top = (rect.top) + 'px';
-        tooltip.style.left = (rect.right + 8) + 'px';
-        
+        // Show tooltip first to get its dimensions
         tooltip.style.display = 'block';
+        tooltip.style.visibility = 'hidden'; // Hidden but takes up space
+        
+        // Calculate position to the right of button
+        const tooltipWidth = tooltip.offsetWidth;
+        const tooltipHeight = tooltip.offsetHeight;
+        
+        // Position to the right of the button, centered vertically
+        let left = rect.right + 8;
+        let top = rect.top + (rect.height / 2) - (tooltipHeight / 2);
+        
+        // Check if tooltip would go off right edge
+        if (left + tooltipWidth > window.innerWidth) {
+            // Position to the left of button instead
+            left = rect.left - tooltipWidth - 8;
+        }
+        
+        // Check if tooltip would go off top
+        if (top < 0) {
+            top = 8;
+        }
+        
+        // Check if tooltip would go off bottom
+        if (top + tooltipHeight > window.innerHeight) {
+            top = window.innerHeight - tooltipHeight - 8;
+        }
+        
+        // Apply position and make visible
+        tooltip.style.left = left + 'px';
+        tooltip.style.top = top + 'px';
+        tooltip.style.visibility = 'visible';
     }
 }
 
