@@ -846,8 +846,25 @@
         // Initial message without follow-up questions
         // Add info button for assistant messages (for math curriculum sources)
         const infoButton = message.role === 'assistant' ? 
-            `<button class="info-btn" title="Sources: NSW Mathematics K-10 Curriculum (curriculum.nsw.edu.au) | Cluey Learning Year 10 Worksheets (clueylearning.com.au) | Khan Academy (khanacademy.org)">
+            `<button class="info-btn" onmouseenter="showInfoTooltip(this)" onmouseleave="hideInfoTooltip(this)">
                 <i class="fas fa-info-circle"></i>
+                <div class="info-tooltip">
+                    <div class="tooltip-header">Curriculum Sources</div>
+                    <div class="tooltip-content">
+                        <div class="tooltip-link">
+                            <strong>NSW Mathematics K-10 Curriculum</strong>
+                            <br><a href="https://curriculum.nsw.edu.au/learning-areas/mathematics/mathematics-k-10-2022/overview" target="_blank">curriculum.nsw.edu.au</a>
+                        </div>
+                        <div class="tooltip-link">
+                            <strong>Cluey Learning Year 10 Worksheets</strong>
+                            <br><a href="https://go.clueylearning.com.au/maths-worksheets/year-10/" target="_blank">clueylearning.com.au</a>
+                        </div>
+                        <div class="tooltip-link">
+                            <strong>Khan Academy</strong>
+                            <br><a href="https://www.khanacademy.org/" target="_blank">khanacademy.org</a>
+                        </div>
+                    </div>
+                </div>
             </button>` : '';
         
         // Add speaker button for assistant messages
@@ -7364,6 +7381,22 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
         window.app.ensureContextButtonVisible();
     }, 100);
+});
+
+// Global functions for info button tooltip
+function showInfoTooltip(button) {
+    const tooltip = button.querySelector('.info-tooltip');
+    if (tooltip) {
+        tooltip.style.display = 'block';
+    }
+}
+
+function hideInfoTooltip(button) {
+    const tooltip = button.querySelector('.info-tooltip');
+    if (tooltip) {
+        tooltip.style.display = 'none';
+    }
+}
     
     // Confirm template system is loaded
     console.log('📝 Template & Prompt Library: LOADED');

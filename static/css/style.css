@@ -1249,6 +1249,72 @@ body {
     font-size: 14px;
 }
 
+/* Info button tooltip */
+.info-btn {
+    position: relative;
+}
+
+.info-tooltip {
+    display: none;
+    position: absolute;
+    bottom: 100%;
+    right: 0;
+    margin-bottom: 8px;
+    background: white;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-md);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    min-width: 320px;
+    padding: 0;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.tooltip-header {
+    background: var(--primary-blue);
+    color: white;
+    padding: 12px 16px;
+    font-weight: 600;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    font-size: 14px;
+}
+
+.tooltip-content {
+    padding: 12px 16px;
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+.tooltip-link {
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.tooltip-link:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.tooltip-link strong {
+    display: block;
+    color: var(--gray-900);
+    margin-bottom: 4px;
+    font-size: 13px;
+}
+
+.tooltip-link a {
+    color: var(--primary-blue);
+    text-decoration: none;
+    font-size: 12px;
+}
+
+.tooltip-link a:hover {
+    text-decoration: underline;
+}
+
 @keyframes pulse {
     0%, 100% {
         opacity: 1;
