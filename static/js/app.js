@@ -3774,7 +3774,16 @@ window.updateWelcomeMessages = function(displayName) {
     window.userDisplayName = displayName;
 };
 
-console.log('✅ Global window.openSettingsPanel and openAccountPanel registered');
+// Make openSettingsModal globally available
+window.openSettingsModal = function() {
+    if (window.app && window.app.openSettingsModal) {
+        window.app.openSettingsModal();
+    } else {
+        console.error('❌ App not initialized yet - window.app is undefined');
+    }
+};
+
+console.log('✅ Global window.openSettingsPanel, openAccountPanel, and openSettingsModal registered');
 
 // Function to load dynamic models and API key status
 KnowledgeBaseApp.prototype.loadDynamicModels = async function() {
