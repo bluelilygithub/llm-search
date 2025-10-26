@@ -1478,10 +1478,12 @@ def generate_followup_questions():
         project_id = data.get('project_id')
         conversation_id = data.get('conversation_id')
         is_math_project = data.get('is_math_project', False)
+        app.logger.info(f"🔍 Initial is_math_project from frontend: {is_math_project}")
         
         # Try to determine if this is a math project
         # First, check the frontend's is_math_project flag
         if not is_math_project and (project_id or conversation_id):
+            app.logger.info(f"🔍 Frontend says NOT math, trying to detect from DB: project_id={project_id}, conversation_id={conversation_id}")
             try:
                 from models import Project, Conversation
                 import uuid
@@ -1498,14 +1500,22 @@ def generate_followup_questions():
                 
                 # Now check if the project has math fields
                 if project_id:
+                    app.logger.info(f"🔍 Fetching project from DB: project_id={project_id}")
                     try:
                         project_uuid = uuid.UUID(project_id)
                         project = Project.query.get(project_uuid)
                         if project:
+                            app.logger.info(f"🔍 Found project: math_level={project.math_level}, math_subject={project.math_subject}")
                             is_math_project = bool(project.math_level or project.math_subject)
-                            app.logger.info(f"Detected math project from DB: math_level={project.math_level}, math_subject={project.math_subject}")
+                            app.logger.info(f"✅ Detected math project from DB: is_math_project={is_math_project}")
+                        else:
+                            app.logger.info(f"❌ Project not found in DB")
                     except Exception as e:
-                        app.logger.debug(f"Could not fetch project from DB: {e}")
+                        app.logger.error(f"❌ Could not fetch project from DB: {e}")
+                        import traceback
+                        app.logger.error(traceback.format_exc())
+                else:
+                    app.logger.info(f"🔍 No project_id provided, cannot check DB")
             except Exception as e:
                 app.logger.debug(f"Could not determine if math project: {e}")
         
