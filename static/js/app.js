@@ -994,8 +994,8 @@
         try {
             // Detect if current project is a math project
             const isMathProject = this.currentProject && (
-                this.currentProject.math_level || 
-                this.currentProject.math_subject
+                (this.currentProject.math_level && this.currentProject.math_level.trim()) || 
+                (this.currentProject.math_subject && this.currentProject.math_subject.trim())
             );
             
             console.log('🔍 Follow-up question debugging:');
