@@ -9024,6 +9024,16 @@ KnowledgeBaseApp.prototype.promptCreateNewProject = function() {
     }
 };
 
+// Show project setup modal
+KnowledgeBaseApp.prototype.showProjectSetupModal = function() {
+    if (window.showProjectSetupModal) {
+        window.showProjectSetupModal();
+    } else {
+        console.error('Project setup modal not available');
+        alert('Project setup modal is not available. Please refresh the page and try again.');
+    }
+};
+
 // Show success notification
 KnowledgeBaseApp.prototype.showSuccessNotification = function(message) {
     const notification = document.createElement('div');
