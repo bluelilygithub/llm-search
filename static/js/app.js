@@ -8316,9 +8316,10 @@ KnowledgeBaseApp.prototype.showConversationsView = function() {
         return;
     }
     
-    // Remove any existing main-view elements from content-area
-    const existingMainViews = contentArea.querySelectorAll('.main-view');
-    existingMainViews.forEach(view => view.remove());
+    // Clear all existing content from content-area to prevent layout conflicts
+    while (contentArea.firstChild) {
+        contentArea.removeChild(contentArea.firstChild);
+    }
     
     // Hide the dynamic-content wrapper (contains chat and context panel)
     const dynamicContent = document.getElementById('dynamic-content');
@@ -8394,10 +8395,20 @@ KnowledgeBaseApp.prototype.showProjectsView = function() {
         return;
     }
     
-    // Remove any existing main-view elements from content-area
-    const existingMainViews = contentArea.querySelectorAll('.main-view');
-    console.log('🔵 Removing existing views:', existingMainViews.length);
-    existingMainViews.forEach(view => view.remove());
+    // Clear all existing content from content-area to prevent layout conflicts
+    console.log('🔵 Clearing existing content from content-area');
+    console.log('🔵 Content-area children before clear:', Array.from(contentArea.children).map(child => ({
+        tagName: child.tagName,
+        className: child.className,
+        id: child.id
+    })));
+    
+    // Remove all children from content-area
+    while (contentArea.firstChild) {
+        contentArea.removeChild(contentArea.firstChild);
+    }
+    
+    console.log('🔵 Content-area cleared, children count:', contentArea.children.length);
     
     // Hide the dynamic-content wrapper (contains chat and context panel)
     const dynamicContent = document.getElementById('dynamic-content');
