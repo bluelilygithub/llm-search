@@ -210,8 +210,17 @@ window.saveProjectSetup = async function() {
     }
     
     // Collect form data
+    const pendingName = window.app.pendingProjectName;
+    const spanName = document.getElementById('project-setup-name')?.textContent;
+    const finalName = pendingName || spanName || 'Unnamed Project';
+    
+    console.log('🔍 Project name debugging:');
+    console.log('  - pendingProjectName:', pendingName);
+    console.log('  - project-setup-name span:', spanName);
+    console.log('  - final name:', finalName);
+    
     const projectData = {
-        name: window.app.pendingProjectName || document.getElementById('project-setup-name')?.textContent || 'Unnamed Project',
+        name: finalName,
         agent_name: document.getElementById('agent-name').value.trim(),
         agent_role: document.getElementById('agent-role').value.trim(),
         agent_personality: document.getElementById('agent-personality').value.trim(),
