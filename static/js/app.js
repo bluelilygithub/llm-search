@@ -3528,16 +3528,30 @@ KnowledgeBaseApp.prototype.openSettingsPanel = function() {
         console.error('Settings panel element not found');
         return;
     }
-        panel.classList.add('open');
-        // Initialize settings when panel opens
-        setTimeout(() => {
-            // No longer loading models list in settings panel - use Model Management modal instead
-            // this.loadModelsForSettingsPanel();
+    
+    // Check if user is admin and add appropriate class
+    this.checkAdminStatus().then(isAdmin => {
+        if (isAdmin) {
+            panel.classList.add('admin-user');
+        } else {
+            panel.classList.remove('admin-user');
+        }
+    }).catch(error => {
+        console.error('Error checking admin status:', error);
+        // Default to non-admin if check fails
+        panel.classList.remove('admin-user');
+    });
+    
+    panel.classList.add('open');
+    // Initialize settings when panel opens
+    setTimeout(() => {
+        // No longer loading models list in settings panel - use Model Management modal instead
+        // this.loadModelsForSettingsPanel();
         // Show Users tab if admin
         window.showUsersTabIfAdmin();
         // Load account info
         window.loadAccountInfo();
-        }, 200);
+    }, 200);
 };
 
 // Make openSettingsPanel available globally for onclick handlers

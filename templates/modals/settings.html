@@ -15,7 +15,7 @@
 
         <!-- Settings Navigation -->
         <div class="settings-nav">
-            <button class="settings-nav-btn" data-section="models" onclick="openModelManagement()">
+            <button class="settings-nav-btn admin-only" data-section="models" onclick="openModelManagement()">
                 <i class="fas fa-robot"></i>
                 Manage Models
             </button>
@@ -23,15 +23,15 @@
                 <i class="fas fa-user"></i>
                 Profile
             </button>
-            <button class="settings-nav-btn" data-section="templates" onclick="showSettingsSection('templates')">
+            <button class="settings-nav-btn admin-only" data-section="templates" onclick="showSettingsSection('templates')">
                 <i class="fas fa-file-alt"></i>
                 Templates
             </button>
-            <button class="settings-nav-btn" data-section="personas" onclick="showSettingsSection('personas')">
+            <button class="settings-nav-btn admin-only" data-section="personas" onclick="showSettingsSection('personas')">
                 <i class="fas fa-user-tie"></i>
                 Personas
             </button>
-            <button class="settings-nav-btn" data-section="users" onclick="showSettingsSection('users')" id="users-nav-btn">
+            <button class="settings-nav-btn admin-only" data-section="users" onclick="showSettingsSection('users')" id="users-nav-btn">
                 <i class="fas fa-users"></i>
                 Users
             </button>
@@ -51,7 +51,7 @@
             </div>
 
             <!-- Templates Section -->
-            <div class="settings-section" id="templates-section">
+            <div class="settings-section admin-only" id="templates-section">
                 <div class="section-header">
                     <h3>Template Management</h3>
                     <p>Create, edit, and organize your prompt templates.</p>
@@ -78,7 +78,7 @@
             </div>
 
             <!-- Personas Section -->
-            <div class="settings-section" id="personas-section">
+            <div class="settings-section admin-only" id="personas-section">
                 <div class="section-header">
                     <h3>Persona Management</h3>
                     <p>Create, edit, and organize AI agent personas for your projects.</p>
@@ -105,7 +105,7 @@
             </div>
 
             <!-- User Management Section (Admin Only) -->
-            <div class="settings-section" id="users-section">
+            <div class="settings-section admin-only" id="users-section">
                 <div class="section-header">
                     <h3>User Management</h3>
                     <p>Create and manage user accounts for your team.</p>

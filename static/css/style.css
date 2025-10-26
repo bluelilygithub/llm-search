@@ -3246,6 +3246,20 @@ body:has(.modal-overlay[style*="display: flex"]) .settings-panel-overlay {
     width: 20px;
 }
 
+/* Hide admin-only sections by default */
+.admin-only {
+    display: none !important;
+}
+
+/* Show admin-only sections for admin users */
+.admin-user .admin-only {
+    display: block !important;
+}
+
+.admin-user .settings-nav-btn.admin-only {
+    display: flex !important;
+}
+
 /* Settings Content */
 .settings-content {
     flex: 1;
