@@ -9343,7 +9343,8 @@ KnowledgeBaseApp.prototype.showChatView = function() {
     }
     
     // Find the existing chat-messages-container instead of creating a new one
-    let chatMessagesContainer = contentArea.querySelector('.chat-messages-container');
+    let chatMessagesContainer = contentArea.querySelector('.chat-messages-container') || 
+                                document.querySelector('.chat-messages-container');
     console.log('showChatView: Looking for existing chat container:', chatMessagesContainer);
     
     if (!chatMessagesContainer) {
