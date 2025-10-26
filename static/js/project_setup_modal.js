@@ -123,10 +123,19 @@ function populateProjectEditForm(project) {
 
 // Function to edit existing project template
 window.editProjectTemplate = function(projectId) {
-    console.log('editProjectTemplate called with:', projectId);
-    // Use the comprehensive edit modal instead of just template editing
-    window.showProjectEditModal(projectId);
+    console.log('✅ editProjectTemplate function called with projectId:', projectId);
+    console.log('✅ showProjectEditModal function available:', typeof window.showProjectEditModal);
+    
+    if (typeof window.showProjectEditModal === 'function') {
+        window.showProjectEditModal(projectId);
+    } else {
+        console.error('❌ showProjectEditModal function not available');
+        alert('Project editing functionality is not available. Please refresh the page and try again.');
+    }
 };
+
+// Debug: Log when the function is defined
+console.log('✅ editProjectTemplate function defined:', typeof window.editProjectTemplate);
 
 window.closeProjectSetup = function() {
     const modal = document.getElementById('project-setup-modal');

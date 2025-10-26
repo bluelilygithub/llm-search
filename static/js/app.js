@@ -3816,6 +3816,23 @@ window.openUserSettings = function() {
     }
 };
 
+// Fallback function for editProjectTemplate in case of loading issues
+if (typeof window.editProjectTemplate === 'undefined') {
+    window.editProjectTemplate = function(projectId) {
+        console.log('🔄 Fallback editProjectTemplate called with projectId:', projectId);
+        console.log('🔄 Checking if showProjectEditModal is available...');
+        
+        if (typeof window.showProjectEditModal === 'function') {
+            console.log('✅ showProjectEditModal found, calling it');
+            window.showProjectEditModal(projectId);
+        } else {
+            console.error('❌ showProjectEditModal not available, showing alert');
+            alert('Project editing functionality is loading. Please wait a moment and try again.');
+        }
+    };
+    console.log('✅ Fallback editProjectTemplate function defined');
+}
+
 console.log('✅ Global window.openSettingsPanel, openAccountPanel, and openSettingsModal registered');
 
 // Function to load dynamic models and API key status
