@@ -54,6 +54,49 @@
             if (typeof window.showProjectEditModal === 'function' && !window.projectModalScriptLoaded) {
                 console.log('⚠️ TIMING ISSUE: Functions exist but flags not set');
                 console.log('⚠️ This suggests script loaded but had an error before setting flags');
+                console.log('⚠️ Replacing potentially broken function with working fallback');
+                
+                // Replace the potentially broken function with a working fallback
+                window.showProjectEditModal = function(projectId) {
+                    console.log('🔄 Working fallback showProjectEditModal called with:', projectId);
+                    
+                    // Try to open the project setup modal directly
+                    const modal = document.getElementById('project-setup-modal');
+                    if (modal) {
+                        console.log('✅ Opening project setup modal directly');
+                        modal.style.display = 'flex';
+                        modal.classList.add('show');
+                        document.body.classList.add('modal-open');
+                        document.body.style.overflow = 'hidden';
+                        
+                        // Load project data and populate form
+                        fetch(`/api/projects/${projectId}`)
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success) {
+                                    const project = data.project;
+                                    document.getElementById('project-setup-name').textContent = project.name;
+                                    document.getElementById('project-name').value = project.name || '';
+                                    document.getElementById('project-description').value = project.description || '';
+                                    document.getElementById('project-persona').value = project.persona || '';
+                                    document.getElementById('project-subject').value = project.subject || '';
+                                    document.getElementById('project-year-level').value = project.year_level || '';
+                                    document.getElementById('project-learning-objectives').value = project.learning_objectives || '';
+                                    document.getElementById('project-assessment-criteria').value = project.assessment_criteria || '';
+                                    
+                                    // Set edit mode
+                                    modal.setAttribute('data-project-id', projectId);
+                                    document.getElementById('projectSetupModalLabel').innerHTML = '<i class="fas fa-edit"></i> Edit Project - <span id="project-setup-name"></span>';
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error loading project:', error);
+                                alert('Failed to load project data');
+                            });
+                    } else {
+                        alert('Project editing functionality is temporarily unavailable. Please refresh the page and try again.');
+                    }
+                };
             }
             
             // Fallback: If script didn't load, create working fallback
