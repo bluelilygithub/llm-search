@@ -8439,10 +8439,18 @@ KnowledgeBaseApp.prototype.showProjectsView = function() {
     console.log('🔵 Projects content visibility:', window.getComputedStyle(projectsContent).visibility);
     console.log('🔵 Projects content offsetHeight:', projectsContent.offsetHeight);
     console.log('🔵 Content-area children count:', contentArea.children.length);
+    
+    // Check if projects-grid element exists immediately after creation
+    const projectsGrid = document.getElementById('projects-grid');
+    console.log('🔵 projects-grid element after creation:', projectsGrid);
+    
     console.log('🔵 Calling loadProjectsGrid');
     
     // Use requestAnimationFrame to ensure DOM is ready before loading projects
     requestAnimationFrame(() => {
+        console.log('🔵 In requestAnimationFrame, checking projects-grid again');
+        const projectsGridAfterRAF = document.getElementById('projects-grid');
+        console.log('🔵 projects-grid element after RAF:', projectsGridAfterRAF);
         this.loadProjectsGrid();
     });
 };
@@ -8688,18 +8696,23 @@ KnowledgeBaseApp.prototype.renderConversationsGrid = function(conversations, con
 };
 
 // Render projects in grid format
-KnowledgeBaseApp.prototype.renderProjectsGrid = function(projects) {
-    console.log('🟢 renderProjectsGrid called with', projects.length, 'projects');
+KnowledgeBaseApp.prototype.renderProjectsGrid = function(projects, retryCount = 0) {
+    console.log('🟢 renderProjectsGrid called with', projects.length, 'projects, retry:', retryCount);
     const container = document.getElementById('projects-grid');
     console.log('🟢 projects-grid container:', container);
     
     if (!container) {
-        console.error('❌ projects-grid container not found, retrying...');
-        // Retry after DOM is ready
-        requestAnimationFrame(() => {
-            this.renderProjectsGrid(projects);
-        });
-        return;
+        if (retryCount < 5) {
+            console.error('❌ projects-grid container not found, retrying...', retryCount + 1);
+            // Retry after DOM is ready with exponential backoff
+            setTimeout(() => {
+                this.renderProjectsGrid(projects, retryCount + 1);
+            }, 100 * Math.pow(2, retryCount)); // 100ms, 200ms, 400ms, 800ms, 1600ms
+            return;
+        } else {
+            console.error('❌ projects-grid container not found after 5 retries, giving up');
+            return;
+        }
     }
     
     if (!projects.length) {
