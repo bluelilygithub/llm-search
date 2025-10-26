@@ -3774,10 +3774,23 @@ window.updateWelcomeMessages = function(displayName) {
     window.userDisplayName = displayName;
 };
 
-// Make openSettingsModal globally available
+// Make openSettingsModal globally available for admin users
 window.openSettingsModal = function() {
     if (window.app && window.app.openSettingsModal) {
         window.app.openSettingsModal();
+    } else {
+        console.error('❌ App not initialized yet - window.app is undefined');
+    }
+};
+
+// Open settings panel for regular users (profile section)
+window.openUserSettings = function() {
+    if (window.app && window.app.openSettingsPanel) {
+        window.app.openSettingsPanel();
+        // Ensure profile section is active
+        setTimeout(() => {
+            showSettingsSection('account');
+        }, 100);
     } else {
         console.error('❌ App not initialized yet - window.app is undefined');
     }
