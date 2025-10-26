@@ -1114,32 +1114,40 @@ def create_project():
 def get_project(project_id):
     """Get individual project details"""
     try:
+        app.logger.info(f"Getting project {project_id}")
         project_uuid = uuid.UUID(project_id)
         project = Project.query.get_or_404(project_uuid)
+        app.logger.info(f"Found project: {project.name}")
         
         # Check if user has access to this project
         current_user_id = get_user_identity()['user_id']
+        app.logger.info(f"Current user ID: {current_user_id}, Project user ID: {project.user_id}")
         if project.user_id != current_user_id:
+            app.logger.warning(f"Access denied for user {current_user_id} to project {project_id}")
             return jsonify({'error': 'Access denied'}), 403
         
+        project_data = {
+            'id': str(project.id),
+            'name': project.name,
+            'description': project.description,
+            'persona': project.persona,
+            'subject': project.subject,
+            'year_level': project.year_level,
+            'learning_objectives': project.learning_objectives,
+            'assessment_criteria': project.assessment_criteria,
+            'template_data': project.template_data,
+            'created_at': project.created_at.isoformat() if project.created_at else None,
+            'updated_at': project.updated_at.isoformat() if project.updated_at else None
+        }
+        
+        app.logger.info(f"Returning project data for {project.name}")
         return jsonify({
             'success': True,
-            'project': {
-                'id': str(project.id),
-                'name': project.name,
-                'description': project.description,
-                'persona': project.persona,
-                'subject': project.subject,
-                'year_level': project.year_level,
-                'learning_objectives': project.learning_objectives,
-                'assessment_criteria': project.assessment_criteria,
-                'template_data': project.template_data,
-                'created_at': project.created_at.isoformat() if project.created_at else None,
-                'updated_at': project.updated_at.isoformat() if project.updated_at else None
-            }
+            'project': project_data
         })
         
-    except ValueError:
+    except ValueError as e:
+        app.logger.error(f"Invalid project ID {project_id}: {str(e)}")
         return jsonify({'error': 'Invalid project ID'}), 400
     except Exception as e:
         app.logger.error(f"Error getting project {project_id}: {str(e)}")
