@@ -5796,13 +5796,22 @@ mark {
 }
 
 .btn-danger {
-    background: #ef4444;
+    padding: var(--spacing-md) var(--spacing-xl);
+    background-color: #dc2626;
     color: white;
-    border: 1px solid #dc2626;
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-base);
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-sm);
 }
 
 .btn-danger:hover {
-    background: #dc2626;
+    background-color: #b91c1c;
 }
 
 .btn-info {
