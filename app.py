@@ -2085,15 +2085,26 @@ Please use this context information appropriately when responding to user questi
                 is_math_project = True
         
         if is_math_project:
-            app.logger.info(f"Math project detected ({project.name}), fetching NSW Math curriculum content")
-            math_curriculum_content = fetch_nsw_math_curriculum_content()
-            if math_curriculum_content:
+            app.logger.info(f"Math project detected ({project.name}), loading math curriculum from database")
+            
+            # Load math curriculum context items from database
+            from models import ContextItem
+            math_context_items = ContextItem.query.filter(
+                ContextItem.user_id == 'system',
+                ContextItem.is_active == True,
+                ContextItem.extra_data['category'].astext == 'math'
+            ).all()
+            
+            if math_context_items:
+                math_context_parts = []
+                for item in math_context_items:
+                    math_context_parts.append(f"### {item.name}\n\n{item.content_text}")
+                
                 math_context_msg = f"""NSW Mathematics K-10 Curriculum Context:
 
-You have access to the official NSW Mathematics K-10 Syllabus (2022) content. Use this curriculum information to provide educationally appropriate responses that align with NSW educational standards and stage-appropriate content.
+You have access to the official NSW Mathematics K-10 Syllabus (2022) content and related learning resources. Use this information to provide educationally appropriate responses that align with NSW educational standards and stage-appropriate content.
 
-Curriculum Content:
-{math_curriculum_content}
+{''.join(math_context_parts)}
 
 ---
 When responding to math questions, please:
@@ -2107,9 +2118,9 @@ When responding to math questions, please:
                     'role': 'system',
                     'content': math_context_msg
                 })
-                app.logger.info("Added NSW Math curriculum context to Math project")
+                app.logger.info(f"Added {len(math_context_items)} math curriculum context item(s) from database to Math project")
             else:
-                app.logger.warning("Failed to fetch NSW Math curriculum content")
+                app.logger.warning("No math curriculum context items found in database")
         
         # Fallback to old context_documents system for backward compatibility
         import json
