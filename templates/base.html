@@ -36,7 +36,7 @@
     
     <script src="static/js/csrf.js"></script>
     <script src="static/js/app.js"></script>
-    <script src="static/js/project_setup_modal.js?v={{ range(1000, 9999) | random }}" onerror="console.error('❌ Failed to load project_setup_modal.js:', this.src)"></script>
+    <script src="static/js/project_setup_modal.js?v={{ range(1000, 9999) | random }}&t={{ range(10000, 99999) | random }}" onerror="console.error('❌ Failed to load project_setup_modal.js:', this.src)"></script>
     <script>
         // Test script to verify script loading works
         console.log('🧪 Test script loaded successfully');
@@ -56,12 +56,48 @@
                 console.log('⚠️ This suggests script loaded but had an error before setting flags');
             }
             
-            // Fallback: If script didn't load, create minimal functions
+            // Fallback: If script didn't load, create working fallback
             if (typeof window.showProjectEditModal !== 'function') {
                 console.log('⚠️ Creating fallback showProjectEditModal function');
                 window.showProjectEditModal = function(projectId) {
                     console.log('🔄 Fallback showProjectEditModal called with:', projectId);
-                    alert('Project editing functionality is temporarily unavailable. Please refresh the page and try again.');
+                    
+                    // Try to open the project setup modal directly
+                    const modal = document.getElementById('project-setup-modal');
+                    if (modal) {
+                        console.log('✅ Opening project setup modal directly');
+                        modal.style.display = 'flex';
+                        modal.classList.add('show');
+                        document.body.classList.add('modal-open');
+                        document.body.style.overflow = 'hidden';
+                        
+                        // Load project data and populate form
+                        fetch(`/api/projects/${projectId}`)
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success) {
+                                    const project = data.project;
+                                    document.getElementById('project-setup-name').textContent = project.name;
+                                    document.getElementById('project-name').value = project.name || '';
+                                    document.getElementById('project-description').value = project.description || '';
+                                    document.getElementById('project-persona').value = project.persona || '';
+                                    document.getElementById('project-subject').value = project.subject || '';
+                                    document.getElementById('project-year-level').value = project.year_level || '';
+                                    document.getElementById('project-learning-objectives').value = project.learning_objectives || '';
+                                    document.getElementById('project-assessment-criteria').value = project.assessment_criteria || '';
+                                    
+                                    // Set edit mode
+                                    modal.setAttribute('data-project-id', projectId);
+                                    document.getElementById('projectSetupModalLabel').innerHTML = '<i class="fas fa-edit"></i> Edit Project - <span id="project-setup-name"></span>';
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error loading project:', error);
+                                alert('Failed to load project data');
+                            });
+                    } else {
+                        alert('Project editing functionality is temporarily unavailable. Please refresh the page and try again.');
+                    }
                 };
             }
         }, 1000);
