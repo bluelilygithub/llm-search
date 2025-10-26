@@ -184,7 +184,7 @@ window.closeProjectSetup = function() {
     }
 };
 
-window.saveProjectSetup = function() {
+window.saveProjectSetup = async function() {
     if (!window.app || (!window.app.pendingProjectName && !window.app.editingProjectId)) {
         console.error('No pending project name or editing project ID found');
         return;
