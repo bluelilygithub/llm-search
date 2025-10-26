@@ -1,6 +1,10 @@
 // Project Setup Modal Functions
 console.log('🚀 project_setup_modal.js starting to load...');
 
+// Immediate test to verify script loading
+window.projectModalScriptLoaded = true;
+console.log('✅ project_setup_modal.js script loaded successfully');
+
 window.showProjectSetupModal = function() {
     const modal = document.getElementById('project-setup-modal');
     const projectNameSpan = document.getElementById('project-setup-name');
