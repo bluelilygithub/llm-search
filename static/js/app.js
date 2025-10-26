@@ -7457,8 +7457,8 @@ function showInfoTooltip(button) {
         // Get button position
         const rect = button.getBoundingClientRect();
         
-        // Position tooltip to the right of the button
-        tooltip.style.top = (rect.top - tooltip.offsetHeight / 2 + rect.height / 2) + 'px';
+        // Position tooltip to the right and top of the button
+        tooltip.style.top = (rect.top) + 'px';
         tooltip.style.left = (rect.right + 8) + 'px';
         
         tooltip.style.display = 'block';
