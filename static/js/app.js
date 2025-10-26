@@ -8254,6 +8254,12 @@ KnowledgeBaseApp.prototype.showHomeView = async function() {
                         <h3>View All Conversations</h3>
                         <p>Browse through your conversation history</p>
                     </div>
+
+                    <div class="action-card" onclick="window.app.showProjectsView()">
+                        <i class="fas fa-folder-plus"></i>
+                        <h3>Create New Project</h3>
+                        <p>Organize your conversations into focused projects</p>
+                    </div>
                 </div>
             </div>
         </div>
