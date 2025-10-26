@@ -353,7 +353,8 @@ document.addEventListener('DOMContentLoaded', function() {
     margin: 0;
     font-size: 1.25rem;
     font-weight: 600;
-    color: #495057;
+    color: #374151;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -421,7 +422,9 @@ document.addEventListener('DOMContentLoaded', function() {
     border: none;
     padding: 1rem 1.25rem;
     font-weight: 600;
-    color: #495057;
+    color: #374151;
+    font-size: 0.875rem;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     display: flex;
     align-items: center;
     gap: 0.75rem;
@@ -498,37 +501,45 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 .form-group label {
-    font-weight: 500;
-    color: #495057;
+    font-weight: 600;
+    color: #374151;
     margin-bottom: 0.5rem;
     display: block;
+    font-size: 0.875rem;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    line-height: 1.25;
 }
 
 .form-control {
     width: 100%;
-    padding: 0.5rem 0.75rem;
-    border: 1px solid #ced4da;
-    border-radius: 0.375rem;
+    padding: 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
     font-size: 0.875rem;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     line-height: 1.5;
+    color: #374151;
+    background-color: #ffffff;
     transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
 
 .form-control:focus {
-    border-color: #80bdff;
+    border-color: #3b82f6;
     outline: 0;
-    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 .form-control::placeholder {
-    color: #6c757d;
+    color: #9ca3af;
     opacity: 1;
 }
 
 .form-text {
     font-size: 0.75rem;
-    color: #6c757d;
+    color: #6b7280;
     margin-top: 0.25rem;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    line-height: 1.4;
 }
 
 .footer-actions {
@@ -539,11 +550,12 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 .btn {
-    padding: 0.5rem 1rem;
+    padding: 0.75rem 1rem;
     border: 1px solid transparent;
-    border-radius: 0.375rem;
+    border-radius: 0.5rem;
     font-size: 0.875rem;
     font-weight: 500;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     text-align: center;
     cursor: pointer;
     transition: all 0.15s ease-in-out;
