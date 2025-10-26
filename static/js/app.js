@@ -8243,6 +8243,20 @@ KnowledgeBaseApp.prototype.showHomeView = async function() {
             
             <div class="home-content">
                 <div class="home-actions">
+                    <!-- Row 1: Projects -->
+                    <div class="action-card" onclick="window.app.showProjectsView()">
+                        <i class="fas fa-folder-plus"></i>
+                        <h3>Create New Project</h3>
+                        <p>Organize your chats into focused projects</p>
+                    </div>
+
+                    <div class="action-card" onclick="window.app.showProjectsView()">
+                        <i class="fas fa-folder-open"></i>
+                        <h3>View All Projects</h3>
+                        <p>Browse and manage your existing projects</p>
+                    </div>
+
+                    <!-- Row 2: Chats -->
                     <div class="action-card" onclick="window.app.startNewChatAndFocus()">
                         <i class="fas fa-comments"></i>
                         <h3>Start New Chat</h3>
@@ -8251,14 +8265,8 @@ KnowledgeBaseApp.prototype.showHomeView = async function() {
 
                     <div class="action-card" onclick="window.app.showConversationsView()">
                         <i class="fas fa-clock"></i>
-                        <h3>View All Conversations</h3>
-                        <p>Browse through your conversation history</p>
-                    </div>
-
-                    <div class="action-card" onclick="window.app.showProjectsView()">
-                        <i class="fas fa-folder-plus"></i>
-                        <h3>Create New Project</h3>
-                        <p>Organize your conversations into focused projects</p>
+                        <h3>View All Chats</h3>
+                        <p>Browse through your chat history</p>
                     </div>
                 </div>
             </div>

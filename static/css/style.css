@@ -4905,8 +4905,18 @@ body:has(.modal-overlay[style*="display: flex"]) .settings-panel-overlay {
 
 .home-actions {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(2, 1fr);
     gap: var(--spacing-lg);
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+    .home-actions {
+        grid-template-columns: 1fr;
+        max-width: 100%;
+        padding: 0 var(--spacing-md);
+    }
 }
 
 .action-card {
