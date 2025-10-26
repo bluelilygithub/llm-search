@@ -7380,7 +7380,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Ensure context button is visible
     setTimeout(() => {
         if (window.app && window.app.ensureContextButtonVisible) {
-            window.app.ensureContextButtonVisible();
+        window.app.ensureContextButtonVisible();
         }
     }, 100);
     
@@ -7404,30 +7404,30 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Load dynamic models into main dropdown
     if (window.app && window.app.loadMainModelDropdown) {
-        window.app.loadMainModelDropdown();
+    window.app.loadMainModelDropdown();
     }
     
     // Load templates from API (or fallback)
     if (window.app && window.app.loadTemplates) {
-        window.app.loadTemplates().then(() => {
-            console.log('📋 Available templates:', Object.keys(TEMPLATE_DATA).length);
-            console.log('📋 Template IDs:', Object.keys(TEMPLATE_DATA));
-        });
+    window.app.loadTemplates().then(() => {
+        console.log('📋 Available templates:', Object.keys(TEMPLATE_DATA).length);
+        console.log('📋 Template IDs:', Object.keys(TEMPLATE_DATA));
+    });
     }
     
     // Check admin status and show/hide settings buttons
     if (window.showUsersTabIfAdmin) {
-        window.showUsersTabIfAdmin();
+    window.showUsersTabIfAdmin();
     }
     
     // Initialize image paste functionality
     if (window.app && window.app.setupImagePaste) {
-        window.app.setupImagePaste();
+    window.app.setupImagePaste();
     }
     
     // Initialize keyboard shortcuts
     if (window.app && window.app.setupKeyboardShortcuts) {
-        window.app.setupKeyboardShortcuts();
+    window.app.setupKeyboardShortcuts();
     }
     
     // Only attach event handlers if elements exist
@@ -7435,18 +7435,18 @@ document.addEventListener('DOMContentLoaded', () => {
     if (newChatBtn) {
         newChatBtn.onclick = function() {
             if (window.app && window.app.startNewChat) {
-                window.app.startNewChat();
+        window.app.startNewChat();
             }
-        };
+    };
     }
     
     const settingsBtn = document.getElementById('settings-btn');
     if (settingsBtn) {
         settingsBtn.onclick = function() {
             if (window.app && window.app.openSettingsModal) {
-                window.app.openSettingsModal();
+        window.app.openSettingsModal();
             }
-        };
+    };
     }
 });
 
@@ -9501,7 +9501,7 @@ KnowledgeBaseApp.prototype.showChatView = function() {
             const contentArea = document.getElementById('content-area');
             if (!contentArea) {
                 console.error('showChatView: content-area not found - cannot create structure');
-                return;
+        return;
             }
             
             // Create dynamic-content
