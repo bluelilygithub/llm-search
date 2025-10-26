@@ -1121,8 +1121,8 @@ def get_project(project_id):
         
         # Check if user has access to this project
         current_user_id = get_user_identity()['user_id']
-        app.logger.info(f"Current user ID: {current_user_id}, Project user ID: {project.user_id}")
-        if project.user_id != current_user_id:
+        app.logger.info(f"Current user ID: {current_user_id}, Project owner ID: {project.owner_id}")
+        if project.owner_id != current_user_id:
             app.logger.warning(f"Access denied for user {current_user_id} to project {project_id}")
             return jsonify({'error': 'Access denied'}), 403
         
