@@ -174,6 +174,57 @@
                 };
             }
             
+            // Add missing closeProjectSetup function
+            if (typeof window.closeProjectSetup !== 'function') {
+                console.log('⚠️ Creating fallback closeProjectSetup function');
+                window.closeProjectSetup = function() {
+                    console.log('🔄 Fallback closeProjectSetup called');
+                    const modal = document.getElementById('project-setup-modal');
+                    if (modal) {
+                        modal.style.display = 'none';
+                        modal.classList.remove('show');
+                        document.body.classList.remove('modal-open');
+                        document.body.style.overflow = '';
+                        console.log('✅ Modal closed successfully');
+                    }
+                };
+            }
+            
+            // Add missing saveProjectSetup function
+            if (typeof window.saveProjectSetup !== 'function') {
+                console.log('⚠️ Creating fallback saveProjectSetup function');
+                window.saveProjectSetup = function() {
+                    console.log('🔄 Fallback saveProjectSetup called');
+                    const modal = document.getElementById('project-setup-modal');
+                    const projectId = modal ? modal.getAttribute('data-project-id') : null;
+                    
+                    if (projectId) {
+                        // Edit mode - update existing project
+                        console.log('📝 Updating existing project:', projectId);
+                        updateProjectWithSetup(projectId);
+                    } else {
+                        // Create mode - create new project
+                        console.log('➕ Creating new project');
+                        createProjectWithSetup();
+                    }
+                };
+            }
+            
+            // Add helper functions for project operations
+            if (typeof window.createProjectWithSetup !== 'function') {
+                window.createProjectWithSetup = function() {
+                    console.log('🔄 Fallback createProjectWithSetup called');
+                    alert('Project creation functionality is temporarily unavailable. Please refresh the page and try again.');
+                };
+            }
+            
+            if (typeof window.updateProjectWithSetup !== 'function') {
+                window.updateProjectWithSetup = function(projectId) {
+                    console.log('🔄 Fallback updateProjectWithSetup called with:', projectId);
+                    alert('Project update functionality is temporarily unavailable. Please refresh the page and try again.');
+                };
+            }
+            
             // Also ensure showProjectSetupModal exists for project creation
             if (typeof window.showProjectSetupModal !== 'function') {
                 console.log('⚠️ Creating fallback showProjectSetupModal function');
