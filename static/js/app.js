@@ -8,14 +8,16 @@
         this.mediaRecorder = null;
         this.currentProject = null; // Added for project management
         this.projects = []; // Initialize projects array
+        this.currentView = 'home'; // Set default view to home
         
         // Setup global error handling
         this.setupGlobalErrorHandling();
         
-        this.init();
+        // Initialize asynchronously
+        this.init().catch(console.error);
     }
 
-    init() {
+    async init() {
         this.loadProjects(); // Load projects on app initialization
         this.loadConversations();
         this.setupEventListeners();
@@ -23,6 +25,9 @@
         
         // Set "No Project" as active by default
         this.updateProjectSelectionUI(null);
+        
+        // Show home view by default instead of chat interface
+        await this.showHomeView();
         
         // No longer showing model instructions automatically
     }
