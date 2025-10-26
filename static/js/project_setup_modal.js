@@ -121,6 +121,11 @@ function populateProjectEditForm(project) {
     }
 }
 
+// Global function for editing project template/profile
+window.editProjectTemplate = function(projectId) {
+    window.showProjectEditModal(projectId);
+};
+
 window.closeProjectSetup = function() {
     const modal = document.getElementById('project-setup-modal');
     if (modal) {

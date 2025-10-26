@@ -3816,11 +3816,6 @@ window.openUserSettings = function() {
     }
 };
 
-// Global function for editing project template/profile
-window.editProjectTemplate = function(projectId) {
-    window.showProjectEditModal(projectId);
-};
-
 console.log('✅ Global window.openSettingsPanel, openAccountPanel, and openSettingsModal registered');
 
 // Function to load dynamic models and API key status
