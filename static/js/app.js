@@ -9346,6 +9346,9 @@ KnowledgeBaseApp.prototype.showChatView = function() {
     let chatMessagesContainer = contentArea.querySelector('.chat-messages-container') || 
                                 document.querySelector('.chat-messages-container');
     console.log('showChatView: Looking for existing chat container:', chatMessagesContainer);
+    console.log('showChatView: All elements with chat-messages-container class:', document.querySelectorAll('.chat-messages-container'));
+    console.log('showChatView: dynamic-content element:', document.getElementById('dynamic-content'));
+    console.log('showChatView: dynamic-content children:', document.getElementById('dynamic-content') ? Array.from(document.getElementById('dynamic-content').children) : 'null');
     
     if (!chatMessagesContainer) {
         console.error('showChatView: Chat container not found in HTML template - this should not happen');

@@ -243,18 +243,25 @@ window.saveProjectSetup = async function() {
 
 async function updateProjectWithSetup(projectId, projectData) {
     try {
-        // Update project profile
+        // Update project profile - use correct field names that match the Project model
         const profileResponse = await fetch(`/projects/${projectId}/profile`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 name: projectData.name,
                 description: projectData.description,
-                persona: projectData.persona,
-                subject: projectData.subject,
-                year_level: projectData.year_level,
-                learning_objectives: projectData.learning_objectives,
-                assessment_criteria: projectData.assessment_criteria
+                agent_name: projectData.agent_name,
+                agent_role: projectData.agent_role,
+                agent_personality: projectData.agent_personality,
+                primary_goal: projectData.primary_goal,
+                context_background: projectData.context_background,
+                user_role: projectData.user_role,
+                output_format: projectData.output_format,
+                math_level: projectData.math_level,
+                math_subject: projectData.math_subject,
+                learning_style: projectData.learning_style,
+                difficulty_preference: projectData.difficulty_preference,
+                persona_id: projectData.persona_id
             })
         });
         
