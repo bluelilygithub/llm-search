@@ -1573,13 +1573,16 @@ Return only the 3 questions, one per line, without numbering or bullet points.""
         questions = questions[:3]
         
         # For math projects, add 2 additional math-specific questions
+        app.logger.info(f"🔍 Checking if math project: is_math_project={is_math_project}")
         if is_math_project:
             math_specific_questions = [
                 "Provide a practical example of how this solution is applied in everyday life",
                 "Offer to provide a simplified, detailed solution for someone who is much younger and less experienced"
             ]
             questions.extend(math_specific_questions)
-            app.logger.info(f"Added {len(math_specific_questions)} math-specific questions - total now {len(questions)}")
+            app.logger.info(f"✅ Added {len(math_specific_questions)} math-specific questions - total now {len(questions)}")
+        else:
+            app.logger.info(f"❌ NOT a math project - not adding math-specific questions")
         
         app.logger.info(f"Returning follow-up questions: {questions}")
         return jsonify({'questions': questions}), 200
