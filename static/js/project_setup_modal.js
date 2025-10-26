@@ -65,7 +65,12 @@ window.showProjectEditModal = function(projectId) {
         .then(data => {
             if (data.success) {
                 const project = data.project;
+                console.log('🔍 Modal opening debugging:');
+                console.log('  - project.name:', project.name);
+                console.log('  - projectNameSpan element:', projectNameSpan);
+                console.log('  - Setting span textContent to:', project.name);
                 projectNameSpan.textContent = project.name;
+                console.log('  - Span textContent after setting:', projectNameSpan.textContent);
                 
                 // Populate form with existing project data
                 populateProjectEditForm(project);
