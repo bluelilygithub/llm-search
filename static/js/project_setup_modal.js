@@ -1,4 +1,6 @@
 // Project Setup Modal Functions
+console.log('🚀 project_setup_modal.js starting to load...');
+
 window.showProjectSetupModal = function() {
     const modal = document.getElementById('project-setup-modal');
     const projectNameSpan = document.getElementById('project-setup-name');
@@ -85,6 +87,12 @@ window.showProjectEditModal = function(projectId) {
             alert('Failed to load project data');
             closeProjectSetup();
         });
+};
+
+// Test function to verify script loading
+window.testProjectModal = function() {
+    console.log('✅ testProjectModal function is available');
+    return 'Script loaded successfully';
 };
 
 function populateProjectEditForm(project) {

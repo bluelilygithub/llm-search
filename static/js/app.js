@@ -3828,6 +3828,7 @@ if (typeof window.editProjectTemplate === 'undefined') {
         const tryEditProject = () => {
             retryCount++;
             console.log(`🔄 Retry ${retryCount}/${maxRetries} - Checking for showProjectEditModal...`);
+            console.log(`🔄 testProjectModal available:`, typeof window.testProjectModal);
             
             if (typeof window.showProjectEditModal === 'function') {
                 console.log('✅ showProjectEditModal found, calling it');
@@ -3837,6 +3838,7 @@ if (typeof window.editProjectTemplate === 'undefined') {
                 setTimeout(tryEditProject, 100);
             } else {
                 console.error('❌ showProjectEditModal not available after retries');
+                console.error('❌ Script loading issue detected');
                 alert('Project editing functionality is not available. Please refresh the page and try again.');
             }
         };
