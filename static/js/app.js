@@ -9352,7 +9352,31 @@ KnowledgeBaseApp.prototype.showChatView = function() {
     
     if (!chatMessagesContainer) {
         console.error('showChatView: Chat container not found in HTML template - this should not happen');
-        return;
+        console.log('showChatView: Attempting to create chat container manually');
+        
+        // Try to create the chat container manually
+        const dynamicContent = document.getElementById('dynamic-content');
+        if (dynamicContent) {
+            const chatContainer = document.createElement('div');
+            chatContainer.className = 'chat-messages-container';
+            chatContainer.innerHTML = `
+                <div class="chat-messages" id="chat-messages">
+                    <div class="empty-state" id="empty-state">
+                        <div class="empty-state-icon">
+                            <i class="fas fa-comments"></i>
+                        </div>
+                        <h2 class="empty-state-title">New Conversation</h2>
+                        <p class="empty-state-description">Start a conversation or search your knowledge base.</p>
+                    </div>
+                </div>
+            `;
+            dynamicContent.appendChild(chatContainer);
+            console.log('showChatView: Created chat container manually');
+            chatMessagesContainer = chatContainer;
+        } else {
+            console.error('showChatView: Cannot create chat container - dynamic-content not found');
+            return;
+        }
     } else {
         console.log('showChatView: Using existing chat container from template');
         

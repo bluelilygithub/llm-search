@@ -193,8 +193,13 @@ window.closeProjectSetup = function() {
 };
 
 window.saveProjectSetup = async function() {
+    console.log('🔄 saveProjectSetup called');
+    
     if (!window.app || (!window.app.pendingProjectName && !window.app.editingProjectId)) {
         console.error('No pending project name or editing project ID found');
+        console.log('window.app:', window.app);
+        console.log('pendingProjectName:', window.app?.pendingProjectName);
+        console.log('editingProjectId:', window.app?.editingProjectId);
         return;
     }
     
@@ -242,6 +247,9 @@ window.saveProjectSetup = async function() {
 };
 
 async function updateProjectWithSetup(projectId, projectData) {
+    console.log('🔄 updateProjectWithSetup called with projectId:', projectId);
+    console.log('🔄 projectData:', projectData);
+    
     try {
         // Update project profile - use correct field names that match the Project model
         const profileResponse = await fetch(`/projects/${projectId}/profile`, {
