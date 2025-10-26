@@ -8252,7 +8252,7 @@ KnowledgeBaseApp.prototype.showHomeView = async function() {
             <div class="home-content">
                 <div class="home-actions">
                     <!-- Row 1: Projects -->
-                    <div class="action-card" onclick="window.app.showProjectsView()">
+                    <div class="action-card" onclick="window.app.promptCreateNewProject()">
                         <i class="fas fa-folder-plus"></i>
                         <h3>Create New Project</h3>
                         <p>Organize your chats into focused projects</p>
@@ -8721,8 +8721,23 @@ KnowledgeBaseApp.prototype.renderProjectsGrid = function(projects, retryCount = 
             }, 100 * Math.pow(2, retryCount)); // 100ms, 200ms, 400ms, 800ms, 1600ms
             return;
         } else {
-            console.error('❌ projects-grid container not found after 5 retries, giving up');
-            return;
+            console.error('❌ projects-grid container not found after 5 retries, creating fallback');
+            // Create fallback container in content-area
+            const contentArea = document.getElementById('content-area');
+            if (contentArea) {
+                console.log('🔧 Creating fallback projects-grid container');
+                const fallbackContainer = document.createElement('div');
+                fallbackContainer.id = 'projects-grid';
+                fallbackContainer.className = 'projects-grid-view';
+                contentArea.appendChild(fallbackContainer);
+                console.log('🔧 Fallback container created:', fallbackContainer);
+                // Retry with the new container
+                this.renderProjectsGrid(projects, 0);
+                return;
+            } else {
+                console.error('❌ content-area not found, cannot create fallback');
+                return;
+            }
         }
     }
     
