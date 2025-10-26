@@ -8311,15 +8311,30 @@ KnowledgeBaseApp.prototype.showConversationsView = function() {
     
     // Get the content-area where views should be rendered
     const contentArea = document.getElementById('content-area');
+    console.log('🔵 [Conversations] content-area:', contentArea);
+    console.log('🔵 [Conversations] content-area parent:', contentArea?.parentElement);
+    console.log('🔵 [Conversations] content-area children:', contentArea?.children.length);
+    console.log('🔵 [Conversations] document ready state:', document.readyState);
     if (!contentArea) {
-        console.error('content-area div not found');
+        console.error('❌ [Conversations] content-area div not found');
+        console.error('❌ [Conversations] Available elements with "content" in id:', 
+            Array.from(document.querySelectorAll('[id*="content"]')).map(el => el.id));
         return;
     }
     
     // Clear all existing content from content-area to prevent layout conflicts
+    console.log('🔵 [Conversations] Clearing existing content from content-area');
+    console.log('🔵 [Conversations] Content-area children before clear:', Array.from(contentArea.children).map(child => ({
+        tagName: child.tagName,
+        className: child.className,
+        id: child.id
+    })));
+    
     while (contentArea.firstChild) {
         contentArea.removeChild(contentArea.firstChild);
     }
+    
+    console.log('🔵 [Conversations] Content-area cleared, children count:', contentArea.children.length);
     
     // Hide the dynamic-content wrapper (contains chat and context panel)
     const dynamicContent = document.getElementById('dynamic-content');
@@ -8368,9 +8383,34 @@ KnowledgeBaseApp.prototype.showConversationsView = function() {
     `;
     
     // Insert into content-area to maintain proper layout
+    console.log('🔵 [Conversations] Appending conversations content to content-area');
     contentArea.appendChild(conversationsContent);
+    console.log('🔵 [Conversations] Conversations view HTML appended');
+    console.log('🔵 [Conversations] Conversations content element:', conversationsContent);
+    console.log('🔵 [Conversations] Conversations content display:', window.getComputedStyle(conversationsContent).display);
+    console.log('🔵 [Conversations] Conversations content visibility:', window.getComputedStyle(conversationsContent).visibility);
+    console.log('🔵 [Conversations] Conversations content offsetHeight:', conversationsContent.offsetHeight);
+    console.log('🔵 [Conversations] Content-area children count:', contentArea.children.length);
     
-    this.loadConversationsGrid();
+    // Check if conversations-grid element exists immediately after creation
+    const conversationsGrid = document.getElementById('conversations-grid');
+    console.log('🔵 [Conversations] conversations-grid element after creation:', conversationsGrid);
+    console.log('🔵 [Conversations] conversations-grid parent:', conversationsGrid?.parentElement);
+    console.log('🔵 [Conversations] conversations-grid siblings:', conversationsGrid?.parentElement?.children.length);
+    
+    // Also check if the element exists in the DOM tree
+    console.log('🔵 [Conversations] All elements with conversations-grid id:', document.querySelectorAll('#conversations-grid'));
+    
+    console.log('🔵 [Conversations] Calling loadConversationsGrid');
+    
+    // Use requestAnimationFrame to ensure DOM is ready before loading conversations
+    requestAnimationFrame(() => {
+        console.log('🔵 [Conversations] In requestAnimationFrame, checking conversations-grid again');
+        const conversationsGridAfterRAF = document.getElementById('conversations-grid');
+        console.log('🔵 [Conversations] conversations-grid element after RAF:', conversationsGridAfterRAF);
+        console.log('🔵 [Conversations] conversations-grid parent after RAF:', conversationsGridAfterRAF?.parentElement);
+        this.loadConversationsGrid();
+    });
 };
 
 // Show projects grid view in main content area
@@ -8568,17 +8608,22 @@ KnowledgeBaseApp.prototype.loadConversationsGrid = async function() {
         this.renderConversationsGrid(conversations);
     } catch (error) {
         console.error('Failed to load conversations:', error);
-        document.getElementById('conversations-grid').innerHTML = `
-            <div class="empty-state-large">
-                <i class="fas fa-exclamation-triangle"></i>
-                <h3>Failed to load conversations</h3>
-                <p>Please try again later.</p>
-                <button class="view-action-btn" onclick="window.app.loadConversationsGrid()">
-                    <i class="fas fa-refresh"></i>
-                    Retry
-                </button>
-            </div>
-        `;
+        const container = document.getElementById('conversations-grid');
+        if (container) {
+            container.innerHTML = `
+                <div class="empty-state-large">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h3>Failed to load conversations</h3>
+                    <p>Please try again later.</p>
+                    <button class="view-action-btn" onclick="window.app.loadConversationsGrid()">
+                        <i class="fas fa-refresh"></i>
+                        Retry
+                    </button>
+                </div>
+            `;
+        } else {
+            console.error('❌ [Conversations] conversations-grid container not found for error display');
+        }
     }
 };
 
@@ -8657,8 +8702,39 @@ KnowledgeBaseApp.prototype.loadProjectConversationsGrid = async function(project
 };
 
 // Render conversations in grid format
-KnowledgeBaseApp.prototype.renderConversationsGrid = function(conversations, containerId = 'conversations-grid') {
+KnowledgeBaseApp.prototype.renderConversationsGrid = function(conversations, containerId = 'conversations-grid', retryCount = 0) {
+    console.log('🟢 [Conversations] renderConversationsGrid called with', conversations.length, 'conversations, retry:', retryCount);
     const container = document.getElementById(containerId);
+    console.log('🟢 [Conversations] conversations-grid container:', container);
+    
+    if (!container) {
+        if (retryCount < 5) {
+            console.error('❌ [Conversations] conversations-grid container not found, retrying...', retryCount + 1);
+            // Retry after DOM is ready with exponential backoff
+            setTimeout(() => {
+                this.renderConversationsGrid(conversations, containerId, retryCount + 1);
+            }, 100 * Math.pow(2, retryCount)); // 100ms, 200ms, 400ms, 800ms, 1600ms
+            return;
+        } else {
+            console.error('❌ [Conversations] conversations-grid container not found after 5 retries, creating fallback');
+            // Create fallback container in content-area
+            const contentArea = document.getElementById('content-area');
+            if (contentArea) {
+                console.log('🔧 [Conversations] Creating fallback conversations-grid container');
+                const fallbackContainer = document.createElement('div');
+                fallbackContainer.id = containerId;
+                fallbackContainer.className = 'conversations-grid';
+                contentArea.appendChild(fallbackContainer);
+                console.log('🔧 [Conversations] Fallback container created:', fallbackContainer);
+                // Retry with the new container
+                this.renderConversationsGrid(conversations, containerId, 0);
+                return;
+            } else {
+                console.error('❌ [Conversations] content-area not found, cannot create fallback');
+                return;
+            }
+        }
+    }
     
     if (!conversations.length) {
         // Determine the correct onclick handler based on project context
