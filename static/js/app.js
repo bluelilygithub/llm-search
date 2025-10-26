@@ -2212,12 +2212,12 @@
         if (query.includes('@')) {
             console.warn('⚠️ Email detected in search field, clearing it');
             if (searchField) searchField.value = '';
-            this.clearSearchResults();
+            await this.clearSearchResults();
             return;
         }
         
         if (!query) {
-            this.clearSearchResults();
+            await this.clearSearchResults();
             return;
         }
         
@@ -2234,7 +2234,7 @@
         } catch (error) {
             console.error('Search error:', error);
             this.showErrorNotification('Search failed: ' + error.message);
-            this.clearSearchResults();
+            await this.clearSearchResults();
         }
     }
     
@@ -2526,20 +2526,20 @@
     }
     
     // Open conversation from search results (switches to chat view first)
-    openConversationFromSearch(conversationId) {
+    async openConversationFromSearch(conversationId) {
         // Set current view to chat BEFORE clearing search
         // This prevents showHomeView() from being called
         this.currentView = 'chat';
         
         // Clear search first
-        this.clearSearchResults();
+        await this.clearSearchResults();
         
         // Load the conversation directly - it will handle showing the correct view
         this.loadConversation(conversationId);
     }
 
     // Clear search results and restore normal view
-    clearSearchResults() {
+    async clearSearchResults() {
         const searchInput = document.getElementById('conversation-search');
         if (searchInput) {
             searchInput.value = '';
@@ -2558,7 +2558,7 @@
             this.showConversationsView();
         } else {
             // Default to home view
-            this.showHomeView();
+            await this.showHomeView();
         }
     }
 
@@ -8167,7 +8167,7 @@ KnowledgeBaseApp.prototype.startNewChatAndFocus = function() {
 };
 
 // Show home view in main content area
-KnowledgeBaseApp.prototype.showHomeView = function() {
+KnowledgeBaseApp.prototype.showHomeView = async function() {
     this.currentView = 'home';
     const contentArea = document.getElementById('content-area');
     
@@ -8202,8 +8202,17 @@ KnowledgeBaseApp.prototype.showHomeView = function() {
     const homeContent = document.createElement('div');
     homeContent.className = 'main-view';
     
-    // Get user display name for welcome message
-    const displayName = window.userDisplayName || 'Your';
+    // Get user display name for welcome message - fetch it dynamically
+    let displayName = 'Your';
+    try {
+        const response = await fetch('/auth/status');
+        const data = await response.json();
+        if (data.authenticated) {
+            displayName = data.display_name || data.username || 'Your';
+        }
+    } catch (error) {
+        console.log('Could not fetch user data for welcome message:', error);
+    }
     
     homeContent.innerHTML = `
             <nav class="breadcrumb">

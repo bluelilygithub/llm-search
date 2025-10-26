@@ -95,7 +95,7 @@ class UIController {
     /**
      * Show a specific view
      */
-    showView(viewName, data = null) {
+    async showView(viewName, data = null) {
         if (this.currentView === viewName) {
             return;
         }
@@ -105,7 +105,7 @@ class UIController {
 
         switch (viewName) {
             case 'home':
-                this.showHomeView(data);
+                await this.showHomeView(data);
                 break;
             case 'chat':
                 this.showChatView(data);
@@ -121,7 +121,7 @@ class UIController {
                 break;
             default:
                 console.warn(`Unknown view: ${viewName}`);
-                this.showHomeView();
+                await this.showHomeView();
         }
 
         this.updateNavigation(viewName);
@@ -148,7 +148,7 @@ class UIController {
     /**
      * Show home view
      */
-    showHomeView(data) {
+    async showHomeView(data) {
         const mainContent = this.getElement('main-content');
         if (!mainContent) return;
 
