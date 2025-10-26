@@ -1109,6 +1109,41 @@ def create_project():
     
     return jsonify(response_data), 201
 
+@app.route('/api/projects/<project_id>', methods=['GET'])
+@auth.login_required
+def get_project(project_id):
+    """Get individual project details"""
+    try:
+        project_uuid = uuid.UUID(project_id)
+        project = Project.query.get_or_404(project_uuid)
+        
+        # Check if user has access to this project
+        if not project.is_accessible_by_current_user():
+            return jsonify({'error': 'Access denied'}), 403
+        
+        return jsonify({
+            'success': True,
+            'project': {
+                'id': str(project.id),
+                'name': project.name,
+                'description': project.description,
+                'persona': project.persona,
+                'subject': project.subject,
+                'year_level': project.year_level,
+                'learning_objectives': project.learning_objectives,
+                'assessment_criteria': project.assessment_criteria,
+                'template_data': project.template_data,
+                'created_at': project.created_at.isoformat() if project.created_at else None,
+                'updated_at': project.updated_at.isoformat() if project.updated_at else None
+            }
+        })
+        
+    except ValueError:
+        return jsonify({'error': 'Invalid project ID'}), 400
+    except Exception as e:
+        app.logger.error(f"Error getting project {project_id}: {str(e)}")
+        return jsonify({'error': 'Failed to get project'}), 500
+
 @app.route('/projects/<project_id>/template', methods=['GET'])
 @auth.login_required
 def get_project_template(project_id):
