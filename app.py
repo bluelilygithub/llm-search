@@ -1132,25 +1132,29 @@ def get_project(project_id):
             app.logger.warning(f"Access denied for user {current_user_id} to project {project_id}")
             return jsonify({'error': 'Access denied'}), 403
         
-        project_data = {
-            'id': str(project.id),
-            'name': project.name,
-            'description': project.description,
-            'persona': project.persona,
-            'subject': project.subject,
-            'year_level': project.year_level,
-            'learning_objectives': project.learning_objectives,
-            'assessment_criteria': project.assessment_criteria,
-            'template_data': project.template_data,
-            'created_at': project.created_at.isoformat() if project.created_at else None,
-            'updated_at': project.updated_at.isoformat() if project.updated_at else None
-        }
-        
-        app.logger.info(f"Returning project data for {project.name}")
-        return jsonify({
-            'success': True,
-            'project': project_data
-        })
+        try:
+            project_data = {
+                'id': str(project.id),
+                'name': project.name or '',
+                'description': project.description or '',
+                'persona': project.persona or '',
+                'subject': project.subject or '',
+                'year_level': project.year_level or '',
+                'learning_objectives': project.learning_objectives or '',
+                'assessment_criteria': project.assessment_criteria or '',
+                'template_data': project.template_data or {},
+                'created_at': project.created_at.isoformat() if project.created_at else None,
+                'updated_at': project.updated_at.isoformat() if project.updated_at else None
+            }
+            
+            app.logger.info(f"Returning project data for {project.name}")
+            return jsonify({
+                'success': True,
+                'project': project_data
+            })
+        except Exception as e:
+            app.logger.error(f"Error creating project data: {str(e)}")
+            return jsonify({'error': 'Failed to create project data'}), 500
         
     except ValueError as e:
         app.logger.error(f"Invalid project ID {project_id}: {str(e)}")
