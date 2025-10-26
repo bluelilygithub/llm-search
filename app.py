@@ -1118,7 +1118,8 @@ def get_project(project_id):
         project = Project.query.get_or_404(project_uuid)
         
         # Check if user has access to this project
-        if not project.is_accessible_by_current_user():
+        current_user_id = get_user_identity()['user_id']
+        if project.user_id != current_user_id:
             return jsonify({'error': 'Access denied'}), 403
         
         return jsonify({
