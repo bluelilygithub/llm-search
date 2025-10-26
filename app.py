@@ -2089,11 +2089,28 @@ Please use this context information appropriately when responding to user questi
             
             # Load math curriculum context items from database
             from models import ContextItem
-            math_context_items = ContextItem.query.filter(
-                ContextItem.user_id == 'system',
-                ContextItem.is_active == True,
-                ContextItem.extra_data['category'].astext == 'math'
-            ).all()
+            from sqlalchemy import text
+            
+            # Check database type and use appropriate JSON filtering
+            try:
+                # Try PostgreSQL JSONB syntax
+                math_context_items = ContextItem.query.filter(
+                    ContextItem.user_id == 'system',
+                    ContextItem.is_active == True
+                ).filter(
+                    text("extra_data->>'category' = 'math'")
+                ).all()
+            except Exception as e:
+                # Fallback: load all system items and filter in Python
+                app.logger.warning(f"Database JSON filtering failed, using fallback: {e}")
+                all_system_items = ContextItem.query.filter(
+                    ContextItem.user_id == 'system',
+                    ContextItem.is_active == True
+                ).all()
+                math_context_items = [
+                    item for item in all_system_items 
+                    if item.extra_data and item.extra_data.get('category') == 'math'
+                ]
             
             if math_context_items:
                 math_context_parts = []
