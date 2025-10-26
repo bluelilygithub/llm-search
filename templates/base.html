@@ -90,14 +90,27 @@
                                 if (data.success && data.project) {
                                     const project = data.project;
                                     document.getElementById('project-setup-name').textContent = project.name;
-                                    document.getElementById('project-name').value = project.name || '';
-                                    document.getElementById('project-description').value = project.description || '';
-                                    document.getElementById('agent-name').value = project.agent_name || '';
-                                    document.getElementById('agent-role').value = project.agent_role || '';
-                                    document.getElementById('agent-personality').value = project.agent_personality || '';
-                                    document.getElementById('project-goal-steps').value = project.goal_steps || '';
-                                    document.getElementById('project-rules-do').value = project.rules_do || '';
-                                    document.getElementById('project-rules-dont').value = project.rules_dont || '';
+                                    
+                                    // Populate form fields with actual field IDs from the HTML
+                                    const agentNameField = document.getElementById('agent-name');
+                                    const agentRoleField = document.getElementById('agent-role');
+                                    const agentPersonalityField = document.getElementById('agent-personality');
+                                    const primaryGoalField = document.getElementById('primary-goal');
+                                    const goalStepsField = document.getElementById('goal-steps');
+                                    const rulesDoField = document.getElementById('rules-do');
+                                    const rulesDontField = document.getElementById('rules-dont');
+                                    const contextBackgroundField = document.getElementById('context-background');
+                                    const outputFormatField = document.getElementById('output-format');
+                                    
+                                    if (agentNameField) agentNameField.value = project.agent_name || '';
+                                    if (agentRoleField) agentRoleField.value = project.agent_role || '';
+                                    if (agentPersonalityField) agentPersonalityField.value = project.agent_personality || '';
+                                    if (primaryGoalField) primaryGoalField.value = project.primary_goal || '';
+                                    if (goalStepsField) goalStepsField.value = project.goal_steps || '';
+                                    if (rulesDoField) rulesDoField.value = project.rules_do || '';
+                                    if (rulesDontField) rulesDontField.value = project.rules_dont || '';
+                                    if (contextBackgroundField) contextBackgroundField.value = project.context_background || '';
+                                    if (outputFormatField) outputFormatField.value = project.output_format || '';
                                     
                                     console.log('✅ Project data populated successfully');
                                 } else {
@@ -151,14 +164,27 @@
                                 if (data.success && data.project) {
                                     const project = data.project;
                                     document.getElementById('project-setup-name').textContent = project.name;
-                                    document.getElementById('project-name').value = project.name || '';
-                                    document.getElementById('project-description').value = project.description || '';
-                                    document.getElementById('agent-name').value = project.agent_name || '';
-                                    document.getElementById('agent-role').value = project.agent_role || '';
-                                    document.getElementById('agent-personality').value = project.agent_personality || '';
-                                    document.getElementById('project-goal-steps').value = project.goal_steps || '';
-                                    document.getElementById('project-rules-do').value = project.rules_do || '';
-                                    document.getElementById('project-rules-dont').value = project.rules_dont || '';
+                                    
+                                    // Populate form fields with actual field IDs from the HTML
+                                    const agentNameField = document.getElementById('agent-name');
+                                    const agentRoleField = document.getElementById('agent-role');
+                                    const agentPersonalityField = document.getElementById('agent-personality');
+                                    const primaryGoalField = document.getElementById('primary-goal');
+                                    const goalStepsField = document.getElementById('goal-steps');
+                                    const rulesDoField = document.getElementById('rules-do');
+                                    const rulesDontField = document.getElementById('rules-dont');
+                                    const contextBackgroundField = document.getElementById('context-background');
+                                    const outputFormatField = document.getElementById('output-format');
+                                    
+                                    if (agentNameField) agentNameField.value = project.agent_name || '';
+                                    if (agentRoleField) agentRoleField.value = project.agent_role || '';
+                                    if (agentPersonalityField) agentPersonalityField.value = project.agent_personality || '';
+                                    if (primaryGoalField) primaryGoalField.value = project.primary_goal || '';
+                                    if (goalStepsField) goalStepsField.value = project.goal_steps || '';
+                                    if (rulesDoField) rulesDoField.value = project.rules_do || '';
+                                    if (rulesDontField) rulesDontField.value = project.rules_dont || '';
+                                    if (contextBackgroundField) contextBackgroundField.value = project.context_background || '';
+                                    if (outputFormatField) outputFormatField.value = project.output_format || '';
                                     
                                     console.log('✅ Project data populated successfully');
                                 } else {
