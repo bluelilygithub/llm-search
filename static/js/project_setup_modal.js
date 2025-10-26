@@ -126,17 +126,28 @@ KnowledgeBaseApp.prototype.createProjectWithSetup = async function(projectData) 
         this.addingProject = false;
         await this.loadProjects();
         
+        // Make the newly created project active immediately
+        this.currentProject = project;
+        this.currentViewProject = project;
+        this.updateProjectSelectionUI(project);
+        
         // If currently viewing projects page, refresh the main content area too
         if (this.currentView === 'projects') {
             await this.loadProjectsGrid();
         }
         
-        // Show success notification
+        // Show success notification with option to start chatting
         const hasTemplate = project.template && (project.template.agent_name || project.template.primary_goal);
         const message = hasTemplate 
-            ? `Project "${project.name}" created with custom template!`
-            : `Project "${project.name}" created successfully!`;
+            ? `Project "${project.name}" created with custom template! Ready to start chatting.`
+            : `Project "${project.name}" created successfully! Ready to start chatting.`;
         this.showSuccessNotification(message);
+        
+        // Automatically switch to chat view to encourage immediate usage
+        setTimeout(() => {
+            this.showChatView();
+            this.startNewChat();
+        }, 1000); // Small delay to let user see the success message
         
     } catch (error) {
         console.error('Failed to create project:', error);

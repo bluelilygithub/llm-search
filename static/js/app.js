@@ -472,16 +472,29 @@
                 body: JSON.stringify({ name })
             });
             if (!response.ok) throw new Error('Failed to create project');
+            const project = await response.json();
+            
             this.addingProject = false;
             await this.loadProjects();
+            
+            // Make the newly created project active immediately
+            this.currentProject = project;
+            this.currentViewProject = project;
+            this.updateProjectSelectionUI(project);
             
             // If currently viewing projects page, refresh the main content area too
             if (this.currentView === 'projects') {
                 await this.loadProjectsGrid();
             }
             
-            // Show success notification
-            this.showSuccessNotification(`Project "${name}" created successfully!`);
+            // Show success notification with option to start chatting
+            this.showSuccessNotification(`Project "${name}" created successfully! Ready to start chatting.`);
+            
+            // Automatically switch to chat view to encourage immediate usage
+            setTimeout(() => {
+                this.showChatView();
+                this.startNewChat();
+            }, 1000); // Small delay to let user see the success message
         } catch (error) {
             console.error('Failed to create project:', error);
         }
