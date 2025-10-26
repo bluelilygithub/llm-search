@@ -1860,6 +1860,21 @@ def is_math_question(message):
     message_lower = message.lower()
     return any(keyword in message_lower for keyword in math_keywords)
 
+@app.route('/test-script')
+def test_script():
+    """Test route to verify script file is accessible"""
+    try:
+        import os
+        script_path = os.path.join(app.static_folder, 'js', 'project_setup_modal.js')
+        if os.path.exists(script_path):
+            with open(script_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            return f"Script exists and is {len(content)} characters long. First 200 chars: {content[:200]}"
+        else:
+            return f"Script not found at: {script_path}"
+    except Exception as e:
+        return f"Error: {str(e)}"
+
 @app.route('/chat', methods=['POST'])
 @limiter.limit("30 per minute")
 @auth.access_required(allow_free=True)
