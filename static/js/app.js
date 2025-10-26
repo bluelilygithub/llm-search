@@ -8371,8 +8371,13 @@ KnowledgeBaseApp.prototype.showProjectsView = function() {
     // Get the content-area where views should be rendered
     const contentArea = document.getElementById('content-area');
     console.log('🔵 content-area:', contentArea);
+    console.log('🔵 content-area parent:', contentArea?.parentElement);
+    console.log('🔵 content-area children:', contentArea?.children.length);
+    console.log('🔵 document ready state:', document.readyState);
     if (!contentArea) {
         console.error('❌ content-area div not found');
+        console.error('❌ Available elements with "content" in id:', 
+            Array.from(document.querySelectorAll('[id*="content"]')).map(el => el.id));
         return;
     }
     
@@ -8443,6 +8448,11 @@ KnowledgeBaseApp.prototype.showProjectsView = function() {
     // Check if projects-grid element exists immediately after creation
     const projectsGrid = document.getElementById('projects-grid');
     console.log('🔵 projects-grid element after creation:', projectsGrid);
+    console.log('🔵 projects-grid parent:', projectsGrid?.parentElement);
+    console.log('🔵 projects-grid siblings:', projectsGrid?.parentElement?.children.length);
+    
+    // Also check if the element exists in the DOM tree
+    console.log('🔵 All elements with projects-grid id:', document.querySelectorAll('#projects-grid'));
     
     console.log('🔵 Calling loadProjectsGrid');
     
@@ -8451,6 +8461,7 @@ KnowledgeBaseApp.prototype.showProjectsView = function() {
         console.log('🔵 In requestAnimationFrame, checking projects-grid again');
         const projectsGridAfterRAF = document.getElementById('projects-grid');
         console.log('🔵 projects-grid element after RAF:', projectsGridAfterRAF);
+        console.log('🔵 projects-grid parent after RAF:', projectsGridAfterRAF?.parentElement);
         this.loadProjectsGrid();
     });
 };
