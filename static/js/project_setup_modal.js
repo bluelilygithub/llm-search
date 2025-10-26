@@ -76,6 +76,12 @@ window.showProjectEditModal = function(projectId) {
                 // Store project ID for update
                 modal.setAttribute('data-project-id', projectId);
                 
+                // Set editing project ID on app for save function
+                if (window.app) {
+                    window.app.editingProjectId = projectId;
+                    console.log('✅ Set editingProjectId:', projectId);
+                }
+                
                 // Focus on first input
                 setTimeout(() => {
                     const firstInput = modal.querySelector('input, textarea');
@@ -205,7 +211,7 @@ window.saveProjectSetup = async function() {
     
     // Collect form data
     const projectData = {
-        name: window.app.pendingProjectName,
+        name: window.app.pendingProjectName || document.getElementById('project-setup-name')?.textContent || 'Unnamed Project',
         agent_name: document.getElementById('agent-name').value.trim(),
         agent_role: document.getElementById('agent-role').value.trim(),
         agent_personality: document.getElementById('agent-personality').value.trim(),
