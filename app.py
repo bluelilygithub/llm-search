@@ -1133,6 +1133,7 @@ def get_project(project_id):
             return jsonify({'error': 'Access denied'}), 403
         
         try:
+            app.logger.info(f"🔍 Backend debugging - project.name: '{project.name}' (type: {type(project.name)})")
             project_data = {
                 'id': str(project.id),
                 'name': project.name or '',
