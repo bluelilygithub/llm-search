@@ -2,9 +2,15 @@
 window.showProjectSetupModal = function() {
     const modal = document.getElementById('project-setup-modal');
     const projectNameSpan = document.getElementById('project-setup-name');
+    const modalTitle = document.getElementById('projectSetupModalLabel');
     
     if (modal && window.app && window.app.pendingProjectName) {
+        // Reset modal title for create mode
+        modalTitle.innerHTML = '<i class="fas fa-cogs"></i> Project Setup - <span id="project-setup-name"></span>';
         projectNameSpan.textContent = window.app.pendingProjectName;
+        
+        // Remove edit mode attributes
+        modal.removeAttribute('data-project-id');
         
         // Show modal with proper display and classes
         modal.style.display = 'flex';
@@ -26,6 +32,94 @@ window.showProjectSetupModal = function() {
         console.error('Modal element not found or no pending project name');
     }
 };
+
+window.showProjectEditModal = function(projectId) {
+    const modal = document.getElementById('project-setup-modal');
+    const projectNameSpan = document.getElementById('project-setup-name');
+    const modalTitle = document.getElementById('projectSetupModalLabel');
+    
+    if (!modal) {
+        console.error('Project setup modal not found');
+        return;
+    }
+    
+    // Change modal title to indicate edit mode
+    modalTitle.innerHTML = '<i class="fas fa-edit"></i> Edit Project - <span id="project-setup-name"></span>';
+    projectNameSpan.textContent = 'Loading...';
+    
+    // Show modal
+    modal.style.display = 'flex';
+    modal.classList.add('show');
+    document.body.classList.add('modal-open');
+    document.body.style.overflow = 'hidden';
+    
+    // Load project data
+    fetch(`/api/projects/${projectId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const project = data.project;
+                projectNameSpan.textContent = project.name;
+                
+                // Populate form with existing project data
+                populateProjectEditForm(project);
+                
+                // Load personas into dropdown
+                loadPersonasIntoDropdown();
+                
+                // Store project ID for update
+                modal.setAttribute('data-project-id', projectId);
+                
+                // Focus on first input
+                setTimeout(() => {
+                    const firstInput = modal.querySelector('input, textarea');
+                    if (firstInput) firstInput.focus();
+                }, 100);
+            } else {
+                alert('Failed to load project data: ' + (data.error || 'Unknown error'));
+                closeProjectSetup();
+            }
+        })
+        .catch(error => {
+            console.error('Error loading project:', error);
+            alert('Failed to load project data');
+            closeProjectSetup();
+        });
+};
+
+function populateProjectEditForm(project) {
+    // Populate basic project information
+    document.getElementById('project-name').value = project.name || '';
+    document.getElementById('project-description').value = project.description || '';
+    document.getElementById('project-persona').value = project.persona || '';
+    document.getElementById('project-subject').value = project.subject || '';
+    document.getElementById('project-year-level').value = project.year_level || '';
+    document.getElementById('project-learning-objectives').value = project.learning_objectives || '';
+    document.getElementById('project-assessment-criteria').value = project.assessment_criteria || '';
+    
+    // Populate template data if available
+    if (project.template_data) {
+        try {
+            const templateData = typeof project.template_data === 'string' 
+                ? JSON.parse(project.template_data) 
+                : project.template_data;
+            
+            document.getElementById('project-goal-steps').value = Array.isArray(templateData.goal_steps) 
+                ? templateData.goal_steps.join('\n') 
+                : templateData.goal_steps || '';
+            
+            document.getElementById('project-rules-do').value = Array.isArray(templateData.rules_do) 
+                ? templateData.rules_do.join('\n') 
+                : templateData.rules_do || '';
+            
+            document.getElementById('project-rules-dont').value = Array.isArray(templateData.rules_dont) 
+                ? templateData.rules_dont.join('\n') 
+                : templateData.rules_dont || '';
+        } catch (e) {
+            console.error('Error parsing template data:', e);
+        }
+    }
+}
 
 window.closeProjectSetup = function() {
     const modal = document.getElementById('project-setup-modal');
@@ -94,9 +188,12 @@ window.saveProjectSetup = function() {
         }
     });
     
-    if (window.app.editingProjectId) {
-        // Update existing project template
-        window.app.updateProjectTemplate(window.app.editingProjectId, projectData);
+    const modal = document.getElementById('project-setup-modal');
+    const projectId = modal.getAttribute('data-project-id');
+    
+    if (projectId) {
+        // Update existing project
+        await updateProjectWithSetup(projectId, projectData);
     } else {
         // Create new project with setup data
         window.app.createProjectWithSetup(projectData);
@@ -105,6 +202,60 @@ window.saveProjectSetup = function() {
     // Close modal
     closeProjectSetup();
 };
+
+async function updateProjectWithSetup(projectId, projectData) {
+    try {
+        // Update project profile
+        const profileResponse = await fetch(`/projects/${projectId}/profile`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                name: projectData.name,
+                description: projectData.description,
+                persona: projectData.persona,
+                subject: projectData.subject,
+                year_level: projectData.year_level,
+                learning_objectives: projectData.learning_objectives,
+                assessment_criteria: projectData.assessment_criteria
+            })
+        });
+        
+        if (!profileResponse.ok) {
+            throw new Error('Failed to update project profile');
+        }
+        
+        // Update project template
+        const templateResponse = await fetch(`/projects/${projectId}/template`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                goal_steps: projectData.goal_steps,
+                rules_do: projectData.rules_do,
+                rules_dont: projectData.rules_dont
+            })
+        });
+        
+        if (!templateResponse.ok) {
+            throw new Error('Failed to update project template');
+        }
+        
+        // Show success message
+        if (window.app && window.app.showNotification) {
+            window.app.showNotification('Project updated successfully!', 'success');
+        }
+        
+        // Refresh projects list if visible
+        if (window.app && window.app.loadProjectsGrid) {
+            window.app.loadProjectsGrid();
+        }
+        
+    } catch (error) {
+        console.error('Error updating project:', error);
+        if (window.app && window.app.showNotification) {
+            window.app.showNotification('Failed to update project: ' + error.message, 'error');
+        }
+    }
+}
 
 // Add to KnowledgeBaseApp prototype
 KnowledgeBaseApp.prototype.showProjectSetupModal = function() {

@@ -9222,6 +9222,10 @@ KnowledgeBaseApp.prototype.renderProjectsGrid = function(projects, retryCount = 
                         <i class="fas fa-cogs"></i>
                         Setup
                     </button>
+                    <button class="view-action-btn secondary" onclick="event.stopPropagation(); window.showProjectEditModal('${project.id}')" title="Edit Project Profile">
+                        <i class="fas fa-user-edit"></i>
+                        Edit Profile
+                    </button>
                     <button class="view-action-btn secondary" onclick="event.stopPropagation(); window.app.editProject('${project.id}', '${project.name.replace(/'/g, "\\'")}')" title="Rename Project">
                         <i class="fas fa-edit"></i>
                         Rename

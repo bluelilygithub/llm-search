@@ -1151,6 +1151,70 @@ def get_project_template(project_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/projects/<project_id>/profile', methods=['PUT'])
+@auth.login_required
+def update_project_profile(project_id):
+    """Update project profile information (name, description, persona, etc.)"""
+    try:
+        project_uuid = uuid.UUID(project_id)
+        project = Project.query.get_or_404(project_uuid)
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
+        # Update project fields
+        if 'name' in data:
+            project.name = data['name'].strip()
+        
+        if 'description' in data:
+            project.description = data['description'].strip()
+        
+        if 'persona' in data:
+            project.persona = data['persona'].strip()
+        
+        if 'subject' in data:
+            project.subject = data['subject'].strip()
+        
+        if 'year_level' in data:
+            project.year_level = data['year_level'].strip()
+        
+        if 'learning_objectives' in data:
+            project.learning_objectives = data['learning_objectives'].strip()
+        
+        if 'assessment_criteria' in data:
+            project.assessment_criteria = data['assessment_criteria'].strip()
+        
+        # Update timestamp
+        from datetime import datetime
+        project.updated_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        app.logger.info(f"Updated project profile: {project.name}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Project profile updated successfully',
+            'project': {
+                'id': str(project.id),
+                'name': project.name,
+                'description': project.description,
+                'persona': project.persona,
+                'subject': project.subject,
+                'year_level': project.year_level,
+                'learning_objectives': project.learning_objectives,
+                'assessment_criteria': project.assessment_criteria
+            }
+        })
+        
+    except ValueError:
+        return jsonify({'error': 'Invalid project ID'}), 400
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error updating project profile: {str(e)}")
+        return jsonify({'error': 'Failed to update project profile'}), 500
+
 @csrf.exempt
 @app.route('/projects/<project_id>/template', methods=['PUT'])
 @auth.login_required
@@ -1898,9 +1962,9 @@ Please use this context information appropriately when responding to user questi
             except Exception as context_error:
                 app.logger.error(f"Failed to load context for conversation {conversation_id}: {context_error}")
         
-        # Add NSW Math curriculum content for math questions
-        if is_math_question(user_message):
-            app.logger.info("Math question detected, fetching NSW Math curriculum content")
+        # Add NSW Math curriculum content for Math projects
+        if project and project.persona and 'math' in project.persona.lower():
+            app.logger.info(f"Math project detected ({project.name}), fetching NSW Math curriculum content")
             math_curriculum_content = fetch_nsw_math_curriculum_content()
             if math_curriculum_content:
                 math_context_msg = f"""NSW Mathematics K-10 Curriculum Context:
@@ -1922,10 +1986,10 @@ When responding to math questions, please:
                     'role': 'system',
                     'content': math_context_msg
                 })
-                app.logger.info("Added NSW Math curriculum context to math question")
+                app.logger.info("Added NSW Math curriculum context to Math project")
             else:
                 app.logger.warning("Failed to fetch NSW Math curriculum content")
-            
+        
         # Fallback to old context_documents system for backward compatibility
         import json
         docs = getattr(conversation, 'context_documents', None)
