@@ -828,12 +828,9 @@ def delete_user(user_id):
 @app.route('/api/users/update-profile', methods=['PUT'])
 @auth.login_required
 def update_user_profile():
-    """Allow users to update their own display name and password"""
+    """Allow users to update their own profile information"""
     try:
         data = request.get_json()
-        display_name = data.get('display_name', '').strip()
-        current_password = data.get('current_password', '')
-        new_password = data.get('new_password')
         
         # Get current user from session
         user_id = session.get('user_id')
@@ -844,20 +841,54 @@ def update_user_profile():
         if not user:
             return jsonify({'error': 'User not found'}), 404
         
-        # Verify current password
+        # Extract fields from request
+        username = data.get('username', '').strip()
+        email = data.get('email', '').strip()
+        first_name = data.get('first_name', '').strip()
+        last_name = data.get('last_name', '').strip()
+        display_name = data.get('display_name', '').strip()
+        current_password = data.get('current_password', '')
+        new_password = data.get('new_password')
+        
+        # Verify current password for any changes
         if not user.check_password(current_password):
             return jsonify({'error': 'Current password is incorrect'}), 401
         
-        # Validation
+        # Validate required fields
+        if not username:
+            return jsonify({'error': 'Username is required'}), 400
+        if not email:
+            return jsonify({'error': 'Email is required'}), 400
         if not display_name:
             return jsonify({'error': 'Display name is required'}), 400
         
-        # Update display name
+        # Validate email format
+        import re
+        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        if not re.match(email_pattern, email):
+            return jsonify({'error': 'Invalid email format'}), 400
+        
+        # Check for username conflicts (if changed)
+        if username != user.username:
+            existing_user = User.query.filter(User.username == username).first()
+            if existing_user and existing_user.id != user.id:
+                return jsonify({'error': 'Username already exists'}), 400
+        
+        # Check for email conflicts (if changed)
+        if email.lower() != user.email.lower():
+            existing_user = User.query.filter(User.email == email.lower()).first()
+            if existing_user and existing_user.id != user.id:
+                return jsonify({'error': 'Email already registered'}), 400
+        
+        # Update profile fields
+        user.username = username
+        user.email = email.lower()
+        user.first_name = first_name
+        user.last_name = last_name
         user.display_name = display_name
         
         # Update password if provided
         if new_password:
-            import re
             if len(new_password) < 8:
                 return jsonify({'error': 'New password must be at least 8 characters'}), 400
             if not re.search(r'[A-Z]', new_password):
@@ -877,13 +908,21 @@ def update_user_profile():
         db.session.commit()
         
         # Update session
+        session['username'] = username
         session['display_name'] = display_name
         
         app.logger.info(f"User profile updated: {user.username}")
         
         return jsonify({
             'success': True,
-            'message': 'Profile updated successfully'
+            'message': 'Profile updated successfully',
+            'user': {
+                'username': user.username,
+                'email': user.email,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'display_name': user.display_name
+            }
         })
         
     except Exception as e:

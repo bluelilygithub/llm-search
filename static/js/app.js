@@ -4994,21 +4994,32 @@ window.loadAccountInfo = async function() {
             const userType = data.user_type || 'unknown';
             const userRole = data.user_role || 'N/A';
             const username = data.username || 'Admin';
+            const email = data.email || '';
+            const firstName = data.first_name || '';
+            const lastName = data.last_name || '';
             const displayName = data.display_name || username;
             
             accountContent.innerHTML = `
                 <div class="account-card">
                     <div class="account-section">
-                        <h4><i class="fas fa-user-circle"></i> Profile</h4>
+                        <h4><i class="fas fa-user-circle"></i> Profile Information</h4>
                         <div class="account-details">
                             <div class="detail-row">
                                 <span class="detail-label">Display Name:</span>
                                 <span class="detail-value"><strong>${displayName}</strong></span>
                             </div>
-                            ${userType !== 'admin' ? `
                             <div class="detail-row">
                                 <span class="detail-label">Username:</span>
                                 <span class="detail-value">${username}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Email:</span>
+                                <span class="detail-value">${email}</span>
+                            </div>
+                            ${firstName || lastName ? `
+                            <div class="detail-row">
+                                <span class="detail-label">Full Name:</span>
+                                <span class="detail-value">${firstName} ${lastName}</span>
                             </div>
                             ` : ''}
                             <div class="detail-row">
@@ -5046,6 +5057,10 @@ window.loadAccountInfo = async function() {
                     <div class="account-section">
                         <h4><i class="fas fa-cog"></i> Actions</h4>
                         <div class="account-actions">
+                            <button class="btn-primary" onclick="editProfile()">
+                                <i class="fas fa-edit"></i>
+                                Edit Profile
+                            </button>
                             <button class="btn-secondary" onclick="changePassword()">
                                 <i class="fas fa-key"></i>
                                 Change Password
@@ -5078,8 +5093,295 @@ function getRoleDescription(role) {
     return descriptions[role] || 'Standard user access';
 }
 
+// Global variables for profile editing
+let currentUserData = null;
+
+window.editProfile = function() {
+    // Get current user data
+    fetch('/auth/status')
+        .then(response => response.json())
+        .then(data => {
+            if (data.authenticated) {
+                currentUserData = data;
+                showProfileEditModal(data);
+            } else {
+                alert('Not authenticated');
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching user data:', error);
+            alert('Failed to load profile data');
+        });
+};
+
 window.changePassword = function() {
-    alert('Password change feature coming soon. Please contact your administrator.');
+    // Get current user data
+    fetch('/auth/status')
+        .then(response => response.json())
+        .then(data => {
+            if (data.authenticated) {
+                currentUserData = data;
+                showPasswordChangeModal(data);
+            } else {
+                alert('Not authenticated');
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching user data:', error);
+            alert('Failed to load profile data');
+        });
+};
+
+function showProfileEditModal(userData) {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+        <div class="modal-content profile-edit-modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-edit"></i> Edit Profile</h3>
+                <button class="modal-close" onclick="closeProfileModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="profile-edit-form">
+                    <div class="form-group">
+                        <label for="edit-username">Username *</label>
+                        <input type="text" id="edit-username" value="${userData.username || ''}" required>
+                        <small class="form-text">Your unique username for login</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit-email">Email *</label>
+                        <input type="email" id="edit-email" value="${userData.email || ''}" required>
+                        <small class="form-text">Your email address</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit-display-name">Display Name *</label>
+                        <input type="text" id="edit-display-name" value="${userData.display_name || ''}" required>
+                        <small class="form-text">Name shown in the interface</small>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="edit-first-name">First Name</label>
+                            <input type="text" id="edit-first-name" value="${userData.first_name || ''}">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-last-name">Last Name</label>
+                            <input type="text" id="edit-last-name" value="${userData.last_name || ''}">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit-current-password">Current Password *</label>
+                        <input type="password" id="edit-current-password" required>
+                        <small class="form-text">Required to confirm changes</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit-new-password">New Password (Optional)</label>
+                        <input type="password" id="edit-new-password">
+                        <small class="form-text">Leave blank to keep current password</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit-confirm-password">Confirm New Password</label>
+                        <input type="password" id="edit-confirm-password">
+                        <small class="form-text">Must match new password</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="closeProfileModal()">Cancel</button>
+                <button type="button" class="btn-primary" onclick="saveProfileChanges()">
+                    <i class="fas fa-save"></i> Save Changes
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    document.getElementById('edit-username').focus();
+}
+
+function showPasswordChangeModal(userData) {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+        <div class="modal-content password-change-modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-key"></i> Change Password</h3>
+                <button class="modal-close" onclick="closePasswordModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="password-change-form">
+                    <div class="form-group">
+                        <label for="change-current-password">Current Password *</label>
+                        <input type="password" id="change-current-password" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="change-new-password">New Password *</label>
+                        <input type="password" id="change-new-password" required>
+                        <small class="form-text">Must be at least 8 characters with uppercase, lowercase, number, and special character</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="change-confirm-password">Confirm New Password *</label>
+                        <input type="password" id="change-confirm-password" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="closePasswordModal()">Cancel</button>
+                <button type="button" class="btn-primary" onclick="savePasswordChange()">
+                    <i class="fas fa-save"></i> Change Password
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    document.getElementById('change-current-password').focus();
+}
+
+window.closeProfileModal = function() {
+    const modal = document.querySelector('.profile-edit-modal').closest('.modal-overlay');
+    if (modal) {
+        modal.remove();
+    }
+};
+
+window.closePasswordModal = function() {
+    const modal = document.querySelector('.password-change-modal').closest('.modal-overlay');
+    if (modal) {
+        modal.remove();
+    }
+};
+
+window.saveProfileChanges = function() {
+    const form = document.getElementById('profile-edit-form');
+    const formData = {
+        username: document.getElementById('edit-username').value.trim(),
+        email: document.getElementById('edit-email').value.trim(),
+        first_name: document.getElementById('edit-first-name').value.trim(),
+        last_name: document.getElementById('edit-last-name').value.trim(),
+        display_name: document.getElementById('edit-display-name').value.trim(),
+        current_password: document.getElementById('edit-current-password').value,
+        new_password: document.getElementById('edit-new-password').value || null
+    };
+    
+    // Validation
+    if (!formData.username || !formData.email || !formData.display_name || !formData.current_password) {
+        alert('Please fill in all required fields');
+        return;
+    }
+    
+    if (formData.new_password && formData.new_password !== document.getElementById('edit-confirm-password').value) {
+        alert('New password and confirmation do not match');
+        return;
+    }
+    
+    // Show loading state
+    const saveBtn = document.querySelector('.profile-edit-modal .btn-primary');
+    const originalText = saveBtn.innerHTML;
+    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+    saveBtn.disabled = true;
+    
+    // Send update request
+    fetch('/api/users/update-profile', {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Profile updated successfully!');
+            closeProfileModal();
+            // Refresh account info
+            renderAccountInfo();
+            // Update welcome message if needed
+            if (window.updateWelcomeMessages) {
+                window.updateWelcomeMessages(data.user.display_name);
+            }
+        } else {
+            alert('Error: ' + (data.error || 'Failed to update profile'));
+        }
+    })
+    .catch(error => {
+        console.error('Error updating profile:', error);
+        alert('Failed to update profile. Please try again.');
+    })
+    .finally(() => {
+        saveBtn.innerHTML = originalText;
+        saveBtn.disabled = false;
+    });
+};
+
+window.savePasswordChange = function() {
+    const formData = {
+        current_password: document.getElementById('change-current-password').value,
+        new_password: document.getElementById('change-new-password').value,
+        confirm_password: document.getElementById('change-confirm-password').value
+    };
+    
+    // Validation
+    if (!formData.current_password || !formData.new_password || !formData.confirm_password) {
+        alert('Please fill in all fields');
+        return;
+    }
+    
+    if (formData.new_password !== formData.confirm_password) {
+        alert('New password and confirmation do not match');
+        return;
+    }
+    
+    // Show loading state
+    const saveBtn = document.querySelector('.password-change-modal .btn-primary');
+    const originalText = saveBtn.innerHTML;
+    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Changing...';
+    saveBtn.disabled = true;
+    
+    // Send update request
+    fetch('/api/users/update-profile', {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            username: currentUserData.username,
+            email: currentUserData.email,
+            first_name: currentUserData.first_name || '',
+            last_name: currentUserData.last_name || '',
+            display_name: currentUserData.display_name,
+            current_password: formData.current_password,
+            new_password: formData.new_password
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Password changed successfully!');
+            closePasswordModal();
+        } else {
+            alert('Error: ' + (data.error || 'Failed to change password'));
+        }
+    })
+    .catch(error => {
+        console.error('Error changing password:', error);
+        alert('Failed to change password. Please try again.');
+    })
+    .finally(() => {
+        saveBtn.innerHTML = originalText;
+        saveBtn.disabled = false;
+    });
 };
 
 window.confirmLogout = function() {
