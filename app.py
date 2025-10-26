@@ -2076,7 +2076,15 @@ Please use this context information appropriately when responding to user questi
                 app.logger.error(f"Failed to load context for conversation {conversation_id}: {context_error}")
         
         # Add NSW Math curriculum content for Math projects
-        if project and project.persona and 'math' in project.persona.lower():
+        # Check if project has a persona with 'math' category OR has math-specific fields set
+        is_math_project = False
+        if project:
+            if project.persona and hasattr(project.persona, 'category') and 'math' in project.persona.category.lower():
+                is_math_project = True
+            elif project.math_level or project.math_subject:
+                is_math_project = True
+        
+        if is_math_project:
             app.logger.info(f"Math project detected ({project.name}), fetching NSW Math curriculum content")
             math_curriculum_content = fetch_nsw_math_curriculum_content()
             if math_curriculum_content:
