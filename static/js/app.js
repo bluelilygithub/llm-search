@@ -1390,6 +1390,11 @@
     startNewChat() {
         this.currentConversationId = null;
         
+        // If we're currently in home view, ensure we transition to chat view
+        if (this.currentView === 'home') {
+            this.showChatView();
+        }
+        
         // Ensure chat container exists before setting innerHTML
         const chatContainer = document.getElementById('chat-messages');
         if (!chatContainer) {
@@ -8155,6 +8160,9 @@ KnowledgeBaseApp.prototype.loadConversation = function(conversationId) {
 // Start new chat and focus input area
 KnowledgeBaseApp.prototype.startNewChatAndFocus = function() {
     console.log('🚀 Starting new chat and focusing input...');
+    
+    // Always ensure we're in chat view when starting new chat
+    this.showChatView();
     
     // Start a new conversation
     this.startNewChat();
