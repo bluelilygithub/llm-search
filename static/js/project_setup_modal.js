@@ -100,36 +100,44 @@ window.testProjectModal = function() {
 };
 
 function populateProjectEditForm(project) {
-    // Populate basic project information
-    document.getElementById('project-name').value = project.name || '';
-    document.getElementById('project-description').value = project.description || '';
-    document.getElementById('project-persona').value = project.persona || '';
-    document.getElementById('project-subject').value = project.subject || '';
-    document.getElementById('project-year-level').value = project.year_level || '';
-    document.getElementById('project-learning-objectives').value = project.learning_objectives || '';
-    document.getElementById('project-assessment-criteria').value = project.assessment_criteria || '';
+    // Populate form fields with actual field IDs from the HTML and correct API response fields
+    const agentNameField = document.getElementById('agent-name');
+    const agentRoleField = document.getElementById('agent-role');
+    const agentPersonalityField = document.getElementById('agent-personality');
+    const primaryGoalField = document.getElementById('primary-goal');
+    const goalStepsField = document.getElementById('goal-steps');
+    const rulesDoField = document.getElementById('rules-do');
+    const rulesDontField = document.getElementById('rules-dont');
+    const contextBackgroundField = document.getElementById('context-background');
+    const outputFormatField = document.getElementById('output-format');
+    const userRoleField = document.getElementById('project-user-role');
     
-    // Populate template data if available
-    if (project.template_data) {
-        try {
-            const templateData = typeof project.template_data === 'string' 
-                ? JSON.parse(project.template_data) 
-                : project.template_data;
-            
-            document.getElementById('project-goal-steps').value = Array.isArray(templateData.goal_steps) 
-                ? templateData.goal_steps.join('\n') 
-                : templateData.goal_steps || '';
-            
-            document.getElementById('project-rules-do').value = Array.isArray(templateData.rules_do) 
-                ? templateData.rules_do.join('\n') 
-                : templateData.rules_do || '';
-            
-            document.getElementById('project-rules-dont').value = Array.isArray(templateData.rules_dont) 
-                ? templateData.rules_dont.join('\n') 
-                : templateData.rules_dont || '';
-        } catch (e) {
-            console.error('Error parsing template data:', e);
-        }
+    if (agentNameField) agentNameField.value = project.agent_name || '';
+    if (agentRoleField) agentRoleField.value = project.agent_role || '';
+    if (agentPersonalityField) agentPersonalityField.value = project.agent_personality || '';
+    if (primaryGoalField) primaryGoalField.value = project.primary_goal || '';
+    if (goalStepsField) goalStepsField.value = project.goal_steps || '';
+    if (rulesDoField) rulesDoField.value = project.rules_do || '';
+    if (rulesDontField) rulesDontField.value = project.rules_dont || '';
+    if (contextBackgroundField) contextBackgroundField.value = project.context_background || '';
+    if (outputFormatField) outputFormatField.value = project.output_format || '';
+    if (userRoleField) userRoleField.value = project.user_role || '';
+    
+    // Handle math-specific fields
+    const mathLevelField = document.getElementById('math-level');
+    const mathSubjectField = document.getElementById('math-subject');
+    const learningStyleField = document.getElementById('learning-style');
+    const difficultyPreferenceField = document.getElementById('difficulty-preference');
+    
+    if (mathLevelField) mathLevelField.value = project.math_level || '';
+    if (mathSubjectField) mathSubjectField.value = project.math_subject || '';
+    if (learningStyleField) learningStyleField.value = project.learning_style || '';
+    if (difficultyPreferenceField) difficultyPreferenceField.value = project.difficulty_preference || '';
+    
+    // Handle persona selection
+    const personaSelectField = document.getElementById('persona-select');
+    if (personaSelectField && project.persona_id) {
+        personaSelectField.value = project.persona_id;
     }
 }
 
