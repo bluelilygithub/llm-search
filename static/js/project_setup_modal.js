@@ -121,8 +121,10 @@ function populateProjectEditForm(project) {
     }
 }
 
-// Global function for editing project template/profile
+// Function to edit existing project template
 window.editProjectTemplate = function(projectId) {
+    console.log('editProjectTemplate called with:', projectId);
+    // Use the comprehensive edit modal instead of just template editing
     window.showProjectEditModal(projectId);
 };
 
@@ -335,50 +337,6 @@ KnowledgeBaseApp.prototype.updateProjectTemplate = async function(projectId, tem
         console.error('Failed to update project template:', error);
         alert('Failed to update project template. Please try again.');
     }
-};
-
-// Function to edit existing project template
-window.editProjectTemplate = function(projectId) {
-    console.log('editProjectTemplate called with:', projectId);
-    
-    // Load existing project template data
-    fetch(`/projects/${projectId}/template`)
-        .then(response => {
-            console.log('Template response:', response);
-            return response.json();
-        })
-        .then(data => {
-            console.log('Template data:', data);
-            if (data.project && data.template) {
-                // Set up modal for editing
-                window.app.editingProjectId = projectId;
-                window.app.pendingProjectName = data.project.name;
-                
-                // Populate form with existing data
-                populateProjectSetupForm(data.template);
-                
-                // Update modal title
-                const modal = document.getElementById('project-setup-modal');
-                const title = modal.querySelector('.modal-title');
-                title.innerHTML = `
-                    <i class="fas fa-edit"></i>
-                    Edit Template - <span id="project-setup-name">${data.project.name}</span>
-                `;
-                
-                // Update save button text
-                const saveBtn = modal.querySelector('.btn-primary');
-                saveBtn.innerHTML = '<i class="fas fa-save"></i> Update Template';
-                
-                // Show modal
-                showProjectSetupModal();
-            } else {
-                alert('Failed to load project template data');
-            }
-        })
-        .catch(error => {
-            console.error('Error loading project template:', error);
-            alert('Failed to load project template');
-        });
 };
 
 // Function to view project template (read-only)
