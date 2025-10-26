@@ -4701,8 +4701,7 @@ window.showUsersTabIfAdmin = async function() {
             usernameDisplay.style.display = 'inline-block';
             
             // Update welcome messages with the user's name
-            // Temporarily disabled to debug issues
-            // window.updateWelcomeMessages(displayName);
+            window.updateWelcomeMessages(displayName);
             
             // Just store the display name for now
             window.userDisplayName = displayName;
@@ -8202,6 +8201,10 @@ KnowledgeBaseApp.prototype.showHomeView = function() {
     // Create the home view content
     const homeContent = document.createElement('div');
     homeContent.className = 'main-view';
+    
+    // Get user display name for welcome message
+    const displayName = window.userDisplayName || 'Your';
+    
     homeContent.innerHTML = `
             <nav class="breadcrumb">
                 <span class="breadcrumb-item active">
@@ -8213,7 +8216,7 @@ KnowledgeBaseApp.prototype.showHomeView = function() {
             <div class="view-header">
                 <div class="view-title">
                     <i class="fas fa-home"></i>
-                    <h2>Welcome to Your Knowledge Base</h2>
+                    <h2>Welcome to ${displayName}'s Knowledge Base</h2>
                 </div>
                 <div class="view-actions">
                     <button class="view-action-btn" onclick="window.app.startNewChat()">
@@ -8236,31 +8239,6 @@ KnowledgeBaseApp.prototype.showHomeView = function() {
                         <i class="fas fa-clock"></i>
                         <h3>View All Conversations</h3>
                         <p>Browse through your conversation history</p>
-                    </div>
-                    
-                    <!-- Math-specific cards -->
-                    <div class="action-card math-template-card" onclick="window.app.selectTemplate('math-problem-solver')">
-                        <i class="fas fa-calculator"></i>
-                        <h3>Solve Math Problems</h3>
-                        <p>Get step-by-step solutions to any math problem</p>
-                    </div>
-
-                    <div class="action-card math-template-card" onclick="window.app.selectTemplate('concept-explainer')">
-                        <i class="fas fa-lightbulb"></i>
-                        <h3>Learn Math Concepts</h3>
-                        <p>Understand mathematical concepts with clear explanations</p>
-                    </div>
-
-                    <div class="action-card math-template-card" onclick="window.app.selectTemplate('homework-helper')">
-                        <i class="fas fa-book"></i>
-                        <h3>Homework Helper</h3>
-                        <p>Get guided help with your math homework</p>
-                    </div>
-
-                    <div class="action-card math-template-card" onclick="window.app.selectTemplate('practice-generator')">
-                        <i class="fas fa-dumbbell"></i>
-                        <h3>Practice Problems</h3>
-                        <p>Generate custom practice problems for any topic</p>
                     </div>
                 </div>
             </div>
