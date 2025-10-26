@@ -7397,58 +7397,57 @@ function hideInfoTooltip(button) {
         tooltip.style.display = 'none';
     }
 }
-    
-    // Confirm template system is loaded
-    console.log('📝 Template & Prompt Library: LOADED');
-    
-    // Check if template modal exists
-    const templateModal = document.getElementById('template-modal');
-    if (templateModal) {
-        console.log('✅ Template modal found in DOM');
-    } else {
-        console.error('❌ Template modal NOT found in DOM - check index.html');
-    }
-    
-    // Check if template buttons exist
-    const templateBtns = document.querySelectorAll('[onclick*="openTemplatePicker"]');
-    console.log('🔘 Template buttons found:', templateBtns.length);
-    templateBtns.forEach((btn, i) => {
-        console.log(`   Button ${i + 1}:`, btn.className, btn.textContent.trim());
-    });
-    
-    // Load dynamic models into main dropdown
-    window.app.loadMainModelDropdown();
-    
-    // Load templates from API (or fallback)
-    window.app.loadTemplates().then(() => {
-        console.log('📋 Available templates:', Object.keys(TEMPLATE_DATA).length);
-        console.log('📋 Template IDs:', Object.keys(TEMPLATE_DATA));
-    });
-    
-    // Check admin status and show/hide settings buttons
-    window.showUsersTabIfAdmin();
-    
-    // Initialize image paste functionality
-    window.app.setupImagePaste();
-    
-    // Initialize keyboard shortcuts
-    window.app.setupKeyboardShortcuts();
-    
-    // Only attach event handlers if elements exist
-    const newChatBtn = document.getElementById('new-chat-btn');
-    if (newChatBtn) {
-        newChatBtn.onclick = function() {
+
+// Confirm template system is loaded
+console.log('📝 Template & Prompt Library: LOADED');
+
+// Check if template modal exists
+const templateModal = document.getElementById('template-modal');
+if (templateModal) {
+    console.log('✅ Template modal found in DOM');
+} else {
+    console.error('❌ Template modal NOT found in DOM - check index.html');
+}
+
+// Check if template buttons exist
+const templateBtns = document.querySelectorAll('[onclick*="openTemplatePicker"]');
+console.log('🔘 Template buttons found:', templateBtns.length);
+templateBtns.forEach((btn, i) => {
+    console.log(`   Button ${i + 1}:`, btn.className, btn.textContent.trim());
+});
+
+// Load dynamic models into main dropdown
+window.app.loadMainModelDropdown();
+
+// Load templates from API (or fallback)
+window.app.loadTemplates().then(() => {
+    console.log('📋 Available templates:', Object.keys(TEMPLATE_DATA).length);
+    console.log('📋 Template IDs:', Object.keys(TEMPLATE_DATA));
+});
+
+// Check admin status and show/hide settings buttons
+window.showUsersTabIfAdmin();
+
+// Initialize image paste functionality
+window.app.setupImagePaste();
+
+// Initialize keyboard shortcuts
+window.app.setupKeyboardShortcuts();
+
+// Only attach event handlers if elements exist
+const newChatBtn = document.getElementById('new-chat-btn');
+if (newChatBtn) {
+    newChatBtn.onclick = function() {
         window.app.startNewChat();
     };
-    }
-    
-    const settingsBtn = document.getElementById('settings-btn');
-    if (settingsBtn) {
-        settingsBtn.onclick = function() {
+}
+
+const settingsBtn = document.getElementById('settings-btn');
+if (settingsBtn) {
+    settingsBtn.onclick = function() {
         window.app.openSettingsModal();
     };
-    }
-});
+}
 
 // Global functions for HTML onclick handlers
 function startNewChat() {
