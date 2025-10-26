@@ -1510,6 +1510,7 @@ def generate_followup_questions():
                 app.logger.debug(f"Could not determine if math project: {e}")
         
         app.logger.info(f"Generating follow-up questions using model: {model}, is_math: {is_math_project}")
+        app.logger.info(f"🔍 Follow-up question debugging: project_id={project_id}, conversation_id={conversation_id}, is_math_project={is_math_project}")
         
         # Create a focused prompt for generating follow-up questions based only on the latest response
         system_prompt = """You are an expert at generating relevant follow-up questions. Based ONLY on the AI response provided, generate exactly 3 highly relevant, specific follow-up questions that would naturally continue the conversation.

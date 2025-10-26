@@ -998,6 +998,12 @@
                 this.currentProject.math_subject
             );
             
+            console.log('🔍 Follow-up question debugging:');
+            console.log('  - Current project:', this.currentProject);
+            console.log('  - Math level:', this.currentProject?.math_level);
+            console.log('  - Math subject:', this.currentProject?.math_subject);
+            console.log('  - Is math project:', isMathProject);
+            
             // Send a request to generate follow-up questions based only on the latest response
             const response = await fetch('/api/generate-followup-questions', {
                 method: 'POST',
