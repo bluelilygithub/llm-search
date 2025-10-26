@@ -72,6 +72,12 @@ window.showProjectEditModal = function(projectId) {
                 projectNameSpan.textContent = project.name;
                 console.log('  - Span textContent after setting:', projectNameSpan.textContent);
                 
+                // Store the project name for use when saving (span content can get lost)
+                if (window.app) {
+                    window.app.currentEditingProjectName = project.name;
+                    console.log('  - Stored project name:', window.app.currentEditingProjectName);
+                }
+                
                 // Populate form with existing project data
                 populateProjectEditForm(project);
                 
@@ -216,11 +222,13 @@ window.saveProjectSetup = async function() {
     
     // Collect form data
     const pendingName = window.app.pendingProjectName;
+    const storedName = window.app.currentEditingProjectName;
     const spanName = document.getElementById('project-setup-name')?.textContent;
-    const finalName = pendingName || spanName || 'Unnamed Project';
+    const finalName = pendingName || storedName || spanName || 'Unnamed Project';
     
     console.log('🔍 Project name debugging:');
     console.log('  - pendingProjectName:', pendingName);
+    console.log('  - currentEditingProjectName:', storedName);
     console.log('  - project-setup-name span:', spanName);
     console.log('  - final name:', finalName);
     
