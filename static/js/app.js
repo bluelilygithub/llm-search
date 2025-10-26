@@ -4793,6 +4793,12 @@ window.showUsersTabIfAdmin = async function() {
             usersTab.style.display = isAdmin ? 'flex' : 'none';
         }
         
+        // Show/hide model selector (admin only)
+        const modelSelectorContainer = document.getElementById('model-selector-container');
+        if (modelSelectorContainer) {
+            modelSelectorContainer.style.display = isAdmin ? 'block' : 'none';
+        }
+        
         // Show/hide Reports button in top bar (admin only)
         const reportsBtn = document.getElementById('admin-reports-btn');
         if (reportsBtn) {
