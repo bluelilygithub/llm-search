@@ -283,24 +283,28 @@ async function updateProjectWithSetup(projectId, projectData) {
             throw new Error('Failed to update project profile');
         }
         
-        // Update project template
-        const templateResponse = await fetch(`/projects/${projectId}/template`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                goal_steps: projectData.goal_steps,
-                rules_do: projectData.rules_do,
-                rules_dont: projectData.rules_dont
-            })
-        });
-        
-        if (!templateResponse.ok) {
-            throw new Error('Failed to update project template');
-        }
+        // Profile update successful - no need for separate template update
+        console.log('✅ Project profile updated successfully');
         
         // Show success message
         if (window.app && window.app.showNotification) {
             window.app.showNotification('Project updated successfully!', 'success');
+        } else {
+            // Fallback success message
+            alert('Project updated successfully!');
+        }
+        
+        // Close the modal
+        if (window.closeProjectSetup) {
+            window.closeProjectSetup();
+        } else {
+            // Fallback - hide modal manually
+            const modal = document.getElementById('project-setup-modal');
+            if (modal) {
+                modal.style.display = 'none';
+                document.body.classList.remove('modal-open');
+                document.body.style.overflow = '';
+            }
         }
         
         // Refresh projects list if visible
