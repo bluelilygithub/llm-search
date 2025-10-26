@@ -3820,15 +3820,28 @@ window.openUserSettings = function() {
 if (typeof window.editProjectTemplate === 'undefined') {
     window.editProjectTemplate = function(projectId) {
         console.log('🔄 Fallback editProjectTemplate called with projectId:', projectId);
-        console.log('🔄 Checking if showProjectEditModal is available...');
         
-        if (typeof window.showProjectEditModal === 'function') {
-            console.log('✅ showProjectEditModal found, calling it');
-            window.showProjectEditModal(projectId);
-        } else {
-            console.error('❌ showProjectEditModal not available, showing alert');
-            alert('Project editing functionality is loading. Please wait a moment and try again.');
-        }
+        // Retry mechanism - wait for showProjectEditModal to become available
+        const maxRetries = 10;
+        let retryCount = 0;
+        
+        const tryEditProject = () => {
+            retryCount++;
+            console.log(`🔄 Retry ${retryCount}/${maxRetries} - Checking for showProjectEditModal...`);
+            
+            if (typeof window.showProjectEditModal === 'function') {
+                console.log('✅ showProjectEditModal found, calling it');
+                window.showProjectEditModal(projectId);
+            } else if (retryCount < maxRetries) {
+                console.log(`⏳ showProjectEditModal not ready, retrying in 100ms...`);
+                setTimeout(tryEditProject, 100);
+            } else {
+                console.error('❌ showProjectEditModal not available after retries');
+                alert('Project editing functionality is not available. Please refresh the page and try again.');
+            }
+        };
+        
+        tryEditProject();
     };
     console.log('✅ Fallback editProjectTemplate function defined');
 }

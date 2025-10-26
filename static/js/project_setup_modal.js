@@ -136,6 +136,8 @@ window.editProjectTemplate = function(projectId) {
 
 // Debug: Log when the function is defined
 console.log('✅ editProjectTemplate function defined:', typeof window.editProjectTemplate);
+console.log('✅ project_setup_modal.js loaded successfully');
+console.log('✅ Available functions:', Object.keys(window).filter(key => key.includes('Project') || key.includes('Template')));
 
 window.closeProjectSetup = function() {
     const modal = document.getElementById('project-setup-modal');
