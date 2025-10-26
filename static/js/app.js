@@ -8441,7 +8441,10 @@ KnowledgeBaseApp.prototype.showProjectsView = function() {
     console.log('🔵 Content-area children count:', contentArea.children.length);
     console.log('🔵 Calling loadProjectsGrid');
     
-    this.loadProjectsGrid();
+    // Use requestAnimationFrame to ensure DOM is ready before loading projects
+    requestAnimationFrame(() => {
+        this.loadProjectsGrid();
+    });
 };
 
 // Show project conversations view
@@ -8570,17 +8573,22 @@ KnowledgeBaseApp.prototype.loadProjectsGrid = async function() {
         this.renderProjectsGrid(projects);
     } catch (error) {
         console.error('Failed to load projects:', error);
-        document.getElementById('projects-grid').innerHTML = `
-            <div class="empty-state-large">
-                <i class="fas fa-exclamation-triangle"></i>
-                <h3>Failed to load projects</h3>
-                <p>Please try again later.</p>
-                <button class="view-action-btn" onclick="window.app.loadProjectsGrid()">
-                    <i class="fas fa-refresh"></i>
-                    Retry
-                </button>
-            </div>
-        `;
+        const container = document.getElementById('projects-grid');
+        if (container) {
+            container.innerHTML = `
+                <div class="empty-state-large">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h3>Failed to load projects</h3>
+                    <p>Please try again later.</p>
+                    <button class="view-action-btn" onclick="window.app.loadProjectsGrid()">
+                        <i class="fas fa-refresh"></i>
+                        Retry
+                    </button>
+                </div>
+            `;
+        } else {
+            console.error('❌ projects-grid container not found for error display');
+        }
     }
 };
 // Load project conversations grid data
@@ -8684,6 +8692,15 @@ KnowledgeBaseApp.prototype.renderProjectsGrid = function(projects) {
     console.log('🟢 renderProjectsGrid called with', projects.length, 'projects');
     const container = document.getElementById('projects-grid');
     console.log('🟢 projects-grid container:', container);
+    
+    if (!container) {
+        console.error('❌ projects-grid container not found, retrying...');
+        // Retry after DOM is ready
+        requestAnimationFrame(() => {
+            this.renderProjectsGrid(projects);
+        });
+        return;
+    }
     
     if (!projects.length) {
         console.log('🟢 No projects, showing empty state');
