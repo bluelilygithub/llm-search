@@ -1226,50 +1226,84 @@ def update_project_profile(project_id):
         if not data:
             return jsonify({'error': 'No data provided'}), 400
         
-        # Update project fields
+        # Update project fields - use correct field names that match the Project model
         if 'name' in data:
             project.name = data['name'].strip()
         
         if 'description' in data:
             project.description = data['description'].strip()
         
-        if 'persona' in data:
-            project.persona = data['persona'].strip()
+        if 'agent_name' in data:
+            project.agent_name = data['agent_name'].strip()
         
-        if 'subject' in data:
-            project.subject = data['subject'].strip()
+        if 'agent_role' in data:
+            project.agent_role = data['agent_role'].strip()
         
-        if 'year_level' in data:
-            project.year_level = data['year_level'].strip()
+        if 'agent_personality' in data:
+            project.agent_personality = data['agent_personality'].strip()
         
-        if 'learning_objectives' in data:
-            project.learning_objectives = data['learning_objectives'].strip()
+        if 'primary_goal' in data:
+            project.primary_goal = data['primary_goal'].strip()
         
-        if 'assessment_criteria' in data:
-            project.assessment_criteria = data['assessment_criteria'].strip()
+        if 'context_background' in data:
+            project.context_background = data['context_background'].strip()
+        
+        if 'user_role' in data:
+            project.user_role = data['user_role'].strip()
+        
+        if 'output_format' in data:
+            project.output_format = data['output_format'].strip()
+        
+        if 'math_level' in data:
+            project.math_level = data['math_level'].strip()
+        
+        if 'math_subject' in data:
+            project.math_subject = data['math_subject'].strip()
+        
+        if 'learning_style' in data:
+            project.learning_style = data['learning_style'].strip()
+        
+        if 'difficulty_preference' in data:
+            project.difficulty_preference = data['difficulty_preference'].strip()
+        
+        if 'persona_id' in data:
+            project.persona_id = data['persona_id'] if data['persona_id'] else None
         
         # Update timestamp
         from datetime import datetime
         project.updated_at = datetime.utcnow()
         
-        db.session.commit()
+        app.logger.info(f"Updating project {project.name} with data: {data}")
         
-        app.logger.info(f"Updated project profile: {project.name}")
-        
-        return jsonify({
-            'success': True,
-            'message': 'Project profile updated successfully',
-            'project': {
-                'id': str(project.id),
-                'name': project.name,
-                'description': project.description,
-                'persona': project.persona,
-                'subject': project.subject,
-                'year_level': project.year_level,
-                'learning_objectives': project.learning_objectives,
-                'assessment_criteria': project.assessment_criteria
-            }
-        })
+        try:
+            db.session.commit()
+            app.logger.info(f"Successfully updated project {project.name}")
+            
+            return jsonify({
+                'success': True,
+                'message': 'Project profile updated successfully',
+                'project': {
+                    'id': str(project.id),
+                    'name': project.name,
+                    'description': project.description,
+                    'agent_name': project.agent_name,
+                    'agent_role': project.agent_role,
+                    'agent_personality': project.agent_personality,
+                    'primary_goal': project.primary_goal,
+                    'context_background': project.context_background,
+                    'user_role': project.user_role,
+                    'output_format': project.output_format,
+                    'math_level': project.math_level,
+                    'math_subject': project.math_subject,
+                    'learning_style': project.learning_style,
+                    'difficulty_preference': project.difficulty_preference,
+                    'persona_id': str(project.persona_id) if project.persona_id else None
+                }
+            })
+        except Exception as e:
+            db.session.rollback()
+            app.logger.error(f"Database error updating project {project.name}: {str(e)}")
+            return jsonify({'error': 'Database error updating project'}), 500
         
     except ValueError:
         return jsonify({'error': 'Invalid project ID'}), 400
