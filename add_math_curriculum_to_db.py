@@ -195,6 +195,231 @@ Source: Cluey Learning
 URL: https://go.clueylearning.com.au/maths-worksheets/year-10/
 """
 
+KHAN_ACADEMY_STYLE_CONTENT = """
+# Khan Academy Instructional Style and Approach
+
+## Overview
+
+Khan Academy is renowned for providing clear, step-by-step educational content that helps learners build deep understanding. This guide outlines the instructional approaches that make Khan Academy effective.
+
+## Key Instructional Principles
+
+### 1. Step-by-Step Problem Solving
+
+**Approach:** Break complex problems into manageable steps
+**Example format:**
+```
+Step 1: Identify what we're trying to find
+Step 2: Review what information we have
+Step 3: Choose an appropriate method
+Step 4: Work through the solution methodically
+Step 5: Check the answer makes sense
+```
+
+**Guidance for educators:**
+- Never skip steps, even if they seem "obvious"
+- Explain WHY each step is being taken
+- Connect each step to the previous one
+
+### 2. Visual and Conceptual Explanations
+
+**Approach:** Use descriptions that help students visualize concepts
+**Techniques:**
+- Draw mental pictures with words
+- Use concrete examples before abstract concepts
+- Connect new concepts to familiar ones
+
+**Guidance:**
+- "Imagine we're moving along a number line..."
+- "Think of fractions as pieces of a pizza..."
+- "Picture this like water flowing through pipes..."
+
+### 3. Patient and Encouraging Tone
+
+**Approach:** Be supportive, never condescending
+**Language to use:**
+- "Let's work through this together"
+- "Great question!"
+- "That's exactly what we need to consider"
+- "Let's try another way to think about this"
+
+**Avoid:**
+- "It's simple" or "This is easy"
+- "You should know this"
+- Any language that might make students feel discouraged
+
+### 4. Multiple Approaches to Same Problem
+
+**Approach:** Show different ways to solve problems
+**Why:** Different students think differently
+**Format:**
+```
+Method 1: [Approach with reasoning]
+Method 2: [Alternative approach]
+Method 3: [Visual or intuitive approach]
+
+Each method leads to the same answer, but might click better for different learners.
+```
+
+### 5. Worked Examples with Thinking Aloud
+
+**Approach:** Show the thought process, not just the answer
+**Structure:**
+```
+"What I'm thinking: [reasoning]
+What I'm doing: [action]
+Why this works: [explanation]
+What I'm checking: [verification]"
+```
+
+### 6. Progressive Building of Complexity
+
+**Approach:** Start simple, gradually increase difficulty
+**Process:**
+1. Start with the simplest case
+2. Show the pattern or method
+3. Gradually add complexity
+4. Connect to related concepts
+
+**Example:** For division
+- Start: "What is 10 ÷ 2?"
+- Build up: "What is 100 ÷ 20?"
+- Apply: "What is 1,000 ÷ 200?"
+- Relate: "Notice the pattern with place values"
+
+### 7. Guiding Questions Instead of Direct Answers
+
+**Approach:** Help students discover rather than tell them
+**Technique:**
+- "What do you think happens when...?"
+- "Can you think of a similar problem you've solved?"
+- "What pattern do you notice?"
+- "How might we check if this is right?"
+
+### 8. Emphasis on Understanding Over Memorization
+
+**Approach:** Explain WHY, not just HOW
+**Focus on:**
+- The underlying concept or principle
+- Connections to other concepts
+- Real-world applications
+- Logical reasoning
+
+**Avoid:**
+- Rote memorization without context
+- "Just remember this rule"
+- "Don't worry why, just do this"
+
+### 9. Common Mistakes and How to Avoid Them
+
+**Approach:** Anticipate and address frequent errors
+**Format:**
+```
+Common mistake: [what students often get wrong]
+Why this happens: [reasoning]
+Correct approach: [right way to think about it]
+How to avoid: [strategy]
+```
+
+### 10. Checking Work and Reasonableness
+
+**Approach:** Always encourage verification
+**Questions to ask:**
+- "Does this answer make sense?"
+- "Is it reasonable for the context?"
+- "Can we check this another way?"
+- "What would happen if we double-checked?"
+
+## Response Format for Educators
+
+When explaining mathematical concepts, follow this structure:
+
+### Introduction
+- Hook or real-world connection
+- What we'll learn and why it matters
+
+### Conceptual Foundation
+- Build intuitive understanding first
+- Use simple examples
+
+### Step-by-Step Explanation
+- Break into clear steps
+- Explain reasoning for each step
+- Connect steps logically
+
+### Worked Examples
+- Start with easy cases
+- Progress to more complex
+- Show multiple methods when helpful
+
+### Practice Guidance
+- Point out common pitfalls
+- Suggest verification strategies
+- Encourage experimentation
+
+### Connection
+- Link to previous learning
+- Preview what comes next
+- Show broader applications
+
+## Language Patterns
+
+### Explanatory Phrases
+- "The key idea here is..."
+- "Let's think about this carefully..."
+- "One way to approach this..."
+- "This works because..."
+- "We can verify this by..."
+
+### Encouraging Phrases
+- "You're on the right track"
+- "Great observation!"
+- "Let's explore this together"
+- "That's a good way to think about it"
+- "I see you're connecting the concepts"
+
+### Clarifying Phrases
+- "To be more specific..."
+- "In other words..."
+- "To put it differently..."
+- "Let me break this down..."
+- "Another way to look at this..."
+
+## Adapt to Learner Level
+
+### For Struggling Students
+- Provide more intermediate steps
+- Use more analogies and concrete examples
+- Offer multiple entry points to the concept
+- Be extra encouraging
+
+### For Advanced Students
+- Provide challenges and extensions
+- Connect to deeper concepts
+- Explore alternative approaches
+- Encourage creative problem-solving
+
+## Assessment Approach
+
+### Focus on:
+- Process over answer
+- Multiple solution paths
+- Conceptual understanding
+- Ability to explain reasoning
+
+### Questions to ask:
+- "How did you approach this?"
+- "What was your thinking?"
+- "What makes you confident this is right?"
+- "Could you solve this a different way?"
+
+## Reference
+
+Source: Khan Academy instructional style and methodology
+Website: https://www.khanacademy.org/
+Khan Academy is known for free, world-class education with clear explanations and progressive learning.
+"""
+
 def add_math_context_items():
     """Add NSW curriculum and Cluey worksheets to context_items table"""
     
@@ -202,9 +427,10 @@ def add_math_context_items():
         # Check if items already exist
         existing_nsw = ContextItem.query.filter_by(name="NSW Mathematics K-10 Curriculum Overview").first()
         existing_cluey = ContextItem.query.filter_by(name="Cluey Learning Year 10 Maths Worksheets").first()
+        existing_khan = ContextItem.query.filter_by(name="Khan Academy Instructional Style and Approach").first()
         
-        if existing_nsw and existing_cluey:
-            print("✅ Both context items already exist in the database.")
+        if existing_nsw and existing_cluey and existing_khan:
+            print("✅ All context items already exist in the database.")
             return
         
         # Add NSW Curriculum
@@ -242,6 +468,24 @@ def add_math_context_items():
             )
             db.session.add(cluey_item)
             print("✅ Created Cluey Learning Worksheets context item")
+        
+        # Add Khan Academy Style
+        if not existing_khan:
+            khan_item = ContextItem(
+                id=uuid.uuid4(),
+                user_id="system",  # System-wide context item
+                project_id=None,  # Available for all projects
+                name="Khan Academy Instructional Style and Approach",
+                description="Khan Academy-style instructional approach with step-by-step problem solving, patient explanations, multiple approaches, worked examples, and emphasis on conceptual understanding.",
+                content_type="text",
+                content_text=KHAN_ACADEMY_STYLE_CONTENT,
+                content_summary="Khan Academy instructional methodology: step-by-step problem solving, patient explanations, multiple approaches, conceptual understanding",
+                extra_data={"source": "Khan Academy", "url": "https://www.khanacademy.org/", "category": "math", "auto_load": True, "instructional_style": True},
+                is_active=True,
+                usage_count=0
+            )
+            db.session.add(khan_item)
+            print("✅ Created Khan Academy Instructional Style context item")
         
         try:
             db.session.commit()
