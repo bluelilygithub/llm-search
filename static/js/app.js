@@ -846,9 +846,7 @@
         // Initial message without follow-up questions
         // Add info button for assistant messages (for math curriculum sources)
         const infoButton = message.role === 'assistant' ? 
-            `<button class="info-btn" title="Sources: NSW Mathematics K-10 Curriculum | Cluey Learning | Khan Academy" 
-                onmouseover="this.title='Sources: NSW Mathematics K-10 Curriculum (curriculum.nsw.edu.au) | Cluey Learning Year 10 Worksheets (clueylearning.com.au) | Khan Academy (khanacademy.org)'" 
-                onclick="return false;">
+            `<button class="info-btn" title="Sources: NSW Mathematics K-10 Curriculum (curriculum.nsw.edu.au) | Cluey Learning Year 10 Worksheets (clueylearning.com.au) | Khan Academy (khanacademy.org)">
                 <i class="fas fa-info-circle"></i>
             </button>` : '';
         
