@@ -9342,6 +9342,15 @@ KnowledgeBaseApp.prototype.showChatView = function() {
         dynamicContent.style.overflow = '';
     }
     
+    // Wait for DOM to be ready if needed
+    if (document.readyState === 'loading') {
+        console.log('showChatView: DOM still loading, waiting...');
+        document.addEventListener('DOMContentLoaded', () => {
+            this.showChatView();
+        });
+        return;
+    }
+    
     // Find the existing chat-messages-container instead of creating a new one
     let chatMessagesContainer = contentArea.querySelector('.chat-messages-container') || 
                                 document.querySelector('.chat-messages-container');
@@ -9349,6 +9358,13 @@ KnowledgeBaseApp.prototype.showChatView = function() {
     console.log('showChatView: All elements with chat-messages-container class:', document.querySelectorAll('.chat-messages-container'));
     console.log('showChatView: dynamic-content element:', document.getElementById('dynamic-content'));
     console.log('showChatView: dynamic-content children:', document.getElementById('dynamic-content') ? Array.from(document.getElementById('dynamic-content').children) : 'null');
+    
+    // Debug: Check the entire DOM structure
+    console.log('showChatView: Full DOM structure check:');
+    console.log('  - document.body:', document.body);
+    console.log('  - content-area:', document.getElementById('content-area'));
+    console.log('  - dynamic-content:', document.getElementById('dynamic-content'));
+    console.log('  - All divs with id:', document.querySelectorAll('div[id]'));
     
     if (!chatMessagesContainer) {
         console.error('showChatView: Chat container not found in HTML template - this should not happen');
@@ -9375,7 +9391,37 @@ KnowledgeBaseApp.prototype.showChatView = function() {
             chatMessagesContainer = chatContainer;
         } else {
             console.error('showChatView: Cannot create chat container - dynamic-content not found');
-            return;
+            console.log('showChatView: Attempting to create entire structure from scratch');
+            
+            // Create the entire structure if it doesn't exist
+            const contentArea = document.getElementById('content-area');
+            if (!contentArea) {
+                console.error('showChatView: content-area not found - cannot create structure');
+                return;
+            }
+            
+            // Create dynamic-content
+            const dynamicContent = document.createElement('div');
+            dynamicContent.id = 'dynamic-content';
+            contentArea.appendChild(dynamicContent);
+            
+            // Create chat container
+            const chatContainer = document.createElement('div');
+            chatContainer.className = 'chat-messages-container';
+            chatContainer.innerHTML = `
+                <div class="chat-messages" id="chat-messages">
+                    <div class="empty-state" id="empty-state">
+                        <div class="empty-state-icon">
+                            <i class="fas fa-comments"></i>
+                        </div>
+                        <h2 class="empty-state-title">New Conversation</h2>
+                        <p class="empty-state-description">Start a conversation or search your knowledge base.</p>
+                    </div>
+                </div>
+            `;
+            dynamicContent.appendChild(chatContainer);
+            console.log('showChatView: Created entire structure from scratch');
+            chatMessagesContainer = chatContainer;
         }
     } else {
         console.log('showChatView: Using existing chat container from template');
