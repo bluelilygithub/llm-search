@@ -37,6 +37,28 @@
     <script src="static/js/csrf.js"></script>
     <script src="static/js/app.js"></script>
     <script src="static/js/project_setup_modal.js?v={{ range(1000, 9999) | random }}"></script>
+    <script>
+        // Test script to verify script loading works
+        console.log('🧪 Test script loaded successfully');
+        window.testScriptLoaded = true;
+        
+        // Check if project_setup_modal.js loaded
+        setTimeout(() => {
+            console.log('🔍 Checking project_setup_modal.js status:');
+            console.log('  - projectModalScriptLoaded:', window.projectModalScriptLoaded);
+            console.log('  - showProjectEditModal:', typeof window.showProjectEditModal);
+            console.log('  - showProjectSetupModal:', typeof window.showProjectSetupModal);
+            
+            // Fallback: If script didn't load, create minimal functions
+            if (typeof window.showProjectEditModal !== 'function') {
+                console.log('⚠️ Creating fallback showProjectEditModal function');
+                window.showProjectEditModal = function(projectId) {
+                    console.log('🔄 Fallback showProjectEditModal called with:', projectId);
+                    alert('Project editing functionality is temporarily unavailable. Please refresh the page and try again.');
+                };
+            }
+        }, 1000);
+    </script>
     <script src="static/js/ui.js"></script>
     <script src="static/js/auth.js"></script>
     <script src="static/js/init.js"></script>
