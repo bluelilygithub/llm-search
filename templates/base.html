@@ -64,6 +64,13 @@
                     const modal = document.getElementById('project-setup-modal');
                     if (modal) {
                         console.log('✅ Opening project setup modal directly');
+                        
+                        // Set edit mode first
+                        modal.setAttribute('data-project-id', projectId);
+                        document.getElementById('projectSetupModalLabel').innerHTML = '<i class="fas fa-edit"></i> Edit Project - <span id="project-setup-name"></span>';
+                        document.getElementById('project-setup-name').textContent = 'Loading...';
+                        
+                        // Show modal
                         modal.style.display = 'flex';
                         modal.classList.add('show');
                         document.body.classList.add('modal-open');
@@ -71,9 +78,16 @@
                         
                         // Load project data and populate form
                         fetch(`/api/projects/${projectId}`)
-                            .then(response => response.json())
+                            .then(response => {
+                                console.log('📡 API Response status:', response.status);
+                                if (!response.ok) {
+                                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                                }
+                                return response.json();
+                            })
                             .then(data => {
-                                if (data.success) {
+                                console.log('📡 API Response data:', data);
+                                if (data.success && data.project) {
                                     const project = data.project;
                                     document.getElementById('project-setup-name').textContent = project.name;
                                     document.getElementById('project-name').value = project.name || '';
@@ -84,14 +98,15 @@
                                     document.getElementById('project-learning-objectives').value = project.learning_objectives || '';
                                     document.getElementById('project-assessment-criteria').value = project.assessment_criteria || '';
                                     
-                                    // Set edit mode
-                                    modal.setAttribute('data-project-id', projectId);
-                                    document.getElementById('projectSetupModalLabel').innerHTML = '<i class="fas fa-edit"></i> Edit Project - <span id="project-setup-name"></span>';
+                                    console.log('✅ Project data populated successfully');
+                                } else {
+                                    console.error('❌ Invalid API response:', data);
+                                    alert('Failed to load project data: ' + (data.error || 'Invalid response'));
                                 }
                             })
                             .catch(error => {
-                                console.error('Error loading project:', error);
-                                alert('Failed to load project data');
+                                console.error('❌ Error loading project:', error);
+                                alert('Failed to load project data: ' + error.message);
                             });
                     } else {
                         alert('Project editing functionality is temporarily unavailable. Please refresh the page and try again.');
@@ -109,6 +124,13 @@
                     const modal = document.getElementById('project-setup-modal');
                     if (modal) {
                         console.log('✅ Opening project setup modal directly');
+                        
+                        // Set edit mode first
+                        modal.setAttribute('data-project-id', projectId);
+                        document.getElementById('projectSetupModalLabel').innerHTML = '<i class="fas fa-edit"></i> Edit Project - <span id="project-setup-name"></span>';
+                        document.getElementById('project-setup-name').textContent = 'Loading...';
+                        
+                        // Show modal
                         modal.style.display = 'flex';
                         modal.classList.add('show');
                         document.body.classList.add('modal-open');
@@ -116,9 +138,16 @@
                         
                         // Load project data and populate form
                         fetch(`/api/projects/${projectId}`)
-                            .then(response => response.json())
+                            .then(response => {
+                                console.log('📡 API Response status:', response.status);
+                                if (!response.ok) {
+                                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                                }
+                                return response.json();
+                            })
                             .then(data => {
-                                if (data.success) {
+                                console.log('📡 API Response data:', data);
+                                if (data.success && data.project) {
                                     const project = data.project;
                                     document.getElementById('project-setup-name').textContent = project.name;
                                     document.getElementById('project-name').value = project.name || '';
@@ -129,17 +158,59 @@
                                     document.getElementById('project-learning-objectives').value = project.learning_objectives || '';
                                     document.getElementById('project-assessment-criteria').value = project.assessment_criteria || '';
                                     
-                                    // Set edit mode
-                                    modal.setAttribute('data-project-id', projectId);
-                                    document.getElementById('projectSetupModalLabel').innerHTML = '<i class="fas fa-edit"></i> Edit Project - <span id="project-setup-name"></span>';
+                                    console.log('✅ Project data populated successfully');
+                                } else {
+                                    console.error('❌ Invalid API response:', data);
+                                    alert('Failed to load project data: ' + (data.error || 'Invalid response'));
                                 }
                             })
                             .catch(error => {
-                                console.error('Error loading project:', error);
-                                alert('Failed to load project data');
+                                console.error('❌ Error loading project:', error);
+                                alert('Failed to load project data: ' + error.message);
                             });
                     } else {
                         alert('Project editing functionality is temporarily unavailable. Please refresh the page and try again.');
+                    }
+                };
+            }
+            
+            // Also ensure showProjectSetupModal exists for project creation
+            if (typeof window.showProjectSetupModal !== 'function') {
+                console.log('⚠️ Creating fallback showProjectSetupModal function');
+                window.showProjectSetupModal = function() {
+                    console.log('🔄 Fallback showProjectSetupModal called');
+                    
+                    const modal = document.getElementById('project-setup-modal');
+                    if (modal) {
+                        console.log('✅ Opening project setup modal for creation');
+                        
+                        // Reset modal for create mode
+                        modal.removeAttribute('data-project-id');
+                        document.getElementById('projectSetupModalLabel').innerHTML = '<i class="fas fa-cogs"></i> Project Setup - <span id="project-setup-name"></span>';
+                        
+                        // Get project name from app
+                        const projectName = window.app && window.app.pendingProjectName ? window.app.pendingProjectName : 'New Project';
+                        document.getElementById('project-setup-name').textContent = projectName;
+                        
+                        // Clear form fields
+                        document.getElementById('project-name').value = projectName;
+                        document.getElementById('project-description').value = '';
+                        document.getElementById('project-persona').value = '';
+                        document.getElementById('project-subject').value = '';
+                        document.getElementById('project-year-level').value = '';
+                        document.getElementById('project-learning-objectives').value = '';
+                        document.getElementById('project-assessment-criteria').value = '';
+                        
+                        // Show modal
+                        modal.style.display = 'flex';
+                        modal.classList.add('show');
+                        document.body.classList.add('modal-open');
+                        document.body.style.overflow = 'hidden';
+                        
+                        console.log('✅ Project creation modal opened successfully');
+                    } else {
+                        console.error('❌ Project setup modal not found');
+                        alert('Project setup modal is not available. Please refresh the page and try again.');
                     }
                 };
             }
