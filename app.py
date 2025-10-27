@@ -2188,6 +2188,25 @@ When responding to math questions, please:
                 app.logger.info(f"Added {len(math_context_items)} math curriculum context item(s) from database to Math project")
             else:
                 app.logger.warning("No math curriculum context items found in database")
+
+            # Prefer stronger math models by default (server-side safeguard)
+            try:
+                strong_math_models = {
+                    'o1-mini', 'o1-preview',
+                    'claude-3.5-sonnet', 'claude-3-5-sonnet-20241022', 'claude-3.5-sonnet-20241022',
+                    'claude-sonnet-4-20250514'
+                }
+                if model not in strong_math_models:
+                    preferred = None
+                    if os.getenv('OPENAI_API_KEY'):
+                        preferred = 'o1-mini'
+                    elif getattr(llm_service, 'anthropic_available', False):
+                        preferred = 'claude-3.5-sonnet-20241022'
+                    if preferred:
+                        app.logger.info(f"Overriding model for math project: {model} -> {preferred}")
+                        model = preferred
+            except Exception as e:
+                app.logger.warning(f"Could not apply math model preference: {e}")
         
         # Fallback to old context_documents system for backward compatibility
         import json
