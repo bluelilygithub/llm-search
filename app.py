@@ -171,6 +171,8 @@ def build_math_guardrails_system_prompt(user_name, project):
     return (
         f"You are responding to {user_name}. Always address them by name. Use clear{level_clause} language.\n"
         f"When solving {subject} problems, follow this structure strictly:\n"
+        "• If the user asks for a simpler/beginner explanation, immediately provide a simplified explanation first — do not ask permission or say you can do it; just do it.\n"
+        "• Start with the final simplified result in one short line, then show the steps.\n"
         "1) Variable setup: define symbols and, if relevant, units.\n"
         "2) Method: state why the chosen method applies (e.g., quadratic formula, factoring).\n"
         "   - For dividing fractions, use the Keep–Flip–Change mnemonic (keep the first, flip the second, change ÷ to ×).\n"
