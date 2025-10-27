@@ -169,17 +169,22 @@ def build_math_guardrails_system_prompt(user_name, project):
         subject = 'mathematics'
     level_clause = f" in {level}" if level else ''
 
-    # Plain-text override based on user preference
+    # Output style preference (default to clean plain text to avoid markup issues)
     try:
         identity = get_user_identity() or {}
         uid = identity.get('user_id')
-        user_pref_plain = False
+        user_pref_plain = True  # default: plain text for clean copy/paste
         if uid:
             user_obj = User.query.get(uid)
             if user_obj and isinstance(getattr(user_obj, 'preferences', None), dict):
-                user_pref_plain = bool(user_obj.preferences.get('plain_text_output'))
+                prefs = user_obj.preferences
+                if 'plain_text_output' in prefs:
+                    user_pref_plain = bool(prefs.get('plain_text_output'))
+                elif 'rich_math_output' in prefs:
+                    # if rich requested explicitly, disable plain text
+                    user_pref_plain = not bool(prefs.get('rich_math_output'))
     except Exception:
-        user_pref_plain = False
+        user_pref_plain = True
 
     if user_pref_plain:
         return (
