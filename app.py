@@ -1099,6 +1099,22 @@ def update_user_preferences():
         app.logger.error(f"Error updating preferences: {e}")
         return jsonify({'error': 'Failed to update preferences'}), 500
 
+@app.route('/api/users/preferences', methods=['GET'])
+@auth.login_required
+def get_user_preferences():
+    """Return current user's preferences JSON."""
+    try:
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({'error': 'Not authenticated'}), 401
+        user = db.session.query(User).filter(User.id == user_id).first()
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        return jsonify({'success': True, 'preferences': user.preferences or {}})
+    except Exception as e:
+        app.logger.error(f"Error getting preferences: {e}")
+        return jsonify({'error': 'Failed to get preferences'}), 500
+
 @app.route('/migrate-project-template')
 def migrate_project_template():
     """Add new template fields to the projects table if they don't exist"""

@@ -4752,6 +4752,33 @@ window.app.saveProfilePreferences = async function() {
     }
 };
 
+// Load profile preferences into the form when Settings opens
+document.addEventListener('DOMContentLoaded', () => {
+    try {
+        const panel = document.getElementById('settings-panel');
+        if (!panel) return;
+        // Basic hook when settings panel is made visible
+        const observer = new MutationObserver(async () => {
+            if (panel.style.display === 'block' || panel.style.opacity === '1' || panel.classList.contains('open')) {
+                try {
+                    const res = await fetch('/api/users/preferences');
+                    const data = await res.json().catch(()=>({}));
+                    const prefs = (data && data.preferences) || {};
+                    const toneEl = document.getElementById('pref-tone');
+                    const verbEl = document.getElementById('pref-verbosity');
+                    const readEl = document.getElementById('pref-reading');
+                    if (toneEl && typeof prefs.tone === 'string') toneEl.value = prefs.tone;
+                    if (verbEl && typeof prefs.verbosity === 'string') verbEl.value = prefs.verbosity;
+                    if (readEl && typeof prefs.reading_level === 'string') readEl.value = prefs.reading_level;
+                } catch (e) {
+                    console.warn('Failed to load preferences', e);
+                }
+            }
+        });
+        observer.observe(panel, { attributes: true, attributeFilter: ['style','class'] });
+    } catch (e) { console.warn('pref init failed', e); }
+});
+
 // Model Management Modal Functions
 window.openModelManagement = function() {
     const modal = document.getElementById('model-management-modal');
@@ -5476,7 +5503,10 @@ window.saveProfileChanges = function() {
             alert('Profile updated successfully!');
             closeProfileModal();
             // Refresh account info
-            renderAccountInfo();
+            // Refresh account info if function exists
+            if (typeof window.loadAccountInfo === 'function') {
+                window.loadAccountInfo();
+            }
             // Update welcome message if needed
             if (window.updateWelcomeMessages) {
                 window.updateWelcomeMessages(data.user.display_name);
