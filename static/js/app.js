@@ -9363,26 +9363,21 @@ KnowledgeBaseApp.prototype.renderProjectsGrid = function(projects, retryCount = 
                 </div>
                 <h3 class="project-card-title">${project.name}</h3>
                 <p class="project-card-count">${conversationCount} conversations</p>
-                <div class="project-card-actions">
-                    <button class="view-action-btn secondary" onclick="event.stopPropagation(); viewProjectTemplate('${project.id}')" title="View Template">
+                <div class="project-card-actions" style="display:flex; gap:8px; flex-wrap:nowrap; align-items:center; justify-content:flex-start;">
+                    <button class="view-action-btn secondary" onclick="event.stopPropagation(); viewProjectTemplate('${project.id}')" title="Preview">
                         <i class="fas fa-eye"></i>
-                        Preview
                     </button>
-                    <button class="view-action-btn secondary" onclick="event.stopPropagation(); editProjectTemplate('${project.id}')" title="Edit Template">
+                    <button class="view-action-btn secondary" onclick="event.stopPropagation(); editProjectTemplate('${project.id}')" title="Setup">
                         <i class="fas fa-cogs"></i>
-                        Setup
                     </button>
-                    <button class="view-action-btn secondary" onclick="event.stopPropagation(); window.app.editProject('${project.id}', '${project.name.replace(/'/g, "\\'")}')" title="Rename Project">
+                    <button class="view-action-btn secondary" onclick="event.stopPropagation(); window.app.editProject('${project.id}', '${project.name.replace(/'/g, "\\'")}')" title="Rename">
                         <i class="fas fa-edit"></i>
-                        Rename
                     </button>
-                    <button class="view-action-btn secondary" onclick="event.stopPropagation(); window.app.deleteProject('${project.id}')" title="Delete Project">
+                    <button class="view-action-btn secondary" onclick="event.stopPropagation(); window.app.deleteProject('${project.id}')" title="Delete">
                         <i class="fas fa-trash"></i>
-                        Delete
                     </button>
-                    <button class="view-action-btn secondary" onclick="event.stopPropagation(); window.app.cloneProject('${project.id}')" title="Clone Project">
+                    <button class="view-action-btn secondary" onclick="event.stopPropagation(); window.app.cloneProject('${project.id}')" title="Clone">
                         <i class="fas fa-clone"></i>
-                        Clone
                     </button>
                 </div>
             </div>
