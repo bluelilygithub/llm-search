@@ -2192,16 +2192,15 @@ When responding to math questions, please:
             # Prefer stronger math models by default (server-side safeguard)
             try:
                 strong_math_models = {
-                    'o1-mini', 'o1-preview',
                     'claude-3.5-sonnet', 'claude-3-5-sonnet-20241022', 'claude-3.5-sonnet-20241022',
-                    'claude-sonnet-4-20250514'
+                    'claude-sonnet-4-20250514', 'gpt-4o', 'gpt-4o-mini'
                 }
                 if model not in strong_math_models:
                     preferred = None
-                    if os.getenv('OPENAI_API_KEY'):
-                        preferred = 'o1-mini'
-                    elif getattr(llm_service, 'anthropic_available', False):
+                    if getattr(llm_service, 'anthropic_available', False):
                         preferred = 'claude-3.5-sonnet-20241022'
+                    elif os.getenv('OPENAI_API_KEY'):
+                        preferred = 'gpt-4o'
                     if preferred:
                         app.logger.info(f"Overriding model for math project: {model} -> {preferred}")
                         model = preferred
