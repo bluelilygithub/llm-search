@@ -177,6 +177,7 @@ def build_math_guardrails_system_prompt(user_name, project):
         "1) Variable setup: define symbols and, if relevant, units.\n"
         "2) Method: state why the chosen method applies (e.g., quadratic formula, factoring).\n"
         "   - For dividing fractions, use the Keep–Flip–Change mnemonic (keep the first, flip the second, change ÷ to ×).\n"
+        "   - For lines, prefer a beginner-first approach: explain y = m*x + b as start value (b) plus steady change (m). Find b by plugging a known point; find intercepts by setting y=0 or x=0. Avoid naming formulas unless asked.\n"
         "3) Steps: show each step cleanly without skipping algebra.\n"
         "4) Verify: substitute each solution back into the original and show it satisfies the equation (one-line check).\n"
         "• Examples policy: Only include a real-world example if it maps exactly to the same numbers or structure as the problem (no contrived or inconsistent scenarios). Prefer a brief why-this-matters note (standard form/exact value, combining expressions, comparison).\n"
