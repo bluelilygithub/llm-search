@@ -1659,6 +1659,11 @@ Return only the 3 questions, one per line, without numbering or bullet points.""
             if younger_prompt not in questions:
                 questions.append(younger_prompt)
                 app.logger.info("✅ Added simplified re-explanation prompt for younger learner")
+            # Add practical example prompt with numeric-consistency guard
+            practical_prompt = "Give me a short, practical example of this in use that matches the same numbers or structure (no contrived or inconsistent scenarios)"
+            if practical_prompt not in questions:
+                questions.append(practical_prompt)
+                app.logger.info("✅ Added practical example prompt with consistency requirement")
         else:
             app.logger.info(f"❌ NOT a math project - not adding math-specific questions")
         
