@@ -181,6 +181,42 @@ def build_math_guardrails_system_prompt(user_name, project):
         "8) End with one short question to confirm understanding.\n"
     )
 
+def build_user_profile_system_prompt():
+    """Build a system prompt describing the currently logged-in user's profile.
+
+    Uses session identity to fetch the User and includes any available
+    preferences such as age, grade/year level, region, and learning style.
+    """
+    try:
+        identity = get_user_identity() or {}
+        user_id = identity.get('user_id')
+        if not user_id:
+            return None
+        user = User.query.get(user_id)
+        if not user:
+            return None
+
+        display_name = user.display_name or user.username or 'User'
+        profile_bits = []
+
+        # Collect optional details from preferences if present
+        prefs = user.preferences or {}
+        for key in ['age', 'gender', 'grade_level', 'year_level', 'school_year', 'region', 'learning_style', 'difficulty_preference']:
+            value = prefs.get(key)
+            if isinstance(value, str) and value.strip():
+                profile_bits.append(f"{key.replace('_', ' ')}: {value.strip()}")
+            elif isinstance(value, (int, float)):
+                profile_bits.append(f"{key.replace('_', ' ')}: {value}")
+
+        profile_line = ("; ".join(profile_bits)) if profile_bits else ""
+        details = f"User profile: {profile_line}" if profile_line else ""
+        return (
+            f"You are assisting {display_name}. Address them by name. "
+            f"Use age-appropriate, clear language. {details}"
+        ).strip()
+    except Exception:
+        return None
+
 # Security configurations
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB max file size
 
@@ -2059,17 +2095,21 @@ def chat():
         
         # Get user's display name for personalized responses
         user_display_name = session.get('display_name') or session.get('username') or 'User'
+        # Build a dynamic user profile system prompt (based on the logged-in user)
+        try:
+            user_profile_prompt = build_user_profile_system_prompt()
+            if user_profile_prompt:
+                messages.append({'role': 'system', 'content': user_profile_prompt})
+                app.logger.info("Applied user profile system prompt")
+        except Exception as e:
+            app.logger.debug(f"Could not build user profile prompt: {e}")
         
         # Apply project template if we have a project
         if project:
             project_system_prompt = build_project_system_prompt(project)
             if project_system_prompt:
-                # Add personalization instruction
-                personalized_prompt = f"{project_system_prompt}\n\nNote: You are assisting {user_display_name}. Address them naturally by name in your responses when appropriate."
-                messages.append({
-                    'role': 'system',
-                    'content': personalized_prompt
-                })
+                # Keep project system prompt distinct; user name is already provided above
+                messages.append({'role': 'system', 'content': project_system_prompt})
                 app.logger.info(f"Applied project template for project: {project.name}")
         else:
             # Add a default personalized system prompt if no project
