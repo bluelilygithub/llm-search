@@ -43,9 +43,16 @@
             <div class="settings-section active" id="account-section">
                 <div class="section-header">
                     <h3>Profile Information</h3>
-                    <p>View and edit your profile preferences. These guide tone, verbosity, and reading level.</p>
+                    <p>View your account details and tailor response preferences.</p>
                 </div>
+                <!-- Account details are rendered into this container dynamically -->
                 <div class="account-info" id="account-info-content">
+                    <div class="loading-account">Loading profile information...</div>
+                </div>
+
+                <!-- Keep preferences in a separate container so they are not overwritten by loadAccountInfo() -->
+                <div class="account-preferences" id="account-preferences" style="margin-top:16px;">
+                    <h4><i class="fas fa-sliders-h"></i> Response Preferences</h4>
                     <div class="form-row">
                         <label for="pref-tone">Tone</label>
                         <select id="pref-tone">
