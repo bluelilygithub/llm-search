@@ -1639,25 +1639,23 @@ Return only the 3 questions, one per line, without numbering or bullet points.""
         # For math projects, add targeted comprehension check instead of generic prompts
         app.logger.info(f"🔍 Checking if math project: is_math_project={is_math_project}")
         if is_math_project:
-            # Priority prompts for math follow-ups (max 2 total)
-            comp_check = "What is the reciprocal of 6y/x, and why does flipping make sense when dividing fractions?"
+            # For math, include two math-specific prompts and three contextual prompts (max 5 total)
             younger_prompt = "Explain it to someone who is two years younger with less exposure to math"
             practical_prompt = "Give me a short, practical example of this in use that matches the same numbers or structure (no contrived or inconsistent scenarios)"
+            contextual_prompts = [
+                "Would you like to see an alternative method or a quick visual explanation?",
+                "Why is it important to verify the result in the original equation?",
+                "Try a similar problem to practice and check your steps"
+            ]
 
-            prioritized = []
-            for p in [comp_check, younger_prompt, practical_prompt]:
-                if p not in prioritized:
-                    prioritized.append(p)
-
-            # Build final list: take prioritized prompts first, then fill from AI up to 2
             final_qs = []
-            for p in prioritized:
-                if len(final_qs) >= 2:
-                    break
+            for p in [younger_prompt, practical_prompt] + contextual_prompts:
                 if p not in final_qs:
                     final_qs.append(p)
+                if len(final_qs) >= 5:
+                    break
             for q in questions:
-                if len(final_qs) >= 2:
+                if len(final_qs) >= 5:
                     break
                 if q not in final_qs:
                     final_qs.append(q)
@@ -1665,9 +1663,10 @@ Return only the 3 questions, one per line, without numbering or bullet points.""
         else:
             app.logger.info(f"❌ NOT a math project - not adding math-specific questions")
         
-        # Ensure we return at most 2 nudges to keep UX natural
-        questions = questions[:2]
-        app.logger.info(f"Returning follow-up questions (max 2): {questions}")
+        # Cap per project type (math: 5, others: 2)
+        max_followups = 5 if is_math_project else 2
+        questions = questions[:max_followups]
+        app.logger.info(f"Returning follow-up questions (max {max_followups}): {questions}")
         return jsonify({'questions': questions}), 200
         
     except Exception as e:
