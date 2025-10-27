@@ -1650,7 +1650,7 @@ Return only the 3 questions, one per line, without numbering or bullet points.""
         if is_math_project:
             math_specific_questions = [
                 "Provide a practical example of how this solution is applied in everyday life",
-                "Offer to provide a simplified, detailed solution for someone who is much younger and less experienced"
+                "Provide me a simplified, detailed solution for someone who is much younger and less experienced"
             ]
             questions.extend(math_specific_questions)
             app.logger.info(f"✅ Added {len(math_specific_questions)} math-specific questions - total now {len(questions)}")
