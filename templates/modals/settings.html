@@ -43,10 +43,35 @@
             <div class="settings-section active" id="account-section">
                 <div class="section-header">
                     <h3>Profile Information</h3>
-                    <p>View your profile details and session information.</p>
+                    <p>View and edit your profile preferences. These guide tone, verbosity, and reading level.</p>
                 </div>
                 <div class="account-info" id="account-info-content">
-                    <div class="loading-account">Loading profile information...</div>
+                    <div class="form-row">
+                        <label for="pref-tone">Tone</label>
+                        <select id="pref-tone">
+                            <option value="">Default</option>
+                            <option value="friendly">Friendly</option>
+                            <option value="formal">Formal</option>
+                            <option value="concise">Concise</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <label for="pref-verbosity">Verbosity</label>
+                        <select id="pref-verbosity">
+                            <option value="">Default</option>
+                            <option value="brief">Brief</option>
+                            <option value="standard">Standard</option>
+                            <option value="detailed">Detailed</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <label for="pref-reading">Reading level</label>
+                        <input id="pref-reading" type="text" placeholder="e.g., Year 9" />
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn-primary" onclick="window.app.saveProfilePreferences()"><i class="fas fa-save"></i> Save</button>
+                    </div>
+                    <div class="small" id="pref-save-status" style="margin-top:6px;color:var(--text-muted);"></div>
                 </div>
             </div>
 

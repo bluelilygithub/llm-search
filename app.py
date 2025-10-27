@@ -1066,6 +1066,39 @@ def update_user_profile():
         app.logger.error(f"Error updating user profile: {str(e)}")
         return jsonify({'error': 'Failed to update profile'}), 500
 
+@csrf.exempt
+@app.route('/api/users/update-preferences', methods=['PUT'])
+@auth.login_required
+def update_user_preferences():
+    """Update user preferences JSON with tone, verbosity, reading_level."""
+    try:
+        data = request.get_json() or {}
+        prefs_in = (data.get('preferences') or {}) if isinstance(data.get('preferences'), dict) else {}
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({'error': 'Not authenticated'}), 401
+        user = db.session.query(User).filter(User.id == user_id).first()
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        prefs = user.preferences or {}
+        for k in ('tone','verbosity','reading_level'):
+            v = prefs_in.get(k)
+            if v is None:
+                continue
+            if isinstance(v, str):
+                prefs[k] = v.strip()
+            else:
+                prefs[k] = v
+        user.preferences = prefs
+        from datetime import datetime
+        user.last_activity_at = datetime.utcnow()
+        db.session.commit()
+        return jsonify({'success': True, 'preferences': user.preferences})
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error updating preferences: {e}")
+        return jsonify({'error': 'Failed to update preferences'}), 500
+
 @app.route('/migrate-project-template')
 def migrate_project_template():
     """Add new template fields to the projects table if they don't exist"""

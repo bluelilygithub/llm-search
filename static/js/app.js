@@ -4723,6 +4723,35 @@ window.refreshModelsList = async function() {
     }
 };
 
+// ==================== PROFILE PREFERENCES ====================
+window.app = window.app || {};
+window.app.saveProfilePreferences = async function() {
+    try {
+        const tone = document.getElementById('pref-tone')?.value || '';
+        const verbosity = document.getElementById('pref-verbosity')?.value || '';
+        const reading = document.getElementById('pref-reading')?.value || '';
+        const statusEl = document.getElementById('pref-save-status');
+        if (statusEl) statusEl.textContent = 'Saving...';
+
+        const payload = { preferences: { tone, verbosity, reading_level: reading } };
+        const res = await fetch('/api/users/update-preferences', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.success) {
+            if (statusEl) statusEl.textContent = 'Saved. New responses will reflect your preferences.';
+        } else {
+            if (statusEl) statusEl.textContent = 'Failed to save preferences: ' + (data.error || res.statusText);
+        }
+    } catch (e) {
+        const statusEl = document.getElementById('pref-save-status');
+        if (statusEl) statusEl.textContent = 'Error: ' + e.message;
+        console.error('saveProfilePreferences error', e);
+    }
+};
+
 // Model Management Modal Functions
 window.openModelManagement = function() {
     const modal = document.getElementById('model-management-modal');
