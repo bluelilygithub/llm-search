@@ -4,7 +4,7 @@
 
 {% block extra_head %}
     {{ super() }}
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shepherd.js@13.0.1/dist/css/shepherd.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/shepherd/shepherd.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -119,7 +119,7 @@
 
 {% block extra_scripts %}
     {{ super() }}
-    <script src="https://cdn.jsdelivr.net/npm/shepherd.js@13.0.1/dist/js/shepherd.min.js"></script>
+    <script src="{{ url_for('static', filename='vendor/shepherd/shepherd.min.js') }}"></script>
     <script>
         (function() {
             try {
