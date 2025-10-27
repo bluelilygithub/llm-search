@@ -2073,37 +2073,66 @@
     }
 
     async startVoiceInput() {
-        alert('Mic button pressed!');
         console.log('Class startVoiceInput called');
         // Use Web Speech API for speech-to-text
         if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
             this.showError('Speech recognition is not supported in this browser.');
             return;
         }
+
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         const recognition = new SpeechRecognition();
-        recognition.lang = 'en-US';
-        recognition.interimResults = false;
+        recognition.lang = (window.app?.userPreferences?.speechLang) || 'en-US';
+        recognition.interimResults = true; // capture early audio
         recognition.maxAlternatives = 1;
-            
-            const voiceBtn = document.getElementById('voice-btn');
-            voiceBtn.classList.add('recording');
+        recognition.continuous = false;
 
+        const voiceBtn = document.getElementById('voice-btn');
+        if (voiceBtn) voiceBtn.classList.add('recording');
+
+        // retry once on no-speech
+        this._voiceRetryCount = this._voiceRetryCount || 0;
+
+        recognition.onstart = () => {
+            console.log('Speech recognition started');
+        };
+
+        recognition.onspeechstart = () => {
+            console.log('Speech detected');
+        };
 
         recognition.onresult = (event) => {
+            this._voiceRetryCount = 0; // reset on success
             const transcript = event.results[0][0].transcript;
             const messageInput = document.getElementById('message-input');
-            messageInput.value = transcript;
-            messageInput.focus();
+            if (messageInput) {
+                messageInput.value = transcript;
+                messageInput.focus();
+            }
         };
+
         recognition.onerror = (event) => {
             console.error('Speech recognition error:', event.error);
+            if (event.error === 'no-speech' && this._voiceRetryCount < 1) {
+                this._voiceRetryCount += 1;
+                console.warn('Retrying speech recognition after no-speech...');
+                setTimeout(() => {
+                    try { recognition.start(); } catch (e) { console.error('Retry start failed', e); }
+                }, 500);
+                return;
+            }
             this.showError('Speech recognition error: ' + event.error);
         };
+
         recognition.onend = () => {
-                voiceBtn.classList.remove('recording');
+            if (voiceBtn) voiceBtn.classList.remove('recording');
+            console.log('Speech recognition ended');
         };
-        recognition.start();
+
+        // slight delay so the user can speak after clicking
+        setTimeout(() => {
+            try { recognition.start(); } catch (e) { console.error('Start failed', e); }
+        }, 200);
     }
 
     // Remove MediaRecorder and backend-based voice input methods
