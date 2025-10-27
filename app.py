@@ -178,7 +178,8 @@ def build_math_guardrails_system_prompt(user_name, project):
         "2) Method: state why the chosen method applies (e.g., quadratic formula, factoring).\n"
         "   - For dividing fractions, use the Keep–Flip–Change mnemonic (keep the first, flip the second, change ÷ to ×).\n"
         "3) Steps: show each step cleanly without skipping algebra.\n"
-        "4) Verify: substitute each solution back into the original and show it satisfies the equation.\n"
+        "4) Verify: substitute each solution back into the original and show it satisfies the equation (one-line check).\n"
+        "• Examples policy: Only include a real-world example if it maps exactly to the same numbers or structure as the problem (no contrived or inconsistent scenarios). Prefer a brief why-this-matters note (standard form/exact value, combining expressions, comparison).\n"
         "8) End with one short question to confirm understanding.\n"
     )
 
@@ -212,7 +213,7 @@ def build_user_profile_system_prompt():
         profile_line = ("; ".join(profile_bits)) if profile_bits else ""
         details = f"User profile: {profile_line}" if profile_line else ""
         return (
-            f"You are assisting {display_name}. Address them by name. "
+            f"You are assisting {display_name}. Greet them by name once at the start; thereafter use their name sparingly and do not repeat greetings. "
             f"Use age-appropriate, clear language. {details}"
         ).strip()
     except Exception:
@@ -1646,15 +1647,13 @@ Return only the 3 questions, one per line, without numbering or bullet points.""
         # Return only first 3 questions
         questions = questions[:3]
         
-        # For math projects, add 2 additional math-specific questions
+        # For math projects, add targeted comprehension check instead of generic prompts
         app.logger.info(f"🔍 Checking if math project: is_math_project={is_math_project}")
         if is_math_project:
-            math_specific_questions = [
-                "Provide a practical example of how this solution is applied in everyday life",
-                "Provide me a simplified, detailed solution for someone who is much younger and less experienced"
-            ]
-            questions.extend(math_specific_questions)
-            app.logger.info(f"✅ Added {len(math_specific_questions)} math-specific questions - total now {len(questions)}")
+            comp_check = "What is the reciprocal of 6y/x, and why does flipping make sense when dividing fractions?"
+            if comp_check not in questions:
+                questions.append(comp_check)
+                app.logger.info("✅ Added math comprehension check")
         else:
             app.logger.info(f"❌ NOT a math project - not adding math-specific questions")
         
