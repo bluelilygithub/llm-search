@@ -174,6 +174,7 @@ def build_math_guardrails_system_prompt(user_name, project):
         "• Formatting: Use plain text suitable for a 13-year-old. Do NOT use LaTeX ($...$), code blocks, or markdown headings. Write roots as sqrt( ), fractions as a/b. Keep sentences short.\n"
         "• If the user asks for a simpler/beginner explanation, immediately provide a simplified explanation first — do not ask permission or say you can do it; just do it.\n"
         "• Start with the final simplified result in one short line, then show the steps.\n"
+        "• Teacher-quality expectation: compute first, then state the result. If a stated value conflicts with your checked result, explicitly correct yourself and use the verified value.\n"
         "1) Variable setup: define symbols and, if relevant, units.\n"
         "2) Method: state why the chosen method applies (e.g., quadratic formula, factoring).\n"
         "   - For dividing fractions, use the Keep–Flip–Change mnemonic (keep the first, flip the second, change ÷ to ×).\n"
@@ -213,9 +214,18 @@ def build_user_profile_system_prompt():
 
         profile_line = ("; ".join(profile_bits)) if profile_bits else ""
         details = f"User profile: {profile_line}" if profile_line else ""
+        # Try to infer age/level guidance
+        age = None
+        try:
+            age = int(prefs.get('age')) if prefs.get('age') is not None else None
+        except Exception:
+            age = None
+        age_clause = f" Aim for a reading level suitable for a {age}-year-old." if age else ""
+
         return (
             f"You are assisting {display_name}. Greet them by name once at the start; thereafter use their name sparingly and do not repeat greetings. "
-            f"Use age-appropriate, clear language. {details}"
+            f"Use age-appropriate, clear language.{age_clause} Define new math terms briefly when first used. Favor short sentences and concrete steps. "
+            f"Provide teacher-quality explanations: precise, correct, and accessible; avoid filler. {details}"
         ).strip()
     except Exception:
         return None
@@ -1646,7 +1656,8 @@ Return only the 3 questions, one per line, without numbering or bullet points.""
             contextual_prompts = [
                 "Would you like to see an alternative method or a quick visual explanation?",
                 "Why is it important to verify the result in the original equation?",
-                "Try a similar problem to practice and check your steps"
+                "Try a similar problem to practice and check your steps",
+                "Extension: if the numbers change slightly, can you predict how the intercepts/roots change without redoing all steps?"
             ]
 
             final_qs = []
