@@ -73,7 +73,7 @@ class User(db.Model):
     preferences = db.Column(db.JSON, default=lambda: {})  # User settings and preferences
     timezone = db.Column(db.String(50), default='UTC')
     language = db.Column(db.String(10), default='en')
-    has_completed_onboarding = db.Column(db.Boolean, default=False, nullable=False)
+    # has_completed_onboarding removed with onboarding tour
     
     # Usage tracking
     api_key = db.Column(db.String(64), unique=True, nullable=True, index=True)

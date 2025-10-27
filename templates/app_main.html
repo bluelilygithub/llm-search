@@ -4,12 +4,11 @@
 
 {% block extra_head %}
     {{ super() }}
-    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/shepherd/shepherd.css') }}">
 {% endblock %}
 
 {% block content %}
 <script>
-    window.USER_ONBOARDING_DONE = {{ USER_ONBOARDING_DONE | tojson | safe }};
+    // Onboarding tour removed
 </script>
 <!-- This content will be dynamically replaced by the existing JavaScript -->
 <!-- The existing app.js will continue to work with the current DOM structure -->
@@ -119,28 +118,4 @@
 
 {% block extra_scripts %}
     {{ super() }}
-    <script src="{{ url_for('static', filename='vendor/shepherd/shepherd.min.js') }}"></script>
-    <script>
-        (function() {
-            try {
-                if (window.USER_ONBOARDING_DONE) return;
-                if (!window.Shepherd) return;
-                function pick(sels){ for (const sel of sels.split(',')) { const el = document.querySelector(sel.trim()); if (el) return sel.trim(); } return null; }
-                const tour = new Shepherd.Tour({ defaultStepOptions: { cancelIcon: { enabled: true }, canClickTarget: false } });
-                const raw = [
-                    { text: 'Start your first chat here.', sels: '#message-input, .input-area textarea, textarea[name="message"]', pos: 'top' },
-                    { text: 'Choose your AI model here.', sels: '#llm-model, select#llm-model, .top-bar select', pos: 'bottom' },
-                    { text: 'Upload documents to give the AI context.', sels: '#upload-button, #btn-attach, .input-controls .fa-paperclip', pos: 'left' },
-                    { text: 'Organize chats into Projects.', sels: '#projects-grid, #projects-sidebar, .home-actions .card:nth-child(2)', pos: 'right' }
-                ];
-                let added = 0;
-                raw.forEach((s,i)=>{ const target = pick(s.sels); if(!target) return; tour.addStep({ text: s.text, attachTo: { element: target, on: s.pos }, buttons: [{ text: i===raw.length-1 ? 'Finish' : 'Next', action: i===raw.length-1 ? tour.complete : tour.next }] }); added++; });
-                if (!added) return;
-                const complete = async () => { try { await fetch('/api/users/complete-onboarding', { method: 'POST', headers: { 'Content-Type': 'application/json' } }); } catch(e){} };
-                tour.on('complete', complete);
-                tour.on('cancel', complete);
-                setTimeout(() => tour.start(), 1200);
-            } catch (e) { console.warn('Onboarding tour failed', e); }
-        })();
-    </script>
 {% endblock %}

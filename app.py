@@ -341,21 +341,7 @@ from security_utils import (
     sanitize_filename
 )
 auth.init_app(app)
-# Onboarding completion
-@app.route('/api/users/complete-onboarding', methods=['POST'])
-@auth.login_required
-def complete_onboarding():
-    try:
-        user = User.query.get(session.get('user_id'))
-        if not user:
-            return jsonify({'error': 'User not found'}), 404
-        user.has_completed_onboarding = True
-        db.session.commit()
-        return jsonify({'success': True})
-    except Exception as e:
-        db.session.rollback()
-        app.logger.error(f"Failed to complete onboarding: {e}")
-        return jsonify({'error': 'Failed to update onboarding status'}), 500
+# (Onboarding tour removed)
 
 llm_service = LLMService()
 
