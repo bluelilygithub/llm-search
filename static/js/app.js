@@ -9380,6 +9380,10 @@ KnowledgeBaseApp.prototype.renderProjectsGrid = function(projects, retryCount = 
                         <i class="fas fa-trash"></i>
                         Delete
                     </button>
+                    <button class="view-action-btn secondary" onclick="event.stopPropagation(); window.app.cloneProject('${project.id}')" title="Clone Project">
+                        <i class="fas fa-clone"></i>
+                        Clone
+                    </button>
                 </div>
             </div>
         `;
@@ -9427,6 +9431,27 @@ KnowledgeBaseApp.prototype.openProject = function(projectId) {
     const project = this.projects.find(p => p.id === projectId);
     if (project) {
         this.showProjectConversationsView(project);
+    }
+};
+
+// Clone project
+KnowledgeBaseApp.prototype.cloneProject = async function(projectId) {
+    try {
+        const res = await fetch(`/projects/${projectId}/clone`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            alert(`Failed to clone project: ${err.error || res.statusText}`);
+            return;
+        }
+        const cloned = await res.json();
+        // Refresh projects list
+        const response = await fetch('/projects');
+        const projects = await response.json();
+        this.projects = projects;
+        this.renderProjectsGrid(projects);
+    } catch (e) {
+        console.error('Error cloning project', e);
+        alert('Error cloning project');
     }
 };
 

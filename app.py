@@ -1146,6 +1146,63 @@ def get_projects():
     
     return jsonify(project_data)
 
+@app.route('/projects/<project_id>/clone', methods=['POST'])
+@auth.login_required
+def clone_project(project_id):
+    """Clone a project (copy fields, exclude conversations)."""
+    try:
+        from models import Project
+        source_uuid = uuid.UUID(project_id)
+        source = Project.query.get_or_404(source_uuid)
+
+        # Access control: owner or admin
+        identity = get_user_identity()
+        is_admin = identity.get('is_admin', False)
+        user_id = identity.get('user_id')
+        if not is_admin and str(source.owner_id) != str(user_id):
+            return jsonify({'error': 'Access denied'}), 403
+
+        # Generate a clone name
+        base_name = source.name
+        new_name = f"{base_name} (Copy)"
+
+        # Create cloned project (no conversations attached)
+        cloned = Project(
+            name=new_name,
+            description=source.description,
+            agent_name=source.agent_name,
+            agent_role=source.agent_role,
+            agent_personality=source.agent_personality,
+            primary_goal=source.primary_goal,
+            goal_steps=source.goal_steps,
+            rules_do=source.rules_do,
+            rules_dont=source.rules_dont,
+            context_background=source.context_background,
+            user_role=source.user_role,
+            output_format=source.output_format,
+            persona_id=source.persona_id,
+            math_level=source.math_level,
+            math_subject=source.math_subject,
+            learning_style=source.learning_style,
+            difficulty_preference=source.difficulty_preference,
+            owner_id=source.owner_id
+        )
+
+        db.session.add(cloned)
+        db.session.commit()
+
+        return jsonify({
+            'id': str(cloned.id),
+            'name': cloned.name,
+            'description': cloned.description,
+            'created_at': cloned.created_at.isoformat(),
+            'updated_at': cloned.updated_at.isoformat() if cloned.updated_at else None
+        }), 201
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error cloning project: {e}")
+        return jsonify({'error': 'Failed to clone project'}), 500
+
 @app.route('/projects', methods=['POST'])
 def create_project():
     from models import Project
