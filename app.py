@@ -341,6 +341,21 @@ from security_utils import (
     sanitize_filename
 )
 auth.init_app(app)
+# Onboarding completion
+@app.route('/api/users/complete-onboarding', methods=['POST'])
+@auth.login_required
+def complete_onboarding():
+    try:
+        user = User.query.get(session.get('user_id'))
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        user.has_completed_onboarding = True
+        db.session.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Failed to complete onboarding: {e}")
+        return jsonify({'error': 'Failed to update onboarding status'}), 500
 
 llm_service = LLMService()
 
@@ -493,7 +508,14 @@ def index():
     has_access, access_type, free_info = auth.has_access()
     if not has_access:
         return redirect(url_for('login_page'))
-    return render_template('app_main.html')
+    onboarding_done = True
+    try:
+        if auth.is_authenticated():
+            user = User.query.get(session.get('user_id'))
+            onboarding_done = bool(getattr(user, 'has_completed_onboarding', False)) if user else True
+    except Exception:
+        onboarding_done = True
+    return render_template('app_main.html', USER_ONBOARDING_DONE=onboarding_done)
 
 # Test routes removed - main route now uses new template structure
 

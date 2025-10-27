@@ -3,6 +3,9 @@
 {% block title %}AI Knowledge Base{% endblock %}
 
 {% block content %}
+<script>
+    window.USER_ONBOARDING_DONE = {{ USER_ONBOARDING_DONE | tojson | safe }};
+</script>
 <!-- This content will be dynamically replaced by the existing JavaScript -->
 <!-- The existing app.js will continue to work with the current DOM structure -->
 <div id="dynamic-content">
@@ -107,4 +110,30 @@
     {% include 'modals/template_picker.html' %}
     {% include 'modals/template_editor.html' %}
     {% include 'modals/user_management.html' %}
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shepherd.js@13.0.1/dist/css/shepherd.css">
+    <script src="https://cdn.jsdelivr.net/npm/shepherd.js@13.0.1/dist/js/shepherd.min.js"></script>
+    <script>
+        (function() {
+            try {
+                if (window.USER_ONBOARDING_DONE) return;
+                if (!window.Shepherd) return;
+                const tour = new Shepherd.Tour({ defaultStepOptions: { cancelIcon: { enabled: true }, canClickTarget: false } });
+                const steps = [
+                    { text: 'Start your first chat here.', attachTo: { element: '#message-input', on: 'top' } },
+                    { text: 'Choose your AI model here.', attachTo: { element: '#llm-model', on: 'bottom' } },
+                    { text: 'Upload documents to give the AI context.', attachTo: { element: '#upload-panel, #upload-button', on: 'left' } },
+                    { text: 'Organize chats into Projects.', attachTo: { element: '#projects-sidebar, #projects-grid', on: 'right' } }
+                ];
+                steps.forEach((s, i) => tour.addStep({ text: s.text, attachTo: s.attachTo, buttons: [{ text: i === steps.length - 1 ? 'Finish' : 'Next', action: i === steps.length - 1 ? tour.complete : tour.next }] }));
+                const complete = async () => { try { await fetch('/api/users/complete-onboarding', { method: 'POST', headers: { 'Content-Type': 'application/json' } }); } catch(e){} };
+                tour.on('complete', complete);
+                tour.on('cancel', complete);
+                setTimeout(() => tour.start(), 800);
+            } catch (e) { console.warn('Onboarding tour failed', e); }
+        })();
+    </script>
 {% endblock %}
