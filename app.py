@@ -173,11 +173,9 @@ def build_math_guardrails_system_prompt(user_name, project):
         f"When solving {subject} problems, follow this structure strictly:\n"
         "1) Variable setup: define symbols and, if relevant, units.\n"
         "2) Method: state why the chosen method applies (e.g., quadratic formula, factoring).\n"
+        "   - For dividing fractions, use the Keep–Flip–Change mnemonic (keep the first, flip the second, change ÷ to ×).\n"
         "3) Steps: show each step cleanly without skipping algebra.\n"
         "4) Verify: substitute each solution back into the original and show it satisfies the equation.\n"
-        "5) Discriminant/shape sanity check when applicable (e.g., b^2 - 4ac, number of roots).\n"
-        "6) Optional cross-check with a second method if quick (e.g., factor vs formula, or quick graph reasoning).\n"
-        "7) Practical example relevant to a 13-year-old's life (school budgeting, sport timing, simple design), no contrived analogies or mixed units.\n"
         "8) End with one short question to confirm understanding.\n"
     )
 
