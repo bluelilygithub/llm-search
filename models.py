@@ -92,6 +92,9 @@ class Conversation(db.Model):
     # embedding = db.Column(Vector(1536), nullable=True)
     # embedding_processed = db.Column(db.Boolean, default=False)
     # embedding_processed_at = db.Column(db.DateTime, nullable=True)
+    # Lightweight semantic search fields
+    ai_summary = db.Column(db.Text, nullable=True)
+    summary_embedding = db.Column(db.JSON, nullable=True)  # store as JSON array (no pgvector)
     
     # Relationships
     messages = db.relationship('Message', backref='conversation', lazy=True, cascade='all, delete-orphan')

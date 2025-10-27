@@ -3809,11 +3809,12 @@ def get_context_stats():
 
 @app.route('/api/search/conversations', methods=['GET'])
 def search_conversations():
-    """Search conversations by content with project awareness"""
+    """Search conversations by content with project awareness (keyword) and optional semantic summaries"""
     try:
         query = request.args.get('query', '').strip()
         project_id = request.args.get('project_id')
         limit = int(request.args.get('limit', 20))
+        use_semantic = request.args.get('semantic', 'false').lower() == 'true'
         
         if not query:
             return jsonify({'success': False, 'error': 'Query parameter is required'}), 400
@@ -3903,13 +3904,48 @@ def search_conversations():
                 'snippets': snippets[:2]  # Limit to 2 snippets per conversation
             })
         
-        return jsonify({
+        response_payload = {
             'success': True,
             'query': query,
             'project_id': project_id,
             'total_results': len(results),
             'conversations': results
-        })
+        }
+
+        # Optional semantic search over summaries
+        if use_semantic:
+            try:
+                from models import Conversation
+                import numpy as np
+                from rag_service_simple import RAGServiceSimple
+                rag = RAGServiceSimple()
+                q_emb = rag.generate_embedding(query)
+                if q_emb:
+                    qv = np.array(q_emb)
+                    base_sem_q = filter_conversations_by_user(db.session.query(Conversation))
+                    if project_id:
+                        try:
+                            project_uuid = uuid.UUID(project_id)
+                            base_sem_q = base_sem_q.filter(Conversation.project_id == project_uuid)
+                        except ValueError:
+                            pass
+                    sem_rows = base_sem_q.with_entities(Conversation.id, Conversation.title, Conversation.ai_summary, Conversation.summary_embedding).all()
+                    scored = []
+                    for cid, title, summ, emb in sem_rows:
+                        if not emb:
+                            continue
+                        try:
+                            v = np.array(emb)
+                            sim = float(np.dot(qv, v) / (np.linalg.norm(qv) * np.linalg.norm(v)))
+                            scored.append((sim, str(cid), title, summ))
+                        except Exception:
+                            continue
+                    scored.sort(reverse=True, key=lambda x: x[0])
+                    response_payload['semantic'] = [{ 'id': cid, 'title': title, 'ai_summary': summ or '', 'similarity': round(sim, 4) } for sim, cid, title, summ in scored[:10]]
+            except Exception as se:
+                app.logger.warning(f"Semantic summary search failed: {se}")
+
+        return jsonify(response_payload)
         
     except Exception as e:
         app.logger.error(f"Error searching conversations: {str(e)}")
