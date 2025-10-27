@@ -1654,6 +1654,11 @@ Return only the 3 questions, one per line, without numbering or bullet points.""
             if comp_check not in questions:
                 questions.append(comp_check)
                 app.logger.info("✅ Added math comprehension check")
+            # Add simplified re-explanation request for a younger learner
+            younger_prompt = "Explain it to someone who is two years younger with less exposure to math"
+            if younger_prompt not in questions:
+                questions.append(younger_prompt)
+                app.logger.info("✅ Added simplified re-explanation prompt for younger learner")
         else:
             app.logger.info(f"❌ NOT a math project - not adding math-specific questions")
         
