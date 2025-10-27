@@ -154,6 +154,33 @@ def build_project_system_prompt(project):
     
     return '\n'.join(prompt_parts) if prompt_parts else None
 
+def build_math_guardrails_system_prompt(user_name, project):
+    """Return strict math guardrails to reduce incorrect explanations for students.
+
+    This prompt enforces: personalization, clear method choice, step structure,
+    verification by substitution, discriminant sanity check, optional cross-check,
+    realistic practical example, and a short comprehension question.
+    """
+    try:
+        level = (project.math_level or '').strip() if project else ''
+        subject = (project.math_subject or 'mathematics').strip() if project else 'mathematics'
+    except Exception:
+        level = ''
+        subject = 'mathematics'
+    level_clause = f" in {level}" if level else ''
+    return (
+        f"You are responding to {user_name}. Always address them by name. Use clear{level_clause} language.\n"
+        f"When solving {subject} problems, follow this structure strictly:\n"
+        "1) Variable setup: define symbols and, if relevant, units.\n"
+        "2) Method: state why the chosen method applies (e.g., quadratic formula, factoring).\n"
+        "3) Steps: show each step cleanly without skipping algebra.\n"
+        "4) Verify: substitute each solution back into the original and show it satisfies the equation.\n"
+        "5) Discriminant/shape sanity check when applicable (e.g., b^2 - 4ac, number of roots).\n"
+        "6) Optional cross-check with a second method if quick (e.g., factor vs formula, or quick graph reasoning).\n"
+        "7) Practical example relevant to a 13-year-old's life (school budgeting, sport timing, simple design), no contrived analogies or mixed units.\n"
+        "8) End with one short question to confirm understanding.\n"
+    )
+
 # Security configurations
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB max file size
 
@@ -2099,6 +2126,15 @@ Please use this context information appropriately when responding to user questi
                 is_math_project = True
         
         if is_math_project:
+            # Inject strict math guardrails to improve correctness and clarity for students
+            try:
+                guardrails = build_math_guardrails_system_prompt(user_display_name, project)
+                if guardrails:
+                    messages.append({'role': 'system', 'content': guardrails})
+                    app.logger.info("Applied math guardrails system prompt")
+            except Exception as e:
+                app.logger.warning(f"Failed to apply math guardrails: {e}")
+
             app.logger.info(f"Math project detected ({project.name}), loading math curriculum from database")
             
             # Load math curriculum context items from database
