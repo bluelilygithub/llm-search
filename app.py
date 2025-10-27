@@ -261,9 +261,22 @@ def build_user_profile_system_prompt():
             age = None
         age_clause = f" Aim for a reading level suitable for a {age}-year-old." if age else ""
 
+        # Optional tone/verbosity/reading level
+        tone = (prefs.get('tone') or '').strip() if isinstance(prefs.get('tone'), str) else ''
+        verbosity = (prefs.get('verbosity') or '').strip() if isinstance(prefs.get('verbosity'), str) else ''
+        reading_level = (prefs.get('reading_level') or '').strip() if isinstance(prefs.get('reading_level'), str) else ''
+        style_bits = []
+        if tone:
+            style_bits.append(f"tone: {tone}")
+        if verbosity:
+            style_bits.append(f"verbosity: {verbosity}")
+        if reading_level:
+            style_bits.append(f"reading_level: {reading_level}")
+        style_clause = (" Style: " + ", ".join(style_bits) + ".") if style_bits else ""
+
         return (
             f"You are assisting {display_name}. Greet them by name once at the start; thereafter use their name sparingly and do not repeat greetings. "
-            f"Use age-appropriate, clear language.{age_clause} Define new math terms briefly when first used. Favor short sentences and concrete steps. "
+            f"Use age-appropriate, clear language.{age_clause}{style_clause} Define new terms briefly when first used. Favor short sentences and concrete steps. "
             f"Provide teacher-quality explanations: precise, correct, and accessible; avoid filler. {details}"
         ).strip()
     except Exception:
