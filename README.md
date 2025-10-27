@@ -113,6 +113,14 @@ Curam AI Knowledge Base is a multi-LLM chat interface that allows users to:
 - **Account Panel**: User profile management with password updates
 - **Export & Import**: Full conversation export with context preservation
 - **Personalized Welcome**: Custom welcome messages with user's display name
+ - **Icon‑only Project Actions**: Compact project cards with one‑row actions (preview, setup, rename, delete, clone)
+
+### 🎯 Education‑ready Math Mode
+- **Teacher‑quality Guardrails**: Compute‑first, verify by substitution, explicit self‑correction on contradictions
+- **Beginner‑first Teaching**: Default to y = m*x + b for lines, Keep‑Flip‑Change for fraction division, brief definitions for new terms
+- **Follow‑ups**: Age‑appropriate comprehension checks, younger‑learner re‑explanations, practical examples (numerically consistent), and extensions
+- **Output Style Preference**: Per‑user toggle between plain‑text (ASCII a/b, x^2, sqrt(x)) and rich Markdown/LaTeX output
+- **Images/OCR First**: For uploaded images, the assistant transcribes math to plain text before solving; requests one‑line confirmation when unclear
 
 ## 🛠️ Development Setup
 
@@ -260,6 +268,7 @@ llm-search/
 - `GET /api/search/conversations` - Advanced search with snippets
 - `GET/POST/DELETE /api/conversations/<id>/tags` - Tag management
 - `GET/POST /projects` - Project organization system
+ - `POST /projects/<project_id>/clone` - Clone a project (copies template/settings; excludes conversations)
 
 #### Analytics & Monitoring  
 - `GET /llm-usage-stats` - Comprehensive usage analytics
@@ -337,6 +346,8 @@ We attempted to enhance the RAG system with the following features:
 - **Settings Reorganization**: Better organization of settings options
 - **Visual Indicators**: RAG sources displayed in chat responses
 - **Personalized Experience**: Custom welcome messages and user-specific content
+- **Project Cloning**: One‑click clone for projects without copying conversations
+- **Speech Input Resilience**: Web Speech improvements (interim results, one retry on `no-speech`, clearer UI states)
 
 ## 📄 License
 
