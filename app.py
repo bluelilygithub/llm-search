@@ -1632,42 +1632,42 @@ Return only the 3 questions, one per line, without numbering or bullet points.""
         
         app.logger.info(f"Parsed {len(questions)} questions from AI response")
         
-        # Ensure we have exactly 3 questions, pad with fallbacks if needed
-        while len(questions) < 3:
-            fallback_questions = [
-                "What would you recommend as the next step?",
-                "Can you elaborate on this approach?", 
-                "How would this work in practice?"
-            ]
-            for fallback in fallback_questions:
-                if fallback not in questions and len(questions) < 3:
-                    questions.append(fallback)
-                    app.logger.info(f"Added fallback question: {fallback}")
-        
-        # Return only first 3 questions
-        questions = questions[:3]
+        # De-duplicate while preserving order
+        seen = set()
+        questions = [q for q in questions if not (q in seen or seen.add(q))]
         
         # For math projects, add targeted comprehension check instead of generic prompts
         app.logger.info(f"🔍 Checking if math project: is_math_project={is_math_project}")
         if is_math_project:
+            # Priority prompts for math follow-ups (max 2 total)
             comp_check = "What is the reciprocal of 6y/x, and why does flipping make sense when dividing fractions?"
-            if comp_check not in questions:
-                questions.append(comp_check)
-                app.logger.info("✅ Added math comprehension check")
-            # Add simplified re-explanation request for a younger learner
             younger_prompt = "Explain it to someone who is two years younger with less exposure to math"
-            if younger_prompt not in questions:
-                questions.append(younger_prompt)
-                app.logger.info("✅ Added simplified re-explanation prompt for younger learner")
-            # Add practical example prompt with numeric-consistency guard
             practical_prompt = "Give me a short, practical example of this in use that matches the same numbers or structure (no contrived or inconsistent scenarios)"
-            if practical_prompt not in questions:
-                questions.append(practical_prompt)
-                app.logger.info("✅ Added practical example prompt with consistency requirement")
+
+            prioritized = []
+            for p in [comp_check, younger_prompt, practical_prompt]:
+                if p not in prioritized:
+                    prioritized.append(p)
+
+            # Build final list: take prioritized prompts first, then fill from AI up to 2
+            final_qs = []
+            for p in prioritized:
+                if len(final_qs) >= 2:
+                    break
+                if p not in final_qs:
+                    final_qs.append(p)
+            for q in questions:
+                if len(final_qs) >= 2:
+                    break
+                if q not in final_qs:
+                    final_qs.append(q)
+            questions = final_qs
         else:
             app.logger.info(f"❌ NOT a math project - not adding math-specific questions")
         
-        app.logger.info(f"Returning follow-up questions: {questions}")
+        # Ensure we return at most 2 nudges to keep UX natural
+        questions = questions[:2]
+        app.logger.info(f"Returning follow-up questions (max 2): {questions}")
         return jsonify({'questions': questions}), 200
         
     except Exception as e:
