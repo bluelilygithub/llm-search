@@ -4690,6 +4690,8 @@ window.testSingleModel = async function(modelName) {
     }
 };
 
+// Ensure global namespace exists before attaching helpers
+window.app = window.app || {};
 window.app.requestIllustration = async function(buttonEl){
   try {
     buttonEl.disabled = true;
