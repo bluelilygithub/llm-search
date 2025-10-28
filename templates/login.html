@@ -396,6 +396,12 @@
             </div>
         </form>
         
+        <div class="divider"><span>or</span></div>
+        <button class="login-btn secondary" id="demoBtn">
+            <i class="fas fa-rocket"></i>
+            Try the demo
+        </button>
+
         <div class="footer-links">
             <div class="signup-text" style="font-size: 13px; color: #666;">
                 Need an account? Contact your administrator
@@ -473,6 +479,35 @@
                 } else {
                     loading.style.display = 'none';
                 }
+            }
+        });
+        
+        // Demo login (only works if enabled on server)
+        document.getElementById('demoBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('demoBtn');
+            const err = document.getElementById('errorMessage');
+            const loading = document.getElementById('loading');
+            err.style.display = 'none';
+            btn.disabled = true;
+            loading.style.display = 'block';
+            loading.innerHTML = '<i class="fas fa-spinner"></i> Preparing your demo...';
+            try {
+                const res = await fetch('/auth/guest-login', { method: 'POST' });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    loading.innerHTML = '<i class="fas fa-check-circle"></i> Demo ready!';
+                    setTimeout(()=>{ window.location.href = '/'; }, 700);
+                } else {
+                    err.textContent = data.error || 'Demo disabled';
+                    err.style.display = 'block';
+                    loading.style.display = 'none';
+                    btn.disabled = false;
+                }
+            } catch (e) {
+                err.textContent = 'Network error. Please try again.';
+                err.style.display = 'block';
+                loading.style.display = 'none';
+                btn.disabled = false;
             }
         });
         

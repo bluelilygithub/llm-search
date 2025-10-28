@@ -285,6 +285,17 @@ class SimpleAuth:
                 response_data['email'] = session.get('email')
                 response_data['first_name'] = session.get('first_name')
                 response_data['last_name'] = session.get('last_name')
+                # Demo guest flags
+                try:
+                    from user_models import User
+                    uid = session.get('user_id')
+                    if uid:
+                        user = User.query.filter(User.id == uid).first()
+                        if user and isinstance(user.preferences, dict):
+                            response_data['is_demo_guest'] = bool(user.preferences.get('is_demo_guest'))
+                            response_data['expires_at'] = user.preferences.get('expires_at')
+                except Exception:
+                    pass
             
             return jsonify(response_data)
         

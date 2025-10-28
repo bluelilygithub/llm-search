@@ -660,6 +660,70 @@ def login_override():
         return jsonify({'success': False, 'error': 'Please provide either admin password or username and password'}), 400
 
 
+@csrf.exempt
+@app.route('/auth/guest-login', methods=['POST'])
+def guest_login():
+    """Create an ephemeral demo guest and log them in when DEMO_MODE is enabled."""
+    try:
+        demo_mode = os.getenv('DEMO_MODE', 'false').lower() in ('1', 'true', 'yes', 'on')
+        if not demo_mode:
+            return jsonify({'error': 'Guest login disabled'}), 403
+
+        import secrets, string
+        # Generate a short unique username
+        suffix = ''.join(secrets.choice(string.ascii_lowercase + string.digits) for _ in range(6))
+        username = f"guest_{suffix}"
+        password = secrets.token_urlsafe(12)
+        email = f"{username}@example.invalid"
+
+        # TTL for demo guest
+        ttl_hours = int(os.getenv('DEMO_GUEST_TTL_HOURS', '4') or 4)
+        expires_at = datetime.utcnow() + timedelta(hours=ttl_hours)
+
+        # Create user with guest role
+        user = User(
+            username=username,
+            email=email,
+            password=password,
+            role=UserRole.GUEST,
+            status=UserStatus.ACTIVE,
+            display_name='Guest'
+        )
+        prefs = user.preferences or {}
+        prefs.update({'is_demo_guest': True, 'expires_at': expires_at.isoformat()})
+        user.preferences = prefs
+        db.session.add(user)
+        db.session.commit()
+
+        # Set session
+        session['authenticated'] = True
+        session['user_id'] = str(user.id)
+        session['user_type'] = 'guest'
+        session['user_role'] = UserRole.GUEST.value
+        session['username'] = user.username
+        session['display_name'] = user.display_name or 'Guest'
+
+        # Audit log
+        try:
+            audit_log = UserAuditLog(
+                user_id=user.id,
+                action='guest_login',
+                ip_address=request.remote_addr,
+                user_agent=request.headers.get('User-Agent'),
+                success=True,
+                details={'expires_at': prefs['expires_at']}
+            )
+            db.session.add(audit_log)
+            db.session.commit()
+        except Exception as e:
+            app.logger.debug(f"Guest login audit log failed: {e}")
+
+        return jsonify({'success': True, 'username': user.username, 'display_name': session['display_name'], 'expires_at': prefs['expires_at']})
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Guest login error: {e}")
+        return jsonify({'error': 'Failed to create guest user'}), 500
+
 @app.route('/init-db')
 def init_database():
     try:
@@ -2713,6 +2777,15 @@ def transcribe_audio():
 @require_conversation_access
 def upload_attachments(conversation_id):
     try:
+        # Block uploads for demo guests
+        try:
+            uid = session.get('user_id')
+            if uid:
+                user = User.query.filter(User.id == uid).first()
+                if user and isinstance(user.preferences, dict) and user.preferences.get('is_demo_guest'):
+                    return jsonify({'error': 'Uploads are disabled for demo users'}), 403
+        except Exception:
+            pass
         conv_uuid = uuid.UUID(conversation_id)
     except ValueError:
         return jsonify({'error': 'Invalid conversation ID'}), 400
