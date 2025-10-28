@@ -12,6 +12,7 @@ import html
 import hashlib
 from werkzeug.utils import secure_filename
 from sqlalchemy import text
+import base64
 
 # Temporarily disable advanced error handling to fix deployment
 # from error_handlers import (
@@ -6011,6 +6012,59 @@ def visualize_response():
             return jsonify({'error': 'Visualization failed'}), 500
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@csrf.exempt
+@app.route('/api/tts', methods=['POST'])
+def api_tts():
+    try:
+        data = request.get_json() or {}
+        text_in = (data.get('text') or '').strip()
+        voice_pref = (data.get('voice_gender') or '').strip().lower()
+        if not text_in:
+            return jsonify({'error': 'text is required'}), 400
+
+        # Check feature flag in model settings
+        try:
+            from models import ModelSettings
+            setting = ModelSettings.query.filter_by(model_name='cloud_tts').first()
+            enabled = bool(setting.enabled) if setting else False
+        except Exception:
+            enabled = False
+        if not enabled:
+            return jsonify({'error': 'Cloud TTS disabled'}), 403
+
+        api_key = os.getenv('OPENAI_API_KEY')
+        if not api_key:
+            return jsonify({'error': 'OpenAI API key not configured'}), 500
+
+        # Choose voice best-effort
+        voice = 'alloy'
+        if voice_pref == 'male':
+            voice = 'verse'
+        elif voice_pref == 'female':
+            voice = 'alloy'
+
+        import requests
+        url = 'https://api.openai.com/v1/audio/speech'
+        payload = {
+            'model': os.getenv('OPENAI_TTS_MODEL', 'tts-1'),
+            'input': text_in,
+            'voice': voice,
+            'format': 'mp3'
+        }
+        headers = {
+            'Authorization': f'Bearer {api_key}',
+            'Content-Type': 'application/json'
+        }
+        resp = requests.post(url, json=payload, headers=headers, timeout=30)
+        if resp.status_code != 200:
+            return jsonify({'error': f'OpenAI TTS error {resp.status_code}', 'details': resp.text[:200]}), 502
+        audio_bytes = resp.content
+        audio_b64 = base64.b64encode(audio_bytes).decode('utf-8')
+        return jsonify({'success': True, 'audio_base64': audio_b64, 'content_type': 'audio/mpeg'})
+    except Exception as e:
+        app.logger.error(f"/api/tts error: {e}", exc_info=True)
+        return jsonify({'error': 'TTS generation failed'}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

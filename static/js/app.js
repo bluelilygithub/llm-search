@@ -2250,6 +2250,38 @@
 
         // Create speech utterance with sanitized text (remove spoken punctuation/markup)
         const cleaned = this.normalizeTextForTTS(messageText);
+
+        // If Cloud TTS is enabled, prefer it
+        try {
+            if (typeof this._cloudTTSUse === 'undefined') {
+                const s = await fetch('/api/model-settings');
+                const js = s.ok ? await s.json() : {};
+                this._cloudTTSUse = !!(js && js['cloud_tts'] && js['cloud_tts'].enabled);
+            }
+            if (this._cloudTTSUse) {
+                // Look up preferred voice gender
+                if (typeof this._voiceGenderPref === 'undefined') {
+                    const r = await fetch('/api/users/preferences');
+                    const d = await r.json().catch(()=>({}));
+                    this._voiceGenderPref = (d && d.preferences && d.preferences.voice_gender) || '';
+                }
+                const ttsResp = await fetch('/api/tts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: cleaned, voice_gender: this._voiceGenderPref })
+                });
+                const ttsData = await ttsResp.json().catch(()=>({}));
+                if (ttsResp.ok && ttsData && ttsData.success && ttsData.audio_base64) {
+                    const audio = new Audio(`data:audio/mpeg;base64,${ttsData.audio_base64}`);
+                    audio.onplay = () => { button.classList.add('speaking'); button.innerHTML = '<i class="fas fa-stop"></i>'; };
+                    audio.onended = () => { button.classList.remove('speaking'); button.innerHTML = '<i class="fas fa-volume-up"></i>'; this.currentSpeechMessageId = null; };
+                    this.currentSpeechMessageId = messageId;
+                    await audio.play();
+                    return; // Do not fall back to web TTS
+                }
+            }
+        } catch (e) { console.warn('Cloud TTS failed, falling back', e); }
+
         const utterance = new SpeechSynthesisUtterance(cleaned);
         
         // Apply preferred voice by gender from user preferences (lazy fetch if needed)
@@ -4517,6 +4549,11 @@ window.saveModelSettings = async function() {
                 status: 'unknown'
             };
         });
+        // Include feature flags
+        const ttsToggle = document.getElementById('cloud-tts-toggle');
+        if (ttsToggle) {
+            modelSettings['cloud_tts'] = { enabled: !!ttsToggle.checked, status: 'feature' };
+        }
         
         console.log('Saving model settings:', modelSettings);
         
@@ -5790,10 +5827,15 @@ window.confirmLogout = function() {
 
 async function loadModelManagementData() {
     try {
-        await Promise.all([
-            loadApiKeysStatus(),
-            loadCurrentModelsList()
+        const [_, settingsResp] = await Promise.all([
+            Promise.all([loadApiKeysStatus(), loadCurrentModelsList()]),
+            fetch('/api/model-settings')
         ]);
+        try {
+            const settings = settingsResp && settingsResp.ok ? await settingsResp.json() : {};
+            const ttsToggle = document.getElementById('cloud-tts-toggle');
+            if (ttsToggle) ttsToggle.checked = !!(settings && settings['cloud_tts'] && settings['cloud_tts'].enabled);
+        } catch (e) { /* ignore */ }
         
         // Ensure API key dropdown is populated after a short delay
         setTimeout(() => {
