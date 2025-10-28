@@ -4979,18 +4979,11 @@ window.showUsersTabIfAdmin = async function() {
                 // Create or show banner near main content
                 let banner = document.getElementById('demo-banner');
                 if (!banner) {
-                    const container = document.getElementById('main-content') || document.body;
+                    // Prepend inside content-area so it doesn't overlay dynamic content
+                    const contentArea = document.getElementById('content-area') || document.getElementById('main-content') || document.body;
                     banner = document.createElement('div');
                     banner.id = 'demo-banner';
-                    banner.style.background = '#fff7e6';
-                    banner.style.border = '1px solid #ffe0b2';
-                    banner.style.color = '#7a4e00';
-                    banner.style.padding = '10px 12px';
-                    banner.style.borderRadius = '8px';
-                    banner.style.margin = '8px 0 12px 0';
-                    banner.style.fontSize = '14px';
-                    banner.style.display = 'none';
-                    container.prepend(banner);
+                    contentArea.prepend(banner);
                 }
                 const expiryText = data.expires_at ? new Date(data.expires_at).toLocaleString() : '—';
                 banner.innerHTML = `<strong>Demo mode:</strong> Your data clears on logout. Expires at ${expiryText}.<div style="margin-top:6px;">You can: create a project, chat, add charts with “Illustrate this…”, browse demo docs. You cannot: upload files, change model settings, manage users, or keep work after logout.</div>`;

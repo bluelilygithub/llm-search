@@ -13,14 +13,6 @@
 <!-- This content will be dynamically replaced by the existing JavaScript -->
 <!-- The existing app.js will continue to work with the current DOM structure -->
 <div id="dynamic-content">
-    <!-- Demo Banner (visible for guest users) -->
-    <div id="demo-banner" style="display:none; background:#fff7e6; border:1px solid #ffe0b2; color:#7a4e00; padding:10px 12px; border-radius:8px; margin:8px 0 12px 0; font-size:14px;">
-        <strong>Demo mode:</strong> Your data clears on logout. Expires at <span id="demo-expiry">—</span>.
-        <div style="margin-top:6px;">
-            You can: create a project, chat, add charts with “Illustrate this…”, browse demo docs.
-            You cannot: upload files, change model settings, manage users, or keep work after logout.
-        </div>
-    </div>
     <!-- Chat Messages Area -->
     <div class="chat-messages-container">
         <div class="chat-messages" id="chat-messages">
@@ -126,22 +118,4 @@
 
 {% block extra_scripts %}
     {{ super() }}
-    <script>
-    (async function(){
-        try {
-            const res = await fetch('/auth/status');
-            const data = await res.json();
-            if (res.ok && data.authenticated && (data.is_demo_guest || data.user_type === 'guest')) {
-                const banner = document.getElementById('demo-banner');
-                if (banner) {
-                    banner.style.display = 'block';
-                    const exp = document.getElementById('demo-expiry');
-                    if (exp && data.expires_at) exp.textContent = new Date(data.expires_at).toLocaleString();
-                }
-                // Hide admin-only settings for guests
-                document.querySelectorAll('.admin-only').forEach(el => { el.style.display = 'none'; });
-            }
-        } catch (e) { /* ignore */ }
-    })();
-    </script>
 {% endblock %}
