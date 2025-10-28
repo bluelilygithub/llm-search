@@ -2571,6 +2571,43 @@ Use this context to provide accurate, detailed responses. When referencing infor
         
         # Get AI response and usage info - use model_identifier for API call
         ai_response, tokens, estimated_cost = llm_service.get_response(model_identifier, messages)
+
+        # Adaptive profile update (lightweight EMA) based on this exchange
+        try:
+            identity = get_user_identity()
+            current_user_id = identity.get('user_id')
+            if current_user_id:
+                user = User.query.get(current_user_id)
+                if user is not None:
+                    prefs = user.preferences or {}
+                    profile = prefs.get('profile') or {}
+                    # Extract signals
+                    msg_lower = (user_message or '').lower()
+                    simplify = any(k in msg_lower for k in ['simplify', 'explain again', 'easier'])
+                    shorter = any(k in msg_lower for k in ['shorter', 'tl;dr'])
+                    more_detail = any(k in msg_lower for k in ['more detail', 'step by step', 'show steps'])
+                    # Map to deltas
+                    delta_v = 0.0
+                    if simplify or shorter: delta_v -= 0.1
+                    if more_detail: delta_v += 0.1
+                    # EMA update
+                    def ema(old, delta, alpha=0.2, cap=0.05):
+                        if delta > cap: delta = cap
+                        if delta < -cap: delta = -cap
+                        return max(0.0, min(1.0, (1-alpha)*old + alpha*(old+delta)))
+                    v_old = float(profile.get('preferred_verbosity_score', 0.5) or 0.5)
+                    v_new = ema(v_old, delta_v)
+                    profile['preferred_verbosity_score'] = round(v_new, 3)
+                    # Derive discrete verbosity if not explicitly set by user
+                    if not prefs.get('verbosity'):
+                        if v_new < 0.3: prefs['verbosity'] = 'brief'
+                        elif v_new > 0.7: prefs['verbosity'] = 'detailed'
+                        else: prefs['verbosity'] = 'standard'
+                    prefs['profile'] = profile
+                    user.preferences = prefs
+                    db.session.commit()
+        except Exception as _adaptive_error:
+            app.logger.debug(f"Adaptive profile update skipped: {_adaptive_error}")
         app.logger.info(f"Got response from {model}: {tokens} tokens, cost: ${estimated_cost:.4f}")
         
         # Log usage
