@@ -781,7 +781,6 @@
     goToHome() {
         this.clearProjectContext();
     }
-
     renderMessages(messages) {
         // Try to find the appropriate container
         let container = document.getElementById('chat-messages');
@@ -941,8 +940,13 @@
                 console.log('Removing loading indicator'); loadingDiv.remove();
             }
             
-            // Add the actual follow-up questions
+            // Add the actual follow-up questions (append math illustration button)
             if (followUpQuestions.length > 0) {
+                // Ensure illustration action exists
+                const illuAction = 'Illustrate this response with a explanatory graphic or chart';
+                if (!followUpQuestions.some(q => q.toLowerCase().includes('illustrate') && q.toLowerCase().includes('graphic'))) {
+                    followUpQuestions.push(illuAction);
+                }
                 const followUpHtml = `
                     <div class="follow-up-questions">
                         <div class="follow-up-title">
@@ -950,11 +954,12 @@
                             Continue the conversation:
                         </div>
                         <div class="follow-up-buttons">
-                            ${followUpQuestions.map(question => 
-                                `<button class="follow-up-btn" onclick="window.app.askFollowUpQuestion('${this.escapeHtml(question)}')">
-                                    ${question}
-                                </button>`
-                            ).join('')}
+                            ${followUpQuestions.map(question => {
+                                if (question === illuAction) {
+                                    return `<button class="follow-up-btn" onclick="window.app.requestIllustration(this)">${question}</button>`;
+                                }
+                                return `<button class=\"follow-up-btn\" onclick=\"window.app.askFollowUpQuestion('${this.escapeHtml(question)}')\">${question}</button>`;
+                            }).join('')}
                         </div>
                     </div>
                 `;
@@ -1536,7 +1541,6 @@
         // Instructions will only be shown when an image is uploaded, not on model selection
         // No longer automatically showing instructions here
     }
-
     toggleImageUploadForStability(isStabilityModel) {
         let imageUploadBtn = document.getElementById('image-upload-btn');
         const regularFileBtn = document.querySelector('button[onclick="triggerFileUpload()"]');
@@ -2307,7 +2311,6 @@
     renderUrlReferences() {
         // Implementation for showing URL references
     }
-
     // Search conversations, projects, and context items
     async searchConversations() {
         const searchField = document.getElementById('conversation-search');
@@ -3104,7 +3107,6 @@
         
         document.body.appendChild(indicator);
     }
-
     refreshDocumentDisplay() {
         if (!this.currentConversationId) {
             return;
@@ -3892,7 +3894,6 @@ window.openUserSettings = function() {
         console.error('❌ App not initialized yet - window.app is undefined');
     }
 };
-
 // Fallback function for editProjectTemplate in case of loading issues
 if (typeof window.editProjectTemplate === 'undefined') {
     window.editProjectTemplate = function(projectId) {
@@ -4689,6 +4690,44 @@ window.testSingleModel = async function(modelName) {
     }
 };
 
+window.app.requestIllustration = async function(buttonEl){
+  try {
+    buttonEl.disabled = true;
+    buttonEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
+    const msgContentEl = buttonEl.closest('.message-content');
+    if (!msgContentEl) return;
+    const assistantText = msgContentEl.querySelector('.message-time') ? msgContentEl.cloneNode(true) : null;
+    const textEl = msgContentEl.querySelector('.message-time') ? msgContentEl : null;
+    const responseText = msgContentEl.querySelector('.message-time') ? msgContentEl.querySelector('.message-time').parentElement.innerText : msgContentEl.innerText;
+    const question = (window.app && window.app.lastUserMessage) || '';
+    const res = await fetch('/api/visualize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question, response: responseText })
+    });
+    const data = await res.json().catch(()=>({}));
+    if (res.ok && data.success && data.visual && data.visual.data){
+      const img = document.createElement('img');
+      img.src = 'data:image/png;base64,' + data.visual.data;
+      img.alt = 'Illustration';
+      img.style.maxWidth = '100%';
+      img.style.borderRadius = '8px';
+      img.style.margin = '10px 0';
+      msgContentEl.appendChild(img);
+    } else {
+      console.warn('Illustration failed', data);
+      buttonEl.innerText = 'Illustration failed';
+      setTimeout(()=>{ buttonEl.innerText = 'Illustrate this response with a explanatory graphic or chart'; buttonEl.disabled = false; }, 2000);
+      return;
+    }
+    buttonEl.innerText = 'Added illustration';
+  } catch(e){
+    console.error('requestIllustration error', e);
+    buttonEl.innerText = 'Error';
+  } finally {
+    setTimeout(()=>{ buttonEl.disabled = false; }, 1000);
+  }
+};
 window.testNewModel = async function() {
     const nameInput = document.getElementById('new-model-name');
     const providerSelect = document.getElementById('new-model-provider');
@@ -4749,11 +4788,10 @@ window.app.saveProfilePreferences = async function() {
         const verbosity = document.getElementById('pref-verbosity')?.value || '';
         const reading = document.getElementById('pref-reading')?.value || '';
         const adaptive = !!document.getElementById('pref-adaptive')?.checked;
-        const visuals = !!document.getElementById('pref-visuals')?.checked;
         const statusEl = document.getElementById('pref-save-status');
         if (statusEl) statusEl.textContent = 'Saving...';
 
-        const payload = { preferences: { tone, verbosity, reading_level: reading, adaptive_profile: adaptive, enable_visuals: visuals } };
+        const payload = { preferences: { tone, verbosity, reading_level: reading, adaptive_profile: adaptive } };
         const res = await fetch('/api/users/update-preferences', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
@@ -4809,12 +4847,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     const verbEl = document.getElementById('pref-verbosity');
                     const readEl = document.getElementById('pref-reading');
                     const adaptiveEl = document.getElementById('pref-adaptive');
-                    const visualsEl = document.getElementById('pref-visuals');
                     if (toneEl && typeof prefs.tone === 'string') toneEl.value = prefs.tone;
                     if (verbEl && typeof prefs.verbosity === 'string') verbEl.value = prefs.verbosity;
                     if (readEl && typeof prefs.reading_level === 'string') readEl.value = prefs.reading_level;
                     if (adaptiveEl && typeof prefs.adaptive_profile === 'boolean') adaptiveEl.checked = prefs.adaptive_profile;
-                    if (visualsEl && typeof prefs.enable_visuals === 'boolean') visualsEl.checked = prefs.enable_visuals;
+                    // visuals preference removed
                 } catch (e) {
                     console.warn('Failed to load preferences', e);
                 }
@@ -5490,7 +5527,6 @@ function showPasswordChangeModal(userData) {
     document.body.appendChild(modal);
     document.getElementById('change-current-password').focus();
 }
-
 window.closeProfileModal = function() {
     const modal = document.querySelector('.profile-edit-modal').closest('.modal-overlay');
     if (modal) {
@@ -6224,7 +6260,6 @@ window.testModelAccess = async function() {
 window.refreshModelManagement = async function() {
     await loadModelManagementData();
 };
-
 // Function to test all models
 window.testAllModels = async function() {
     const testBtn = document.getElementById('test-all-models-btn');
@@ -7017,7 +7052,6 @@ KnowledgeBaseApp.prototype.saveTemplate = async function() {
         this.showNotification('Failed to save template', 'error');
     }
 };
-
 KnowledgeBaseApp.prototype.deleteTemplate = async function(templateId) {
     if (!confirm('Are you sure you want to delete this template? This action cannot be undone.')) {
         return;
@@ -7778,7 +7812,6 @@ function handleTagInput(event) {
 function saveTags() {
     window.app.saveTags();
 }
-
 KnowledgeBaseApp.prototype.handleContextUpload = async function(event) {
     const files = Array.from(event.target.files);
     
@@ -8520,7 +8553,6 @@ KnowledgeBaseApp.prototype.editContextItem = function(contextItemId) {
         document.getElementById('edit-context-name').focus();
     }, 100);
 };
-
 // Submit edit context form
 function submitEditContext() {
     const form = document.getElementById('edit-context-form');
@@ -10060,7 +10092,6 @@ KnowledgeBaseApp.prototype.downloadDocument = function(filename, content) {
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
 };
-
 KnowledgeBaseApp.prototype.handleDocumentClick = function(filename) {
     try {
         // Remove any existing document menu
