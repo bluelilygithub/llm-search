@@ -15,6 +15,7 @@ Curam AI Knowledge Base is a multi-LLM chat interface that allows users to:
 - **Model Management**: Enable/disable specific models and manage default model preferences
  - **Project-aware Responses**: Chats automatically include concise project context when a project exists
  - **On‑demand Visuals**: Generate explanatory charts/diagrams for math/statistics answers with one click
+ - **Demo Guest Mode**: One‑click “Try the demo” creates a temporary sandbox with clear bannered restrictions
 
 ## 🏗️ Infrastructure & Technology Stack
 
@@ -126,6 +127,7 @@ Curam AI Knowledge Base is a multi-LLM chat interface that allows users to:
 - **Images/OCR First**: For uploaded images, the assistant transcribes math to plain text before solving; requests one‑line confirmation when unclear
 
 ### 🧩 Adaptive Profile (v1)
+- **Guest Compatibility**: Adaptive runs only for authenticated users; demo guests are kept simple and capped
 - **Auto‑tunes Verbosity**: Lightweight EMA learns from signals like “shorter/tl;dr” or “more detail/step by step” and nudges verbosity (brief/standard/detailed)
 - **Respect Explicit Settings**: Adaptive only fills gaps; explicit user preferences win
 - **Opt‑in & Reset**: Toggle adaptive profile in Settings and reset the learned score
@@ -244,6 +246,7 @@ llm-search/
 - `GET/POST /conversations/<id>/messages` - Message management
 - `POST /conversations/<id>/attachments` - File upload handling
  - `DELETE /conversations/<id>` - Delete a conversation (CSRF‑exempt)
+ - `POST /auth/guest-login` - Create and sign into a time‑limited demo guest (DEMO_MODE)
 
 #### RAG Pipeline
 - `POST /api/rag/process-document` - Process single document for embeddings
@@ -273,6 +276,7 @@ llm-search/
 - `POST /stability-edit-image` - Stability AI image editing
 - `POST /transcribe` - Google Speech-to-Text integration
  - `POST /api/visualize` - Generate an explanatory chart/diagram from the latest answer (returns base64 PNG)
+ - `POST /auth/logout` - CSRF‑exempt; when DEMO_PURGE_ON_LOGOUT=true and user is a demo guest, purge the user and sandbox on logout
 
 #### Search & Organization
 - `GET /api/search/conversations` - Advanced search with snippets
@@ -361,6 +365,7 @@ We attempted to enhance the RAG system with the following features:
  - **Always‑on Project Context**: System prompt includes project name/description and key fields to avoid “no access” disclaimers
  - **Math Follow‑ups Styling**: Core math actions highlighted with a complementary color; dynamic suggestions remain neutral
  - **On‑demand Illustration**: One‑click button adds a chart/graphic below the assistant message
+ - **Demo Banner & Restrictions**: Visible banner for demo guests (expiry, allowed vs. restricted actions), admin‑only UI hidden
 
 ## 📄 License
 
