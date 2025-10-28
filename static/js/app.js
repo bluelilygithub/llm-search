@@ -2174,6 +2174,25 @@
     stopVoiceInput() {}
 
     // Text-to-Speech functionality
+    normalizeTextForTTS(text) {
+        try {
+            let t = String(text || '');
+            // Strip markdown links/images
+            t = t.replace(/!\[[^\]]*\]\([^)]*\)/g, '');
+            t = t.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1');
+            // Remove code fences/inline code and markdown symbols
+            t = t.replace(/```[\s\S]*?```/g, ' ');
+            t = t.replace(/`[^`]*`/g, ' ');
+            t = t.replace(/[#*_>~|]/g, '');
+            // Remove common punctuation that is distracting when spoken
+            t = t.replace(/[.,!?;:()"'\[\]{}]/g, '');
+            // Collapse whitespace
+            t = t.replace(/\s+/g, ' ').trim();
+            return t;
+        } catch (e) {
+            return text;
+        }
+    }
     speakMessage(button, messageId) {
         // Check if browser supports speech synthesis
         if (!('speechSynthesis' in window)) {
@@ -2207,8 +2226,9 @@
             btn.innerHTML = '<i class="fas fa-volume-up"></i>';
         });
 
-        // Create speech utterance
-        const utterance = new SpeechSynthesisUtterance(messageText);
+        // Create speech utterance with sanitized text (remove spoken punctuation/markup)
+        const cleaned = this.normalizeTextForTTS(messageText);
+        const utterance = new SpeechSynthesisUtterance(cleaned);
         
         // Configure speech settings
         utterance.rate = 1.0;  // Normal speed
