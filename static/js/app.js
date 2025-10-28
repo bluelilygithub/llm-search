@@ -2194,6 +2194,39 @@
         }
     }
 
+    normalizeTextForCloudTTS(text) {
+        try {
+            let t = String(text || '');
+            // Strip markdown artifacts but KEEP punctuation for prosody
+            t = t.replace(/!\[[^\]]*\]\([^)]*\)/g, '');
+            t = t.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1');
+            t = t.replace(/```[\s\S]*?```/g, ' ');
+            t = t.replace(/`[^`]*`/g, ' ');
+            // Convert line breaks to sentence boundaries
+            t = t.replace(/[\r\n]+/g, '. ');
+            // Collapse spaces
+            t = t.replace(/\s+/g, ' ').trim();
+            return t;
+        } catch (e) { return text; }
+    }
+
+    splitIntoSentences(text) {
+        const parts = text.split(/(?<=[.!?])\s+|[\r\n]+/).map(s => s.trim()).filter(Boolean);
+        // Merge micro-sentences to avoid too many requests
+        const merged = [];
+        let buf = '';
+        parts.forEach(p => {
+            if ((buf + ' ' + p).trim().length < 160) {
+                buf = (buf ? buf + ' ' : '') + p;
+            } else {
+                if (buf) merged.push(buf);
+                buf = p;
+            }
+        });
+        if (buf) merged.push(buf);
+        return merged;
+    }
+
     selectVoiceByPreference(preferredGender) {
         try {
             const voices = window.speechSynthesis.getVoices();
@@ -2265,20 +2298,69 @@
                     const d = await r.json().catch(()=>({}));
                     this._voiceGenderPref = (d && d.preferences && d.preferences.voice_gender) || '';
                 }
-                const ttsResp = await fetch('/api/tts', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: cleaned, voice_gender: this._voiceGenderPref })
-                });
-                const ttsData = await ttsResp.json().catch(()=>({}));
-                if (ttsResp.ok && ttsData && ttsData.success && ttsData.audio_base64) {
-                    const audio = new Audio(`data:audio/mpeg;base64,${ttsData.audio_base64}`);
-                    audio.onplay = () => { button.classList.add('speaking'); button.innerHTML = '<i class="fas fa-stop"></i>'; };
-                    audio.onended = () => { button.classList.remove('speaking'); button.innerHTML = '<i class="fas fa-volume-up"></i>'; this.currentSpeechMessageId = null; };
-                    this.currentSpeechMessageId = messageId;
-                    await audio.play();
-                    return; // Do not fall back to web TTS
+                // Keep punctuation for cloud TTS and split to improve prosody & start time
+                const cloudText = this.normalizeTextForCloudTTS(messageText);
+                const sentences = this.splitIntoSentences(cloudText);
+
+                // Toggle behavior: if already speaking this message, stop and exit
+                if (this.currentSpeechMessageId === messageId && Array.isArray(this._activeAudioList) && this._activeAudioList.length) {
+                    this._activeAudioList.forEach(a => { try { a.pause(); a.src = ''; } catch(_){} });
+                    this._activeAudioList = [];
+                    button.classList.remove('speaking');
+                    button.innerHTML = '<i class="fas fa-volume-up"></i>';
+                    this.currentSpeechMessageId = null;
+                    return;
                 }
+                // Stop any prior sequence
+                if (Array.isArray(this._activeAudioList)) {
+                    this._activeAudioList.forEach(a => { try { a.pause(); a.src = ''; } catch(_){} });
+                }
+                this._activeAudioList = [];
+                this._ttsCancelled = false;
+
+                const playSequence = async () => {
+                    this.currentSpeechMessageId = messageId;
+                    button.classList.add('speaking');
+                    button.innerHTML = '<i class="fas fa-stop"></i>';
+                    for (let i = 0; i < sentences.length; i++) {
+                        if (this._ttsCancelled) break;
+                        const payload = { text: sentences[i], voice_gender: this._voiceGenderPref };
+                        const resp = await fetch('/api/tts', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+                        const data = await resp.json().catch(()=>({}));
+                        if (resp.ok && data && data.success && data.audio_base64) {
+                            const audio = new Audio(`data:audio/ogg;base64,${data.audio_base64}`);
+                            this._activeAudioList.push(audio);
+                            await new Promise((resolve) => {
+                                audio.onended = resolve;
+                                audio.onpause = resolve;
+                                audio.play().catch(() => resolve());
+                            });
+                        }
+                    }
+                    // Cleanup UI
+                    button.classList.remove('speaking');
+                    button.innerHTML = '<i class="fas fa-volume-up"></i>';
+                    this.currentSpeechMessageId = null;
+                    this._activeAudioList = [];
+                };
+
+                // If speaker clicked while playing, cancel sequence
+                button.onclick = () => {
+                    if (this.currentSpeechMessageId === messageId && Array.isArray(this._activeAudioList) && this._activeAudioList.length) {
+                        this._ttsCancelled = true;
+                        this._activeAudioList.forEach(a => { try { a.pause(); a.src=''; } catch(_){} });
+                        this._activeAudioList = [];
+                        button.classList.remove('speaking');
+                        button.innerHTML = '<i class="fas fa-volume-up"></i>';
+                        this.currentSpeechMessageId = null;
+                    } else {
+                        // restore default click behavior after sequence ends
+                        window.app.speakMessage(button, messageId);
+                    }
+                };
+
+                await playSequence();
+                return; // don't fall back
             }
         } catch (e) { console.warn('Cloud TTS failed, falling back', e); }
 

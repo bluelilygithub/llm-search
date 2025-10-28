@@ -13,6 +13,7 @@ import hashlib
 from werkzeug.utils import secure_filename
 from sqlalchemy import text
 import base64
+from collections import OrderedDict
 
 # Temporarily disable advanced error handling to fix deployment
 # from error_handlers import (
@@ -6106,13 +6107,28 @@ def api_tts():
         elif voice_pref == 'female':
             voice = 'alloy'
 
+        # Caching to reduce latency/cost for repeats
+        global _TTS_CACHE
+        try:
+            _TTS_CACHE
+        except NameError:
+            _TTS_CACHE = OrderedDict()
+        model_name = os.getenv('OPENAI_TTS_MODEL', 'tts-1')
+        audio_format = os.getenv('OPENAI_TTS_FORMAT', 'opus')  # opus smaller/faster
+        cache_key = f"{model_name}|{voice}|{audio_format}|{hashlib.sha256(text_in.encode('utf-8')).hexdigest()}"
+        if cache_key in _TTS_CACHE:
+            b64 = _TTS_CACHE[cache_key]
+            # move to end (recently used)
+            _TTS_CACHE.move_to_end(cache_key)
+            return jsonify({'success': True, 'audio_base64': b64, 'content_type': 'audio/ogg' if audio_format=='opus' else 'audio/mpeg'})
+
         import requests
         url = 'https://api.openai.com/v1/audio/speech'
         payload = {
-            'model': os.getenv('OPENAI_TTS_MODEL', 'tts-1'),
+            'model': model_name,
             'input': text_in,
             'voice': voice,
-            'format': 'mp3'
+            'format': audio_format
         }
         headers = {
             'Authorization': f'Bearer {api_key}',
@@ -6123,7 +6139,11 @@ def api_tts():
             return jsonify({'error': f'OpenAI TTS error {resp.status_code}', 'details': resp.text[:200]}), 502
         audio_bytes = resp.content
         audio_b64 = base64.b64encode(audio_bytes).decode('utf-8')
-        return jsonify({'success': True, 'audio_base64': audio_b64, 'content_type': 'audio/mpeg'})
+        # Add to cache with simple LRU size cap
+        _TTS_CACHE[cache_key] = audio_b64
+        if len(_TTS_CACHE) > int(os.getenv('OPENAI_TTS_CACHE_SIZE', '100')):
+            _TTS_CACHE.popitem(last=False)
+        return jsonify({'success': True, 'audio_base64': audio_b64, 'content_type': 'audio/ogg' if audio_format=='opus' else 'audio/mpeg'})
     except Exception as e:
         app.logger.error(f"/api/tts error: {e}", exc_info=True)
         return jsonify({'error': 'TTS generation failed'}), 500
