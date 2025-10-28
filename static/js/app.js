@@ -332,10 +332,7 @@
                 method: 'DELETE',
                 headers: {
                     'X-CSRFToken': csrfToken
-                },
-                body: JSON.stringify({
-                    csrf_token: csrfToken
-                })
+                }
             });
 
             if (response.ok) {
@@ -366,9 +363,13 @@
                 // Show success notification
                 this.showSuccessNotification('Conversation deleted successfully!');
             } else {
-                const errorData = await response.json();
-                console.error('Failed to delete conversation:', errorData.error);
-                this.showError(`Failed to delete conversation: ${errorData.error || 'Unknown error'}`);
+                let errorText = '';
+                try { errorText = await response.text(); } catch (_) {}
+                let errorMsg = '';
+                try { errorMsg = (JSON.parse(errorText) || {}).error; } catch (_) {}
+                const finalMsg = errorMsg || response.statusText || 'Unknown error';
+                console.error('Failed to delete conversation:', finalMsg);
+                this.showError(`Failed to delete conversation: ${finalMsg}`);
             }
         } catch (error) {
             console.error('Error deleting conversation:', error);

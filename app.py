@@ -2055,6 +2055,7 @@ def update_conversation(conversation_id):
         db.session.rollback()
         return jsonify({'error': 'Failed to update conversation'}), 500
 
+@csrf.exempt
 @app.route('/conversations/<conversation_id>', methods=['DELETE'])
 @require_conversation_access
 def delete_conversation(conversation_id):
