@@ -1081,7 +1081,8 @@ def update_user_preferences():
         if not user:
             return jsonify({'error': 'User not found'}), 404
         prefs = user.preferences or {}
-        for k in ('tone','verbosity','reading_level'):
+        # Merge top-level simple keys
+        for k in ('tone','verbosity','reading_level','adaptive_profile'):
             v = prefs_in.get(k)
             if v is None:
                 continue
@@ -1089,6 +1090,11 @@ def update_user_preferences():
                 prefs[k] = v.strip()
             else:
                 prefs[k] = v
+        # Merge nested profile if provided
+        if isinstance(prefs_in.get('profile'), dict):
+            prof = prefs.get('profile') or {}
+            prof.update(prefs_in['profile'])
+            prefs['profile'] = prof
         user.preferences = prefs
         from datetime import datetime
         user.last_activity_at = datetime.utcnow()
@@ -2598,8 +2604,8 @@ Use this context to provide accurate, detailed responses. When referencing infor
                     v_old = float(profile.get('preferred_verbosity_score', 0.5) or 0.5)
                     v_new = ema(v_old, delta_v)
                     profile['preferred_verbosity_score'] = round(v_new, 3)
-                    # Derive discrete verbosity if not explicitly set by user
-                    if not prefs.get('verbosity'):
+                    # Only derive discrete verbosity if adaptive_profile is true and user did not set it explicitly
+                    if prefs.get('adaptive_profile') and not prefs.get('verbosity'):
                         if v_new < 0.3: prefs['verbosity'] = 'brief'
                         elif v_new > 0.7: prefs['verbosity'] = 'detailed'
                         else: prefs['verbosity'] = 'standard'

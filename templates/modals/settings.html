@@ -54,6 +54,11 @@
                 <div class="account-preferences" id="account-preferences" style="margin-top:16px;">
                     <h4><i class="fas fa-sliders-h"></i> Response Preferences</h4>
                     <div class="form-row">
+                        <label for="pref-adaptive">
+                            <input id="pref-adaptive" type="checkbox" /> Use adaptive profile (auto-adjust verbosity)
+                        </label>
+                    </div>
+                    <div class="form-row">
                         <label for="pref-tone">Tone</label>
                         <select id="pref-tone">
                             <option value="">Default</option>
@@ -77,6 +82,7 @@
                     </div>
                     <div class="form-actions">
                         <button class="btn-primary" onclick="window.app.saveProfilePreferences()"><i class="fas fa-save"></i> Save</button>
+                        <button class="btn-secondary" onclick="window.app.resetProfilePreferences()"><i class="fas fa-undo"></i> Reset Adaptive</button>
                     </div>
                     <div class="small" id="pref-save-status" style="margin-top:6px;color:var(--text-muted);"></div>
                 </div>

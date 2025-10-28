@@ -4730,10 +4730,11 @@ window.app.saveProfilePreferences = async function() {
         const tone = document.getElementById('pref-tone')?.value || '';
         const verbosity = document.getElementById('pref-verbosity')?.value || '';
         const reading = document.getElementById('pref-reading')?.value || '';
+        const adaptive = !!document.getElementById('pref-adaptive')?.checked;
         const statusEl = document.getElementById('pref-save-status');
         if (statusEl) statusEl.textContent = 'Saving...';
 
-        const payload = { preferences: { tone, verbosity, reading_level: reading } };
+        const payload = { preferences: { tone, verbosity, reading_level: reading, adaptive_profile: adaptive } };
         const res = await fetch('/api/users/update-preferences', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
@@ -4752,6 +4753,27 @@ window.app.saveProfilePreferences = async function() {
     }
 };
 
+window.app.resetProfilePreferences = async function() {
+    try {
+        const statusEl = document.getElementById('pref-save-status');
+        if (statusEl) statusEl.textContent = 'Resetting adaptive profile...';
+        const res = await fetch('/api/users/update-preferences', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ preferences: { profile: { preferred_verbosity_score: 0.5 } } })
+        });
+        const data = await res.json().catch(()=>({}));
+        if (res.ok && data.success) {
+            if (statusEl) statusEl.textContent = 'Adaptive profile reset.';
+        } else {
+            if (statusEl) statusEl.textContent = 'Failed to reset: ' + (data.error || res.statusText);
+        }
+    } catch (e) {
+        const statusEl = document.getElementById('pref-save-status');
+        if (statusEl) statusEl.textContent = 'Error: ' + e.message;
+    }
+};
+
 // Load profile preferences into the form when Settings opens
 document.addEventListener('DOMContentLoaded', () => {
     try {
@@ -4767,9 +4789,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     const toneEl = document.getElementById('pref-tone');
                     const verbEl = document.getElementById('pref-verbosity');
                     const readEl = document.getElementById('pref-reading');
+                    const adaptiveEl = document.getElementById('pref-adaptive');
                     if (toneEl && typeof prefs.tone === 'string') toneEl.value = prefs.tone;
                     if (verbEl && typeof prefs.verbosity === 'string') verbEl.value = prefs.verbosity;
                     if (readEl && typeof prefs.reading_level === 'string') readEl.value = prefs.reading_level;
+                    if (adaptiveEl && typeof prefs.adaptive_profile === 'boolean') adaptiveEl.checked = prefs.adaptive_profile;
                 } catch (e) {
                     console.warn('Failed to load preferences', e);
                 }
