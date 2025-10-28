@@ -294,6 +294,9 @@ class SimpleAuth:
                         if user and isinstance(user.preferences, dict):
                             response_data['is_demo_guest'] = bool(user.preferences.get('is_demo_guest'))
                             response_data['expires_at'] = user.preferences.get('expires_at')
+                        # Fallback: treat session user_type guest as demo
+                        if session.get('user_type') == 'guest' and 'is_demo_guest' not in response_data:
+                            response_data['is_demo_guest'] = True
                 except Exception:
                     pass
             

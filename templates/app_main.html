@@ -131,7 +131,7 @@
         try {
             const res = await fetch('/auth/status');
             const data = await res.json();
-            if (res.ok && data.authenticated && data.is_demo_guest) {
+            if (res.ok && data.authenticated && (data.is_demo_guest || data.user_type === 'guest')) {
                 const banner = document.getElementById('demo-banner');
                 if (banner) {
                     banner.style.display = 'block';
