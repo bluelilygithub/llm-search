@@ -43,6 +43,9 @@ class MathVisualizer:
             elif any(word in question_lower for word in ['fraction', 'half', 'third', 'quarter', 'divided']):
                 fig = self._create_fraction_diagram(question, response)
             
+            # Survey/percentage/statistics
+            elif any(word in question_lower for word in ['percent', 'percentage', '%', 'survey', 'statistics', 'population', 'sample']):
+                fig = self._create_percentage_diagram(question, response)
             # Graphs/functions
             elif any(word in question_lower for word in ['graph', 'plot', 'line', 'parabola', 'function', 'equation']):
                 fig = self._create_graph_diagram(question, response)
@@ -289,6 +292,38 @@ class MathVisualizer:
         ax.spines['bottom'].set_visible(False)
         ax.spines['left'].set_visible(False)
         
+        plt.tight_layout()
+        return fig
+
+    def _create_percentage_diagram(self, question: str, response: str) -> plt.Figure:
+        """Create a simple pie chart for survey/percentage data"""
+        import re
+        fig, ax = plt.subplots(figsize=(8, 6), dpi=self.dpi)
+
+        text = f"{question}\n{response}"
+        match = re.search(r"(\d+(?:\.\d+)?)\s*%", text)
+        percent = float(match.group(1)) if match else 50.0
+        percent = max(0.0, min(100.0, percent))
+        remainder = 100.0 - percent
+
+        has_label = 'smartphone' in question.lower() or 'phone' in question.lower()
+        label_yes = 'Have smartphones' if has_label else 'Group A'
+        label_no = 'Do not have' if has_label else 'Group B'
+
+        data = [percent, remainder]
+        labels = [f"{label_yes} ({percent:.0f}%)", f"{label_no} ({remainder:.0f}%)"]
+        colors = ['#2ecc71', '#e0e0e0']
+
+        wedges, texts = ax.pie(data, colors=colors, startangle=90, wedgeprops=dict(width=0.5))
+        ax.legend(wedges, labels, loc='center left', bbox_to_anchor=(1, 0.5), frameon=False)
+
+        title = 'Survey result'
+        if has_label:
+            title = 'Smartphone ownership among surveyed group'
+        ax.set_title(title, fontsize=16, weight='bold')
+        ax.text(0, 0, f"{percent:.0f}%", ha='center', va='center', fontsize=18, weight='bold', color='#2c3e50')
+
+        ax.set_aspect('equal')
         plt.tight_layout()
         return fig
     
