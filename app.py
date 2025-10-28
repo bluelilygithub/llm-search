@@ -2291,6 +2291,37 @@ def chat():
         except Exception as e:
             app.logger.debug(f"Could not build user profile prompt: {e}")
         
+        # Always include concise Project Context when a project exists
+        if project:
+            try:
+                project_context_lines = [
+                    f"Project Name: {project.name}",
+                    f"Description: {project.description or '(none)'}"
+                ]
+                # Selected key fields
+                key_fields = []
+                for label, value in [
+                    ('Primary Goal', getattr(project, 'primary_goal', None)),
+                    ('Agent Role', getattr(project, 'agent_role', None)),
+                    ('Math Level', getattr(project, 'math_level', None)),
+                    ('Math Subject', getattr(project, 'math_subject', None)),
+                ]:
+                    if value:
+                        key_fields.append(f"- {label}: {value}")
+                if key_fields:
+                    project_context_lines.append("Key Fields:\n" + "\n".join(key_fields))
+                messages.append({
+                    'role': 'system',
+                    'content': (
+                        "Project Context (always available for this chat):\n" +
+                        "\n".join(project_context_lines) +
+                        "\n\nUse this project context to tailor your responses. Do not state that you lack access to project information."
+                    )
+                })
+                app.logger.info("Applied always-on Project Context system prompt")
+            except Exception as _e:
+                pass
+
         # Apply project template if we have a project
         if project:
             project_system_prompt = build_project_system_prompt(project)
