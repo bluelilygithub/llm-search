@@ -676,6 +676,65 @@ def login_override():
 
 
 @csrf.exempt
+@app.route('/auth/create-admin-user', methods=['POST'])
+def create_admin_user():
+    """Bootstrap a named admin user using the password-only admin session.
+    Requires you to be logged in as the password-only admin (user_type=admin or SUPER_ADMIN).
+    Body: { username, email, password }
+    """
+    try:
+        # Ensure caller is the password-only admin/SUPER_ADMIN
+        if not session.get('authenticated') or (session.get('user_type') != 'admin' and session.get('user_role') not in ['SUPER_ADMIN', 'super_admin']):
+            return jsonify({'error': 'Unauthorized'}), 403
+
+        data = request.get_json() or {}
+        username = (data.get('username') or '').strip()
+        email = (data.get('email') or '').strip().lower()
+        password = data.get('password') or ''
+
+        # Basic validations
+        if not username or not email or not password:
+            return jsonify({'error': 'username, email and password are required'}), 400
+        if len(username) < 3:
+            return jsonify({'error': 'Username must be at least 3 characters'}), 400
+        import re
+        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        if not re.match(email_pattern, email):
+            return jsonify({'error': 'Invalid email format'}), 400
+        if len(password) < 8:
+            return jsonify({'error': 'Password must be at least 8 characters'}), 400
+
+        # Uniqueness
+        if db.session.query(User).filter(User.username == username).first():
+            return jsonify({'error': 'Username already exists'}), 400
+        if db.session.query(User).filter(User.email == email).first():
+            return jsonify({'error': 'Email already exists'}), 400
+
+        # Create user with SUPER_ADMIN role
+        new_user = User(username=username, email=email, password=password, role=UserRole.SUPER_ADMIN, status=UserStatus.ACTIVE, display_name=username)
+        db.session.add(new_user)
+        db.session.commit()
+
+        try:
+            audit_log = UserAuditLog(
+                user_id=new_user.id,
+                action='create_admin_user',
+                ip_address=request.remote_addr,
+                user_agent=request.headers.get('User-Agent'),
+                success=True
+            )
+            db.session.add(audit_log)
+            db.session.commit()
+        except Exception:
+            pass
+
+        return jsonify({'success': True, 'message': 'Admin user created', 'user_id': str(new_user.id)})
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Create admin user error: {e}", exc_info=True)
+        return jsonify({'error': 'Failed to create admin user'}), 500
+
+@csrf.exempt
 @app.route('/auth/guest-login', methods=['POST'])
 def guest_login():
     """Create an ephemeral demo guest and log them in when DEMO_MODE is enabled."""
