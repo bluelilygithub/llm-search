@@ -955,10 +955,17 @@
                         </div>
                         <div class="follow-up-buttons">
                             ${followUpQuestions.map(question => {
+                                // Identify the three always-present math prompts
+                                const qLower = (question || '').toLowerCase();
+                                const isExplainYounger = qLower.startsWith('explain it to someone') && qLower.includes('younger');
+                                const isPracticalExample = qLower.startsWith('give me a short, practical example');
+                                const isTrySimilar = qLower.startsWith('try a similar problem');
+                                const isCoreMath = isExplainYounger || isPracticalExample || isTrySimilar;
                                 if (question === illuAction) {
-                                    return `<button class="follow-up-btn" onclick="window.app.requestIllustration(this)">${question}</button>`;
+                                    return `<button class=\"follow-up-btn math-special\" onclick=\"window.app.requestIllustration(this)\">${question}</button>`;
                                 }
-                                return `<button class=\"follow-up-btn\" onclick=\"window.app.askFollowUpQuestion('${this.escapeHtml(question)}')\">${question}</button>`;
+                                const cls = isCoreMath ? 'follow-up-btn math-special' : 'follow-up-btn';
+                                return `<button class=\"${cls}\" onclick=\"window.app.askFollowUpQuestion('${this.escapeHtml(question)}')\">${question}</button>`;
                             }).join('')}
                         </div>
                     </div>

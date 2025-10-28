@@ -6419,3 +6419,13 @@ mark {
   gap: 8px;
   font-weight: 500;
 }
+
+/* Follow-up buttons */
+.follow-up-buttons .follow-up-btn { background: var(--gray-100); color: var(--text-color); }
+.follow-up-buttons .follow-up-btn:hover { background: var(--gray-200); }
+/* Math-special follow-ups (always-present) */
+.follow-up-buttons .follow-up-btn.math-special { background: #eef6ff; color: #0b5ed7; border: 1px solid #cfe2ff; }
+.follow-up-buttons .follow-up-btn.math-special:hover {
+  background: #e2efff;
+  border-color: #b6d4fe;
+}
