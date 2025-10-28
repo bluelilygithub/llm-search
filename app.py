@@ -1160,7 +1160,7 @@ def update_user_preferences():
             return jsonify({'error': 'User not found'}), 404
         prefs = user.preferences or {}
         # Merge top-level simple keys
-        for k in ('tone','verbosity','reading_level','adaptive_profile'):
+        for k in ('tone','verbosity','reading_level','adaptive_profile','voice_gender'):
             v = prefs_in.get(k)
             if v is None:
                 continue

@@ -2193,6 +2193,28 @@
             return text;
         }
     }
+
+    selectVoiceByPreference(preferredGender) {
+        try {
+            const voices = window.speechSynthesis.getVoices();
+            if (!voices || voices.length === 0) return null;
+            const wantsFemale = preferredGender === 'female';
+            const wantsMale = preferredGender === 'male';
+            const nameMatch = (v, substr) => (v.name || '').toLowerCase().includes(substr);
+            const genderMatches = (v) => {
+                const n = (v.name || '').toLowerCase();
+                const uri = (v.voiceURI || '').toLowerCase();
+                if (wantsFemale) return n.includes('female') || uri.includes('female') || nameMatch(v,'samantha') || nameMatch(v,'victoria') || nameMatch(v,'karen') || nameMatch(v,'google uk english female');
+                if (wantsMale) return n.includes('male') || uri.includes('male') || nameMatch(v,'alex') || nameMatch(v,'daniel') || nameMatch(v,'fred') || nameMatch(v,'google uk english male');
+                return false;
+            };
+            // Prefer en voices first
+            const enVoices = voices.filter(v => (v.lang || '').toLowerCase().startsWith('en'));
+            const pool = enVoices.length ? enVoices : voices;
+            const matched = preferredGender ? pool.find(genderMatches) : null;
+            return matched || pool[0] || null;
+        } catch (e) { return null; }
+    }
     speakMessage(button, messageId) {
         // Check if browser supports speech synthesis
         if (!('speechSynthesis' in window)) {
@@ -2229,6 +2251,30 @@
         // Create speech utterance with sanitized text (remove spoken punctuation/markup)
         const cleaned = this.normalizeTextForTTS(messageText);
         const utterance = new SpeechSynthesisUtterance(cleaned);
+        
+        // Apply preferred voice by gender from user preferences (lazy fetch if needed)
+        const applyVoice = (gender) => {
+            const v = this.selectVoiceByPreference(gender);
+            if (v) utterance.voice = v;
+        };
+        const setFromPrefs = async () => {
+            try {
+                if (typeof this._voiceGenderPref === 'undefined') {
+                    const r = await fetch('/api/users/preferences');
+                    const d = await r.json().catch(()=>({}));
+                    this._voiceGenderPref = (d && d.preferences && d.preferences.voice_gender) || '';
+                }
+                applyVoice(this._voiceGenderPref);
+            } catch (_) { /* ignore */ }
+        };
+        const voicesNow = window.speechSynthesis.getVoices();
+        if (!voicesNow || voicesNow.length === 0) {
+            window.speechSynthesis.onvoiceschanged = () => {
+                setFromPrefs();
+            };
+        } else {
+            await setFromPrefs();
+        }
         
         // Configure speech settings
         utterance.rate = 1.0;  // Normal speed
@@ -4817,11 +4863,12 @@ window.app.saveProfilePreferences = async function() {
         const tone = document.getElementById('pref-tone')?.value || '';
         const verbosity = document.getElementById('pref-verbosity')?.value || '';
         const reading = document.getElementById('pref-reading')?.value || '';
+        const voiceGender = document.getElementById('pref-voice-gender')?.value || '';
         const adaptive = !!document.getElementById('pref-adaptive')?.checked;
         const statusEl = document.getElementById('pref-save-status');
         if (statusEl) statusEl.textContent = 'Saving...';
 
-        const payload = { preferences: { tone, verbosity, reading_level: reading, adaptive_profile: adaptive } };
+        const payload = { preferences: { tone, verbosity, reading_level: reading, adaptive_profile: adaptive, voice_gender: voiceGender } };
         const res = await fetch('/api/users/update-preferences', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
@@ -4877,10 +4924,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     const verbEl = document.getElementById('pref-verbosity');
                     const readEl = document.getElementById('pref-reading');
                     const adaptiveEl = document.getElementById('pref-adaptive');
+                    const voiceEl = document.getElementById('pref-voice-gender');
                     if (toneEl && typeof prefs.tone === 'string') toneEl.value = prefs.tone;
                     if (verbEl && typeof prefs.verbosity === 'string') verbEl.value = prefs.verbosity;
                     if (readEl && typeof prefs.reading_level === 'string') readEl.value = prefs.reading_level;
                     if (adaptiveEl && typeof prefs.adaptive_profile === 'boolean') adaptiveEl.checked = prefs.adaptive_profile;
+                    if (voiceEl && typeof prefs.voice_gender === 'string') voiceEl.value = prefs.voice_gender;
                     // visuals preference removed
                 } catch (e) {
                     console.warn('Failed to load preferences', e);
