@@ -890,6 +890,26 @@
             messageDiv.dataset.messageText = message.content;
         }
         
+        // If visuals are attached, render them under the content
+        try {
+            if (message.role === 'assistant' && Array.isArray(message.visuals) && message.visuals.length > 0) {
+                const contentEl = messageDiv.querySelector('.message-content');
+                message.visuals.forEach(v => {
+                    if (v.type === 'image/png;base64' && v.data) {
+                        const img = document.createElement('img');
+                        img.src = 'data:image/png;base64,' + v.data;
+                        img.alt = 'Illustration';
+                        img.style.maxWidth = '100%';
+                        img.style.borderRadius = '8px';
+                        img.style.margin = '10px 0';
+                        contentEl.appendChild(img);
+                    }
+                });
+            }
+        } catch (e) {
+            console.warn('Failed to render visuals', e);
+        }
+
         container.appendChild(messageDiv);
         this.scrollToBottom();
         
@@ -1199,6 +1219,7 @@
             const aiResponse = aiResponseData.response || aiResponseData;
             const ragUsed = aiResponseData.rag_used || false;
             const ragSources = aiResponseData.rag_sources || [];
+            const visuals = aiResponseData.visuals || [];
             
             // Save AI message
             await this.saveMessage('assistant', aiResponse);
@@ -1210,7 +1231,8 @@
                 content: aiResponse,
                 timestamp: new Date().toISOString(),
                 rag_used: ragUsed,
-                rag_sources: ragSources
+                rag_sources: ragSources,
+                visuals: visuals
             };
             this.addMessageToChat(aiMessage, true); // true = new AI message, generate follow-ups
 
@@ -1321,7 +1343,8 @@
                 return {
                     response: data.response,
                     rag_used: data.rag_used || false,
-                    rag_sources: data.rag_sources || []
+                    rag_sources: data.rag_sources || [],
+                    visuals: Array.isArray(data.visuals) ? data.visuals : []
                 };
             }
             
@@ -4731,10 +4754,11 @@ window.app.saveProfilePreferences = async function() {
         const verbosity = document.getElementById('pref-verbosity')?.value || '';
         const reading = document.getElementById('pref-reading')?.value || '';
         const adaptive = !!document.getElementById('pref-adaptive')?.checked;
+        const visuals = !!document.getElementById('pref-visuals')?.checked;
         const statusEl = document.getElementById('pref-save-status');
         if (statusEl) statusEl.textContent = 'Saving...';
 
-        const payload = { preferences: { tone, verbosity, reading_level: reading, adaptive_profile: adaptive } };
+        const payload = { preferences: { tone, verbosity, reading_level: reading, adaptive_profile: adaptive, enable_visuals: visuals } };
         const res = await fetch('/api/users/update-preferences', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
@@ -4790,10 +4814,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     const verbEl = document.getElementById('pref-verbosity');
                     const readEl = document.getElementById('pref-reading');
                     const adaptiveEl = document.getElementById('pref-adaptive');
+                    const visualsEl = document.getElementById('pref-visuals');
                     if (toneEl && typeof prefs.tone === 'string') toneEl.value = prefs.tone;
                     if (verbEl && typeof prefs.verbosity === 'string') verbEl.value = prefs.verbosity;
                     if (readEl && typeof prefs.reading_level === 'string') readEl.value = prefs.reading_level;
                     if (adaptiveEl && typeof prefs.adaptive_profile === 'boolean') adaptiveEl.checked = prefs.adaptive_profile;
+                    if (visualsEl && typeof prefs.enable_visuals === 'boolean') visualsEl.checked = prefs.enable_visuals;
                 } catch (e) {
                     console.warn('Failed to load preferences', e);
                 }

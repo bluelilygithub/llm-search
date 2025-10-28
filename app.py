@@ -1082,7 +1082,7 @@ def update_user_preferences():
             return jsonify({'error': 'User not found'}), 404
         prefs = user.preferences or {}
         # Merge top-level simple keys
-        for k in ('tone','verbosity','reading_level','adaptive_profile'):
+        for k in ('tone','verbosity','reading_level','adaptive_profile','enable_visuals'):
             v = prefs_in.get(k)
             if v is None:
                 continue
@@ -2639,6 +2639,28 @@ Use this context to provide accurate, detailed responses. When referencing infor
             'rag_used': bool(rag_context),
             'rag_sources': rag_sources if rag_context else []
         }
+
+        # Optional math visualization when enabled
+        try:
+            user_prefs = {}
+            try:
+                identity = get_user_identity()
+                uid = identity.get('user_id')
+                if uid:
+                    u = User.query.get(uid)
+                    if u and isinstance(u.preferences, dict):
+                        user_prefs = u.preferences
+            except Exception:
+                pass
+            enable_visuals = bool((user_prefs or {}).get('enable_visuals'))
+            if enable_visuals and (is_math_project or is_math_question(user_message)):
+                from math_visualization import MathVisualizer
+                viz = MathVisualizer()
+                img_b64 = viz.generate_diagram(user_message, ai_response)
+                if img_b64:
+                    response_data['visuals'] = [{ 'type': 'image/png;base64', 'data': img_b64 }]
+        except Exception as viz_err:
+            app.logger.debug(f"Visualization generation skipped: {viz_err}")
         
         # Add updated free access info if applicable
         if getattr(request, 'access_type', None) == 'free_tier':
