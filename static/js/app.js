@@ -2215,7 +2215,7 @@
             return matched || pool[0] || null;
         } catch (e) { return null; }
     }
-    speakMessage(button, messageId) {
+    async speakMessage(button, messageId) {
         // Check if browser supports speech synthesis
         if (!('speechSynthesis' in window)) {
             this.showError('Text-to-speech is not supported in this browser.');
@@ -4765,6 +4765,10 @@ window.testSingleModel = async function(modelName) {
 };
 
 // Ensure global namespace exists before attaching helpers
+// Ensure global class exists to avoid reference errors during early loads
+if (typeof window !== 'undefined') {
+  window.KnowledgeBaseApp = window.KnowledgeBaseApp || window.KnowledgeBaseApp;
+}
 window.app = window.app || {};
 window.app.requestIllustration = async function(buttonEl){
   try {
