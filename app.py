@@ -557,6 +557,20 @@ def logout_override():
         except Exception as e:
             app.logger.error(f"Error logging logout: {e}")
     
+    # Purge demo guest on logout if enabled
+    try:
+        if os.getenv('DEMO_PURGE_ON_LOGOUT', 'false').lower() in ('1','true','yes','on'):
+            uid = user_id
+            from user_models import User
+            user = User.query.filter(User.id == uid).first() if uid else None
+            if user and isinstance(user.preferences, dict) and user.preferences.get('is_demo_guest'):
+                # Delete user cascades to conversations/messages via FKs if configured; otherwise explicit cleanup is done elsewhere
+                db.session.delete(user)
+                db.session.commit()
+                app.logger.info(f"Purged demo guest on logout: {uid}")
+    except Exception as e:
+        app.logger.warning(f"Demo purge on logout failed: {e}")
+
     # Clear all session data
     session.pop('authenticated', None)
     session.pop('user_id', None)
@@ -564,7 +578,7 @@ def logout_override():
     session.pop('user_role', None)
     session.pop('username', None)
     session.pop('display_name', None)
-    
+
     return jsonify({'success': True, 'message': 'Logged out'})
 
 @csrf.exempt  
