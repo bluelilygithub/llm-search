@@ -5508,17 +5508,18 @@ window.saveProfileChanges = function() {
                 window.loadAccountInfo();
             }
             // Refill the preferences panel
-            try {
-                const res = await fetch('/api/users/preferences');
-                const data = await res.json().catch(()=>({}));
-                const prefs = (data && data.preferences) || {};
-                const toneEl = document.getElementById('pref-tone');
-                const verbEl = document.getElementById('pref-verbosity');
-                const readEl = document.getElementById('pref-reading');
-                if (toneEl && typeof prefs.tone === 'string') toneEl.value = prefs.tone;
-                if (verbEl && typeof prefs.verbosity === 'string') verbEl.value = prefs.verbosity;
-                if (readEl && typeof prefs.reading_level === 'string') readEl.value = prefs.reading_level;
-            } catch (e) { console.warn('reload prefs failed', e); }
+            fetch('/api/users/preferences')
+                .then(r => r.json())
+                .then(prefData => {
+                    const prefs = (prefData && prefData.preferences) || {};
+                    const toneEl = document.getElementById('pref-tone');
+                    const verbEl = document.getElementById('pref-verbosity');
+                    const readEl = document.getElementById('pref-reading');
+                    if (toneEl && typeof prefs.tone === 'string') toneEl.value = prefs.tone;
+                    if (verbEl && typeof prefs.verbosity === 'string') verbEl.value = prefs.verbosity;
+                    if (readEl && typeof prefs.reading_level === 'string') readEl.value = prefs.reading_level;
+                })
+                .catch(e => console.warn('reload prefs failed', e));
             // Update welcome message if needed
             if (window.updateWelcomeMessages) {
                 window.updateWelcomeMessages(data.user.display_name);
