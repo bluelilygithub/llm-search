@@ -13,6 +13,8 @@ Curam AI Knowledge Base is a multi-LLM chat interface that allows users to:
 - **Real-time Search**: Search conversations by title, content, tags, or project with intelligent filtering and snippets
 - **Voice Features**: Text-to-speech for AI responses and speech-to-text for input
 - **Model Management**: Enable/disable specific models and manage default model preferences
+ - **Project-aware Responses**: Chats automatically include concise project context when a project exists
+ - **On‑demand Visuals**: Generate explanatory charts/diagrams for math/statistics answers with one click
 
 ## 🏗️ Infrastructure & Technology Stack
 
@@ -119,8 +121,14 @@ Curam AI Knowledge Base is a multi-LLM chat interface that allows users to:
 - **Teacher‑quality Guardrails**: Compute‑first, verify by substitution, explicit self‑correction on contradictions
 - **Beginner‑first Teaching**: Default to y = m*x + b for lines, Keep‑Flip‑Change for fraction division, brief definitions for new terms
 - **Follow‑ups**: Age‑appropriate comprehension checks, younger‑learner re‑explanations, practical examples (numerically consistent), and extensions
+- **Core Math Actions (highlighted)**: Three always‑present follow‑ups are visually accented, plus “Illustrate this response with a explanatory graphic or chart” to add a chart inline
 - **Output Style Preference**: Per‑user toggle between plain‑text (ASCII a/b, x^2, sqrt(x)) and rich Markdown/LaTeX output
 - **Images/OCR First**: For uploaded images, the assistant transcribes math to plain text before solving; requests one‑line confirmation when unclear
+
+### 🧩 Adaptive Profile (v1)
+- **Auto‑tunes Verbosity**: Lightweight EMA learns from signals like “shorter/tl;dr” or “more detail/step by step” and nudges verbosity (brief/standard/detailed)
+- **Respect Explicit Settings**: Adaptive only fills gaps; explicit user preferences win
+- **Opt‑in & Reset**: Toggle adaptive profile in Settings and reset the learned score
 
 ## 🛠️ Development Setup
 
@@ -235,6 +243,7 @@ llm-search/
 - `GET/POST /conversations` - Conversation CRUD with user filtering  
 - `GET/POST /conversations/<id>/messages` - Message management
 - `POST /conversations/<id>/attachments` - File upload handling
+ - `DELETE /conversations/<id>` - Delete a conversation (CSRF‑exempt)
 
 #### RAG Pipeline
 - `POST /api/rag/process-document` - Process single document for embeddings
@@ -263,6 +272,7 @@ llm-search/
 - `POST /extract-url` - URL content extraction with BeautifulSoup
 - `POST /stability-edit-image` - Stability AI image editing
 - `POST /transcribe` - Google Speech-to-Text integration
+ - `POST /api/visualize` - Generate an explanatory chart/diagram from the latest answer (returns base64 PNG)
 
 #### Search & Organization
 - `GET /api/search/conversations` - Advanced search with snippets
@@ -348,6 +358,9 @@ We attempted to enhance the RAG system with the following features:
 - **Personalized Experience**: Custom welcome messages and user-specific content
 - **Project Cloning**: One‑click clone for projects without copying conversations
 - **Speech Input Resilience**: Web Speech improvements (interim results, one retry on `no-speech`, clearer UI states)
+ - **Always‑on Project Context**: System prompt includes project name/description and key fields to avoid “no access” disclaimers
+ - **Math Follow‑ups Styling**: Core math actions highlighted with a complementary color; dynamic suggestions remain neutral
+ - **On‑demand Illustration**: One‑click button adds a chart/graphic below the assistant message
 
 ## 📄 License
 
