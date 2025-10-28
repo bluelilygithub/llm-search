@@ -6406,3 +6406,16 @@ mark {
     font-size: 12px;
     color: #9ca3af;
 }
+
+/* Settings preferences checkboxes */
+.account-preferences .form-row label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin-right: 8px;
+}
+.account-preferences .form-row label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+}

@@ -3850,30 +3850,25 @@ window.togglePasswordVisibility = function(inputId) {
 
 // Update welcome messages with user's name
 window.updateWelcomeMessages = function(displayName) {
-    // Update all welcome headers
-    const welcomeHeaders = document.querySelectorAll('h2:contains("Welcome to Your Knowledge Base")');
-    welcomeHeaders.forEach(header => {
-        if (header.textContent.includes('Welcome to')) {
-            header.textContent = `Welcome to ${displayName}'s Knowledge Base`;
-        }
-    });
-    
-    // More robust selector
-    document.querySelectorAll('h2').forEach(header => {
-        if (header.textContent.trim() === 'Welcome to Your Knowledge Base') {
-            header.textContent = `Welcome to ${displayName}'s Knowledge Base`;
-        }
-    });
-    
-    // Update empty state descriptions
-    document.querySelectorAll('.empty-state-description').forEach(desc => {
-        if (desc.textContent.includes('Start a conversation')) {
-            desc.textContent = `Hi ${displayName}! Start a conversation or search your knowledge base.`;
-        }
-    });
-    
-    // Store the display name globally for use in AI responses
-    window.userDisplayName = displayName;
+    try {
+        // Replace exact header text safely (no :contains in selectors)
+        document.querySelectorAll('h2').forEach(header => {
+            const text = (header.textContent || '').trim();
+            if (text === 'Welcome to Your Knowledge Base' || text.startsWith('Welcome to ') && text.endsWith("'s Knowledge Base")) {
+                header.textContent = `Welcome to ${displayName}'s Knowledge Base`;
+            }
+        });
+        // Update empty state descriptions
+        document.querySelectorAll('.empty-state-description').forEach(desc => {
+            const t = desc.textContent || '';
+            if (t.includes('Start a conversation')) {
+                desc.textContent = `Hi ${displayName}! Start a conversation or search your knowledge base.`;
+            }
+        });
+        window.userDisplayName = displayName;
+    } catch (e) {
+        console.warn('updateWelcomeMessages failed', e);
+    }
 };
 
 // Make openSettingsModal globally available for admin users
