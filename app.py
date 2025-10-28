@@ -1250,6 +1250,9 @@ def get_user_preferences():
     try:
         user_id = session.get('user_id')
         if not user_id:
+            # Allow password-only admin sessions to proceed with empty defaults
+            if session.get('user_type') == 'admin' or session.get('user_role') in ['SUPER_ADMIN', 'super_admin']:
+                return jsonify({'success': True, 'preferences': {}})
             return jsonify({'error': 'Not authenticated'}), 401
         user = db.session.query(User).filter(User.id == user_id).first()
         if not user:
