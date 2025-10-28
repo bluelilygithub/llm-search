@@ -7569,7 +7569,10 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('🔧 Cleared search field to prevent autofill issues');
     }
     
+    // Preserve any pre-defined helpers on window.app (e.g., requestIllustration)
+    const __existingAppProps = window.app && typeof window.app === 'object' ? window.app : {};
     window.app = new KnowledgeBaseApp();
+    try { Object.assign(window.app, __existingAppProps); } catch (_) {}
     
     // Ensure context button is visible
     setTimeout(() => {
