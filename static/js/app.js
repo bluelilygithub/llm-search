@@ -863,6 +863,10 @@
                             <strong>Khan Academy</strong>
                             <br><a href="https://www.khanacademy.org/" target="_blank">khanacademy.org</a>
                         </div>
+                        <div class="tooltip-link">
+                            <strong>Class Mathematics – NSW Y10 Maths Core</strong>
+                            <br><a href="https://classmathematics.com.au/resources/nsw/year-10/maths-core/" target="_blank" rel="noopener noreferrer">classmathematics.com.au</a>
+                        </div>
                     </div>
                 </div>
             </button>` : '';
