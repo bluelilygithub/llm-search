@@ -4927,7 +4927,22 @@ window.app.showProgressView = async function() {
                     <div class="topic-card" style="border:1px solid #eee; border-left:4px solid ${color}; border-radius:8px; padding:10px; margin:6px 0; background:#fff;">
                         <div style="display:flex; justify-content:space-between; align-items:center;">
                             <div style="font-weight:600;">${t.topic}</div>
-                            <div style="font-size:12px; color:#888;">${t.bucket} · Score ${t.score}</div>
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <div style="font-size:12px; color:#888;">${t.bucket} · Score ${t.score}</div>
+                                <button class="info-btn" style="border:none;background:transparent;color:#888;cursor:pointer;" onmouseenter="showInfoTooltip(this)" onmouseleave="hideInfoTooltip(this)">
+                                  <i class="fas fa-info-circle"></i>
+                                  <div class="info-tooltip" style="display:none; position:fixed; z-index:10000; background:#fff; border:1px solid #e5e7eb; border-radius:8px; padding:10px; box-shadow:0 6px 24px rgba(0,0,0,0.12); max-width:280px;">
+                                    <div class="tooltip-header" style="font-weight:600; margin-bottom:6px;">How this score works</div>
+                                    <div class="tooltip-content" style="font-size:12px; color:#555; line-height:1.45;">
+                                      <div><strong>Base 50</strong> then <strong>+6</strong> per positive signal and <strong>-8</strong> per negative signal.</div>
+                                      <div style="margin-top:6px;"><strong>Positive</strong>: “try a similar problem”, “got it”, “i can do it”.</div>
+                                      <div><strong>Negative</strong>: “simplify/explain again/shorter/tl;dr/step by step/show steps”, assistant self‑corrections.</div>
+                                      <div style="margin-top:6px;">Buckets: Strong ≥70, Stable 40–69, Improve &lt;40.</div>
+                                      <div style="margin-top:6px;">This topic: +${t.pos_signals} / −${t.neg_signals}.</div>
+                                    </div>
+                                  </div>
+                                </button>
+                            </div>
                         </div>
                         <div style="font-size:13px; color:#666; margin-top:4px;">Questions: ${t.questions} · Signals: +${t.pos_signals} / −${t.neg_signals}</div>
                     </div>`;
