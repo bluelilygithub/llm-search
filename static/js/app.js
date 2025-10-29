@@ -5637,8 +5637,18 @@ window.showUsersTabIfAdmin = async function() {
         // Show/hide admin-only sidebar items
         try {
             const adminOnlyEls = document.querySelectorAll('.admin-only');
-            adminOnlyEls.forEach(el => { el.style.display = isAdmin ? 'block' : 'none'; });
+            adminOnlyEls.forEach(el => {
+                if (isAdmin) {
+                    el.style.setProperty('display', 'block', 'important');
+                } else {
+                    el.style.removeProperty('display');
+                    el.style.display = 'none';
+                }
+            });
             const adminUsageEl = document.getElementById('admin-usage-header');
+            if (adminUsageEl && adminUsageEl.parentElement && isAdmin) {
+                adminUsageEl.parentElement.style.setProperty('display', 'block', 'important');
+            }
             // Explicit console proofs for troubleshooting
             console.log('🛡️ Admin-only elements found:', adminOnlyEls.length);
             console.log('🛡️ Admin Usage link present:', !!adminUsageEl, 'display:', adminUsageEl ? getComputedStyle(adminUsageEl.parentElement || adminUsageEl).display : 'n/a');
