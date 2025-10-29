@@ -4933,6 +4933,10 @@ window.app.showProgressView = async function() {
                     qs.innerHTML = `<div style="padding:8px 10px; border:1px solid #e5e7eb; border-radius:8px; background:#fafafa;">
                         <strong>Quizzes:</strong> ${count} · Latest: <strong>${pct}%</strong> (${data.latestQuiz.correct}/${data.latestQuiz.total})${when?` · ${when}`:''}
                     </div>`;
+                } else if (count > 0) {
+                    qs.innerHTML = `<div style="padding:8px 10px; border:1px solid #e5e7eb; border-radius:8px; background:#fafafa;">
+                        <strong>Quizzes:</strong> ${count}
+                    </div>`;
                 } else {
                     qs.innerHTML = `<div style="padding:8px 10px; border:1px dashed #e5e7eb; border-radius:8px; color:#666; background:#fcfcfc;">
                         No quizzes yet. Take a quick 5‑question quiz from a project to see results here.
