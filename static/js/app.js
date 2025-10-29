@@ -5099,6 +5099,112 @@ window.app.showUsageView = async function() {
     } catch(e) { console.error('showUsageView error', e); }
 };
 
+// Admin Usage – leaderboard across all users
+window.app.showAdminUsageView = async function(){
+    try {
+        const contentArea = document.getElementById('content-area');
+        if (!contentArea) return;
+        contentArea.innerHTML = `
+            <div class="main-view">
+                <div class="view-header">
+                    <h2><i class="fas fa-user-shield"></i> Admin Usage</h2>
+                    <div class="window-selector">
+                        <select id="admin-usage-window">
+                            <option value="7d">Last 7 days</option>
+                            <option value="14d">Last 14 days</option>
+                            <option value="30d" selected>Last 30 days</option>
+                            <option value="all">All time</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="admin-usage-summary" style="margin:4px 0; color:#666; font-size:14px;">Loading…</div>
+                <div style="display:flex; gap:16px; flex-wrap:wrap;">
+                    <div style="flex:1 1 480px; min-width:360px; background:#fff; border:1px solid #eee; border-radius:8px; padding:10px;">
+                        <canvas id="admin-usage-chart" height="180"></canvas>
+                    </div>
+                    <div style="flex:1 1 520px; min-width:360px; background:#fff; border:1px solid #eee; border-radius:8px; padding:10px;">
+                        <div style="font-weight:600; margin-bottom:6px;">Top Users</div>
+                        <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                            <thead>
+                                <tr style="text-align:left; border-bottom:1px solid #eee;">
+                                    <th style="padding:6px 4px;">User</th>
+                                    <th style="padding:6px 4px;">Tokens</th>
+                                    <th style="padding:6px 4px;">Cost (USD)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-usage-table"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div style="margin-top:16px; background:#fff; border:1px solid #eee; border-radius:8px; padding:10px;">
+                    <div style="font-weight:600; margin-bottom:6px;">Per-user Model Breakdown</div>
+                    <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                        <thead>
+                            <tr style="text-align:left; border-bottom:1px solid #eee;">
+                                <th style="padding:6px 4px;">User</th>
+                                <th style="padding:6px 4px;">Model</th>
+                                <th style="padding:6px 4px;">Tokens</th>
+                                <th style="padding:6px 4px;">Cost (USD)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-usage-breakdown"></tbody>
+                    </table>
+                </div>
+            </div>`;
+
+        const sel = document.getElementById('admin-usage-window');
+        const load = async ()=>{
+            const win = sel.value;
+            const res = await fetch(`/api/admin/usage/by-user?window=${encodeURIComponent(win)}&limit=50`);
+            const data = await res.json().catch(()=>({}));
+            if (!res.ok) { document.getElementById('admin-usage-summary').textContent = data.error || 'Failed to load'; return; }
+            const users = data.users || [];
+            const totalTokens = users.reduce((a,u)=>a+(u.tokens||0),0);
+            const totalCost = users.reduce((a,u)=>a+Number(u.cost_usd||0),0);
+            document.getElementById('admin-usage-summary').textContent = `${users.length} users · ${totalTokens.toLocaleString()} tokens · $${totalCost.toFixed(4)}`;
+
+            // Leaderboard table
+            const tbody = document.getElementById('admin-usage-table');
+            tbody.innerHTML = users.map(u=>`
+                <tr style="border-bottom:1px solid #f3f4f6;">
+                    <td style="padding:6px 4px;">${u.username || u.user_id}</td>
+                    <td style="padding:6px 4px; font-weight:600;">${(u.tokens||0).toLocaleString()}</td>
+                    <td style="padding:6px 4px;">$${Number(u.cost_usd||0).toFixed(4)}</td>
+                </tr>
+            `).join('');
+
+            // Bar chart top 10
+            try {
+                const top = users.slice(0,10);
+                const ctx = document.getElementById('admin-usage-chart');
+                if (window._adminUsageChart) window._adminUsageChart.destroy();
+                window._adminUsageChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: top.map(u => u.username || (u.user_id||'').slice(0,6)),
+                        datasets: [{ label: 'Tokens', data: top.map(u => u.tokens||0), backgroundColor: '#9B59B6' }]
+                    },
+                    options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+                });
+            } catch(e) { console.warn('admin usage chart failed', e); }
+
+            // Breakdown table
+            const bd = data.breakdown || [];
+            const bdEl = document.getElementById('admin-usage-breakdown');
+            bdEl.innerHTML = bd.map(r => `
+                <tr style="border-bottom:1px solid #f3f4f6;">
+                    <td style="padding:6px 4px;">${r.username || r.user_id}</td>
+                    <td style="padding:6px 4px;">${r.model}</td>
+                    <td style="padding:6px 4px;">${(r.tokens||0).toLocaleString()}</td>
+                    <td style="padding:6px 4px;">$${Number(r.cost_usd||0).toFixed(4)}</td>
+                </tr>
+            `).join('');
+        };
+        sel.onchange = load;
+        await load();
+    } catch(e) { console.error('Admin usage view error', e); }
+};
+
 window.app.openQuizModal = async function(projectId){
     try{
         // Build modal shell
@@ -5524,6 +5630,13 @@ window.showUsersTabIfAdmin = async function() {
         if (usersTab) {
             usersTab.style.display = isAdmin ? 'flex' : 'none';
         }
+
+        // Show/hide admin-only sidebar items
+        try {
+            document.querySelectorAll('.admin-only').forEach(el => {
+                el.style.display = isAdmin ? 'block' : 'none';
+            });
+        } catch(e) { /* ignore */ }
         
         // Show/hide model selector (admin only)
         const modelSelectorContainer = document.getElementById('model-selector-container');
