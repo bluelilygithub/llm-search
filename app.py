@@ -6515,7 +6515,10 @@ def usage_by_model():
                          COALESCE(l.input_tokens,0) AS in_tokens,
                          COALESCE(l.output_tokens,0) AS out_tokens,
                          COALESCE(l.total_tokens, COALESCE(l.input_tokens,0)+COALESCE(l.output_tokens,0)) AS tokens,
-                         COALESCE(l.cost_usd,0) AS cost_usd,
+                         CASE WHEN lower(l.model) LIKE 'claude%'
+                              THEN COALESCE(l.output_tokens, COALESCE(l.total_tokens,0)) * 0.000015
+                              ELSE COALESCE(l.cost_usd,0)
+                         END AS cost_usd,
                          l.created_at AS created_at,
                          l.user_id,
                          l.conversation_id
@@ -6589,7 +6592,10 @@ def admin_usage_by_user():
                 WITH u AS (
                   SELECT l.user_id, l.model,
                          COALESCE(l.total_tokens, COALESCE(l.input_tokens,0)+COALESCE(l.output_tokens,0)) AS tokens,
-                         COALESCE(l.cost_usd,0) AS cost_usd,
+                         CASE WHEN lower(l.model) LIKE 'claude%'
+                              THEN COALESCE(l.output_tokens, COALESCE(l.total_tokens,0)) * 0.000015
+                              ELSE COALESCE(l.cost_usd,0)
+                         END AS cost_usd,
                          l.created_at AS created_at
                   FROM llm_usage_log l
                   UNION ALL
@@ -6614,7 +6620,10 @@ def admin_usage_by_user():
                 WITH u AS (
                   SELECT l.user_id, l.model,
                          COALESCE(l.total_tokens, COALESCE(l.input_tokens,0)+COALESCE(l.output_tokens,0)) AS tokens,
-                         COALESCE(l.cost_usd,0) AS cost_usd,
+                         CASE WHEN lower(l.model) LIKE 'claude%'
+                              THEN COALESCE(l.output_tokens, COALESCE(l.total_tokens,0)) * 0.000015
+                              ELSE COALESCE(l.cost_usd,0)
+                         END AS cost_usd,
                          l.created_at AS created_at
                   FROM llm_usage_log l
                   UNION ALL
