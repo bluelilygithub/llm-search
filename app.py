@@ -6525,7 +6525,10 @@ def usage_by_model():
                          0 AS in_tokens,
                          0 AS out_tokens,
                          COALESCE(l.tokens,0) AS tokens,
-                         COALESCE(l.estimated_cost,0) AS cost_usd,
+                         CASE WHEN lower(l.model) LIKE 'claude%'
+                              THEN COALESCE(l.tokens,0) * 0.000015  -- approx $15/1M output
+                              ELSE COALESCE(l.estimated_cost,0)
+                          END AS cost_usd,
                          l.timestamp AS created_at,
                          NULL::uuid AS user_id,
                          l.conversation_id

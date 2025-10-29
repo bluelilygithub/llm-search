@@ -148,22 +148,23 @@ class LLMService:
                 data = resp.json()
                 if resp.ok and data.get('content') and data['content'][0].get('text'):
                     text = data['content'][0]['text']
-                    # Anthropic API may return usage info in 'usage' or 'usage_metadata'
-                    tokens = 0
+                    # Anthropic usage: prefer output tokens; pricing per 1M tokens
+                    out_tokens = 0
                     if 'usage' in data and 'output_tokens' in data['usage']:
-                        tokens = data['usage']['output_tokens']
+                        out_tokens = data['usage']['output_tokens']
                     elif 'usage_metadata' in data and 'output_tokens' in data['usage_metadata']:
-                        tokens = data['usage_metadata']['output_tokens']
-                    # Example pricing: Claude 3 Sonnet $3/1M, Opus $15/1M, Haiku $0.25/1M
-                    if 'sonnet' in try_model:
-                        cost = tokens * 0.003  # $3/1M tokens
+                        out_tokens = data['usage_metadata']['output_tokens']
+                    # Pricing (approx): Sonnet $15/1M output, Opus $15/1M, Haiku $0.25/1M
+                    # Convert to per-token ($/token)
+                    per_token = 0.000015  # default $15/1M
+                    if 'haiku' in try_model:
+                        per_token = 0.00000025
+                    elif 'sonnet' in try_model:
+                        per_token = 0.000015
                     elif 'opus' in try_model:
-                        cost = tokens * 0.015  # $15/1M tokens
-                    elif 'haiku' in try_model:
-                        cost = tokens * 0.00025  # $0.25/1M tokens
-                    else:
-                        cost = tokens * 0.003
-                    return text, tokens, cost
+                        per_token = 0.000015
+                    cost = out_tokens * per_token
+                    return text, out_tokens, cost
                 else:
                     last_error = data
             except Exception as e:
