@@ -5050,8 +5050,8 @@ window.app.openQuizModal = async function(projectId){
 
         // Load questions
         const resp = await fetch(`/projects/${projectId}/quiz/generate`, { method:'POST' });
-        const data = await resp.json();
-        if(!resp.ok || !data.success){ statusEl.textContent = data.error || 'Failed to generate quiz'; return; }
+        const data = await resp.json().catch(()=>({}));
+        if(!resp.ok || !data.success){ statusEl.textContent = (data && data.error) ? data.error : `Failed to generate quiz (${resp.status})`; return; }
         const questions = data.questions;
         let idx = 0; let correct=0; const answers=[]; const startTime = Date.now();
 
