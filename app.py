@@ -6511,9 +6511,58 @@ def generate_quiz(project_id):
         topic_rows = db.session.execute(topics_sql, { 'pid': str(project_id) }).mappings().all()
         topic_list = [r['topic'] for r in topic_rows] or [getattr(project, 'math_subject', None) or getattr(project, 'name', 'statistics')]
 
-        # Build strict prompt for LLM
-        subject = getattr(project, 'math_subject', 'Statistics') or 'Statistics'
-        level = getattr(project, 'math_level', 'Year 10') or 'Year 10'
+        # Build strict prompt for LLM: subject + year/age + difficulty
+        raw_subject = getattr(project, 'math_subject', None) or getattr(project, 'name', None) or 'Mathematics'
+        def normalize_subject(s: str) -> str:
+            sl = (s or '').strip().lower()
+            if any(k in sl for k in ['stat', 'data']):
+                return 'statistics'
+            if 'geom' in sl:
+                return 'geometry'
+            if 'trig' in sl or 'bearing' in sl:
+                return 'trigonometry'
+            if 'algebra' in sl or 'linear' in sl or 'equation' in sl or 'inequal' in sl:
+                return 'algebra'
+            if 'prob' in sl:
+                return 'probability'
+            if 'surd' in sl or 'indice' in sl or 'index' in sl:
+                return 'indices_and_surds'
+            if 'measure' in sl or 'area' in sl or 'volume' in sl or 'surface' in sl:
+                return 'measurement'
+            if 'quadratic' in sl or 'parabola' in sl:
+                return 'quadratics'
+            if 'straight line' in sl or 'graph' in sl or 'parallel' in sl or 'perpendicular' in sl:
+                return 'straight_line_graphs'
+            if 'simultaneous' in sl:
+                return 'simultaneous_equations'
+            return 'mathematics'
+        subject_norm = normalize_subject(raw_subject)
+        subject = {
+            'statistics': 'Statistics',
+            'geometry': 'Geometry',
+            'trigonometry': 'Trigonometry',
+            'algebra': 'Algebra',
+            'probability': 'Probability',
+            'indices_and_surds': 'Indices and Surds',
+            'measurement': 'Measurement',
+            'quadratics': 'Quadratics',
+            'straight_line_graphs': 'Straight Line Graphs',
+            'simultaneous_equations': 'Simultaneous Equations',
+            'mathematics': 'Mathematics'
+        }[subject_norm]
+
+        level = getattr(project, 'math_level', None) or 'Year 10'
+        # Derive student year/age context from project or user preferences
+        student_year = level
+        try:
+            uid = session.get('user_id')
+            usr = User.query.filter(User.id == uid).first() if uid else None
+            if usr and isinstance(usr.preferences, dict):
+                yl = usr.preferences.get('year_level') or usr.preferences.get('year')
+                if isinstance(yl, str) and yl.strip():
+                    student_year = yl
+        except Exception:
+            pass
         difficulty = getattr(project, 'difficulty_preference', 'Intermediate') or 'Intermediate'
         learning = getattr(project, 'learning_style', 'step by step') or 'step by step'
         # Recent question stems to avoid repeating
@@ -6529,14 +6578,30 @@ def generate_quiz(project_id):
         ), { 'uid': str(session.get('user_id')), 'pid': str(project_id) }).mappings().all()
         recent_stems = [ (r['question_text'] or '').strip() for r in recent_rows if (r.get('question_text') or '').strip() ]
 
+        # Allowed topic hints per NSW Year 10 for better subject adherence
+        allowed_by_subject = {
+            'Statistics': ['central_tendency','distribution_shape','scatter_plots','correlation','sampling_methods','box_plots','quartiles'],
+            'Geometry': ['basic_geometry','angles_parallel_lines','polygons','congruent_triangles','similar_triangles','circle_geometry','network_diagrams'],
+            'Trigonometry': ['trig_ratios','unknown_angles','unknown_sides','2d_applications','bearings'],
+            'Algebra': ['algebraic_fractions','linear_equations','inequalities','expanding','factorising'],
+            'Probability': ['two_way_tables','venn_diagrams','complementary_events','tree_diagrams','independent_dependent'],
+            'Indices and Surds': ['simplifying_surds','adding_subtracting_surds','multiplying_dividing_surds','rationalising_denominator','index_laws'],
+            'Measurement': ['area','perimeter','surface_area','volume','accuracy','unit_conversion'],
+            'Quadratics': ['expanding','factorising_monic','solving_by_factorising','parabolas'],
+            'Straight Line Graphs': ['gradient','midpoint','length','parallel_perpendicular','equation_of_lines'],
+            'Simultaneous Equations': ['substitution','elimination','problems']
+        }
+        allowed_topics = allowed_by_subject.get(subject, [])
+
         system_prompt = (
-            f"You are creating a short quiz for a {level} student in {subject}. "
+            f"Create a short quiz for a {student_year} NSW student in {subject}. "
             f"Difficulty: {difficulty}. Learning style: {learning}. "
+            f"Only include topics within {subject}. Allowed topics: {', '.join(allowed_topics) if allowed_topics else 'subject-appropriate'}; DO NOT include out-of-subject items. "
             f"Return exactly 5 multiple-choice questions as strict JSON only, no prose. Each item must be: "
             f"{{'id': n, 'question': '...', 'type':'multiple_choice', 'options':['A','B','C','D'], 'correct_answer':'B', 'explanation':'...', 'topic':'<slug>'}}. "
-            f"Topics to prioritize: {', '.join(topic_list[:3])}. Keep language simple; answers must be unambiguous. "
-            + (f"Avoid reusing these question stems or near-duplicates: {recent_stems[:10]}. " if recent_stems else "")
-            + "Vary wording and scenarios so that successive quizzes are not identical."
+            f"Use age-appropriate language for {student_year}. Topics to prioritize: {', '.join(topic_list[:3])}. "
+            + (f"Avoid reusing these stems or near-duplicates: {recent_stems[:10]}. " if recent_stems else "")
+            + "Vary wording so successive quizzes are not identical."
         )
         # Ask LLM for JSON
         messages = [
@@ -6600,7 +6665,103 @@ def generate_quiz(project_id):
         def fallback_items(subj: str):
             base = []
             subj_l = (subj or '').lower()
-            if 'stat' in subj_l:
+            if 'geom' in subj_l:
+                base = [
+                    {
+                        'question': 'Which angle pair indicates lines are parallel?',
+                        'options': ['Corresponding angles equal','Base angles equal','Sum of angles 100°','Right angles only'],
+                        'correct_answer': 'Corresponding angles equal',
+                        'explanation': 'Equal corresponding (or alternate interior) angles imply parallel lines.',
+                        'topic': 'angles_parallel_lines'
+                    },
+                    {
+                        'question': 'Two triangles have equal corresponding sides. This proves…',
+                        'options': ['Similarity','Congruence','Right triangles','Isosceles triangles'],
+                        'correct_answer': 'Congruence',
+                        'explanation': 'SSS equality is a congruence condition.',
+                        'topic': 'congruent_triangles'
+                    },
+                    {
+                        'question': 'In similar triangles, the scale factor is 2. A side of length 5 cm becomes…',
+                        'options': ['2.5 cm','5 cm','7 cm','10 cm'],
+                        'correct_answer': '10 cm',
+                        'explanation': 'Lengths scale by the factor: 5 × 2 = 10.',
+                        'topic': 'similar_triangles'
+                    },
+                    {
+                        'question': 'The sum of interior angles in a hexagon equals…',
+                        'options': ['360°','540°','720°','900°'],
+                        'correct_answer': '720°',
+                        'explanation': '(n−2)×180 = 4×180 = 720° for n=6.',
+                        'topic': 'polygons'
+                    },
+                    {
+                        'question': 'A diameter AB subtends angle ACB on a circle. Angle ACB is…',
+                        'options': ['90°','60°','45°','Depends on arc length'],
+                        'correct_answer': '90°',
+                        'explanation': 'Angle in a semicircle is a right angle.',
+                        'topic': 'circle_geometry'
+                    },
+                    {
+                        'question': 'Which transformation preserves shape and size?',
+                        'options': ['Dilation','Reflection','Rotation','Shear'],
+                        'correct_answer': 'Rotation',
+                        'explanation': 'Rotations and reflections are isometries; dilation changes size.',
+                        'topic': 'basic_geometry'
+                    },
+                    {
+                        'question': 'In network diagrams, the shortest path problem seeks…',
+                        'options': ['Minimum edges','Minimum total weight','Maximum flow','Eulerian trail'],
+                        'correct_answer': 'Minimum total weight',
+                        'explanation': 'Shortest path minimizes total edge weight between nodes.',
+                        'topic': 'network_diagrams'
+                    }
+                ]
+            elif 'trig' in subj_l:
+                base = [
+                    {
+                        'question': 'sin(θ) = opposite / hypotenuse. For a right triangle, which is true?',
+                        'options': ['sin²θ + cos²θ = 1','sinθ = adjacent/hyp','tanθ = hyp/opp','cosθ = opp/adj'],
+                        'correct_answer': 'sin²θ + cos²θ = 1',
+                        'explanation': 'Pythagorean identity holds for all θ.',
+                        'topic': 'trig_ratios'
+                    },
+                    {
+                        'question': 'Given a right triangle with hypotenuse 10 and angle 30°, the adjacent side is…',
+                        'options': ['5','5√3','10','10√3'],
+                        'correct_answer': '5√3',
+                        'explanation': 'cos30° = √3/2, adjacent = 10×√3/2 = 5√3.',
+                        'topic': 'unknown_sides'
+                    }
+                ]
+            elif 'prob' in subj_l:
+                base = [
+                    {
+                        'question': 'Two independent events A and B have P(A)=0.5 and P(B)=0.6. P(A∩B)=…',
+                        'options': ['0.3','0.5','0.6','1.1'],
+                        'correct_answer': '0.3',
+                        'explanation': 'Independent ⇒ multiply: 0.5×0.6.',
+                        'topic': 'independent_dependent'
+                    }
+                ]
+            elif 'algebra' in subj_l or 'linear' in subj_l:
+                base = [
+                    {
+                        'question': 'Solve 2x − 5 = 9.',
+                        'options': ['x = 2','x = 5','x = 7','x = 14'],
+                        'correct_answer': 'x = 7',
+                        'explanation': '2x=14 ⇒ x=7.',
+                        'topic': 'linear_equations'
+                    },
+                    {
+                        'question': 'Simplify (x/3) + (2x/3).',
+                        'options': ['x','2x/3','x/3','3x'],
+                        'correct_answer': 'x',
+                        'explanation': 'Same denominator, add numerators: 3x/3 = x.',
+                        'topic': 'algebraic_fractions'
+                    }
+                ]
+            elif 'stat' in subj_l:
                 base = [
                     {
                         'question': 'Which measure of central tendency is most affected by extreme values?',
