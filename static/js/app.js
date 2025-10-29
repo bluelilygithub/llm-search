@@ -4965,6 +4965,82 @@ window.app.showProgressView = async function() {
         await load();
     } catch (e) { console.error('Progress view error', e); }
 };
+
+window.app.openQuizModal = async function(projectId){
+    try{
+        // Build modal shell
+        let modal = document.getElementById('quiz-modal');
+        if (!modal){
+            modal = document.createElement('div');
+            modal.id='quiz-modal';
+            modal.className='modal';
+            modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:10000;';
+            modal.innerHTML = `
+                <div class="modal-content" style="background:#fff;border-radius:12px;max-width:760px;width:90%;max-height:90vh;overflow:auto;">
+                    <div class="modal-header" style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid #eee;">
+                        <h3 style="margin:0;font-size:18px;">Quick Quiz</h3>
+                        <button onclick="document.getElementById('quiz-modal').remove()" style="border:none;background:transparent;font-size:18px;cursor:pointer;">×</button>
+                    </div>
+                    <div class="modal-body" id="quiz-body" style="padding:14px 16px;">
+                        <div id="quiz-status" style="color:#666;font-size:14px;margin-bottom:8px;">Generating 5 questions…</div>
+                        <div id="quiz-question"></div>
+                        <div id="quiz-actions" style="margin-top:12px;display:flex;gap:8px;"></div>
+                    </div>
+                </div>`;
+            document.body.appendChild(modal);
+        }
+        const body = document.getElementById('quiz-body');
+        const statusEl = document.getElementById('quiz-status');
+        const qEl = document.getElementById('quiz-question');
+        const act = document.getElementById('quiz-actions');
+
+        // Load questions
+        const resp = await fetch(`/projects/${projectId}/quiz/generate`, { method:'POST' });
+        const data = await resp.json();
+        if(!resp.ok || !data.success){ statusEl.textContent = data.error || 'Failed to generate quiz'; return; }
+        const questions = data.questions;
+        let idx = 0; let correct=0; const answers=[]; const startTime = Date.now();
+
+        const render = () =>{
+            statusEl.textContent = `Question ${idx+1} of ${questions.length}`;
+            const item = questions[idx];
+            qEl.innerHTML = `
+                <div style="font-weight:600;margin-bottom:8px;">${item.question}</div>
+                <div>${item.options.map((o,i)=>`<label style='display:block;margin:6px 0;'><input type='radio' name='quiz-opt' value='${this.escapeHtml(o)}'/> ${this.escapeHtml(o)}</label>`).join('')}</div>
+            `;
+            act.innerHTML = `<button class='view-action-btn' id='submit-ans'>Submit Answer</button>`;
+            document.getElementById('submit-ans').onclick = async () =>{
+                const chosen = (qEl.querySelector('input[name=quiz-opt]:checked')||{}).value;
+                if(!chosen){ alert('Please select an option.'); return; }
+                const isCorrect = String(chosen) === String(item.correct_answer);
+                if(isCorrect) correct++;
+                answers.push({ id:item.id, topic:item.topic, question:item.question, student_answer:chosen, correct_answer:item.correct_answer, is_correct:isCorrect });
+                // Feedback
+                qEl.innerHTML += `<div style='margin-top:8px;${isCorrect?'color:#2ecc71':'color:#e74c3c'};'>${isCorrect?'✓ Correct':'✗ Incorrect'} — ${this.escapeHtml(item.explanation||'')}</div>`;
+                act.innerHTML = `<button class='view-action-btn' id='next-q'>${idx+1<questions.length?'Next':'Finish'}</button>`;
+                document.getElementById('next-q').onclick = ()=>{
+                    idx++; if(idx<questions.length) render(); else finish();
+                };
+            };
+        };
+
+        const finish = async ()=>{
+            const time_taken = Math.round((Date.now()-startTime)/1000);
+            statusEl.textContent = 'Submitting results…';
+            const sub = await fetch(`/projects/${projectId}/quiz/submit`,{ method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ answers, time_taken })});
+            const res = await sub.json().catch(()=>({}));
+            if(sub.ok && res.success){
+                qEl.innerHTML = `<div style='font-weight:600;margin-bottom:6px;'>Quiz Complete</div><div>Score: ${res.correct}/${res.total} (${Math.round(res.score*100)}%)</div>`;
+                act.innerHTML = `<button class='view-action-btn' onclick="document.getElementById('quiz-modal').remove()">Close</button>`;
+            } else {
+                qEl.innerHTML = `<div>Failed to submit quiz: ${res.error||''}</div>`;
+                act.innerHTML = `<button class='view-action-btn' onclick="document.getElementById('quiz-modal').remove()">Close</button>`;
+            }
+        };
+
+        render();
+    }catch(e){ console.error('Quiz modal error', e); }
+};
 window.app.requestIllustration = async function(buttonEl){
   try {
     buttonEl.disabled = true;
@@ -9562,6 +9638,10 @@ KnowledgeBaseApp.prototype.showProjectConversationsView = function(project) {
                         <i class="fas fa-edit"></i>
                         Edit Project
                     </button>
+                        <button class="view-action-btn" onclick="window.app.openQuizModal('${project.id}')">
+                            <i class="fas fa-bolt"></i>
+                            Quiz Me
+                        </button>
                 </div>
             </div>
             

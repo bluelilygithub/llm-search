@@ -6275,6 +6275,28 @@ def progress_summary():
             total_q += q
             neg = int(r['neg_signals'] or 0)
             pos = int(r['pos_signals'] or 0)
+            # Include quiz signals from user preferences if available
+            try:
+                uid = session.get('user_id')
+                user = User.query.filter(User.id == uid).first() if uid else None
+                if user and isinstance(user.preferences, dict):
+                    proj_key = str(request.args.get('project_id') or '')
+                    # Sum all projects if none specified
+                    qsig = (user.preferences.get('quiz_signals') or {})
+                    if proj_key and proj_key in qsig:
+                        extra = qsig[proj_key].get(r['topic'].lower()) or {}
+                        pos += int(extra.get('pos', 0))
+                        neg += int(extra.get('neg', 0))
+                    else:
+                        # sum over all projects for this topic
+                        acc_p = 0; acc_n = 0
+                        for mp in qsig.values():
+                            if isinstance(mp, dict) and r['topic'].lower() in mp:
+                                acc_p += int(mp[r['topic'].lower()].get('pos', 0))
+                                acc_n += int(mp[r['topic'].lower()].get('neg', 0))
+                        pos += acc_p; neg += acc_n
+            except Exception:
+                pass
             score = max(0, min(100, 50 + pos*6 - neg*8))
             bucket = 'Strong' if score >= 70 else ('Stable' if score >= 40 else 'Improve')
             topics.append({
@@ -6296,6 +6318,140 @@ def progress_summary():
     except Exception as e:
         app.logger.error(f"Progress summary error: {e}", exc_info=True)
         return jsonify({'error': 'Failed to compute progress summary'}), 500
+
+# ==================== QUIZ GENERATION & SUBMISSION ====================
+@app.route('/projects/<project_id>/quiz/generate', methods=['POST'])
+@auth.login_required
+def generate_quiz(project_id):
+    try:
+        # Fetch project
+        try:
+            proj_uuid = uuid.UUID(project_id)
+        except Exception:
+            return jsonify({'error': 'Invalid project id'}), 400
+        project = Project.query.get(proj_uuid)
+        if not project:
+            return jsonify({'error': 'Project not found'}), 404
+
+        # Gather recent topics from conversations for this project
+        topics_sql = text(
+            """
+            SELECT LOWER(COALESCE(p.math_subject, p.name, 'General')) AS topic,
+                   COUNT(*) AS q
+            FROM conversations c
+            LEFT JOIN projects p ON p.id = c.project_id
+            WHERE c.project_id = :pid
+            GROUP BY topic
+            ORDER BY q DESC
+            LIMIT 5
+            """
+        )
+        topic_rows = db.session.execute(topics_sql, { 'pid': str(project_id) }).mappings().all()
+        topic_list = [r['topic'] for r in topic_rows] or [getattr(project, 'math_subject', None) or getattr(project, 'name', 'statistics')]
+
+        # Build strict prompt for LLM
+        subject = getattr(project, 'math_subject', 'Statistics') or 'Statistics'
+        level = getattr(project, 'math_level', 'Year 10') or 'Year 10'
+        difficulty = getattr(project, 'difficulty_preference', 'Intermediate') or 'Intermediate'
+        learning = getattr(project, 'learning_style', 'step by step') or 'step by step'
+
+        system_prompt = (
+            f"You are creating a short quiz for a {level} student in {subject}. "
+            f"Difficulty: {difficulty}. Learning style: {learning}. "
+            f"Return exactly 5 multiple-choice questions as strict JSON only, no prose. Each item must be: "
+            f"{{'id': n, 'question': '...', 'type':'multiple_choice', 'options':['A','B','C','D'], 'correct_answer':'B', 'explanation':'...', 'topic':'<slug>'}}. "
+            f"Topics to prioritize: {', '.join(topic_list[:3])}. Keep language simple; answers must be unambiguous."
+        )
+        # Ask LLM for JSON
+        messages = [
+            { 'role': 'system', 'content': system_prompt },
+            { 'role': 'user', 'content': 'Generate the quiz JSON now.' }
+        ]
+        model_identifier = get_model_identifier('gpt-4o') if os.getenv('OPENAI_API_KEY') else get_model_identifier('claude-3.5-sonnet-20241022')
+        ai_response, _, _ = llm_service.get_response(model_identifier, messages)
+
+        import json
+        # Extract JSON from response (tolerant of extra text)
+        try:
+            start = ai_response.find('[')
+            end = ai_response.rfind(']') + 1
+            payload = ai_response[start:end]
+            items = json.loads(payload)
+        except Exception:
+            return jsonify({'error': 'Quiz generation failed: invalid JSON'}), 500
+
+        # Validate items
+        validated = []
+        used_questions = set()
+        for i, it in enumerate(items[:5]):
+            q = (it.get('question') or '').strip()
+            opts = it.get('options') or []
+            ans = (it.get('correct_answer') or '').strip()
+            exp = (it.get('explanation') or '').strip()
+            topic = (it.get('topic') or subject).strip().lower()
+            if not q or len(opts) < 2 or ans not in opts or q in used_questions:
+                continue
+            used_questions.add(q)
+            validated.append({
+                'id': i+1,
+                'question': q,
+                'type': 'multiple_choice',
+                'options': opts[:6],
+                'correct_answer': ans,
+                'explanation': exp,
+                'topic': topic
+            })
+        if len(validated) != 5:
+            return jsonify({'error': 'Quiz generation failed: not enough valid items'}), 500
+        return jsonify({'success': True, 'questions': validated})
+    except Exception as e:
+        app.logger.error(f"Quiz generate error: {e}", exc_info=True)
+        return jsonify({'error': 'Failed to generate quiz'}), 500
+
+@app.route('/projects/<project_id>/quiz/submit', methods=['POST'])
+@auth.login_required
+def submit_quiz(project_id):
+    try:
+        data = request.get_json() or {}
+        answers = data.get('answers') or []
+        time_taken = int(data.get('time_taken') or 0)
+        if not answers:
+            return jsonify({'error': 'answers required'}), 400
+        # Score
+        total = len(answers)
+        correct = sum(1 for a in answers if a.get('is_correct'))
+        score = round(correct / total, 3)
+
+        # Update user preferences with quiz signals so Progress can include them
+        user_id = session.get('user_id')
+        user = User.query.filter(User.id == user_id).first() if user_id else None
+        if not user:
+            return jsonify({'error': 'Not authenticated'}), 401
+        prefs = user.preferences or {}
+        quiz_signals = (prefs.get('quiz_signals') or {})
+        proj_key = str(project_id)
+        proj_map = quiz_signals.get(proj_key) or {}
+        for a in answers:
+            topic = (a.get('topic') or 'general').lower()
+            entry = proj_map.get(topic) or {'pos': 0, 'neg': 0}
+            if a.get('is_correct'):
+                entry['pos'] = int(entry.get('pos', 0)) + 1
+            else:
+                entry['neg'] = int(entry.get('neg', 0)) + 1
+            proj_map[topic] = entry
+        quiz_signals[proj_key] = proj_map
+        # Track last quiz summary
+        quizzes = (prefs.get('quizzes') or {})
+        quizzes[proj_key] = { 'score': score, 'total': total, 'correct': correct, 'time_taken': time_taken, 'at': datetime.utcnow().isoformat() }
+        prefs['quiz_signals'] = quiz_signals
+        prefs['quizzes'] = quizzes
+        user.preferences = prefs
+        db.session.commit()
+        return jsonify({'success': True, 'score': score, 'correct': correct, 'total': total})
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Quiz submit error: {e}", exc_info=True)
+        return jsonify({'error': 'Failed to submit quiz'}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
