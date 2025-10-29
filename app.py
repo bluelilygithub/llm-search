@@ -6148,6 +6148,155 @@ def api_tts():
         app.logger.error(f"/api/tts error: {e}", exc_info=True)
         return jsonify({'error': 'TTS generation failed'}), 500
 
+# ==================== PROGRESS SUMMARY API ====================
+@app.route('/api/progress/summary', methods=['GET'])
+@auth.login_required
+def progress_summary():
+    """Return per-topic progress summary and daily trends for the current user (or a target user if admin)."""
+    try:
+        # Determine user scope
+        target_user_id = request.args.get('user_id')
+        if not target_user_id:
+            target_user_id = session.get('user_id')
+        else:
+            # Only allow specifying user_id if admin
+            if session.get('user_role') not in ['super_admin', 'SUPER_ADMIN', 'admin']:
+                return jsonify({'error': 'Forbidden'}), 403
+
+        if not target_user_id:
+            return jsonify({'error': 'Not authenticated'}), 401
+
+        # Time window
+        window_param = (request.args.get('window') or '7d').lower()
+        if window_param.endswith('d') and window_param[:-1].isdigit():
+            window_days = int(window_param[:-1])
+        else:
+            window_days = 7
+
+        # Core query to collect per-message topic data
+        core_sql = text(
+            """
+            WITH msgs AS (
+              SELECT m.id, m.role, m.content, m.timestamp, c.project_id,
+                     date_trunc('day', m.timestamp)::date AS day
+              FROM messages m
+              JOIN conversations c ON c.id = m.conversation_id
+              WHERE c.user_id = :user_id
+                AND m.timestamp >= now() - (:window_days || ' days')::interval
+            ),
+            topics AS (
+              SELECT msgs.*, COALESCE(p.math_subject, p.name, 'General') AS topic
+              FROM msgs LEFT JOIN projects p ON p.id = msgs.project_id
+            ),
+            user_neg AS (
+              SELECT topic,
+                SUM( (position('simplify' in lower(content)) > 0)::int
+                    + (position('explain again' in lower(content)) > 0)::int
+                    + (position('shorter' in lower(content)) > 0)::int
+                    + (position('tl;dr' in lower(content)) > 0)::int
+                    + (position('step by step' in lower(content)) > 0)::int
+                    + (position('show steps' in lower(content)) > 0)::int ) AS neg_count
+              FROM topics WHERE role='user' GROUP BY topic
+            ),
+            assistant_neg AS (
+              SELECT topic,
+                SUM( (position('let me correct' in lower(content)) > 0)::int
+                    + (position('i was wrong' in lower(content)) > 0)::int
+                    + (position('correction' in lower(content)) > 0)::int ) AS neg_count
+              FROM topics WHERE role='assistant' GROUP BY topic
+            ),
+            user_pos AS (
+              SELECT topic,
+                SUM( (position('try a similar problem' in lower(content)) > 0)::int
+                    + (position('got it' in lower(content)) > 0)::int
+                    + (position('i can do it' in lower(content)) > 0)::int ) AS pos_count
+              FROM topics WHERE role='user' GROUP BY topic
+            ),
+            daily AS (
+              SELECT topic, day, COUNT(*) AS q
+              FROM topics WHERE role='user' GROUP BY topic, day
+            )
+            SELECT
+              t.topic,
+              COUNT(*) FILTER (WHERE t.role='user') AS questions,
+              COALESCE(u.neg_count,0) + COALESCE(a.neg_count,0) AS neg_signals,
+              COALESCE(p.pos_count,0) AS pos_signals
+            FROM topics t
+            LEFT JOIN user_neg u USING (topic)
+            LEFT JOIN assistant_neg a USING (topic)
+            LEFT JOIN user_pos p USING (topic)
+            GROUP BY t.topic, u.neg_count, a.neg_count, p.pos_count
+            ORDER BY questions DESC
+            """
+        )
+
+        trend_sql = text(
+            """
+            WITH msgs AS (
+              SELECT m.id, m.role, m.content, m.timestamp, c.project_id,
+                     date_trunc('day', m.timestamp)::date AS day
+              FROM messages m
+              JOIN conversations c ON c.id = m.conversation_id
+              WHERE c.user_id = :user_id
+                AND m.timestamp >= now() - (:window_days || ' days')::interval
+            ),
+            topics AS (
+              SELECT msgs.*, COALESCE(p.math_subject, p.name, 'General') AS topic
+              FROM msgs LEFT JOIN projects p ON p.id = msgs.project_id
+            )
+            SELECT topic, day, COUNT(*) AS questions
+            FROM topics
+            WHERE role='user'
+            GROUP BY topic, day
+            ORDER BY topic, day
+            """
+        )
+
+        rows = db.session.execute(core_sql, { 'user_id': str(target_user_id), 'window_days': window_days }).mappings().all()
+        trend_rows = db.session.execute(trend_sql, { 'user_id': str(target_user_id), 'window_days': window_days }).mappings().all()
+
+        # Build trend map topic -> [counts per day in order]
+        from datetime import date, timedelta as td
+        day_list = [ (date.today() - td(days=d)) for d in range(window_days-1, -1, -1) ]
+        trend_map = {}
+        for r in trend_rows:
+            topic = r['topic']
+            day = r['day']
+            trend_map.setdefault(topic, {})[day] = int(r['questions'])
+        topic_trends = {}
+        for topic, per_day in trend_map.items():
+            topic_trends[topic] = [ int(per_day.get(d, 0)) for d in day_list ]
+
+        # Compute score and bucket
+        topics = []
+        total_q = 0
+        for r in rows:
+            q = int(r['questions'] or 0)
+            total_q += q
+            neg = int(r['neg_signals'] or 0)
+            pos = int(r['pos_signals'] or 0)
+            score = max(0, min(100, 50 + pos*6 - neg*8))
+            bucket = 'Strong' if score >= 70 else ('Stable' if score >= 40 else 'Improve')
+            topics.append({
+                'topic': r['topic'],
+                'questions': q,
+                'neg_signals': neg,
+                'pos_signals': pos,
+                'score': score,
+                'bucket': bucket,
+                'trend': topic_trends.get(r['topic'], [0]*window_days)
+            })
+
+        return jsonify({
+            'windowDays': window_days,
+            'totals': { 'questions': total_q, 'topics': len(topics) },
+            'topics': topics,
+            'days': [ d.isoformat() for d in day_list ]
+        })
+    except Exception as e:
+        app.logger.error(f"Progress summary error: {e}", exc_info=True)
+        return jsonify({'error': 'Failed to compute progress summary'}), 500
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(debug=False, host='0.0.0.0', port=port)

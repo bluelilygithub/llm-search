@@ -909,7 +909,7 @@
         } catch (e) {
             console.warn('Failed to render visuals', e);
         }
-
+        
         container.appendChild(messageDiv);
         this.scrollToBottom();
         
@@ -2121,8 +2121,8 @@
         recognition.interimResults = true; // capture early audio
         recognition.maxAlternatives = 1;
         recognition.continuous = false;
-
-        const voiceBtn = document.getElementById('voice-btn');
+            
+            const voiceBtn = document.getElementById('voice-btn');
         if (voiceBtn) voiceBtn.classList.add('recording');
 
         // retry once on no-speech
@@ -2141,8 +2141,8 @@
             const transcript = event.results[0][0].transcript;
             const messageInput = document.getElementById('message-input');
             if (messageInput) {
-                messageInput.value = transcript;
-                messageInput.focus();
+            messageInput.value = transcript;
+            messageInput.focus();
             }
         };
 
@@ -4042,20 +4042,20 @@ window.togglePasswordVisibility = function(inputId) {
 window.updateWelcomeMessages = function(displayName) {
     try {
         // Replace exact header text safely (no :contains in selectors)
-        document.querySelectorAll('h2').forEach(header => {
+    document.querySelectorAll('h2').forEach(header => {
             const text = (header.textContent || '').trim();
             if (text === 'Welcome to Your Knowledge Base' || text.startsWith('Welcome to ') && text.endsWith("'s Knowledge Base")) {
-                header.textContent = `Welcome to ${displayName}'s Knowledge Base`;
-            }
-        });
-        // Update empty state descriptions
-        document.querySelectorAll('.empty-state-description').forEach(desc => {
+            header.textContent = `Welcome to ${displayName}'s Knowledge Base`;
+        }
+    });
+    // Update empty state descriptions
+    document.querySelectorAll('.empty-state-description').forEach(desc => {
             const t = desc.textContent || '';
             if (t.includes('Start a conversation')) {
-                desc.textContent = `Hi ${displayName}! Start a conversation or search your knowledge base.`;
-            }
-        });
-        window.userDisplayName = displayName;
+            desc.textContent = `Hi ${displayName}! Start a conversation or search your knowledge base.`;
+        }
+    });
+    window.userDisplayName = displayName;
     } catch (e) {
         console.warn('updateWelcomeMessages failed', e);
     }
@@ -4889,6 +4889,66 @@ if (typeof window !== 'undefined') {
   window.KnowledgeBaseApp = window.KnowledgeBaseApp || window.KnowledgeBaseApp;
 }
 window.app = window.app || {};
+window.app.showProgressView = async function() {
+    try {
+        const contentArea = document.getElementById('content-area');
+        if (!contentArea) return;
+        contentArea.innerHTML = `
+            <div class="main-view">
+                <div class="view-header">
+                    <h2><i class="fas fa-chart-line"></i> Progress</h2>
+                    <div class="window-selector">
+                        <select id="progress-window">
+                            <option value="7d">Last 7 days</option>
+                            <option value="14d">Last 14 days</option>
+                            <option value="30d">Last 30 days</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="progress-summary" class="progress-summary" style="margin:8px 0; color:#666; font-size:14px;">Loading…</div>
+                <div class="progress-grid" id="progress-grid"></div>
+                <div style="margin-top:16px;">
+                    <canvas id="progress-chart" height="140"></canvas>
+                </div>
+            </div>
+        `;
+        const sel = document.getElementById('progress-window');
+        const load = async () => {
+            const win = sel.value;
+            const res = await fetch(`/api/progress/summary?window=${encodeURIComponent(win)}`);
+            const data = await res.json();
+            if (!res.ok) { document.getElementById('progress-summary').textContent = data.error || 'Failed to load'; return; }
+            document.getElementById('progress-summary').textContent = `${data.totals.questions} questions across ${data.totals.topics} topics in last ${data.windowDays} days`;
+            // Render topic cards
+            const grid = document.getElementById('progress-grid');
+            grid.innerHTML = (data.topics || []).map(t => {
+                const color = t.bucket === 'Strong' ? '#2ecc71' : (t.bucket === 'Stable' ? '#f1c40f' : '#e74c3c');
+                return `
+                    <div class="topic-card" style="border:1px solid #eee; border-left:4px solid ${color}; border-radius:8px; padding:10px; margin:6px 0; background:#fff;">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div style="font-weight:600;">${t.topic}</div>
+                            <div style="font-size:12px; color:#888;">${t.bucket} · Score ${t.score}</div>
+                        </div>
+                        <div style="font-size:13px; color:#666; margin-top:4px;">Questions: ${t.questions} · Signals: +${t.pos_signals} / −${t.neg_signals}</div>
+                    </div>`;
+            }).join('');
+            // Chart of questions per topic
+            try {
+                const ctx = document.getElementById('progress-chart');
+                if (window._progressChart) { window._progressChart.destroy(); }
+                const labels = (data.topics || []).map(t => t.topic);
+                const values = (data.topics || []).map(t => t.questions);
+                window._progressChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: { labels, datasets: [{ label: 'Questions', data: values, backgroundColor: '#4A90E2' }] },
+                    options: { responsive: true, plugins: { legend: { display: false } }, scales: { x: { ticks: { autoSkip: false } }, y: { beginAtZero: true } } }
+                });
+            } catch (e) { console.warn('Chart render failed', e); }
+        };
+        sel.onchange = load;
+        await load();
+    } catch (e) { console.error('Progress view error', e); }
+};
 window.app.requestIllustration = async function(buttonEl){
   try {
     buttonEl.disabled = true;
@@ -5182,7 +5242,7 @@ window.showUsersTabIfAdmin = async function() {
                 banner.style.display = 'block';
             } catch (e) { console.warn('Demo banner render failed', e); }
         }
-
+        
         // Show/hide Users tab in settings
         const usersTab = document.getElementById('users-nav-btn');
         if (usersTab) {
