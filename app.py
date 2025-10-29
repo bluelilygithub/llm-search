@@ -6376,13 +6376,27 @@ def generate_quiz(project_id):
         level = getattr(project, 'math_level', 'Year 10') or 'Year 10'
         difficulty = getattr(project, 'difficulty_preference', 'Intermediate') or 'Intermediate'
         learning = getattr(project, 'learning_style', 'step by step') or 'step by step'
+        # Recent question stems to avoid repeating
+        recent_rows = db.session.execute(text(
+            """
+            SELECT qa.question_text
+            FROM quiz_answers qa
+            JOIN quiz_attempts a ON a.id = qa.attempt_id
+            WHERE a.user_id = :uid AND a.project_id = :pid
+            ORDER BY a.created_at DESC
+            LIMIT 50
+            """
+        ), { 'uid': str(session.get('user_id')), 'pid': str(project_id) }).mappings().all()
+        recent_stems = [ (r['question_text'] or '').strip() for r in recent_rows if (r.get('question_text') or '').strip() ]
 
         system_prompt = (
             f"You are creating a short quiz for a {level} student in {subject}. "
             f"Difficulty: {difficulty}. Learning style: {learning}. "
             f"Return exactly 5 multiple-choice questions as strict JSON only, no prose. Each item must be: "
             f"{{'id': n, 'question': '...', 'type':'multiple_choice', 'options':['A','B','C','D'], 'correct_answer':'B', 'explanation':'...', 'topic':'<slug>'}}. "
-            f"Topics to prioritize: {', '.join(topic_list[:3])}. Keep language simple; answers must be unambiguous."
+            f"Topics to prioritize: {', '.join(topic_list[:3])}. Keep language simple; answers must be unambiguous. "
+            + (f"Avoid reusing these question stems or near-duplicates: {recent_stems[:10]}. " if recent_stems else "")
+            + "Vary wording and scenarios so that successive quizzes are not identical."
         )
         # Ask LLM for JSON
         messages = [
@@ -6392,7 +6406,7 @@ def generate_quiz(project_id):
         model_identifier = get_model_identifier('gpt-4o') if os.getenv('OPENAI_API_KEY') else get_model_identifier('claude-3.5-sonnet-20241022')
         ai_response, _, _ = llm_service.get_response(model_identifier, messages)
 
-        import json
+        import json, random
         # Extract JSON from response (tolerant of extra text)
         try:
             start = ai_response.find('[')
@@ -6405,6 +6419,14 @@ def generate_quiz(project_id):
         # Validate items and build a final set of 5
         validated = []
         used_questions = set()
+        # Seed with recent stems to avoid repeats
+        for s in recent_stems:
+            used_questions.add(s)
+        # Randomize incoming items to encourage variety
+        try:
+            random.shuffle(items)
+        except Exception:
+            pass
         for i, it in enumerate(items[:5]):
             q = (it.get('question') or '').strip()
             opts = it.get('options') or []
@@ -6473,6 +6495,41 @@ def generate_quiz(project_id):
                         'correct_answer': 'Median',
                         'explanation': 'Median is more robust to right-skewed outliers.',
                         'topic': 'distribution_shape'
+                    },
+                    {
+                        'question': 'Which of the following best reduces sampling bias?',
+                        'options': ['Voluntary response','Convenience sampling','Simple random sample','Using a large sample'],
+                        'correct_answer': 'Simple random sample',
+                        'explanation': 'Random selection reduces bias more than convenience or voluntary response.',
+                        'topic': 'bias'
+                    },
+                    {
+                        'question': 'Which statistic changes most when an outlier is added?',
+                        'options': ['Median','Interquartile range','Mean','Mode'],
+                        'correct_answer': 'Mean',
+                        'explanation': 'Mean is sensitive to extreme values; median and IQR are more robust.',
+                        'topic': 'outliers'
+                    },
+                    {
+                        'question': 'A box plot shows a long whisker on the right. The distribution is…',
+                        'options': ['Left-skewed','Right-skewed','Symmetric','Bimodal'],
+                        'correct_answer': 'Right-skewed',
+                        'explanation': 'A long right tail indicates right skew.',
+                        'topic': 'box_plots'
+                    },
+                    {
+                        'question': 'Correlation close to 0 implies…',
+                        'options': ['No relationship','No linear relationship','Strong negative relationship','Strong positive relationship'],
+                        'correct_answer': 'No linear relationship',
+                        'explanation': 'There may still be a non-linear relationship even if correlation is near 0.',
+                        'topic': 'correlation'
+                    },
+                    {
+                        'question': 'In an experiment, the group that does not receive the treatment is called…',
+                        'options': ['Experimental group','Control group','Placebo group','Random group'],
+                        'correct_answer': 'Control group',
+                        'explanation': 'Control group provides a baseline for comparison.',
+                        'topic': 'experiments'
                     }
                 ]
             else:
@@ -6486,6 +6543,10 @@ def generate_quiz(project_id):
                     }
                 ]
             # Avoid duplicates by question stem
+            try:
+                random.shuffle(base)
+            except Exception:
+                pass
             return [b for b in base if b['question'] not in used_questions]
 
         while len(validated) < 5:
