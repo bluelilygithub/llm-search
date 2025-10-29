@@ -4932,13 +4932,14 @@ window.app.showProgressView = async function() {
                                 <button class="info-btn" style="border:none;background:transparent;color:#888;cursor:pointer;" onmouseenter="showInfoTooltip(this)" onmouseleave="hideInfoTooltip(this)">
                                   <i class="fas fa-info-circle"></i>
                                   <div class="info-tooltip" style="display:none; position:fixed; z-index:10000; background:#fff; border:1px solid #e5e7eb; border-radius:8px; padding:10px; box-shadow:0 6px 24px rgba(0,0,0,0.12); max-width:280px;">
-                                    <div class="tooltip-header" style="font-weight:600; margin-bottom:6px;">How this score works</div>
-                                    <div class="tooltip-content" style="font-size:12px; color:#555; line-height:1.45;">
-                                      <div><strong>Base 50</strong> then <strong>+6</strong> per positive signal and <strong>-8</strong> per negative signal.</div>
-                                      <div style="margin-top:6px;"><strong>Positive</strong>: “try a similar problem”, “got it”, “i can do it”.</div>
-                                      <div><strong>Negative</strong>: “simplify/explain again/shorter/tl;dr/step by step/show steps”, assistant self‑corrections.</div>
-                                      <div style="margin-top:6px;">Buckets: Strong ≥70, Stable 40–69, Improve &lt;40.</div>
-                                      <div style="margin-top:6px;">This topic: +${t.pos_signals} / −${t.neg_signals}.</div>
+                                    <div class="tooltip-header" style="font-weight:600; margin-bottom:6px;">How Your Topic Score Works</div>
+                                    <div class="tooltip-content" style="font-size:12px; color:#555; line-height:1.55;">
+                                      <div>This score estimates your confidence in a topic based on your interactions.</div>
+                                      <div style="margin-top:6px;">You start at <strong>50</strong> (Stable).</div>
+                                      <div style="margin-top:6px;">Your score <strong>increases (+6)</strong> when you show confidence (e.g., “got it”, “try a similar problem”).</div>
+                                      <div>Your score <strong>decreases (−8)</strong> when you ask for more help (e.g., “explain again”, “show steps”).</div>
+                                      <div style="margin-top:6px;"><strong>Progress Levels</strong>: Strong ≥70 · Stable 40–69 · Improve &lt;40</div>
+                                      <div style="margin-top:6px;">This topic’s signals: <strong>+${t.pos_signals} / −${t.neg_signals}</strong>.</div>
                                     </div>
                                   </div>
                                 </button>
