@@ -6294,6 +6294,23 @@ def progress_summary():
                         }
         except Exception:
             pass
+        # Preload quiz signal map for mastery breakdown
+        quiz_signal_map = {}
+        try:
+            uid = session.get('user_id')
+            user = User.query.filter(User.id == uid).first() if uid else None
+            if user and isinstance(user.preferences, dict):
+                qsig_all = (user.preferences.get('quiz_signals') or {})
+                for proj_key, mp in qsig_all.items():
+                    if isinstance(mp, dict):
+                        for topic_key, vals in mp.items():
+                            qv = quiz_signal_map.get(topic_key) or {'pos':0,'neg':0}
+                            qv['pos'] += int(vals.get('pos',0))
+                            qv['neg'] += int(vals.get('neg',0))
+                            quiz_signal_map[topic_key] = qv
+        except Exception:
+            pass
+
         for r in rows:
             q = int(r['questions'] or 0)
             total_q += q
@@ -6323,6 +6340,11 @@ def progress_summary():
                 pass
             score = max(0, min(100, 50 + pos*6 - neg*8))
             bucket = 'Strong' if score >= 70 else ('Stable' if score >= 40 else 'Improve')
+            # Quiz mastery fields
+            qp = int((quiz_signal_map.get(r['topic'].lower()) or {}).get('pos', 0))
+            qn = int((quiz_signal_map.get(r['topic'].lower()) or {}).get('neg', 0))
+            qtot = qp + qn
+            mastery = round((qp / qtot)*100) if qtot > 0 else None
             topics.append({
                 'topic': r['topic'],
                 'questions': q,
@@ -6330,7 +6352,10 @@ def progress_summary():
                 'pos_signals': pos,
                 'score': score,
                 'bucket': bucket,
-                'trend': topic_trends.get(r['topic'], [0]*window_days)
+                'trend': topic_trends.get(r['topic'], [0]*window_days),
+                'quiz_pos': qp,
+                'quiz_neg': qn,
+                'quiz_mastery': mastery
             })
 
         return jsonify({

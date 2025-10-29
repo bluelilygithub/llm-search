@@ -4947,6 +4947,7 @@ window.app.showProgressView = async function() {
             const grid = document.getElementById('progress-grid');
             grid.innerHTML = (data.topics || []).map(t => {
                 const color = t.bucket === 'Strong' ? '#2ecc71' : (t.bucket === 'Stable' ? '#f1c40f' : '#e74c3c');
+                const qm = (typeof t.quiz_mastery === 'number') ? ` · Quiz: ${t.quiz_pos}/${t.quiz_pos + t.quiz_neg} (${t.quiz_mastery}%)` : '';
                 return `
                     <div class="topic-card" style="border:1px solid #eee; border-left:4px solid ${color}; border-radius:8px; padding:10px; margin:6px 0; background:#fff;">
                         <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -4969,7 +4970,7 @@ window.app.showProgressView = async function() {
                                 </button>
                             </div>
                         </div>
-                        <div style="font-size:13px; color:#666; margin-top:4px;">Questions: ${t.questions} · Signals: +${t.pos_signals} / −${t.neg_signals}</div>
+                        <div style="font-size:13px; color:#666; margin-top:4px;">Questions: ${t.questions} · Signals: +${t.pos_signals} / −${t.neg_signals}${qm}</div>
                     </div>`;
             }).join('');
             // Chart of questions per topic
@@ -5033,7 +5034,12 @@ window.app.openQuizModal = async function(projectId){
                 <div>${item.options.map((o,i)=>`<label style='display:block;margin:6px 0;'><input type='radio' name='quiz-opt' value='${this.escapeHtml(o)}'/> ${this.escapeHtml(o)}</label>`).join('')}</div>
             `;
             act.innerHTML = `<button class='view-action-btn' id='submit-ans'>Submit Answer</button>`;
+            let answered = false;
             document.getElementById('submit-ans').onclick = async () =>{
+                if (answered) return;
+                answered = true;
+                const btn = document.getElementById('submit-ans');
+                if (btn) { btn.disabled = true; btn.innerHTML = 'Submitting…'; }
                 const chosen = (qEl.querySelector('input[name=quiz-opt]:checked')||{}).value;
                 if(!chosen){ alert('Please select an option.'); return; }
                 const isCorrect = String(chosen) === String(item.correct_answer);
