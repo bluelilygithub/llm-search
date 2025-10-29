@@ -4905,7 +4905,8 @@ window.app.showProgressView = async function() {
                         </select>
                     </div>
                 </div>
-                <div id="progress-summary" class="progress-summary" style="margin:8px 0; color:#666; font-size:14px;">Loading…</div>
+                <div id="progress-summary" class="progress-summary" style="margin:4px 0; color:#666; font-size:14px;">Loading…</div>
+                <div id="quiz-summary" style="margin:6px 0 12px 0; font-size:13px; color:#444;"></div>
                 <div class="progress-grid" id="progress-grid"></div>
                 <div style="margin-top:16px;">
                     <canvas id="progress-chart" height="140"></canvas>
@@ -4920,11 +4921,24 @@ window.app.showProgressView = async function() {
             if (!res.ok) { document.getElementById('progress-summary').textContent = data.error || 'Failed to load'; return; }
             const summaryEl = document.getElementById('progress-summary');
             let summaryText = `${data.totals.questions} questions across ${data.totals.topics} topics in last ${data.windowDays} days`;
-            if (data.latestQuiz && typeof data.latestQuiz.score === 'number') {
-                const pct = Math.round(data.latestQuiz.score * 100);
-                summaryText += ` · Latest quiz: ${pct}% (${data.latestQuiz.correct}/${data.latestQuiz.total})`;
-            }
             summaryEl.textContent = summaryText;
+
+            // Quiz summary panel
+            const qs = document.getElementById('quiz-summary');
+            if (qs) {
+                const count = data.totals && typeof data.totals.quizzes === 'number' ? data.totals.quizzes : 0;
+                if (data.latestQuiz && typeof data.latestQuiz.score === 'number') {
+                    const pct = Math.round(data.latestQuiz.score * 100);
+                    const when = data.latestQuiz.at ? new Date(data.latestQuiz.at).toLocaleString() : '';
+                    qs.innerHTML = `<div style="padding:8px 10px; border:1px solid #e5e7eb; border-radius:8px; background:#fafafa;">
+                        <strong>Quizzes:</strong> ${count} · Latest: <strong>${pct}%</strong> (${data.latestQuiz.correct}/${data.latestQuiz.total})${when?` · ${when}`:''}
+                    </div>`;
+                } else {
+                    qs.innerHTML = `<div style="padding:8px 10px; border:1px dashed #e5e7eb; border-radius:8px; color:#666; background:#fcfcfc;">
+                        No quizzes yet. Take a quick 5‑question quiz from a project to see results here.
+                    </div>`;
+                }
+            }
             // Render topic cards
             const grid = document.getElementById('progress-grid');
             grid.innerHTML = (data.topics || []).map(t => {
