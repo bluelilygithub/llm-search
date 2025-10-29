@@ -5599,8 +5599,8 @@ window.showUsersTabIfAdmin = async function() {
         console.log('🔍 user_role:', data.user_role, 'user_type:', data.user_type);
         
         // Show Users tab and settings buttons if admin or super_admin
-        const isAdmin = data.authenticated && 
-                       (data.user_role === 'super_admin' || data.user_role === 'admin' || data.user_type === 'admin');
+        const roleLower = (data.user_role || '').toLowerCase();
+        const isAdmin = data.authenticated && (roleLower === 'super_admin' || roleLower === 'admin' || data.user_type === 'admin');
         
         console.log('🔍 isAdmin:', isAdmin);
         
