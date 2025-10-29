@@ -6270,6 +6270,30 @@ def progress_summary():
         # Compute score and bucket
         topics = []
         total_q = 0
+        latest_quiz = None
+        total_quizzes = 0
+        try:
+            uid = session.get('user_id')
+            user = User.query.filter(User.id == uid).first() if uid else None
+            if user and isinstance(user.preferences, dict):
+                quizzes = user.preferences.get('quizzes') or {}
+                total_quizzes = len(quizzes)
+                # Find most recent quiz across projects
+                best_at = ''
+                for pk, qz in quizzes.items():
+                    at = qz.get('at') or ''
+                    if at and at > best_at:
+                        best_at = at
+                        latest_quiz = {
+                            'project_id': pk,
+                            'at': at,
+                            'score': qz.get('score'),
+                            'correct': qz.get('correct'),
+                            'total': qz.get('total'),
+                            'time_taken': qz.get('time_taken')
+                        }
+        except Exception:
+            pass
         for r in rows:
             q = int(r['questions'] or 0)
             total_q += q
@@ -6311,9 +6335,10 @@ def progress_summary():
 
         return jsonify({
             'windowDays': window_days,
-            'totals': { 'questions': total_q, 'topics': len(topics) },
+            'totals': { 'questions': total_q, 'topics': len(topics), 'quizzes': total_quizzes },
             'topics': topics,
-            'days': [ d.isoformat() for d in day_list ]
+            'days': [ d.isoformat() for d in day_list ],
+            'latestQuiz': latest_quiz
         })
     except Exception as e:
         app.logger.error(f"Progress summary error: {e}", exc_info=True)

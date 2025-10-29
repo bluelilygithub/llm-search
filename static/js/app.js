@@ -4918,7 +4918,13 @@ window.app.showProgressView = async function() {
             const res = await fetch(`/api/progress/summary?window=${encodeURIComponent(win)}`);
             const data = await res.json();
             if (!res.ok) { document.getElementById('progress-summary').textContent = data.error || 'Failed to load'; return; }
-            document.getElementById('progress-summary').textContent = `${data.totals.questions} questions across ${data.totals.topics} topics in last ${data.windowDays} days`;
+            const summaryEl = document.getElementById('progress-summary');
+            let summaryText = `${data.totals.questions} questions across ${data.totals.topics} topics in last ${data.windowDays} days`;
+            if (data.latestQuiz && typeof data.latestQuiz.score === 'number') {
+                const pct = Math.round(data.latestQuiz.score * 100);
+                summaryText += ` · Latest quiz: ${pct}% (${data.latestQuiz.correct}/${data.latestQuiz.total})`;
+            }
+            summaryEl.textContent = summaryText;
             // Render topic cards
             const grid = document.getElementById('progress-grid');
             grid.innerHTML = (data.topics || []).map(t => {
