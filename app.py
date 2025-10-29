@@ -6503,26 +6503,62 @@ def usage_by_model():
             days = int(window_arg.replace('d','')) if window_arg != 'all' else None
         except Exception:
             days = 30
-
-        where = "c.user_id = :uid"
         params = { 'uid': str(uid) }
         if days is not None:
-            where += " AND l.created_at >= now() - (:days || ' days')::interval"
             params['days'] = days
 
-        sql = text(f"""
-            SELECT l.model,
-                   COALESCE(SUM(l.input_tokens), 0)                   AS in_tokens,
-                   COALESCE(SUM(l.output_tokens), 0)                  AS out_tokens,
-                   COALESCE(SUM(l.total_tokens), SUM(COALESCE(l.input_tokens,0)+COALESCE(l.output_tokens,0)), 0) AS tokens,
-                   ROUND(COALESCE(SUM(l.cost_usd), 0)::numeric, 6)    AS cost_usd
-            FROM llm_usage_log l
-            LEFT JOIN conversations c ON c.id = l.conversation_id
-            WHERE ({where}) OR (l.user_id = :uid)
-            GROUP BY l.model
-            ORDER BY tokens DESC
-        """)
-        rows = db.session.execute(sql, params).mappings().all()
+        try:
+            # Preferred path: normalized union of new and legacy tables
+            sql = text("""
+                WITH u AS (
+                  SELECT l.model,
+                         COALESCE(l.input_tokens,0) AS in_tokens,
+                         COALESCE(l.output_tokens,0) AS out_tokens,
+                         COALESCE(l.total_tokens, COALESCE(l.input_tokens,0)+COALESCE(l.output_tokens,0)) AS tokens,
+                         COALESCE(l.cost_usd,0) AS cost_usd,
+                         l.created_at AS created_at,
+                         l.user_id,
+                         l.conversation_id
+                  FROM llm_usage_log l
+                  UNION ALL
+                  SELECT l.model,
+                         0 AS in_tokens,
+                         0 AS out_tokens,
+                         COALESCE(l.tokens,0) AS tokens,
+                         COALESCE(l.estimated_cost,0) AS cost_usd,
+                         l.timestamp AS created_at,
+                         NULL::uuid AS user_id,
+                         l.conversation_id
+                  FROM llm_usage_logs l
+                )
+                SELECT u.model,
+                       SUM(u.in_tokens)  AS in_tokens,
+                       SUM(u.out_tokens) AS out_tokens,
+                       SUM(u.tokens)     AS tokens,
+                       ROUND(SUM(u.cost_usd)::numeric, 6) AS cost_usd
+                FROM u
+                LEFT JOIN conversations c ON c.id = u.conversation_id
+                WHERE (c.user_id = :uid OR u.user_id = :uid)
+                  {time_filter}
+                GROUP BY u.model
+                ORDER BY tokens DESC
+            """.replace('{time_filter}', "AND u.created_at >= now() - (:days || ' days')::interval" if days is not None else ""))
+            rows = db.session.execute(sql, params).mappings().all()
+        except Exception:
+            # Fallback: legacy table only
+            legacy_sql = text("""
+                SELECT l.model,
+                       0 AS in_tokens,
+                       0 AS out_tokens,
+                       SUM(COALESCE(l.tokens,0)) AS tokens,
+                       ROUND(SUM(COALESCE(l.estimated_cost,0))::numeric, 6) AS cost_usd
+                FROM llm_usage_logs l
+                LEFT JOIN conversations c ON c.id = l.conversation_id
+                WHERE c.user_id = :uid {time_filter}
+                GROUP BY l.model
+                ORDER BY tokens DESC
+            """.replace('{time_filter}', "AND l.timestamp >= now() - (:days || ' days')::interval" if days is not None else ""))
+            rows = db.session.execute(legacy_sql, params).mappings().all()
         return jsonify({ 'window': window_arg, 'models': list(rows) })
     except Exception as e:
         app.logger.error(f"usage_by_model error: {e}", exc_info=True)
@@ -6542,33 +6578,85 @@ def admin_usage_by_user():
             days = int(window_arg.replace('d','')) if window_arg != 'all' else None
         except Exception:
             days = 30
-        where = "1=1"
         params = { 'limit': limit }
         if days is not None:
-            where += " AND l.created_at >= now() - (:days || ' days')::interval"
             params['days'] = days
-        users_sql = text(f"""
-            SELECT l.user_id, COALESCE(u.username, 'unknown') AS username,
-                   COALESCE(SUM(l.total_tokens), SUM(COALESCE(l.input_tokens,0)+COALESCE(l.output_tokens,0)), 0) AS tokens,
-                   ROUND(COALESCE(SUM(l.cost_usd), 0)::numeric, 6) AS cost_usd
-            FROM llm_usage_log l
-            LEFT JOIN users u ON u.id = l.user_id
-            WHERE {where}
-            GROUP BY l.user_id, u.username
-            ORDER BY tokens DESC
-            LIMIT :limit
-        """)
-        rows = db.session.execute(users_sql, params).mappings().all()
-        breakdown_sql = text(f"""
-            SELECT l.user_id, COALESCE(u.username, 'unknown') AS username, l.model,
-                   COALESCE(SUM(l.total_tokens), SUM(COALESCE(l.input_tokens,0)+COALESCE(l.output_tokens,0)), 0) AS tokens,
-                   ROUND(COALESCE(SUM(l.cost_usd), 0)::numeric, 6) AS cost_usd
-            FROM llm_usage_log l LEFT JOIN users u ON u.id = l.user_id
-            WHERE {where}
-            GROUP BY l.user_id, u.username, l.model
-            ORDER BY tokens DESC
-        """)
-        breakdown = db.session.execute(breakdown_sql, params).mappings().all()
+        try:
+            admin_sql = text("""
+                WITH u AS (
+                  SELECT l.user_id, l.model,
+                         COALESCE(l.total_tokens, COALESCE(l.input_tokens,0)+COALESCE(l.output_tokens,0)) AS tokens,
+                         COALESCE(l.cost_usd,0) AS cost_usd,
+                         l.created_at AS created_at
+                  FROM llm_usage_log l
+                  UNION ALL
+                  SELECT c.user_id, l.model,
+                         COALESCE(l.tokens,0) AS tokens,
+                         COALESCE(l.estimated_cost,0) AS cost_usd,
+                         l.timestamp AS created_at
+                  FROM llm_usage_logs l LEFT JOIN conversations c ON c.id = l.conversation_id
+                )
+                SELECT u.user_id, COALESCE(u2.username, 'unknown') AS username,
+                       SUM(u.tokens) AS tokens,
+                       ROUND(SUM(u.cost_usd)::numeric, 6) AS cost_usd
+                FROM u LEFT JOIN users u2 ON u2.id = u.user_id
+                WHERE 1=1 {time_filter}
+                GROUP BY u.user_id, u2.username
+                ORDER BY tokens DESC
+                LIMIT :limit
+            """.replace('{time_filter}', "AND u.created_at >= now() - (:days || ' days')::interval" if days is not None else ""))
+            rows = db.session.execute(admin_sql, params).mappings().all()
+
+            bsql = text("""
+                WITH u AS (
+                  SELECT l.user_id, l.model,
+                         COALESCE(l.total_tokens, COALESCE(l.input_tokens,0)+COALESCE(l.output_tokens,0)) AS tokens,
+                         COALESCE(l.cost_usd,0) AS cost_usd,
+                         l.created_at AS created_at
+                  FROM llm_usage_log l
+                  UNION ALL
+                  SELECT c.user_id, l.model,
+                         COALESCE(l.tokens,0) AS tokens,
+                         COALESCE(l.estimated_cost,0) AS cost_usd,
+                         l.timestamp AS created_at
+                  FROM llm_usage_logs l LEFT JOIN conversations c ON c.id = l.conversation_id
+                )
+                SELECT u.user_id, COALESCE(u2.username, 'unknown') AS username, u.model,
+                       SUM(u.tokens) AS tokens,
+                       ROUND(SUM(u.cost_usd)::numeric, 6) AS cost_usd
+                FROM u LEFT JOIN users u2 ON u2.id = u.user_id
+                WHERE 1=1 {time_filter}
+                GROUP BY u.user_id, u2.username, u.model
+                ORDER BY tokens DESC
+            """.replace('{time_filter}', "AND u.created_at >= now() - (:days || ' days')::interval" if days is not None else ""))
+            breakdown = db.session.execute(bsql, params).mappings().all()
+        except Exception:
+            # Fallback legacy-only
+            admin_sql_legacy = text("""
+                SELECT c.user_id, COALESCE(u.username, 'unknown') AS username,
+                       SUM(COALESCE(l.tokens,0)) AS tokens,
+                       ROUND(SUM(COALESCE(l.estimated_cost,0))::numeric, 6) AS cost_usd
+                FROM llm_usage_logs l
+                LEFT JOIN conversations c ON c.id = l.conversation_id
+                LEFT JOIN users u ON u.id = c.user_id
+                WHERE 1=1 {time_filter}
+                GROUP BY c.user_id, u.username
+                ORDER BY tokens DESC
+                LIMIT :limit
+            """.replace('{time_filter}', "AND l.timestamp >= now() - (:days || ' days')::interval" if days is not None else ""))
+            rows = db.session.execute(admin_sql_legacy, params).mappings().all()
+            breakdown_legacy = text("""
+                SELECT c.user_id, COALESCE(u.username, 'unknown') AS username, l.model,
+                       SUM(COALESCE(l.tokens,0)) AS tokens,
+                       ROUND(SUM(COALESCE(l.estimated_cost,0))::numeric, 6) AS cost_usd
+                FROM llm_usage_logs l
+                LEFT JOIN conversations c ON c.id = l.conversation_id
+                LEFT JOIN users u ON u.id = c.user_id
+                WHERE 1=1 {time_filter}
+                GROUP BY c.user_id, u.username, l.model
+                ORDER BY tokens DESC
+            """.replace('{time_filter}', "AND l.timestamp >= now() - (:days || ' days')::interval" if days is not None else ""))
+            breakdown = db.session.execute(breakdown_legacy, params).mappings().all()
         return jsonify({ 'window': window_arg, 'users': list(rows), 'breakdown': list(breakdown) })
     except Exception as e:
         app.logger.error(f"admin_usage_by_user error: {e}", exc_info=True)
