@@ -6309,13 +6309,20 @@ def progress_summary():
             total_q += q
             neg = int(r['neg_signals'] or 0)
             pos = int(r['pos_signals'] or 0)
-            # Score currently reflects conversation signals only; quiz mastery shown separately
-            score = max(0, min(100, 50 + pos*6 - neg*8))
-            bucket = 'Strong' if score >= 70 else ('Stable' if score >= 40 else 'Improve')
             # Quiz mastery fields
             qp = int((quiz_signal_map.get(r['topic'].lower()) or {}).get('pos', 0))
             qn = int((quiz_signal_map.get(r['topic'].lower()) or {}).get('neg', 0))
             qtot = qp + qn
+            # Blend quiz signals for math topics
+            tname = (r['topic'] or '').lower()
+            math_keys = ['algebra','geometry','trig','prob','stat','surd','indice','measure','quadratic','straight','line','simultaneous','calculus']
+            is_math_topic = any(k in tname for k in math_keys) and tname != 'general'
+            if is_math_topic:
+                pos += qp
+                neg += qn
+            # Compute score after blending
+            score = max(0, min(100, 50 + pos*6 - neg*8))
+            bucket = 'Strong' if score >= 70 else ('Stable' if score >= 40 else 'Improve')
             mastery = round((qp / qtot)*100) if qtot > 0 else None
             topics.append({
                 'topic': r['topic'],

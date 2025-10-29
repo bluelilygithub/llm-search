@@ -4964,6 +4964,7 @@ window.app.showProgressView = async function() {
                                       <div style="margin-top:6px;">You start at <strong>50</strong> (Stable).</div>
                                       <div style="margin-top:6px;">Your score <strong>increases (+6)</strong> when you show confidence (e.g., “got it”, “try a similar problem”).</div>
                                       <div>Your score <strong>decreases (−8)</strong> when you ask for more help (e.g., “explain again”, “show steps”).</div>
+                                      <div style="margin-top:6px;">For <strong>math topics</strong>, quiz answers are also included: correct adds to +, incorrect adds to −.</div>
                                       <div style="margin-top:6px;"><strong>Progress Levels</strong>: Strong ≥70 · Stable 40–69 · Improve &lt;40</div>
                                       <div style="margin-top:6px;">This topic’s signals: <strong>+${t.pos_signals} / −${t.neg_signals}</strong>.</div>
                                     </div>
