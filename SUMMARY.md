@@ -22,6 +22,7 @@
   - Beginner‑first methods (y=mx+b, Keep‑Flip‑Change)
   - Core follow‑ups highlighted (explain younger, practical example, try similar) + “Illustrate this…” chart button
 - **On‑Demand Visuals**: POST `/api/visualize` returns a base64 PNG (e.g., a pie chart for 94% smartphone ownership).
+- **Project‑based Quizzes**: Year/subject‑aware 5‑question quizzes; durable results and progress summary.
 - **Demo Guest Mode**: `/auth/guest-login` creates a TTL sandbox; banner shows expiry and restrictions; optional purge on logout.
 - **Voice UX**: Robust STT/ TTS, with one auto‑retry on “no‑speech”.
 - **Organization & Search**: Projects, tags, powerful conversation search (with semantic toggle).
@@ -42,6 +43,9 @@
    - `MathVisualizer` (matplotlib) generates explanatory diagrams/charts; endpoint returns base64 for inline display.
 6. **Demo Guest Lifecycle**
    - Guest login gated by DEMO_MODE; TTL via preferences.expires_at; optional purge on logout with DEMO_PURGE_ON_LOGOUT=true.
+7. **Assessment & Progress**
+   - Quizzes generated from project subject/year (NSW topic hints). Results saved to `quiz_attempts`/`quiz_answers`.
+   - Progress shows latest quiz, per‑topic quiz mastery, history and details; math topics blend quiz correctness into signals.
 
 ## Technical skills, discipline, and compute
 - **Stack**: Flask, SQLAlchemy, PostgreSQL, JS/CSS (no SPA), matplotlib, OpenAI/Anthropic/Gemini/HF APIs.
@@ -50,6 +54,7 @@
 - **Operational Quality**: Rate limiting, structured logging, error capture, usage analytics, and stable fallbacks.
 - **Prompt Engineering**: Layered system prompts (user profile, project context, math guardrails) with strict formatting rules.
 - **Data Discipline**: JSONB preferences, conservative adaptive updates (EMA, caps, opt‑in, reset), source transparency for RAG.
+- **Assessment Schema**: Normalized quiz attempts/answers tables; history and detail endpoints for analytics.
 - **Deployment**: Procfile (Gunicorn), Railway/Heroku‑ready, environment‑based config.
 
 ## Why teams adopt it
@@ -60,7 +65,8 @@
 1. Create a project and upload a couple of PDFs.
 2. Ask a domain question; observe cited sources.
 3. Ask a math/statistics question; click “Illustrate this…” to see inline charts.
-4. Toggle adaptive profile; ask for “shorter” or “more detail” and see tone adjust over time.
-5. Try the demo guest flow; observe the banner and restricted actions.
+4. Click “Quiz Me” on a project; complete 5 MCQs; view Progress → Quiz History and details.
+5. Toggle adaptive profile; ask for “shorter” or “more detail” and see tone adjust over time.
+6. Try the demo guest flow; observe the banner and restricted actions.
 
 

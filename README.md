@@ -16,6 +16,7 @@ Curam AI Knowledge Base is a multi-LLM chat interface that allows users to:
  - **Project-aware Responses**: Chats automatically include concise project context when a project exists
  - **On‑demand Visuals**: Generate explanatory charts/diagrams for math/statistics answers with one click
  - **Demo Guest Mode**: One‑click “Try the demo” creates a temporary sandbox with clear bannered restrictions
+ - **Project‑based Quizzes**: Generate 5 MCQs per project context; subject/year‑aware; stored results and progress summary
 
 ## 🏗️ Infrastructure & Technology Stack
 
@@ -125,6 +126,15 @@ Curam AI Knowledge Base is a multi-LLM chat interface that allows users to:
 - **Core Math Actions (highlighted)**: Three always‑present follow‑ups are visually accented, plus “Illustrate this response with a explanatory graphic or chart” to add a chart inline
 - **Output Style Preference**: Per‑user toggle between plain‑text (ASCII a/b, x^2, sqrt(x)) and rich Markdown/LaTeX output
 - **Images/OCR First**: For uploaded images, the assistant transcribes math to plain text before solving; requests one‑line confirmation when unclear
+ - **Curriculum Scoping**: Quizzes constrained to NSW topic sets (e.g., Year 10 Core); link surfaced in UI
+
+### 📝 Quizzes & Progress Tracking
+- **Subject/Year‑aware Generation**: Quiz prompt respects `project.math_subject` and `math_level` (or user year) with NSW topic hints
+- **Anti‑repeat Logic**: Avoids recent stems, shuffles items, and uses expanded subject fallback banks (e.g., Geometry) to guarantee 5 valid MCQs
+- **Durable Storage**: `quiz_attempts` and `quiz_answers` tables persist attempts and per‑question results
+- **Progress Dashboard**: Latest quiz summary, per‑topic quiz mastery, and now a quiz history list with attempt details
+- **Blended Math Signals**: For math topics, quiz correctness contributes to “Signals: + / −” and the topic score
+- **APIs**: `POST /projects/<id>/quiz/generate`, `POST /projects/<id>/quiz/submit`, `GET /api/progress/summary`, `GET /api/progress/quiz-history`, `GET /api/progress/quiz-attempt/<attempt_id>`
 
 ### 🧩 Adaptive Profile (v1)
 - **Guest Compatibility**: Adaptive runs only for authenticated users; demo guests are kept simple and capped
@@ -276,6 +286,10 @@ llm-search/
 - `POST /stability-edit-image` - Stability AI image editing
 - `POST /transcribe` - Google Speech-to-Text integration
  - `POST /api/visualize` - Generate an explanatory chart/diagram from the latest answer (returns base64 PNG)
+- `POST /projects/<project_id>/quiz/generate` - Subject/year‑aware quiz generation (5 MCQs)
+- `POST /projects/<project_id>/quiz/submit` - Persist attempt + answers; returns score
+- `GET /api/progress/quiz-history` - Attempt list + stats; filters by window
+- `GET /api/progress/quiz-attempt/<attempt_id>` - Full attempt detail
  - `POST /auth/logout` - CSRF‑exempt; when DEMO_PURGE_ON_LOGOUT=true and user is a demo guest, purge the user and sandbox on logout
 
 #### Search & Organization
@@ -310,6 +324,9 @@ llm-search/
 #### Analytics & Monitoring
 - **LLMUsageLog/LLMErrorLog**: Model usage and error tracking
 - **ContextUsageLog**: Context item usage tracking
+#### Assessment
+- **quiz_attempts**: user_id, project_id, score, correct, total_questions, time_taken_seconds, created_at
+- **quiz_answers**: attempt_id, question_number, topic, question_text, student_answer, correct_answer, is_correct, created_at
 
 ## 🚀 Recent Updates
 
@@ -366,6 +383,7 @@ We attempted to enhance the RAG system with the following features:
  - **Math Follow‑ups Styling**: Core math actions highlighted with a complementary color; dynamic suggestions remain neutral
  - **On‑demand Illustration**: One‑click button adds a chart/graphic below the assistant message
  - **Demo Banner & Restrictions**: Visible banner for demo guests (expiry, allowed vs. restricted actions), admin‑only UI hidden
+ - **Curriculum Sources Tooltip**: Adds NSW references (e.g., Class Mathematics Year 10 Core) in assistant message info
 
 ## 📄 License
 
