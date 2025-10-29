@@ -5019,6 +5019,86 @@ window.app.showProgressView = async function() {
     } catch (e) { console.error('Progress view error', e); }
 };
 
+window.app.showUsageView = async function() {
+    try {
+        const contentArea = document.getElementById('content-area');
+        if (!contentArea) return;
+        contentArea.innerHTML = `
+            <div class="main-view">
+                <div class="view-header">
+                    <h2><i class="fas fa-chart-bar"></i> Usage</h2>
+                    <div class="window-selector">
+                        <select id="usage-window">
+                            <option value="7d">Last 7 days</option>
+                            <option value="14d">Last 14 days</option>
+                            <option value="30d" selected>Last 30 days</option>
+                            <option value="all">All time</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="usage-summary" style="margin:4px 0; color:#666; font-size:14px;">Loading…</div>
+                <div style="display:flex; gap:16px; flex-wrap:wrap;">
+                    <div style="flex:1 1 420px; min-width:320px; background:#fff; border:1px solid #eee; border-radius:8px; padding:10px;">
+                        <canvas id="usage-chart" height="160"></canvas>
+                    </div>
+                    <div style="flex:1 1 420px; min-width:320px; background:#fff; border:1px solid #eee; border-radius:8px; padding:10px;">
+                        <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                            <thead>
+                                <tr style="text-align:left; border-bottom:1px solid #eee;">
+                                    <th style="padding:6px 4px;">Model</th>
+                                    <th style="padding:6px 4px;">Input</th>
+                                    <th style="padding:6px 4px;">Output</th>
+                                    <th style="padding:6px 4px;">Total</th>
+                                    <th style="padding:6px 4px;">Cost (USD)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usage-table"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>`;
+
+        const sel = document.getElementById('usage-window');
+        const load = async () => {
+            const win = sel.value;
+            const res = await fetch(`/api/usage/by-model?window=${encodeURIComponent(win)}`);
+            const data = await res.json().catch(()=>({}));
+            if (!res.ok) { document.getElementById('usage-summary').textContent = data.error || 'Failed to load'; return; }
+            const items = data.models || [];
+            const total = items.reduce((acc, x) => acc + (x.tokens || 0), 0);
+            const cost = items.reduce((acc, x) => acc + (Number(x.cost_usd) || 0), 0);
+            document.getElementById('usage-summary').textContent = `${items.length} models · ${total.toLocaleString()} tokens · $${cost.toFixed(4)}`;
+
+            // Table
+            const tbody = document.getElementById('usage-table');
+            tbody.innerHTML = items.map(m => `
+                <tr style="border-bottom:1px solid #f3f4f6;">
+                    <td style="padding:6px 4px;">${m.model}</td>
+                    <td style="padding:6px 4px;">${(m.in_tokens||0).toLocaleString()}</td>
+                    <td style="padding:6px 4px;">${(m.out_tokens||0).toLocaleString()}</td>
+                    <td style="padding:6px 4px; font-weight:600;">${(m.tokens||0).toLocaleString()}</td>
+                    <td style="padding:6px 4px;">$${Number(m.cost_usd||0).toFixed(4)}</td>
+                </tr>
+            `).join('');
+
+            // Chart
+            try {
+                const ctx = document.getElementById('usage-chart');
+                if (window._usageChart) window._usageChart.destroy();
+                const labels = items.map(x => x.model);
+                const totals = items.map(x => x.tokens || 0);
+                window._usageChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: { labels, datasets: [{ label: 'Tokens', data: totals, backgroundColor: '#7D8AFF' }] },
+                    options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+                });
+            } catch(e) { console.warn('usage chart failed', e); }
+        };
+        sel.onchange = load;
+        await load();
+    } catch(e) { console.error('showUsageView error', e); }
+};
+
 window.app.openQuizModal = async function(projectId){
     try{
         // Build modal shell
