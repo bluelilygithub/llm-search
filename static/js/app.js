@@ -4965,6 +4965,7 @@ window.app.showProgressView = async function() {
                                       <div style="margin-top:6px;">Your score <strong>increases (+6)</strong> when you show confidence (e.g., “got it”, “try a similar problem”).</div>
                                       <div>Your score <strong>decreases (−8)</strong> when you ask for more help (e.g., “explain again”, “show steps”).</div>
                                       <div style="margin-top:6px;">For <strong>math topics</strong>, quiz answers are also included: correct adds to +, incorrect adds to −.</div>
+                                      <div style="margin-top:6px;">Topic scope follows NSW syllabus resources. Reference (Year 10 example): <a href=\"https://classmathematics.com.au/resources/nsw/year-10/maths-core/\" target=\"_blank\" rel=\"noopener noreferrer\">Class Mathematics – NSW Y10 Maths Core</a>.</div>
                                       <div style="margin-top:6px;"><strong>Progress Levels</strong>: Strong ≥70 · Stable 40–69 · Improve &lt;40</div>
                                       <div style="margin-top:6px;">This topic’s signals: <strong>+${t.pos_signals} / −${t.neg_signals}</strong>.</div>
                                     </div>
