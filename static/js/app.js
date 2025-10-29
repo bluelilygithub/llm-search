@@ -5102,6 +5102,7 @@ window.app.showUsageView = async function() {
 // Admin Usage – leaderboard across all users
 window.app.showAdminUsageView = async function(){
     try {
+        console.log('🛡️ Admin Usage: initializing view');
         const contentArea = document.getElementById('content-area');
         if (!contentArea) return;
         contentArea.innerHTML = `
@@ -5155,12 +5156,14 @@ window.app.showAdminUsageView = async function(){
         const sel = document.getElementById('admin-usage-window');
         const load = async ()=>{
             const win = sel.value;
+            console.log('🛡️ Admin Usage: fetching data for window =', win);
             const res = await fetch(`/api/admin/usage/by-user?window=${encodeURIComponent(win)}&limit=50`);
             const data = await res.json().catch(()=>({}));
             if (!res.ok) { document.getElementById('admin-usage-summary').textContent = data.error || 'Failed to load'; return; }
             const users = data.users || [];
             const totalTokens = users.reduce((a,u)=>a+(u.tokens||0),0);
             const totalCost = users.reduce((a,u)=>a+Number(u.cost_usd||0),0);
+            console.log('🛡️ Admin Usage: users=', users.length, 'tokens=', totalTokens, 'cost=', totalCost);
             document.getElementById('admin-usage-summary').textContent = `${users.length} users · ${totalTokens.toLocaleString()} tokens · $${totalCost.toFixed(4)}`;
 
             // Leaderboard table
@@ -5633,10 +5636,13 @@ window.showUsersTabIfAdmin = async function() {
 
         // Show/hide admin-only sidebar items
         try {
-            document.querySelectorAll('.admin-only').forEach(el => {
-                el.style.display = isAdmin ? 'block' : 'none';
-            });
-        } catch(e) { /* ignore */ }
+            const adminOnlyEls = document.querySelectorAll('.admin-only');
+            adminOnlyEls.forEach(el => { el.style.display = isAdmin ? 'block' : 'none'; });
+            const adminUsageEl = document.getElementById('admin-usage-header');
+            // Explicit console proofs for troubleshooting
+            console.log('🛡️ Admin-only elements found:', adminOnlyEls.length);
+            console.log('🛡️ Admin Usage link present:', !!adminUsageEl, 'display:', adminUsageEl ? getComputedStyle(adminUsageEl.parentElement || adminUsageEl).display : 'n/a');
+        } catch(e) { console.warn('Admin-only toggle failed', e); }
         
         // Show/hide model selector (admin only)
         const modelSelectorContainer = document.getElementById('model-selector-container');
