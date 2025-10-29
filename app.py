@@ -6379,14 +6379,15 @@ def progress_quiz_history():
 
         topics_map = {}
         if attempt_ids:
-            topics_rows = db.session.execute(
-                text("""
-                    SELECT qa.attempt_id::text AS attempt_id, qa.topic
-                    FROM quiz_answers qa
-                    WHERE qa.attempt_id = ANY(:ids)
-                """),
-                { 'ids': attempt_ids }
-            ).mappings().all()
+            # Build a safe parameterized IN clause
+            placeholders = ", ".join([f":id{i}" for i in range(len(attempt_ids))])
+            tsql = text(f"""
+                SELECT qa.attempt_id::text AS attempt_id, qa.topic
+                FROM quiz_answers qa
+                WHERE qa.attempt_id IN ({placeholders})
+            """)
+            tparams = { f"id{i}": attempt_ids[i] for i in range(len(attempt_ids)) }
+            topics_rows = db.session.execute(tsql, tparams).mappings().all()
             for tr in topics_rows:
                 topics_map.setdefault(tr['attempt_id'], set()).add((tr['topic'] or 'general').lower())
 
