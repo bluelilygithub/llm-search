@@ -6272,42 +6272,35 @@ def progress_summary():
         total_q = 0
         latest_quiz = None
         total_quizzes = 0
+        # Read durable quiz data from tables
         try:
-            uid = session.get('user_id')
-            user = User.query.filter(User.id == uid).first() if uid else None
-            if user and isinstance(user.preferences, dict):
-                quizzes = user.preferences.get('quizzes') or {}
-                total_quizzes = len(quizzes)
-                # Find most recent quiz across projects
-                best_at = ''
-                for pk, qz in quizzes.items():
-                    at = qz.get('at') or ''
-                    if at and at > best_at:
-                        best_at = at
-                        latest_quiz = {
-                            'project_id': pk,
-                            'at': at,
-                            'score': qz.get('score'),
-                            'correct': qz.get('correct'),
-                            'total': qz.get('total'),
-                            'time_taken': qz.get('time_taken')
-                        }
+            cnt_row = db.session.execute(text("SELECT COUNT(*) FROM quiz_attempts WHERE user_id = :uid"), { 'uid': str(target_user_id) }).first()
+            total_quizzes = int(cnt_row[0]) if cnt_row else 0
+            lrow = db.session.execute(text("SELECT project_id, score, correct, total_questions, time_taken_seconds, created_at FROM quiz_attempts WHERE user_id = :uid ORDER BY created_at DESC LIMIT 1"), { 'uid': str(target_user_id) }).first()
+            if lrow:
+                latest_quiz = {
+                    'project_id': str(lrow[0]) if lrow[0] else None,
+                    'score': float(lrow[1]),
+                    'correct': int(lrow[2]),
+                    'total': int(lrow[3]),
+                    'time_taken': int(lrow[4] or 0),
+                    'at': lrow[5].isoformat() if lrow[5] else None
+                }
         except Exception:
             pass
-        # Preload quiz signal map for mastery breakdown
+        # Per-topic mastery from quiz answers in the window
         quiz_signal_map = {}
         try:
-            uid = session.get('user_id')
-            user = User.query.filter(User.id == uid).first() if uid else None
-            if user and isinstance(user.preferences, dict):
-                qsig_all = (user.preferences.get('quiz_signals') or {})
-                for proj_key, mp in qsig_all.items():
-                    if isinstance(mp, dict):
-                        for topic_key, vals in mp.items():
-                            qv = quiz_signal_map.get(topic_key) or {'pos':0,'neg':0}
-                            qv['pos'] += int(vals.get('pos',0))
-                            qv['neg'] += int(vals.get('neg',0))
-                            quiz_signal_map[topic_key] = qv
+            mastery_rows = db.session.execute(text("""
+                SELECT qa.topic, SUM(qa.is_correct::int) AS pos, COUNT(*) AS total
+                FROM quiz_answers qa
+                JOIN quiz_attempts a ON a.id = qa.attempt_id
+                WHERE a.user_id = :uid
+                  AND a.created_at >= now() - (:window_days || ' days')::interval
+                GROUP BY qa.topic
+            """), { 'uid': str(target_user_id), 'window_days': window_days }).mappings().all()
+            for mr in mastery_rows:
+                quiz_signal_map[mr['topic'].lower()] = { 'pos': int(mr['pos'] or 0), 'neg': int((mr['total'] or 0) - (mr['pos'] or 0)) }
         except Exception:
             pass
 
@@ -6316,28 +6309,7 @@ def progress_summary():
             total_q += q
             neg = int(r['neg_signals'] or 0)
             pos = int(r['pos_signals'] or 0)
-            # Include quiz signals from user preferences if available
-            try:
-                uid = session.get('user_id')
-                user = User.query.filter(User.id == uid).first() if uid else None
-                if user and isinstance(user.preferences, dict):
-                    proj_key = str(request.args.get('project_id') or '')
-                    # Sum all projects if none specified
-                    qsig = (user.preferences.get('quiz_signals') or {})
-                    if proj_key and proj_key in qsig:
-                        extra = qsig[proj_key].get(r['topic'].lower()) or {}
-                        pos += int(extra.get('pos', 0))
-                        neg += int(extra.get('neg', 0))
-                    else:
-                        # sum over all projects for this topic
-                        acc_p = 0; acc_n = 0
-                        for mp in qsig.values():
-                            if isinstance(mp, dict) and r['topic'].lower() in mp:
-                                acc_p += int(mp[r['topic'].lower()].get('pos', 0))
-                                acc_n += int(mp[r['topic'].lower()].get('neg', 0))
-                        pos += acc_p; neg += acc_n
-            except Exception:
-                pass
+            # Score currently reflects conversation signals only; quiz mastery shown separately
             score = max(0, min(100, 50 + pos*6 - neg*8))
             bucket = 'Strong' if score >= 70 else ('Stable' if score >= 40 else 'Improve')
             # Quiz mastery fields
@@ -6553,31 +6525,73 @@ def submit_quiz(project_id):
         correct = sum(1 for a in answers if a.get('is_correct'))
         score = round(correct / total, 3)
 
-        # Update user preferences with quiz signals so Progress can include them
+        # Persist durable records to quiz_attempts and quiz_answers
         user_id = session.get('user_id')
         user = User.query.filter(User.id == user_id).first() if user_id else None
         if not user:
             return jsonify({'error': 'Not authenticated'}), 401
-        prefs = user.preferences or {}
-        quiz_signals = (prefs.get('quiz_signals') or {})
-        proj_key = str(project_id)
-        proj_map = quiz_signals.get(proj_key) or {}
-        for a in answers:
-            topic = (a.get('topic') or 'general').lower()
-            entry = proj_map.get(topic) or {'pos': 0, 'neg': 0}
-            if a.get('is_correct'):
-                entry['pos'] = int(entry.get('pos', 0)) + 1
-            else:
-                entry['neg'] = int(entry.get('neg', 0)) + 1
-            proj_map[topic] = entry
-        quiz_signals[proj_key] = proj_map
-        # Track last quiz summary
-        quizzes = (prefs.get('quizzes') or {})
-        quizzes[proj_key] = { 'score': score, 'total': total, 'correct': correct, 'time_taken': time_taken, 'at': datetime.utcnow().isoformat() }
-        prefs['quiz_signals'] = quiz_signals
-        prefs['quizzes'] = quizzes
-        user.preferences = prefs
-        db.session.commit()
+
+        attempt_id = str(uuid.uuid4())
+        try:
+            db.session.execute(
+                text("""
+                    INSERT INTO quiz_attempts (id, user_id, project_id, score, total_questions, correct, time_taken_seconds)
+                    VALUES (:id, :user_id, :project_id, :score, :total_questions, :correct, :time_taken_seconds)
+                """),
+                {
+                    'id': attempt_id,
+                    'user_id': str(user.id),
+                    'project_id': str(project_id),
+                    'score': float(score),
+                    'total_questions': int(total),
+                    'correct': int(correct),
+                    'time_taken_seconds': int(time_taken)
+                }
+            )
+            for i, a in enumerate(answers, start=1):
+                db.session.execute(
+                    text("""
+                        INSERT INTO quiz_answers (attempt_id, question_number, topic, question_text, student_answer, correct_answer, is_correct)
+                        VALUES (:attempt_id, :qnum, :topic, :qtext, :student, :correct, :iscorrect)
+                    """),
+                    {
+                        'attempt_id': attempt_id,
+                        'qnum': int(a.get('id') or i),
+                        'topic': (a.get('topic') or 'general').lower(),
+                        'qtext': a.get('question') or '',
+                        'student': a.get('student_answer') or '',
+                        'correct': a.get('correct_answer') or '',
+                        'iscorrect': bool(a.get('is_correct'))
+                    }
+                )
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            app.logger.error(f"Quiz persistence error: {e}", exc_info=True)
+            return jsonify({'error': 'Failed to persist quiz results'}), 500
+
+        # Optional: also nudge preferences for adaptive profile (non-source-of-truth)
+        try:
+            prefs = user.preferences or {}
+            quiz_signals = (prefs.get('quiz_signals') or {})
+            proj_key = str(project_id)
+            proj_map = quiz_signals.get(proj_key) or {}
+            for a in answers:
+                topic = (a.get('topic') or 'general').lower()
+                entry = proj_map.get(topic) or {'pos': 0, 'neg': 0}
+                if a.get('is_correct'):
+                    entry['pos'] = int(entry.get('pos', 0)) + 1
+                else:
+                    entry['neg'] = int(entry.get('neg', 0)) + 1
+                proj_map[topic] = entry
+            quiz_signals[proj_key] = proj_map
+            prefs['quiz_signals'] = quiz_signals
+            user.preferences = prefs
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            app.logger.warning('Preferences nudge for quiz signals failed; continuing')
+
         return jsonify({'success': True, 'score': score, 'correct': correct, 'total': total})
     except Exception as e:
         db.session.rollback()
