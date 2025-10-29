@@ -6507,7 +6507,7 @@ def usage_by_model():
         where = "c.user_id = :uid"
         params = { 'uid': str(uid) }
         if days is not None:
-            where += " AND l.timestamp >= now() - (:days || ' days')::interval"
+            where += " AND l.created_at >= now() - (:days || ' days')::interval"
             params['days'] = days
 
         sql = text(f"""
@@ -6545,7 +6545,7 @@ def admin_usage_by_user():
         where = "1=1"
         params = { 'limit': limit }
         if days is not None:
-            where += " AND l.timestamp >= now() - (:days || ' days')::interval"
+            where += " AND l.created_at >= now() - (:days || ' days')::interval"
             params['days'] = days
         users_sql = text(f"""
             SELECT l.user_id, COALESCE(u.username, 'unknown') AS username,
