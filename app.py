@@ -6489,6 +6489,90 @@ def progress_quiz_attempt_detail(attempt_id):
     except Exception as e:
         app.logger.error(f"Quiz attempt detail error: {e}", exc_info=True)
         return jsonify({'error': 'Failed to load quiz attempt'}), 500
+
+# ==================== USAGE ANALYTICS (TOKENS/COST) ====================
+@app.route('/api/usage/by-model', methods=['GET'])
+@auth.login_required
+def usage_by_model():
+    try:
+        uid = session.get('user_id')
+        if not uid:
+            return jsonify({'error': 'Not authenticated'}), 401
+        window_arg = (request.args.get('window') or '30d').lower()
+        try:
+            days = int(window_arg.replace('d','')) if window_arg != 'all' else None
+        except Exception:
+            days = 30
+
+        where = "c.user_id = :uid"
+        params = { 'uid': str(uid) }
+        if days is not None:
+            where += " AND l.timestamp >= now() - (:days || ' days')::interval"
+            params['days'] = days
+
+        sql = text(f"""
+            SELECT l.model,
+                   COALESCE(SUM(l.input_tokens), 0)                   AS in_tokens,
+                   COALESCE(SUM(l.output_tokens), 0)                  AS out_tokens,
+                   COALESCE(SUM(l.total_tokens), SUM(l.tokens), 0)    AS tokens,
+                   ROUND(COALESCE(SUM(l.cost_usd), SUM(l.estimated_cost), 0)::numeric, 6) AS cost_usd
+            FROM llm_usage_log l
+            LEFT JOIN conversations c ON c.id = l.conversation_id
+            WHERE {where}
+            GROUP BY l.model
+            ORDER BY tokens DESC
+        """)
+        rows = db.session.execute(sql, params).mappings().all()
+        return jsonify({ 'window': window_arg, 'models': list(rows) })
+    except Exception as e:
+        app.logger.error(f"usage_by_model error: {e}", exc_info=True)
+        return jsonify({'error': 'Failed to compute usage'}), 500
+
+@app.route('/api/admin/usage/by-user', methods=['GET'])
+@auth.login_required
+def admin_usage_by_user():
+    try:
+        role = (session.get('user_role') or '').lower()
+        if role not in ['admin', 'super_admin', 'super admin', 'owner']:
+            return jsonify({'error': 'Admin only'}), 403
+        window_arg = (request.args.get('window') or '30d').lower()
+        limit = int(request.args.get('limit') or 50)
+        limit = max(1, min(limit, 200))
+        try:
+            days = int(window_arg.replace('d','')) if window_arg != 'all' else None
+        except Exception:
+            days = 30
+        where = "1=1"
+        params = { 'limit': limit }
+        if days is not None:
+            where += " AND l.timestamp >= now() - (:days || ' days')::interval"
+            params['days'] = days
+        users_sql = text(f"""
+            SELECT l.user_id, COALESCE(u.username, 'unknown') AS username,
+                   COALESCE(SUM(l.total_tokens), SUM(l.tokens), 0)    AS tokens,
+                   ROUND(COALESCE(SUM(l.cost_usd), SUM(l.estimated_cost), 0)::numeric, 6) AS cost_usd
+            FROM llm_usage_log l
+            LEFT JOIN users u ON u.id = l.user_id
+            WHERE {where}
+            GROUP BY l.user_id, u.username
+            ORDER BY tokens DESC
+            LIMIT :limit
+        """)
+        rows = db.session.execute(users_sql, params).mappings().all()
+        breakdown_sql = text(f"""
+            SELECT l.user_id, COALESCE(u.username, 'unknown') AS username, l.model,
+                   COALESCE(SUM(l.total_tokens), SUM(l.tokens), 0)    AS tokens,
+                   ROUND(COALESCE(SUM(l.cost_usd), SUM(l.estimated_cost), 0)::numeric, 6) AS cost_usd
+            FROM llm_usage_log l LEFT JOIN users u ON u.id = l.user_id
+            WHERE {where}
+            GROUP BY l.user_id, u.username, l.model
+            ORDER BY tokens DESC
+        """)
+        breakdown = db.session.execute(breakdown_sql, params).mappings().all()
+        return jsonify({ 'window': window_arg, 'users': list(rows), 'breakdown': list(breakdown) })
+    except Exception as e:
+        app.logger.error(f"admin_usage_by_user error: {e}", exc_info=True)
+        return jsonify({'error': 'Failed to compute admin usage'}), 500
 # ==================== QUIZ GENERATION & SUBMISSION ====================
 @app.route('/projects/<project_id>/quiz/generate', methods=['POST'])
 @auth.login_required
