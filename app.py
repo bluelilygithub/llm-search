@@ -6559,7 +6559,7 @@ def usage_by_model():
                 ORDER BY tokens DESC
             """.replace('{time_filter}', "AND l.timestamp >= now() - (:days || ' days')::interval" if days is not None else ""))
             rows = db.session.execute(legacy_sql, params).mappings().all()
-        return jsonify({ 'window': window_arg, 'models': list(rows) })
+        return jsonify({ 'window': window_arg, 'models': [dict(r) for r in rows] })
     except Exception as e:
         app.logger.error(f"usage_by_model error: {e}", exc_info=True)
         return jsonify({'error': 'Failed to compute usage'}), 500
@@ -6657,7 +6657,7 @@ def admin_usage_by_user():
                 ORDER BY tokens DESC
             """.replace('{time_filter}', "AND l.timestamp >= now() - (:days || ' days')::interval" if days is not None else ""))
             breakdown = db.session.execute(breakdown_legacy, params).mappings().all()
-        return jsonify({ 'window': window_arg, 'users': list(rows), 'breakdown': list(breakdown) })
+        return jsonify({ 'window': window_arg, 'users': [dict(r) for r in rows], 'breakdown': [dict(b) for b in breakdown] })
     except Exception as e:
         app.logger.error(f"admin_usage_by_user error: {e}", exc_info=True)
         return jsonify({'error': 'Failed to compute admin usage'}), 500
