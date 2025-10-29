@@ -4911,6 +4911,7 @@ window.app.showProgressView = async function() {
                 <div style="margin-top:16px;">
                     <canvas id="progress-chart" height="140"></canvas>
                 </div>
+                <div id="quiz-history" style="margin-top:16px;"></div>
             </div>
         `;
         const sel = document.getElementById('progress-window');
@@ -4985,6 +4986,34 @@ window.app.showProgressView = async function() {
                     options: { responsive: true, plugins: { legend: { display: false } }, scales: { x: { ticks: { autoSkip: false } }, y: { beginAtZero: true } } }
                 });
             } catch (e) { console.warn('Chart render failed', e); }
+
+            // Quiz history
+            try {
+                const histEl = document.getElementById('quiz-history');
+                const hres = await fetch(`/api/progress/quiz-history?window=${encodeURIComponent(win)}&limit=10`);
+                const hdata = await hres.json();
+                if (!hres.ok) { histEl.innerHTML = `<div style='color:#a00;'>Failed to load quiz history</div>`; return; }
+                const stats = hdata.stats || { attempts: 0, avg_score_pct: 0, best_pct: 0, worst_pct: 0 };
+                const header = `
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                        <h3 style="margin:0;font-size:16px;">Quiz History</h3>
+                        <div style="font-size:12px;color:#666;">Attempts: ${stats.attempts} · Avg: ${stats.avg_score_pct}% · Best: ${stats.best_pct}% · Worst: ${stats.worst_pct}%</div>
+                    </div>`;
+                const list = (hdata.attempts || []).map(a => {
+                    const when = a.created_at ? new Date(a.created_at).toLocaleString() : '';
+                    const topics = (a.topics || []).slice(0,4).join(', ');
+                    return `
+                        <div style="border:1px solid #eee;border-radius:8px;padding:10px;margin:6px 0;background:#fff;display:flex;justify-content:space-between;align-items:center;">
+                            <div>
+                                <div style="font-weight:600;">${a.project_name || 'Project'}</div>
+                                <div style="font-size:12px;color:#666;">${when} · ${a.score_pct}% (${a.correct}/${a.total})</div>
+                                <div style="font-size:12px;color:#888;">Topics: ${topics || '—'}</div>
+                            </div>
+                            <button class="view-action-btn" onclick="window.app.openQuizAttempt('${a.attempt_id}')">View details</button>
+                        </div>`;
+                }).join('');
+                histEl.innerHTML = header + (list || `<div style='padding:8px 10px;border:1px dashed #e5e7eb;border-radius:8px;color:#666;background:#fcfcfc;'>No attempts in this window.</div>`);
+            } catch (e) { console.warn('History render failed', e); }
         };
         sel.onchange = load;
         await load();
@@ -5070,6 +5099,53 @@ window.app.openQuizModal = async function(projectId){
 
         render();
     }catch(e){ console.error('Quiz modal error', e); }
+};
+
+window.app.openQuizAttempt = async function(attemptId){
+    try {
+        const resp = await fetch(`/api/progress/quiz-attempt/${attemptId}`);
+        const data = await resp.json().catch(()=>({}));
+        let modal = document.getElementById('quiz-detail-modal');
+        if (!modal){
+            modal = document.createElement('div');
+            modal.id='quiz-detail-modal';
+            modal.className='modal';
+            modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:10000;';
+            document.body.appendChild(modal);
+        }
+        if (!resp.ok || !data.attempt){
+            modal.innerHTML = `<div class="modal-content" style="background:#fff;border-radius:12px;max-width:800px;width:90%;max-height:90vh;overflow:auto;">
+                <div class="modal-header" style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid #eee;">
+                    <h3 style="margin:0;font-size:18px;">Quiz Attempt</h3>
+                    <button onclick="document.getElementById('quiz-detail-modal').remove()" style="border:none;background:transparent;font-size:18px;cursor:pointer;">×</button>
+                </div>
+                <div class="modal-body" style="padding:14px 16px;">Failed to load attempt.</div>
+            </div>`;
+            return;
+        }
+        const a = data.attempt;
+        const answers = (data.answers || []).map(r => `
+            <div style="border:1px solid #eee;border-radius:8px;padding:10px;margin:6px 0;background:#fff;">
+                <div style="font-weight:600;">Q${r.question_number}. ${r.question_text}</div>
+                <div style="margin-top:6px;font-size:13px;">Your answer: ${r.student_answer} ${r.is_correct?'<span style=\'color:#2ecc71\'>✓</span>':'<span style=\'color:#e74c3c\'>✗</span>'}</div>
+                ${r.is_correct ? '' : `<div style='margin-top:4px;font-size:12px;color:#666;'>Correct: ${r.correct_answer}</div>`}
+                <div style="font-size:11px;color:#888;margin-top:4px;">Topic: ${r.topic}</div>
+            </div>
+        `).join('');
+        const when = a.created_at ? new Date(a.created_at).toLocaleString() : '';
+        modal.innerHTML = `<div class="modal-content" style="background:#fff;border-radius:12px;max-width:800px;width:90%;max-height:90vh;overflow:auto;">
+            <div class="modal-header" style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid #eee;">
+                <h3 style="margin:0;font-size:18px;">${a.project_name || 'Quiz Attempt'}</h3>
+                <button onclick="document.getElementById('quiz-detail-modal').remove()" style="border:none;background:transparent;font-size:18px;cursor:pointer;">×</button>
+            </div>
+            <div class="modal-body" style="padding:14px 16px;">
+                <div style="margin-bottom:8px;color:#444;">${when} · Score: <strong>${a.score_pct}%</strong> (${a.correct}/${a.total}) · Time: ${a.time_taken}s</div>
+                ${answers || '<div>No answers found.</div>'}
+            </div>
+        </div>`;
+    } catch (e) {
+        console.error('openQuizAttempt error', e);
+    }
 };
 window.app.requestIllustration = async function(buttonEl){
   try {
@@ -9671,7 +9747,7 @@ KnowledgeBaseApp.prototype.showProjectConversationsView = function(project) {
                         <button class="view-action-btn" onclick="window.app.openQuizModal('${project.id}')">
                             <i class="fas fa-bolt"></i>
                             Quiz Me
-                        </button>
+                    </button>
                 </div>
             </div>
             

@@ -6341,6 +6341,146 @@ def progress_summary():
         app.logger.error(f"Progress summary error: {e}", exc_info=True)
         return jsonify({'error': 'Failed to compute progress summary'}), 500
 
+# ==================== PROGRESS: QUIZ HISTORY & DETAILS ====================
+@app.route('/api/progress/quiz-history', methods=['GET'])
+@auth.login_required
+def progress_quiz_history():
+    try:
+        uid = session.get('user_id')
+        if not uid:
+            return jsonify({'error': 'Not authenticated'}), 401
+        user_id = str(uid)
+        window_arg = (request.args.get('window') or '30d').lower()
+        limit = int(request.args.get('limit') or 10)
+        limit = max(1, min(limit, 50))
+
+        where = "a.user_id = :uid"
+        params = { 'uid': user_id, 'limit': limit }
+        if window_arg != 'all':
+            # parse Nd
+            try:
+                days = int(window_arg.replace('d',''))
+            except Exception:
+                days = 30
+            where += " AND a.created_at >= now() - (:days || ' days')::interval"
+            params['days'] = days
+
+        base_sql = f"""
+            SELECT a.id, a.project_id, COALESCE(p.name,'Unknown') AS project_name,
+                   a.score, a.correct, a.total_questions, a.time_taken_seconds, a.created_at
+            FROM quiz_attempts a
+            LEFT JOIN projects p ON p.id = a.project_id
+            WHERE {where}
+            ORDER BY a.created_at DESC
+            LIMIT :limit
+        """
+        rows = db.session.execute(text(base_sql), params).mappings().all()
+        attempt_ids = [ str(r['id']) for r in rows ]
+
+        topics_map = {}
+        if attempt_ids:
+            topics_rows = db.session.execute(
+                text("""
+                    SELECT qa.attempt_id::text AS attempt_id, qa.topic
+                    FROM quiz_answers qa
+                    WHERE qa.attempt_id = ANY(:ids)
+                """),
+                { 'ids': attempt_ids }
+            ).mappings().all()
+            for tr in topics_rows:
+                topics_map.setdefault(tr['attempt_id'], set()).add((tr['topic'] or 'general').lower())
+
+        # Stats
+        stats_sql = f"""
+            SELECT COUNT(*) AS attempts,
+                   COALESCE(ROUND(AVG(a.score)*100)::int, 0) AS avg_score_pct,
+                   COALESCE(ROUND(MAX(a.score)*100)::int, 0) AS best_pct,
+                   COALESCE(ROUND(MIN(a.score)*100)::int, 0) AS worst_pct
+            FROM quiz_attempts a
+            WHERE {where}
+        """
+        stats_row = db.session.execute(text(stats_sql), params).first()
+
+        attempts = []
+        for r in rows:
+            attempts.append({
+                'attempt_id': str(r['id']),
+                'project_id': str(r['project_id']) if r['project_id'] else None,
+                'project_name': r['project_name'],
+                'score_pct': int(round(float(r['score'] or 0) * 100)),
+                'correct': int(r['correct'] or 0),
+                'total': int(r['total_questions'] or 0),
+                'time_taken': int(r['time_taken_seconds'] or 0),
+                'created_at': r['created_at'].isoformat() if r['created_at'] else None,
+                'topics': sorted(list(topics_map.get(str(r['id']), set())))
+            })
+
+        return jsonify({
+            'attempts': attempts,
+            'stats': {
+                'attempts': int(stats_row[0] or 0) if stats_row else 0,
+                'avg_score_pct': int(stats_row[1] or 0) if stats_row else 0,
+                'best_pct': int(stats_row[2] or 0) if stats_row else 0,
+                'worst_pct': int(stats_row[3] or 0) if stats_row else 0
+            }
+        })
+    except Exception as e:
+        app.logger.error(f"Quiz history error: {e}", exc_info=True)
+        return jsonify({'error': 'Failed to load quiz history'}), 500
+
+@app.route('/api/progress/quiz-attempt/<attempt_id>', methods=['GET'])
+@auth.login_required
+def progress_quiz_attempt_detail(attempt_id):
+    try:
+        uid = session.get('user_id')
+        if not uid:
+            return jsonify({'error': 'Not authenticated'}), 401
+        # Attempt meta
+        meta = db.session.execute(text(
+            """
+            SELECT a.id, a.user_id, a.project_id, COALESCE(p.name,'Unknown') AS project_name,
+                   a.score, a.correct, a.total_questions, a.time_taken_seconds, a.created_at
+            FROM quiz_attempts a
+            LEFT JOIN projects p ON p.id = a.project_id
+            WHERE a.id = :id AND a.user_id = :uid
+            """
+        ), { 'id': attempt_id, 'uid': str(uid) }).mappings().first()
+        if not meta:
+            return jsonify({'error': 'Not found'}), 404
+        # Answers
+        ans_rows = db.session.execute(text(
+            """
+            SELECT question_number, topic, question_text, student_answer, correct_answer, is_correct
+            FROM quiz_answers
+            WHERE attempt_id = :id
+            ORDER BY question_number ASC
+            """
+        ), { 'id': attempt_id }).mappings().all()
+        answers = [{
+            'question_number': int(r['question_number'] or 0),
+            'topic': (r['topic'] or 'general'),
+            'question_text': r['question_text'] or '',
+            'student_answer': r['student_answer'] or '',
+            'correct_answer': r['correct_answer'] or '',
+            'is_correct': bool(r['is_correct'])
+        } for r in ans_rows]
+
+        return jsonify({
+            'attempt': {
+                'attempt_id': str(meta['id']),
+                'project_id': str(meta['project_id']) if meta['project_id'] else None,
+                'project_name': meta['project_name'],
+                'score_pct': int(round(float(meta['score'] or 0)*100)),
+                'correct': int(meta['correct'] or 0),
+                'total': int(meta['total_questions'] or 0),
+                'time_taken': int(meta['time_taken_seconds'] or 0),
+                'created_at': meta['created_at'].isoformat() if meta['created_at'] else None
+            },
+            'answers': answers
+        })
+    except Exception as e:
+        app.logger.error(f"Quiz attempt detail error: {e}", exc_info=True)
+        return jsonify({'error': 'Failed to load quiz attempt'}), 500
 # ==================== QUIZ GENERATION & SUBMISSION ====================
 @app.route('/projects/<project_id>/quiz/generate', methods=['POST'])
 @auth.login_required
