@@ -634,7 +634,6 @@
             console.error('Failed to load conversations:', error);
         }
     }
-
     renderConversations(conversations) {
         const container = document.getElementById('conversations-list');
         container.innerHTML = '';
@@ -1265,7 +1264,6 @@
             sendBtn.textContent = 'Send';
         }
     }
-
     async createNewConversation(firstMessage) {
         const title = firstMessage.length > 50 ? 
             firstMessage.substring(0, 50) + '...' : firstMessage;
@@ -1911,7 +1909,6 @@
         document.getElementById('tag-modal').style.display = 'none';
         document.getElementById('tag-input').value = '';
     }
-
     // Export functionality
     async exportConversation() {
         if (!this.currentConversationId) {
@@ -2537,7 +2534,6 @@
             await this.clearSearchResults();
         }
     }
-    
     // Perform comprehensive search across conversations, projects, and context items
     async performComprehensiveSearch(query) {
         const results = {
@@ -3187,7 +3183,6 @@
         
         return date.toLocaleDateString();
     }
-
     formatTime(dateString) {
         return new Date(dateString).toLocaleTimeString([], { 
             hour: '2-digit', 
@@ -3835,7 +3830,6 @@ KnowledgeBaseApp.prototype.openSettingsPanel = function() {
         window.loadAccountInfo();
         }, 200);
 };
-
 // Make openSettingsPanel available globally for onclick handlers
 window.openSettingsPanel = function() {
     console.log('✅ window.openSettingsPanel called - function is loaded!');
@@ -4459,7 +4453,6 @@ window.closeSettingsPanel = function() {
         window.app.closeSettingsPanel();
     }
 };
-
 // Settings section navigation
 window.showSettingsSection = function(sectionName) {
     // Hide all sections
@@ -4966,12 +4959,12 @@ window.app.showProgressView = async function() {
                                     <div class="tooltip-content" style="font-size:12px; color:#555; line-height:1.55;">
                                       <div>This score estimates your confidence in a topic based on your interactions.</div>
                                       <div style="margin-top:6px;">You start at <strong>50</strong> (Stable).</div>
-                                      <div style="margin-top:6px;">Your score <strong>increases (+6)</strong> when you show confidence (e.g., “got it”, “try a similar problem”).</div>
-                                      <div>Your score <strong>decreases (−8)</strong> when you ask for more help (e.g., “explain again”, “show steps”).</div>
+                                      <div style="margin-top:6px;">Your score <strong>increases (+6)</strong> when you show confidence (e.g., "got it", "try a similar problem").</div>
+                                      <div>Your score <strong>decreases (−8)</strong> when you ask for more help (e.g., "explain again", "show steps").</div>
                                       <div style="margin-top:6px;">For <strong>math topics</strong>, quiz answers are also included: correct adds to +, incorrect adds to −.</div>
                                       <div style="margin-top:6px;">Topic scope follows NSW syllabus resources. Reference (Year 10 example): <a href=\"https://classmathematics.com.au/resources/nsw/year-10/maths-core/\" target=\"_blank\" rel=\"noopener noreferrer\">Class Mathematics – NSW Y10 Maths Core</a>.</div>
                                       <div style="margin-top:6px;"><strong>Progress Levels</strong>: Strong ≥70 · Stable 40–69 · Improve &lt;40</div>
-                                      <div style="margin-top:6px;">This topic’s signals: <strong>+${t.pos_signals} / −${t.neg_signals}</strong>.</div>
+                                      <div style="margin-top:6px;">This topic's signals: <strong>+${t.pos_signals} / −${t.neg_signals}</strong>.</div>
                                     </div>
                                   </div>
                                 </button>
@@ -5106,7 +5099,6 @@ window.app.openQuizModal = async function(projectId){
         render();
     }catch(e){ console.error('Quiz modal error', e); }
 };
-
 window.app.openQuizAttempt = async function(attemptId){
     try {
         const resp = await fetch(`/api/progress/quiz-attempt/${attemptId}`);
@@ -5442,7 +5434,7 @@ window.showUsersTabIfAdmin = async function() {
                     contentArea.prepend(banner);
                 }
                 const expiryText = data.expires_at ? new Date(data.expires_at).toLocaleString() : '—';
-                banner.innerHTML = `<strong>Demo mode:</strong> Your data clears on logout. Expires at ${expiryText}.<div style="margin-top:6px;">You can: create a project, chat, add charts with “Illustrate this…”, browse demo docs. You cannot: upload files, change model settings, manage users, or keep work after logout.</div>`;
+                banner.innerHTML = `<strong>Demo mode:</strong> Your data clears on logout. Expires at ${expiryText}.<div style="margin-top:6px;">You can: create a project, chat, add charts with "Illustrate this…", browse demo docs. You cannot: upload files, change model settings, manage users, or keep work after logout.</div>`;
                 banner.style.display = 'block';
             } catch (e) { console.warn('Demo banner render failed', e); }
         }
@@ -5746,7 +5738,6 @@ window.deleteUser = async function(userId, username) {
         alert('Network error. Please try again.');
     }
 };
-
 // ==================== ACCOUNT INFORMATION ====================
 
 window.loadAccountInfo = async function() {
@@ -6392,7 +6383,6 @@ async function loadCurrentModelsList() {
         container.innerHTML = '<div class="error">Failed to load models</div>';
     }
 }
-
 window.addModel = async function() {
     const nameInput = document.getElementById('model-name');
     const valueInput = document.getElementById('model-value');
@@ -6988,7 +6978,6 @@ window.setDefaultModel = async function(modelName) {
         }
     }
 };
-
 // Populate default model select dropdown in preferences
 window.populateDefaultModelSelect = async function() {
     const dropdown = document.getElementById('default-model-select');
@@ -7588,7 +7577,6 @@ KnowledgeBaseApp.prototype.refreshTemplatesList = async function() {
         container.innerHTML = '<div class="error-templates">Failed to load templates</div>';
     }
 };
-
 KnowledgeBaseApp.prototype.renderTemplatesManagementList = function() {
     const container = document.getElementById('templates-list');
     if (!container) return;
@@ -8238,7 +8226,6 @@ function sendMessage() {
 function updateModel() {
     window.app.updateModel();
 }
-
 function searchKnowledgeBase() {
     window.app.searchKnowledgeBase();
 }
@@ -8888,7 +8875,6 @@ KnowledgeBaseApp.prototype.renderContentSearchResults = function(suggestions, se
     // Update section counts for search results
     this.updateSectionCounts();
 };
-
 // Highlight search terms in text
 KnowledgeBaseApp.prototype.highlightSearchTerm = function(text, searchTerm) {
     if (!text || !searchTerm) return text || '';
@@ -9467,7 +9453,6 @@ KnowledgeBaseApp.prototype.showHomeView = async function() {
     // Load home statistics
     this.loadHomeStats();
 };
-
 // Show conversations list view in main content area
 KnowledgeBaseApp.prototype.showConversationsView = function() {
     this.currentView = 'conversations';
@@ -10105,7 +10090,6 @@ KnowledgeBaseApp.prototype.openProject = function(projectId) {
         this.showProjectConversationsView(project);
     }
 };
-
 // Clone project
 KnowledgeBaseApp.prototype.cloneProject = async function(projectId) {
     try {
