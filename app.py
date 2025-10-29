@@ -6514,11 +6514,11 @@ def usage_by_model():
             SELECT l.model,
                    COALESCE(SUM(l.input_tokens), 0)                   AS in_tokens,
                    COALESCE(SUM(l.output_tokens), 0)                  AS out_tokens,
-                   COALESCE(SUM(l.total_tokens), SUM(l.tokens), 0)    AS tokens,
-                   ROUND(COALESCE(SUM(l.cost_usd), SUM(l.estimated_cost), 0)::numeric, 6) AS cost_usd
+                   COALESCE(SUM(l.total_tokens), SUM(COALESCE(l.input_tokens,0)+COALESCE(l.output_tokens,0)), 0) AS tokens,
+                   ROUND(COALESCE(SUM(l.cost_usd), 0)::numeric, 6)    AS cost_usd
             FROM llm_usage_log l
             LEFT JOIN conversations c ON c.id = l.conversation_id
-            WHERE {where}
+            WHERE ({where}) OR (l.user_id = :uid)
             GROUP BY l.model
             ORDER BY tokens DESC
         """)
@@ -6549,8 +6549,8 @@ def admin_usage_by_user():
             params['days'] = days
         users_sql = text(f"""
             SELECT l.user_id, COALESCE(u.username, 'unknown') AS username,
-                   COALESCE(SUM(l.total_tokens), SUM(l.tokens), 0)    AS tokens,
-                   ROUND(COALESCE(SUM(l.cost_usd), SUM(l.estimated_cost), 0)::numeric, 6) AS cost_usd
+                   COALESCE(SUM(l.total_tokens), SUM(COALESCE(l.input_tokens,0)+COALESCE(l.output_tokens,0)), 0) AS tokens,
+                   ROUND(COALESCE(SUM(l.cost_usd), 0)::numeric, 6) AS cost_usd
             FROM llm_usage_log l
             LEFT JOIN users u ON u.id = l.user_id
             WHERE {where}
@@ -6561,8 +6561,8 @@ def admin_usage_by_user():
         rows = db.session.execute(users_sql, params).mappings().all()
         breakdown_sql = text(f"""
             SELECT l.user_id, COALESCE(u.username, 'unknown') AS username, l.model,
-                   COALESCE(SUM(l.total_tokens), SUM(l.tokens), 0)    AS tokens,
-                   ROUND(COALESCE(SUM(l.cost_usd), SUM(l.estimated_cost), 0)::numeric, 6) AS cost_usd
+                   COALESCE(SUM(l.total_tokens), SUM(COALESCE(l.input_tokens,0)+COALESCE(l.output_tokens,0)), 0) AS tokens,
+                   ROUND(COALESCE(SUM(l.cost_usd), 0)::numeric, 6) AS cost_usd
             FROM llm_usage_log l LEFT JOIN users u ON u.id = l.user_id
             WHERE {where}
             GROUP BY l.user_id, u.username, l.model
