@@ -2149,55 +2149,58 @@ def get_conversations():
         
         conversations = query.order_by(Conversation.updated_at.desc()).all()
         app.logger.info(f"Found {len(conversations)} conversations")
-    
-    # Set session cookie for free users if needed
-    response_data = []
-    for conv in conversations:
-        try:
-            # Get user information (for admin display)
-            user_info = None
-            if identity.get('is_admin', False) and conv.user_id:
-                try:
-                    user = User.query.get(conv.user_id)
-                    if user:
-                        user_info = {
-                            'id': str(user.id),
-                            'username': user.username,
-                            'display_name': user.display_name or user.username
-                        }
-                except Exception as e:
-                    app.logger.debug(f"Error loading user info for conv {conv.id}: {e}")
-            
-            # Get message count safely (avoid lazy loading issues)
+
+        # Build response safely
+        response_data = []
+        for conv in conversations:
             try:
-                message_count = db.session.query(Message).filter(Message.conversation_id == conv.id).count()
+                # Get user information (for admin display)
+                user_info = None
+                if identity.get('is_admin', False) and conv.user_id:
+                    try:
+                        user = User.query.get(conv.user_id)
+                        if user:
+                            user_info = {
+                                'id': str(user.id),
+                                'username': user.username,
+                                'display_name': user.display_name or user.username
+                            }
+                    except Exception as e:
+                        app.logger.debug(f"Error loading user info for conv {conv.id}: {e}")
+                
+                # Get message count safely (avoid lazy loading issues)
+                try:
+                    message_count = db.session.query(Message).filter(Message.conversation_id == conv.id).count()
+                except Exception as e:
+                    app.logger.debug(f"Error counting messages for conv {conv.id}: {e}")
+                    message_count = 0
+                
+                response_data.append({
+                    'id': str(conv.id),
+                    'project_id': str(conv.project_id) if conv.project_id else None,
+                    'title': conv.title,
+                    'llm_model': conv.llm_model,
+                    'created_at': conv.created_at.isoformat(),
+                    'updated_at': conv.updated_at.isoformat(),
+                    'tags': conv.tags or [],
+                    'user': user_info,  # Only populated for admin
+                    'message_count': message_count,
+                    'attachment_count': len(conv.context_documents) if conv.context_documents else 0
+                })
             except Exception as e:
-                app.logger.debug(f"Error counting messages for conv {conv.id}: {e}")
-                message_count = 0
-            
-            response_data.append({
-                'id': str(conv.id),
-                'project_id': str(conv.project_id) if conv.project_id else None,
-                'title': conv.title,
-                'llm_model': conv.llm_model,
-                'created_at': conv.created_at.isoformat(),
-                'updated_at': conv.updated_at.isoformat(),
-                'tags': conv.tags or [],
-                'user': user_info,  # Only populated for admin
-                'message_count': message_count,
-                'attachment_count': len(conv.context_documents) if conv.context_documents else 0
-            })
-        except Exception as e:
-            app.logger.error(f"Error processing conversation {conv.id if conv else 'unknown'}: {e}", exc_info=True)
-            continue
-    
-    response = jsonify(response_data)
-    
-    # Set session cookie for free users
-    if identity['type'] == 'free' and identity['session_id'] and not request.cookies.get('session_id'):
-        response.set_cookie('session_id', identity['session_id'], max_age=30*24*60*60)  # 30 days
-    
-    return response
+                app.logger.error(f"Error processing conversation {conv.id if conv else 'unknown'}: {e}", exc_info=True)
+                continue
+        
+        response = jsonify(response_data)
+        
+        # Set session cookie for free users
+        if identity['type'] == 'free' and identity['session_id'] and not request.cookies.get('session_id'):
+            response.set_cookie('session_id', identity['session_id'], max_age=30*24*60*60)  # 30 days
+        
+        return response
+    except Exception as e:
+        app.logger.error(f"Error in get_conversations: {e}", exc_info=True)
+        return jsonify({'error': f'Failed to load conversations: {str(e)}'}), 500
 
 # Update create_conversation to accept project_id
 @csrf.exempt
