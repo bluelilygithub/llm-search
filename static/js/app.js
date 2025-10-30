@@ -4463,6 +4463,10 @@ window.showSettingsSection = function(sectionName) {
     const targetSection = document.getElementById(sectionName + '-section');
     if (targetSection) {
         targetSection.classList.add('active');
+        // Force visibility for admin-only sections
+        if (targetSection.classList.contains('admin-only')) {
+            targetSection.style.setProperty('display', 'block', 'important');
+        }
     }
     
     // Update navigation buttons
@@ -4481,12 +4485,33 @@ window.showSettingsSection = function(sectionName) {
     
     // Special handling for personas section
     if (sectionName === 'personas') {
-        window.app.renderPersonasManagementList();
+        console.log('🔍 Loading personas list...');
+        if (window.app && window.app.renderPersonasManagementList) {
+            window.app.renderPersonasManagementList();
+        } else if (typeof refreshPersonasList === 'function') {
+            console.log('🔍 Using global refreshPersonasList function...');
+            refreshPersonasList();
+        } else {
+            console.error('❌ Cannot render personas: window.app not available and refreshPersonasList not found');
+            const container = document.getElementById('personas-list');
+            if (container) {
+                container.innerHTML = '<p class="error-message">Error: Application not initialized. Please refresh the page.</p>';
+            }
+        }
     }
     
     // Special handling for users section
     if (sectionName === 'users') {
-        window.refreshUsersList();
+        if (typeof window.refreshUsersList === 'function') {
+            console.log('🔍 Loading users list...');
+            window.refreshUsersList();
+        } else {
+            console.error('❌ Cannot refresh users: refreshUsersList function not found');
+            const container = document.getElementById('users-list');
+            if (container) {
+                container.innerHTML = '<p class="error-message">Error: Function not available. Please refresh the page.</p>';
+            }
+        }
     }
 };
 
