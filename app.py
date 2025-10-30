@@ -3936,6 +3936,180 @@ def get_persona_categories():
 
 # ==================== END PERSONA MANAGEMENT API ====================
 
+# ==================== ADMIN MATH PERSONAS/PROJECTS HELPERS ====================
+
+@app.route('/admin/ensure_math_personas', methods=['POST'])
+@auth.login_required
+def ensure_math_personas():
+    """Admin-only: ensure the seven core math personas exist (upsert by name)."""
+    try:
+        identity = get_user_identity()
+        role_lower = str(identity.get('user_role') or '').lower()
+        is_admin_flag = bool(identity.get('is_admin', False) or role_lower in ('admin', 'super_admin'))
+        if not is_admin_flag:
+            return jsonify({'success': False, 'error': 'Admin access required'}), 403
+
+        from models import Persona
+        core_personas = [
+            {
+                'name': 'Number and Algebra',
+                'agent_name': 'Algebra Guide',
+                'role': 'A math tutor specializing in numbers, ratios, percentages and foundational algebra.',
+                'traits': 'patient, precise, step-by-step, age-appropriate, checks understanding',
+                'category': 'Math',
+                'description': 'Builds fluency with integers, fractions, ratios, indices, linear and quadratic basics.'
+            },
+            {
+                'name': 'Functions and Graphs',
+                'agent_name': 'Graph Coach',
+                'role': 'A tutor focusing on functions, slopes, and graph interpretations.',
+                'traits': 'visual, concrete examples, step-by-step, error-correcting',
+                'category': 'Math',
+                'description': 'Linear, quadratic, exponential functions; slope, intercepts, transformations.'
+            },
+            {
+                'name': 'Measurement and Geometry',
+                'agent_name': 'Geometry Mentor',
+                'role': 'A tutor for space, shape, and measurement problems.',
+                'traits': 'visual, concise, builds intuition, step-by-step',
+                'category': 'Math',
+                'description': 'Perimeter, area, volume, Pythagoras, trigonometry, angles, similarity, circles.'
+            },
+            {
+                'name': 'Statistics and Probability',
+                'agent_name': 'Stats Companion',
+                'role': 'A tutor simplifying data, chance, and inference fundamentals.',
+                'traits': 'clear language, real examples, avoids jargon, checks misconceptions',
+                'category': 'Math',
+                'description': 'Displays, centre/spread, sampling, correlation, simple/compound and conditional probability.'
+            },
+            {
+                'name': 'Financial Mathematics',
+                'agent_name': 'Finance Helper',
+                'role': 'A tutor connecting maths to everyday money decisions.',
+                'traits': 'practical, step-by-step, real-life contexts',
+                'category': 'Math',
+                'description': 'Budgeting, discounts, profit/loss, simple and compound interest.'
+            },
+            {
+                'name': 'Discrete and Modelling',
+                'agent_name': 'Modelling Coach',
+                'role': 'A tutor for networks, scheduling, and optimisation modelling.',
+                'traits': 'structured, explains assumptions, iterative',
+                'category': 'Math',
+                'description': 'Networks, shortest paths, critical path, linear programming (intro), simulations.'
+            },
+            {
+                'name': 'Extension / Pre-Calculus',
+                'agent_name': 'Pre-Calculus Guide',
+                'role': 'A tutor preparing students for higher-level mathematics.',
+                'traits': 'rigorous but accessible, builds from intuition to formality',
+                'category': 'Math',
+                'description': 'Polynomials, rationals, logs, trig graphs, identities, limits (conceptual).'
+            }
+        ]
+
+        created = 0
+        updated = 0
+        for spec in core_personas:
+            existing = Persona.query.filter(Persona.name == spec['name'], Persona.category == 'Math').first()
+            if existing:
+                changed = False
+                for k in ['agent_name', 'role', 'traits', 'description']:
+                    if getattr(existing, k) != spec[k]:
+                        setattr(existing, k, spec[k])
+                        changed = True
+                if changed:
+                    existing.updated_at = datetime.utcnow()
+                    updated += 1
+            else:
+                p = Persona(
+                    name=spec['name'],
+                    agent_name=spec['agent_name'],
+                    role=spec['role'],
+                    traits=spec['traits'],
+                    category=spec['category'],
+                    description=spec['description'],
+                    created_by=str(identity.get('user_id') or 'admin')
+                )
+                db.session.add(p)
+                created += 1
+
+        db.session.commit()
+        return jsonify({'success': True, 'created': created, 'updated': updated})
+    except Exception as e:
+        app.logger.error(f"ensure_math_personas error: {e}", exc_info=True)
+        db.session.rollback()
+        return jsonify({'success': False, 'error': 'Failed to ensure personas'}), 500
+
+
+@app.route('/admin/create_math_projects_for_user', methods=['POST'])
+@auth.login_required
+def create_math_projects_for_user():
+    """Admin-only: create one math project per core persona for the specified username (e.g., Molly)."""
+    try:
+        identity = get_user_identity()
+        role_lower = str(identity.get('user_role') or '').lower()
+        is_admin_flag = bool(identity.get('is_admin', False) or role_lower in ('admin', 'super_admin'))
+        if not is_admin_flag:
+            return jsonify({'success': False, 'error': 'Admin access required'}), 403
+
+        data = request.get_json(silent=True) or {}
+        username = (data.get('username') or '').strip()
+        if not username:
+            return jsonify({'success': False, 'error': 'username is required'}), 400
+
+        from models import User, Persona, Project
+        user = User.query.filter_by(username=username).first()
+        if not user:
+            return jsonify({'success': False, 'error': f'User not found: {username}'}), 404
+
+        personas = Persona.query.filter_by(category='Math', is_active=True).all()
+        if not personas:
+            return jsonify({'success': False, 'error': 'No Math personas found. Run /admin/ensure_math_personas first.'}), 400
+
+        created = 0
+        skipped = 0
+        results = []
+        for persona in personas:
+            project_name = f"{persona.name} – Math Project"
+            existing = Project.query.filter_by(owner_id=user.id, name=project_name).first()
+            if existing:
+                skipped += 1
+                results.append({'project': project_name, 'status': 'exists'})
+                continue
+
+            proj = Project(
+                name=project_name,
+                description=f"Practice and coaching for {persona.name}.",
+                agent_name=persona.agent_name,
+                agent_role=persona.role,
+                agent_personality=persona.traits,
+                primary_goal=f"Help the student master {persona.name} with step-by-step guidance.",
+                goal_steps='["diagnose level", "teach concept", "guided practice", "check understanding"]',
+                rules_do='["be precise", "be age-appropriate", "check for understanding"]',
+                rules_dont='["avoid jargon without explanation", "avoid hallucinations"]',
+                context_background='',
+                user_role='Student',
+                output_format='plain_text',
+                persona_id=persona.id,
+                math_level='Year 9',
+                math_subject=persona.name,
+                learning_style='visual',
+                difficulty_preference='standard',
+                owner_id=user.id
+            )
+            db.session.add(proj)
+            created += 1
+            results.append({'project': project_name, 'status': 'created'})
+
+        db.session.commit()
+        return jsonify({'success': True, 'created': created, 'skipped': skipped, 'results': results})
+    except Exception as e:
+        app.logger.error(f"create_math_projects_for_user error: {e}", exc_info=True)
+        db.session.rollback()
+        return jsonify({'success': False, 'error': 'Failed to create projects'}), 500
+
 # ==================== CONTEXT MANAGEMENT API ENDPOINTS ====================
 
 @app.route('/api/context', methods=['GET'])
