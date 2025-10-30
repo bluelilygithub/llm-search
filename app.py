@@ -6516,15 +6516,15 @@ def usage_by_model():
                          COALESCE(l.output_tokens,0) AS out_tokens,
                          COALESCE(l.total_tokens, COALESCE(l.input_tokens,0)+COALESCE(l.output_tokens,0)) AS tokens,
                          CASE WHEN lower(l.model) LIKE 'claude%'
-                              -- For Claude: prefer stored cost_usd if available, otherwise recalculate using ONLY output_tokens
-                              THEN COALESCE(
-                                   NULLIF(l.cost_usd, 0),
-                                   CASE WHEN l.output_tokens IS NOT NULL AND l.output_tokens > 0
-                                        THEN l.output_tokens * 0.000015  -- $15/1M output tokens
-                                        ELSE l.cost_usd  -- Use stored cost if output_tokens unavailable
-                                   END,
-                                   0
-                              )
+                              -- For Claude: ALWAYS recalculate (ignore stored cost_usd which may be wrong)
+                              -- Claude pricing: $15/1M output tokens = $0.000015 per output token
+                              THEN CASE WHEN l.output_tokens IS NOT NULL AND l.output_tokens > 0
+                                        THEN l.output_tokens * 0.000015
+                                        -- If output_tokens unavailable but total_tokens exists, estimate conservatively (assume 50% output)
+                                        WHEN l.total_tokens IS NOT NULL AND l.total_tokens > 0
+                                        THEN (l.total_tokens * 0.5) * 0.000015
+                                        ELSE 0
+                                   END
                               ELSE COALESCE(l.cost_usd,0)
                          END AS cost_usd,
                          l.created_at AS created_at,
@@ -6601,15 +6601,15 @@ def admin_usage_by_user():
                   SELECT l.user_id, l.model,
                          COALESCE(l.total_tokens, COALESCE(l.input_tokens,0)+COALESCE(l.output_tokens,0)) AS tokens,
                          CASE WHEN lower(l.model) LIKE 'claude%'
-                              -- For Claude: prefer stored cost_usd if available, otherwise recalculate using ONLY output_tokens
-                              THEN COALESCE(
-                                   NULLIF(l.cost_usd, 0),
-                                   CASE WHEN l.output_tokens IS NOT NULL AND l.output_tokens > 0
-                                        THEN l.output_tokens * 0.000015  -- $15/1M output tokens
-                                        ELSE l.cost_usd  -- Use stored cost if output_tokens unavailable
-                                   END,
-                                   0
-                              )
+                              -- For Claude: ALWAYS recalculate (ignore stored cost_usd which may be wrong)
+                              -- Claude pricing: $15/1M output tokens = $0.000015 per output token
+                              THEN CASE WHEN l.output_tokens IS NOT NULL AND l.output_tokens > 0
+                                        THEN l.output_tokens * 0.000015
+                                        -- If output_tokens unavailable but total_tokens exists, estimate conservatively (assume 50% output)
+                                        WHEN l.total_tokens IS NOT NULL AND l.total_tokens > 0
+                                        THEN (l.total_tokens * 0.5) * 0.000015
+                                        ELSE 0
+                                   END
                               ELSE COALESCE(l.cost_usd,0)
                          END AS cost_usd,
                          l.created_at AS created_at
@@ -6637,15 +6637,15 @@ def admin_usage_by_user():
                   SELECT l.user_id, l.model,
                          COALESCE(l.total_tokens, COALESCE(l.input_tokens,0)+COALESCE(l.output_tokens,0)) AS tokens,
                          CASE WHEN lower(l.model) LIKE 'claude%'
-                              -- For Claude: prefer stored cost_usd if available, otherwise recalculate using ONLY output_tokens
-                              THEN COALESCE(
-                                   NULLIF(l.cost_usd, 0),
-                                   CASE WHEN l.output_tokens IS NOT NULL AND l.output_tokens > 0
-                                        THEN l.output_tokens * 0.000015  -- $15/1M output tokens
-                                        ELSE l.cost_usd  -- Use stored cost if output_tokens unavailable
-                                   END,
-                                   0
-                              )
+                              -- For Claude: ALWAYS recalculate (ignore stored cost_usd which may be wrong)
+                              -- Claude pricing: $15/1M output tokens = $0.000015 per output token
+                              THEN CASE WHEN l.output_tokens IS NOT NULL AND l.output_tokens > 0
+                                        THEN l.output_tokens * 0.000015
+                                        -- If output_tokens unavailable but total_tokens exists, estimate conservatively (assume 50% output)
+                                        WHEN l.total_tokens IS NOT NULL AND l.total_tokens > 0
+                                        THEN (l.total_tokens * 0.5) * 0.000015
+                                        ELSE 0
+                                   END
                               ELSE COALESCE(l.cost_usd,0)
                          END AS cost_usd,
                          l.created_at AS created_at
