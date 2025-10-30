@@ -6617,7 +6617,10 @@ def admin_usage_by_user():
                   UNION ALL
                   SELECT c.user_id, l.model,
                          COALESCE(l.tokens,0) AS tokens,
-                         COALESCE(l.estimated_cost,0) AS cost_usd,
+                         CASE WHEN lower(l.model) LIKE 'claude%'
+                              THEN COALESCE(l.tokens,0) * 0.000015  -- Recalculate Claude: $15/1M output tokens
+                              ELSE COALESCE(l.estimated_cost,0)
+                         END AS cost_usd,
                          l.timestamp AS created_at
                   FROM llm_usage_logs l LEFT JOIN conversations c ON c.id = l.conversation_id
                 )
@@ -6653,7 +6656,10 @@ def admin_usage_by_user():
                   UNION ALL
                   SELECT c.user_id, l.model,
                          COALESCE(l.tokens,0) AS tokens,
-                         COALESCE(l.estimated_cost,0) AS cost_usd,
+                         CASE WHEN lower(l.model) LIKE 'claude%'
+                              THEN COALESCE(l.tokens,0) * 0.000015  -- Recalculate Claude: $15/1M output tokens
+                              ELSE COALESCE(l.estimated_cost,0)
+                         END AS cost_usd,
                          l.timestamp AS created_at
                   FROM llm_usage_logs l LEFT JOIN conversations c ON c.id = l.conversation_id
                 )
