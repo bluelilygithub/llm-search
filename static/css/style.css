@@ -4085,9 +4085,18 @@ body:has(.modal-overlay[style*="display: flex"]) .settings-panel-overlay {
 /* Projects Grid View */
 .projects-grid-view {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    /* Max 4 columns on wide screens */
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: var(--spacing-xl);
     margin-top: var(--spacing-lg);
+}
+
+/* Responsively reduce columns */
+@media (max-width: 1200px) {
+    .projects-grid-view { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 992px) {
+    .projects-grid-view { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 .project-card {
@@ -4223,7 +4232,8 @@ body:has(.modal-overlay[style*="display: flex"]) .settings-panel-overlay {
     }
     
     .projects-grid-view {
-        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        /* On small screens, 1 column for readability */
+        grid-template-columns: 1fr;
         gap: var(--spacing-lg);
     }
     
