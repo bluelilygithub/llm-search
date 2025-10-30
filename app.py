@@ -1357,30 +1357,65 @@ def get_projects():
     identity = get_user_identity()
     app.logger.info(f"get_projects - identity: {identity}")
     
-    # Admin sees all projects, regular users see only their own projects
+    # Optional user_id filter (admin only)
+    filter_user_id = request.args.get('user_id')
+    if filter_user_id and not identity.get('is_admin', False):
+        return jsonify({'error': 'User filtering is only available for admins'}), 403
+    
+    # Admin sees all projects (optionally filtered by user_id), regular users see only their own projects
+    query = Project.query
     if identity.get('is_admin', False):
-        # Admin sees all projects
-        projects = Project.query.order_by(Project.created_at.desc()).all()
+        # Admin can filter by user_id if provided
+        if filter_user_id:
+            try:
+                filter_uuid = uuid.UUID(filter_user_id)
+                query = query.filter(Project.owner_id == filter_uuid)
+            except ValueError:
+                return jsonify({'error': 'Invalid user_id format'}), 400
+        # Otherwise admin sees all projects
     else:
         # Regular users see only projects they own
         user_id = identity.get('user_id')
         if user_id:
-            projects = Project.query.filter(Project.owner_id == user_id).order_by(Project.created_at.desc()).all()
+            query = query.filter(Project.owner_id == user_id)
         else:
-            projects = []
+            query = query.filter(False)  # No projects for invalid user_id
+    
+    projects = query.order_by(Project.created_at.desc()).all()
     
     project_data = []
     for project in projects:
-        # Count conversations for this project (filtered by user if not admin)
+        # Get owner information (for admin display)
+        owner_info = None
+        if identity.get('is_admin', False) and project.owner_id:
+            try:
+                from models import User
+                owner = User.query.get(project.owner_id)
+                if owner:
+                    owner_info = {
+                        'id': str(owner.id),
+                        'username': owner.username,
+                        'display_name': owner.display_name or owner.username
+                    }
+            except Exception:
+                pass
+        
+        # Count conversations for this project
+        # If admin and filter_user_id is set, also filter conversations by that user
+        conv_query = db.session.query(Conversation).filter(Conversation.project_id == project.id)
         if identity.get('is_admin', False):
-            conversation_count = db.session.query(Conversation).filter(
-                Conversation.project_id == project.id
-            ).count()
+            if filter_user_id:
+                try:
+                    filter_uuid = uuid.UUID(filter_user_id)
+                    conv_query = conv_query.filter(Conversation.user_id == filter_uuid)
+                except ValueError:
+                    pass
+            # Admin sees all conversations when no filter
         else:
-            conversation_count = db.session.query(Conversation).filter(
-                Conversation.project_id == project.id,
-                Conversation.user_id == identity.get('user_id')
-            ).count()
+            # Regular users only see their own conversations
+            conv_query = conv_query.filter(Conversation.user_id == identity.get('user_id'))
+        
+        conversation_count = conv_query.count()
         
         project_data.append({
             'id': str(project.id),
@@ -1388,7 +1423,8 @@ def get_projects():
             'description': project.description,
             'created_at': project.created_at.isoformat(),
             'updated_at': project.updated_at.isoformat() if project.updated_at else None,
-            'conversation_count': conversation_count
+            'conversation_count': conversation_count,
+            'owner': owner_info  # Only populated for admin
         })
     
     return jsonify(project_data)
@@ -2070,11 +2106,34 @@ def rename_project(project_id):
 
 @app.route('/conversations', methods=['GET'])
 def get_conversations():
-    """Get conversations filtered by current user (authenticated or free user)"""
-    project_id = request.args.get('project_id')
+    """Get conversations filtered by current user (authenticated or free user)
     
-    # Start with base query filtered by user
-    query = filter_conversations_by_user(Conversation.query)
+    Admin users can optionally filter by user_id query parameter.
+    """
+    from models import User
+    project_id = request.args.get('project_id')
+    filter_user_id = request.args.get('user_id')  # Optional user filter (admin only)
+    
+    # Get user identity
+    identity = get_user_identity()
+    
+    # Check if user_id filter is allowed (admin only)
+    if filter_user_id and not identity.get('is_admin', False):
+        return jsonify({'error': 'User filtering is only available for admins'}), 403
+    
+    # Start with base query
+    if identity.get('is_admin', False):
+        # Admin sees all conversations (optionally filtered by user_id)
+        query = Conversation.query
+        if filter_user_id:
+            try:
+                filter_uuid = uuid.UUID(filter_user_id)
+                query = query.filter(Conversation.user_id == filter_uuid)
+            except ValueError:
+                return jsonify({'error': 'Invalid user_id format'}), 400
+    else:
+        # Regular users: use existing filter
+        query = filter_conversations_by_user(Conversation.query)
     
     # Add project filter if specified
     if project_id:
@@ -2083,9 +2142,23 @@ def get_conversations():
     conversations = query.order_by(Conversation.updated_at.desc()).all()
     
     # Set session cookie for free users if needed
-    identity = get_user_identity()
-    response_data = [
-        {
+    response_data = []
+    for conv in conversations:
+        # Get user information (for admin display)
+        user_info = None
+        if identity.get('is_admin', False) and conv.user_id:
+            try:
+                user = User.query.get(conv.user_id)
+                if user:
+                    user_info = {
+                        'id': str(user.id),
+                        'username': user.username,
+                        'display_name': user.display_name or user.username
+                    }
+            except Exception:
+                pass
+        
+        response_data.append({
             'id': str(conv.id),
             'project_id': str(conv.project_id) if conv.project_id else None,
             'title': conv.title,
@@ -2093,11 +2166,10 @@ def get_conversations():
             'created_at': conv.created_at.isoformat(),
             'updated_at': conv.updated_at.isoformat(),
             'tags': conv.tags or [],
-            'message_count': len(conv.messages),
+            'user': user_info,  # Only populated for admin
+            'message_count': len(conv.messages) if hasattr(conv, 'messages') else 0,
             'attachment_count': len(conv.context_documents) if conv.context_documents else 0
-        }
-        for conv in conversations
-    ]
+        })
     
     response = jsonify(response_data)
     
