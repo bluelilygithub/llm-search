@@ -3956,7 +3956,7 @@ def ensure_math_personas():
                 'agent_name': 'Algebra Guide',
                 'role': 'A math tutor specializing in numbers, ratios, percentages and foundational algebra.',
                 'traits': 'patient, precise, step-by-step, age-appropriate, checks understanding',
-                'category': 'Math',
+                'category': 'Mathematics',
                 'description': 'Builds fluency with integers, fractions, ratios, indices, linear and quadratic basics.'
             },
             {
@@ -3964,7 +3964,7 @@ def ensure_math_personas():
                 'agent_name': 'Graph Coach',
                 'role': 'A tutor focusing on functions, slopes, and graph interpretations.',
                 'traits': 'visual, concrete examples, step-by-step, error-correcting',
-                'category': 'Math',
+                'category': 'Mathematics',
                 'description': 'Linear, quadratic, exponential functions; slope, intercepts, transformations.'
             },
             {
@@ -3972,7 +3972,7 @@ def ensure_math_personas():
                 'agent_name': 'Geometry Mentor',
                 'role': 'A tutor for space, shape, and measurement problems.',
                 'traits': 'visual, concise, builds intuition, step-by-step',
-                'category': 'Math',
+                'category': 'Mathematics',
                 'description': 'Perimeter, area, volume, Pythagoras, trigonometry, angles, similarity, circles.'
             },
             {
@@ -3980,7 +3980,7 @@ def ensure_math_personas():
                 'agent_name': 'Stats Companion',
                 'role': 'A tutor simplifying data, chance, and inference fundamentals.',
                 'traits': 'clear language, real examples, avoids jargon, checks misconceptions',
-                'category': 'Math',
+                'category': 'Mathematics',
                 'description': 'Displays, centre/spread, sampling, correlation, simple/compound and conditional probability.'
             },
             {
@@ -3988,7 +3988,7 @@ def ensure_math_personas():
                 'agent_name': 'Finance Helper',
                 'role': 'A tutor connecting maths to everyday money decisions.',
                 'traits': 'practical, step-by-step, real-life contexts',
-                'category': 'Math',
+                'category': 'Mathematics',
                 'description': 'Budgeting, discounts, profit/loss, simple and compound interest.'
             },
             {
@@ -3996,7 +3996,7 @@ def ensure_math_personas():
                 'agent_name': 'Modelling Coach',
                 'role': 'A tutor for networks, scheduling, and optimisation modelling.',
                 'traits': 'structured, explains assumptions, iterative',
-                'category': 'Math',
+                'category': 'Mathematics',
                 'description': 'Networks, shortest paths, critical path, linear programming (intro), simulations.'
             },
             {
@@ -4004,7 +4004,7 @@ def ensure_math_personas():
                 'agent_name': 'Pre-Calculus Guide',
                 'role': 'A tutor preparing students for higher-level mathematics.',
                 'traits': 'rigorous but accessible, builds from intuition to formality',
-                'category': 'Math',
+                'category': 'Mathematics',
                 'description': 'Polynomials, rationals, logs, trig graphs, identities, limits (conceptual).'
             }
         ]
@@ -4012,7 +4012,7 @@ def ensure_math_personas():
         created = 0
         updated = 0
         for spec in core_personas:
-            existing = Persona.query.filter(Persona.name == spec['name'], Persona.category == 'Math').first()
+            existing = Persona.query.filter(Persona.name == spec['name'], Persona.category == 'Mathematics').first()
             if existing:
                 changed = False
                 for k in ['agent_name', 'role', 'traits', 'description']:
@@ -4064,7 +4064,7 @@ def create_math_projects_for_user():
         if not user:
             return jsonify({'success': False, 'error': f'User not found: {username}'}), 404
 
-        personas = Persona.query.filter_by(category='Math', is_active=True).all()
+        personas = Persona.query.filter_by(category='Mathematics', is_active=True).all()
         if not personas:
             return jsonify({'success': False, 'error': 'No Math personas found. Run /admin/ensure_math_personas first.'}), 400
 
