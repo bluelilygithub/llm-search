@@ -27,6 +27,12 @@
 - **Voice UX**: Robust STT/ TTS, with one auto‑retry on “no‑speech”.
 - **Organization & Search**: Projects, tags, powerful conversation search (with semantic toggle).
 - **Cloning**: Duplicate a project’s setup in one click (no conversation leakage).
+ - **Admin Filtering**: Admins can filter projects and conversations by user; cards show owner/user info.
+ - **Mathematics Personas & Seeding**:
+   - Upsert seven core personas (Number & Algebra; Functions & Graphs; Measurement & Geometry; Statistics & Probability; Financial Mathematics; Discrete & Modelling; Extension/Pre‑Calculus)
+   - Create projects per persona for a user
+   - Seed subtopic chats per project (prompt: “Explain what is meant by {subtopic}.”)
+ - **Projects Grid UX**: Grid caps at 4 columns for clarity on desktop (responsive downscale).
 
 ## How it works (high level)
 1. **Frontend (Flask templates + JS)**

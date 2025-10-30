@@ -118,6 +118,8 @@ Curam AI Knowledge Base is a multi-LLM chat interface that allows users to:
 - **Export & Import**: Full conversation export with context preservation
 - **Personalized Welcome**: Custom welcome messages with user's display name
  - **Icon‑only Project Actions**: Compact project cards with one‑row actions (preview, setup, rename, delete, clone)
+ - **Admin Filtering**: Admins can filter Projects/Conversations by user and see owner/user info
+ - **Projects Grid (Max 4 Cols)**: Projects grid caps at 4 columns with responsive fallbacks
 
 ### 🎯 Education‑ready Math Mode
 - **Teacher‑quality Guardrails**: Compute‑first, verify by substitution, explicit self‑correction on contradictions
@@ -135,6 +137,12 @@ Curam AI Knowledge Base is a multi-LLM chat interface that allows users to:
 - **Progress Dashboard**: Latest quiz summary, per‑topic quiz mastery, and now a quiz history list with attempt details
 - **Blended Math Signals**: For math topics, quiz correctness contributes to “Signals: + / −” and the topic score
 - **APIs**: `POST /projects/<id>/quiz/generate`, `POST /projects/<id>/quiz/submit`, `GET /api/progress/summary`, `GET /api/progress/quiz-history`, `GET /api/progress/quiz-attempt/<attempt_id>`
+
+### 🧮 Mathematics Personas & Seeding (Admin)
+- **Seven Core Personas** (category “Mathematics”): Number and Algebra; Functions and Graphs; Measurement and Geometry; Statistics and Probability; Financial Mathematics; Discrete and Modelling; Extension / Pre‑Calculus
+- **Create Projects per Persona**: `POST /admin/create_math_projects_for_user` accepts `{ username }` or `{ user_id }`; creates one project per persona (skips duplicates)
+- **Seed Subtopic Chats**: `POST /admin/seed_math_subtopics_for_user` accepts `{ username }` or `{ user_id }`; creates one conversation per subtopic with the prompt “Explain what is meant by {subtopic}.” (skips duplicates)
+- **Ensure Personas Exist**: `POST /admin/ensure_math_personas` upserts the seven personas under category “Mathematics”
 
 ### 🧩 Adaptive Profile (v1)
 - **Guest Compatibility**: Adaptive runs only for authenticated users; demo guests are kept simple and capped
@@ -384,6 +392,7 @@ We attempted to enhance the RAG system with the following features:
  - **On‑demand Illustration**: One‑click button adds a chart/graphic below the assistant message
  - **Demo Banner & Restrictions**: Visible banner for demo guests (expiry, allowed vs. restricted actions), admin‑only UI hidden
  - **Curriculum Sources Tooltip**: Adds NSW references (e.g., Class Mathematics Year 10 Core) in assistant message info
+ - **Admin Personas Panel**: Personas appear grouped under category; mathematics personas show under “Mathematics”
 
 ## 📄 License
 
