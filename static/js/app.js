@@ -730,6 +730,7 @@
                     <div class="conversation-meta">
                         ${metaInfo}
                     </div>
+                    ${conv.user && this.isAdmin ? `<div class="conversation-user" style="font-size: 11px; color: #666; margin-top: 4px;"><i class="fas fa-user"></i> ${conv.user.display_name || conv.user.username}</div>` : ''}
                     <div class="conversation-tags">${tags}</div>
                 </div>
                 <div class="conversation-actions">
