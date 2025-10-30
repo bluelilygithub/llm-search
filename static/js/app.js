@@ -4483,35 +4483,41 @@ window.showSettingsSection = function(sectionName) {
         window.app.renderTemplatesManagementList();
     }
     
-    // Special handling for personas section
+    // Special handling for personas section - auto-load data when tab is clicked
     if (sectionName === 'personas') {
-        console.log('🔍 Loading personas list...');
-        if (window.app && window.app.renderPersonasManagementList) {
-            window.app.renderPersonasManagementList();
-        } else if (typeof refreshPersonasList === 'function') {
-            console.log('🔍 Using global refreshPersonasList function...');
-            refreshPersonasList();
-        } else {
-            console.error('❌ Cannot render personas: window.app not available and refreshPersonasList not found');
-            const container = document.getElementById('personas-list');
-            if (container) {
-                container.innerHTML = '<p class="error-message">Error: Application not initialized. Please refresh the page.</p>';
+        // Small delay to ensure DOM is ready
+        setTimeout(() => {
+            console.log('🔍 Auto-loading personas list...');
+            if (window.app && typeof window.app.renderPersonasManagementList === 'function') {
+                window.app.renderPersonasManagementList();
+            } else if (typeof refreshPersonasList === 'function') {
+                console.log('🔍 Using global refreshPersonasList function...');
+                refreshPersonasList();
+            } else {
+                console.error('❌ Cannot render personas: window.app not available and refreshPersonasList not found');
+                const container = document.getElementById('personas-list');
+                if (container) {
+                    container.innerHTML = '<p class="error-message">Error: Application not initialized. Please refresh the page.</p>';
+                }
             }
-        }
+        }, 100);
     }
     
-    // Special handling for users section
+    // Special handling for users section - auto-load data when tab is clicked
     if (sectionName === 'users') {
-        if (typeof window.refreshUsersList === 'function') {
-            console.log('🔍 Loading users list...');
-            window.refreshUsersList();
-        } else {
-            console.error('❌ Cannot refresh users: refreshUsersList function not found');
-            const container = document.getElementById('users-list');
-            if (container) {
-                container.innerHTML = '<p class="error-message">Error: Function not available. Please refresh the page.</p>';
+        // Small delay to ensure DOM is ready
+        setTimeout(() => {
+            if (typeof window.refreshUsersList === 'function') {
+                console.log('🔍 Auto-loading users list...');
+                window.refreshUsersList();
+            } else {
+                console.error('❌ Cannot refresh users: refreshUsersList function not found');
+                const container = document.getElementById('users-list');
+                if (container) {
+                    container.innerHTML = '<p class="error-message">Error: Function not available. Please refresh the page.</p>';
+                }
             }
-        }
+        }, 100);
     }
 };
 
