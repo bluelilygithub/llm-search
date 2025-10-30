@@ -4083,7 +4083,16 @@ def create_math_projects_for_user():
         skipped = 0
         results = []
         for persona in personas:
+            # Safeguard field lengths to match Project schema
             project_name = f"{persona.name} – Math Project"
+            if len(project_name) > 255:
+                project_name = project_name[:255]
+            agent_role_val = (persona.role or '')
+            if len(agent_role_val) > 500:
+                agent_role_val = agent_role_val[:500]
+            agent_traits_val = (persona.traits or '')
+            if len(agent_traits_val) > 500:
+                agent_traits_val = agent_traits_val[:500]
             existing = Project.query.filter_by(owner_id=user.id, name=project_name).first()
             if existing:
                 skipped += 1
@@ -4094,8 +4103,8 @@ def create_math_projects_for_user():
                 name=project_name,
                 description=f"Practice and coaching for {persona.name}.",
                 agent_name=persona.agent_name,
-                agent_role=persona.role,
-                agent_personality=persona.traits,
+                agent_role=agent_role_val,
+                agent_personality=agent_traits_val,
                 primary_goal=f"Help the student master {persona.name} with step-by-step guidance.",
                 goal_steps='["diagnose level", "teach concept", "guided practice", "check understanding"]',
                 rules_do='["be precise", "be age-appropriate", "check for understanding"]',
