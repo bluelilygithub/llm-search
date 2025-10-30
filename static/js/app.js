@@ -10,6 +10,9 @@
         this.projects = []; // Initialize projects array
         this.currentView = 'home'; // Set default view to home
         this.pendingLearningSignal = null; // Store learning signal from button clicks
+        this.isAdmin = false; // Cache admin status
+        this.usersList = []; // Cache users list for filter dropdown
+        this.selectedUserFilter = null; // Selected user_id for filtering
         
         // Setup global error handling
         this.setupGlobalErrorHandling();
@@ -19,6 +22,8 @@
     }
 
     async init() {
+        // Check admin status first
+        await this.checkAdminStatus();
         this.loadProjects(); // Load projects on app initialization
         this.loadConversations();
         this.setupEventListeners();
@@ -31,6 +36,50 @@
         await this.showHomeView();
         
         // No longer showing model instructions automatically
+    }
+
+    async checkAdminStatus() {
+        try {
+            const response = await fetch('/auth/status');
+            const data = await response.json();
+            const roleLower = (data.user_role || '').toLowerCase();
+            this.isAdmin = data.authenticated && (roleLower === 'super_admin' || roleLower === 'admin' || data.user_type === 'admin');
+            
+            // Load users list if admin (for filter dropdown)
+            if (this.isAdmin) {
+                await this.loadUsersList();
+            }
+        } catch (error) {
+            console.error('Error checking admin status:', error);
+            this.isAdmin = false;
+        }
+    }
+
+    async loadUsersList() {
+        try {
+            const response = await fetch('/api/users');
+            if (response.ok) {
+                const data = await response.json();
+                this.usersList = data.users || [];
+            }
+        } catch (error) {
+            console.error('Error loading users list:', error);
+            this.usersList = [];
+        }
+    }
+
+    setUserFilter(userId) {
+        this.selectedUserFilter = userId || null;
+        // Reload current view
+        if (this.currentView === 'projects') {
+            this.loadProjectsGrid();
+        } else if (this.currentView === 'conversations') {
+            this.loadConversationsGrid();
+        } else {
+            // Also reload sidebar lists
+            this.loadProjects();
+            this.loadConversations();
+        }
     }
 
     setupGlobalErrorHandling() {
@@ -165,7 +214,12 @@
     // --- Project Management ---
     async loadProjects() {
         try {
-            const response = await fetch('/projects');
+            let url = '/projects';
+            // Add user filter if admin and filter is selected
+            if (this.isAdmin && this.selectedUserFilter) {
+                url += `?user_id=${this.selectedUserFilter}`;
+            }
+            const response = await fetch(url);
             const projects = await response.json();
             this.projects = projects; // Store projects for later use
             this.renderProjects(projects);
@@ -196,6 +250,7 @@
                     <div class="project-info">
                         <div class="project-title">${project.name}</div>
                         <div class="project-description">${project.description || 'No description'}</div>
+                        ${project.owner && this.isAdmin ? `<div class="project-owner" style="font-size: 11px; color: #666; margin-top: 4px;"><i class="fas fa-user"></i> ${project.owner.display_name || project.owner.username}</div>` : ''}
                     </div>
                 </div>
             `;
@@ -620,8 +675,16 @@
     async loadConversations() {
         try {
             let url = '/conversations';
+            const params = [];
             if (this.currentProject && this.currentProject.id) {
-                url += `?project_id=${this.currentProject.id}`;
+                params.push(`project_id=${this.currentProject.id}`);
+            }
+            // Add user filter if admin and filter is selected
+            if (this.isAdmin && this.selectedUserFilter) {
+                params.push(`user_id=${this.selectedUserFilter}`);
+            }
+            if (params.length > 0) {
+                url += '?' + params.join('&');
             }
             const response = await fetch(url);
             const conversations = await response.json();
@@ -9788,7 +9851,13 @@ KnowledgeBaseApp.prototype.showConversationsView = function() {
                 <i class="fas fa-clock"></i>
                 <h2>Recent Conversations</h2>
             </div>
-            <div class="view-actions">
+            <div class="view-actions" style="display: flex; align-items: center; gap: 10px;">
+                ${this.isAdmin ? `
+                <select id="conversations-user-filter" class="user-filter-select" onchange="window.app.setUserFilter(this.value || null)" style="padding: 6px 12px; border: 1px solid #ddd; border-radius: 4px; background: white; cursor: pointer;">
+                    <option value="">All Users</option>
+                    ${this.usersList.map(u => `<option value="${u.id}" ${this.selectedUserFilter === u.id ? 'selected' : ''}>${u.display_name || u.username}</option>`).join('')}
+                </select>
+                ` : ''}
                 <button class="view-action-btn" onclick="window.app.startNewChat()">
                     <i class="fas fa-plus"></i>
                     New Chat
@@ -9905,7 +9974,13 @@ KnowledgeBaseApp.prototype.showProjectsView = function() {
                 <i class="fas fa-folder-open"></i>
                 <h2>Projects</h2>
             </div>
-            <div class="view-actions">
+            <div class="view-actions" style="display: flex; align-items: center; gap: 10px;">
+                ${this.isAdmin ? `
+                <select id="projects-user-filter" class="user-filter-select" onchange="window.app.setUserFilter(this.value || null)" style="padding: 6px 12px; border: 1px solid #ddd; border-radius: 4px; background: white; cursor: pointer;">
+                    <option value="">All Users</option>
+                    ${this.usersList.map(u => `<option value="${u.id}" ${this.selectedUserFilter === u.id ? 'selected' : ''}>${u.display_name || u.username}</option>`).join('')}
+                </select>
+                ` : ''}
                 <button class="view-action-btn" onclick="window.app.promptCreateNewProject()">
                     <i class="fas fa-plus"></i>
                     New Project
@@ -10029,7 +10104,16 @@ KnowledgeBaseApp.prototype.showProjectConversationsView = function(project) {
 // Load conversations grid data
 KnowledgeBaseApp.prototype.loadConversationsGrid = async function() {
     try {
-        const response = await fetch('/conversations');
+        let url = '/conversations';
+        const params = [];
+        // Add user filter if admin and filter is selected
+        if (this.isAdmin && this.selectedUserFilter) {
+            params.push(`user_id=${this.selectedUserFilter}`);
+        }
+        if (params.length > 0) {
+            url += '?' + params.join('&');
+        }
+        const response = await fetch(url);
         const conversations = await response.json();
         this.renderConversationsGrid(conversations);
     } catch (error) {
@@ -10082,7 +10166,12 @@ KnowledgeBaseApp.prototype.loadHomeStats = async function() {
 // Load projects grid data
 KnowledgeBaseApp.prototype.loadProjectsGrid = async function() {
     try {
-        const response = await fetch('/projects');
+        let url = '/projects';
+        // Add user filter if admin and filter is selected
+        if (this.isAdmin && this.selectedUserFilter) {
+            url += `?user_id=${this.selectedUserFilter}`;
+        }
+        const response = await fetch(url);
         const projects = await response.json();
         this.renderProjectsGrid(projects);
     } catch (error) {
@@ -10225,6 +10314,7 @@ KnowledgeBaseApp.prototype.renderConversationsGrid = function(conversations, con
                 </div>
                 <div class="conversation-card-tags">${tags}</div>
                 <div class="conversation-card-preview">${preview}</div>
+                ${conv.user && this.isAdmin ? `<div class="conversation-card-user" style="font-size: 11px; color: #666; margin-top: 6px;"><i class="fas fa-user"></i> ${conv.user.display_name || conv.user.username}</div>` : ''}
             </div>
         `;
     }).join('');
@@ -10295,6 +10385,7 @@ KnowledgeBaseApp.prototype.renderProjectsGrid = function(projects, retryCount = 
                 </div>
                 <h3 class="project-card-title">${project.name}</h3>
                 <p class="project-card-count">${conversationCount} conversations</p>
+                ${project.owner && this.isAdmin ? `<p class="project-card-owner" style="font-size: 11px; color: #666; margin-top: 4px;"><i class="fas fa-user"></i> ${project.owner.display_name || project.owner.username}</p>` : ''}
                 <div class="project-card-actions" style="display:flex; gap:8px; flex-wrap:nowrap; align-items:center; justify-content:flex-start;">
                     <button class="view-action-btn secondary" onclick="event.stopPropagation(); viewProjectTemplate('${project.id}')" title="Preview">
                         <i class="fas fa-eye"></i>
