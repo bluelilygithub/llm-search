@@ -3938,6 +3938,7 @@ def get_persona_categories():
 
 # ==================== ADMIN MATH PERSONAS/PROJECTS HELPERS ====================
 
+@csrf.exempt
 @app.route('/admin/ensure_math_personas', methods=['POST'])
 @auth.login_required
 def ensure_math_personas():
@@ -4043,6 +4044,7 @@ def ensure_math_personas():
         return jsonify({'success': False, 'error': 'Failed to ensure personas'}), 500
 
 
+@csrf.exempt
 @app.route('/admin/create_math_projects_for_user', methods=['POST'])
 @auth.login_required
 def create_math_projects_for_user():
