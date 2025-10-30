@@ -1391,7 +1391,10 @@ def get_projects():
         owner_info = None
         if is_admin_flag and project.owner_id:
             try:
-                from models import User
+                try:
+                    from models import User
+                except Exception:
+                    from user_models import User
                 owner = User.query.get(project.owner_id)
                 if owner:
                     owner_info = {
@@ -2113,7 +2116,11 @@ def get_conversations():
     Admin users can optionally filter by user_id query parameter.
     """
     try:
-        from models import User
+        # Import User model with fallback
+        try:
+            from models import User
+        except Exception:
+            from user_models import User
         project_id = request.args.get('project_id')
         filter_user_id = request.args.get('user_id')  # Optional user filter (admin only)
 
@@ -4057,7 +4064,18 @@ def create_math_projects_for_user():
             return jsonify({'success': False, 'error': 'Admin access required'}), 403
 
         data = request.get_json(silent=True) or {}
-        from models import User, Persona, Project
+        # Import models, with fallback for User
+        from models import Persona, Project
+        try:
+            from models import User  # Preferred if available
+        except Exception:
+            from user_models import User  # Fallback when User is defined in user_models.py
+        # Import models, with fallback for User
+        from models import Persona, Project
+        try:
+            from models import User
+        except Exception:
+            from user_models import User
         user = None
         user_id_str = (data.get('user_id') or '').strip()
         username = (data.get('username') or '').strip()
