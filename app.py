@@ -2110,17 +2110,19 @@ def get_conversations():
     
     Admin users can optionally filter by user_id query parameter.
     """
-    from models import User
-    project_id = request.args.get('project_id')
-    filter_user_id = request.args.get('user_id')  # Optional user filter (admin only)
-    
-    # Get user identity
-    identity = get_user_identity()
-    
-    # Check if user_id filter is allowed (admin only)
-    if filter_user_id and not identity.get('is_admin', False):
-        return jsonify({'error': 'User filtering is only available for admins'}), 403
-    
+    try:
+        from models import User
+        project_id = request.args.get('project_id')
+        filter_user_id = request.args.get('user_id')  # Optional user filter (admin only)
+        
+        # Get user identity
+        identity = get_user_identity()
+        app.logger.info(f"get_conversations - identity.is_admin: {identity.get('is_admin')}, filter_user_id: {filter_user_id}")
+        
+        # Check if user_id filter is allowed (admin only)
+        if filter_user_id and not identity.get('is_admin', False):
+            return jsonify({'error': 'User filtering is only available for admins'}), 403
+        
         # Start with base query
         if identity.get('is_admin', False):
             # Admin sees all conversations (optionally filtered by user_id)
@@ -2139,13 +2141,14 @@ def get_conversations():
         
         # Add project filter if specified
         if project_id:
-           从未 try:
+            try:
                 project_uuid = uuid.UUID(project_id)
                 query = query.filter(Conversation.project_id == project_uuid)
             except ValueError:
                 return jsonify({'error': 'Invalid project_id format'}), 400
-    
-    conversations = query.order_by(Conversation.updated_at.desc()).all()
+        
+        conversations = query.order_by(Conversation.updated_at.desc()).all()
+        app.logger.info(f"Found {len(conversations)} conversations")
     
     # Set session cookie for free users if needed
     response_data = []
