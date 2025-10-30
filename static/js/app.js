@@ -71,6 +71,8 @@
             if (response.ok) {
                 const data = await response.json();
                 this.usersList = data.users || [];
+                // Update sidebar filter dropdowns with users
+                this.updateSidebarFilters();
             }
         } catch (error) {
             console.error('Error loading users list:', error);
@@ -78,8 +80,44 @@
         }
     }
 
+    showAdminFilters() {
+        // Show filter containers in sidebar for admin
+        const convFilterContainer = document.getElementById('conversations-filter-container');
+        const projFilterContainer = document.getElementById('projects-filter-container');
+        if (convFilterContainer) convFilterContainer.style.display = 'block';
+        if (projFilterContainer) projFilterContainer.style.display = 'block';
+    }
+
+    updateSidebarFilters() {
+        // Populate sidebar filter dropdowns with users list
+        const convFilter = document.getElementById('sidebar-conversations-user-filter');
+        const projFilter = document.getElementById('sidebar-projects-user-filter');
+        
+        const options = this.usersList.map(u => 
+            `<option value="${u.id}" ${this.selectedUserFilter === u.id ? 'selected' : ''}>${u.display_name || u.username}</option>`
+        ).join('');
+        
+        if (convFilter) {
+            convFilter.innerHTML = '<option value="">All Users</option>' + options;
+        }
+        if (projFilter) {
+            projFilter.innerHTML = '<option value="">All Users</option>' + options;
+        }
+    }
+
     setUserFilter(userId) {
         this.selectedUserFilter = userId || null;
+        console.log('🔍 User filter changed:', userId || 'All Users');
+        
+        // Update sidebar filter dropdowns
+        this.updateSidebarFilters();
+        
+        // Update main view filter dropdowns if they exist
+        const convFilter = document.getElementById('conversations-user-filter');
+        const projFilter = document.getElementById('projects-user-filter');
+        if (convFilter) convFilter.value = userId || '';
+        if (projFilter) projFilter.value = userId || '';
+        
         // Reload current view
         if (this.currentView === 'projects') {
             this.loadProjectsGrid();
