@@ -1352,19 +1352,21 @@ def migrate_project_template():
 @auth.login_required
 def get_projects():
     from models import Project, Conversation
-    
+
     # Get user identity to determine filtering
     identity = get_user_identity()
-    app.logger.info(f"get_projects - identity: {identity}")
-    
+    role_lower = str(identity.get('user_role') or '').lower()
+    is_admin_flag = bool(identity.get('is_admin', False) or role_lower in ('admin', 'super_admin'))
+    app.logger.info(f"get_projects - identity: {identity}, computed_is_admin: {is_admin_flag}")
+
     # Optional user_id filter (admin only)
     filter_user_id = request.args.get('user_id')
-    if filter_user_id and not identity.get('is_admin', False):
+    if filter_user_id and not is_admin_flag:
         return jsonify({'error': 'User filtering is only available for admins'}), 403
-    
+
     # Admin sees all projects (optionally filtered by user_id), regular users see only their own projects
     query = Project.query
-    if identity.get('is_admin', False):
+    if is_admin_flag:
         # Admin can filter by user_id if provided
         if filter_user_id:
             try:
@@ -1387,7 +1389,7 @@ def get_projects():
     for project in projects:
         # Get owner information (for admin display)
         owner_info = None
-        if identity.get('is_admin', False) and project.owner_id:
+        if is_admin_flag and project.owner_id:
             try:
                 from models import User
                 owner = User.query.get(project.owner_id)
@@ -1403,7 +1405,7 @@ def get_projects():
         # Count conversations for this project
         # If admin and filter_user_id is set, also filter conversations by that user
         conv_query = db.session.query(Conversation).filter(Conversation.project_id == project.id)
-        if identity.get('is_admin', False):
+        if is_admin_flag:
             if filter_user_id:
                 try:
                     filter_uuid = uuid.UUID(filter_user_id)
@@ -2114,17 +2116,19 @@ def get_conversations():
         from models import User
         project_id = request.args.get('project_id')
         filter_user_id = request.args.get('user_id')  # Optional user filter (admin only)
-        
+
         # Get user identity
         identity = get_user_identity()
-        app.logger.info(f"get_conversations - identity.is_admin: {identity.get('is_admin')}, filter_user_id: {filter_user_id}")
+        role_lower = str(identity.get('user_role') or '').lower()
+        is_admin_flag = bool(identity.get('is_admin', False) or role_lower in ('admin', 'super_admin'))
+        app.logger.info(f"get_conversations - identity: {identity}, computed_is_admin: {is_admin_flag}, filter_user_id: {filter_user_id}")
         
         # Check if user_id filter is allowed (admin only)
-        if filter_user_id and not identity.get('is_admin', False):
+        if filter_user_id and not is_admin_flag:
             return jsonify({'error': 'User filtering is only available for admins'}), 403
         
         # Start with base query
-        if identity.get('is_admin', False):
+        if is_admin_flag:
             # Admin sees all conversations (optionally filtered by user_id)
             query = Conversation.query
             if filter_user_id:
