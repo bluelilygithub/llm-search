@@ -9,6 +9,7 @@
         this.currentProject = null; // Added for project management
         this.projects = []; // Initialize projects array
         this.currentView = 'home'; // Set default view to home
+        this.pendingLearningSignal = null; // Store learning signal from button clicks
         
         // Setup global error handling
         this.setupGlobalErrorHandling();
@@ -1109,7 +1110,27 @@
             .replace(/'/g, '&#39;');
     }
 
-    async askFollowUpQuestion(question) { console.log('Follow-up question:', question);
+    async askFollowUpQuestion(question) { 
+        console.log('Follow-up question:', question);
+        
+        // Map button text to learning signal for adaptive profile
+        const qLower = (question || '').toLowerCase();
+        let learningSignal = '';
+        if (qLower.includes('explain again') || qLower.includes('explain it to someone') || qLower.includes('simplify')) {
+            learningSignal = 'explain_again';
+        } else if (qLower.includes('got it') || qLower.includes('understood') || qLower.includes('clear')) {
+            learningSignal = 'got_it';
+        } else if (qLower.includes('try a similar') || qLower.includes('another example')) {
+            learningSignal = 'try_similar';
+        } else if (qLower.includes('more detail') || qLower.includes('show steps') || qLower.includes('explain more')) {
+            learningSignal = 'more_detail';
+        }
+        
+        // Store learning signal temporarily (will be included in next sendMessage call)
+        if (learningSignal) {
+            this.pendingLearningSignal = learningSignal;
+            console.log('📚 Learning signal detected:', learningSignal);
+        }
         
         const messageInput = document.querySelector('#message-input');
         if (messageInput) {
@@ -1332,6 +1353,15 @@
                 const projectToUse = this.currentProject || this.currentViewProject;
                 if (projectToUse && projectToUse.id && !this.currentConversationId) {
                     requestBody.project_id = projectToUse.id;
+                }
+                
+                // Add learning signal if this was triggered by a follow-up button click
+                if (this.pendingLearningSignal) {
+                    requestBody.learning_signal = this.pendingLearningSignal;
+                    // Clear after use (one-time signal per interaction)
+                    const signalToLog = this.pendingLearningSignal;
+                    this.pendingLearningSignal = null;
+                    console.log('📚 Sending learning signal:', signalToLog);
                 }
                 
                 const response = await fetch('/chat', {

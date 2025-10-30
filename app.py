@@ -226,8 +226,11 @@ def build_math_guardrails_system_prompt(user_name, project):
         "- End with a natural check-in question only if it adds value (e.g., 'Does finding $b$ by plugging the point make sense?').\n"
     )
 
-def build_user_profile_system_prompt():
+def build_user_profile_system_prompt(project=None):
     """Build a system prompt describing the currently logged-in user's profile.
+    
+    Optionally augmented by project-specific preferences. Project preferences
+    override global preferences for this project.
 
     Uses session identity to fetch the User and includes any available
     preferences such as age, grade/year level, region, and learning style.
@@ -263,10 +266,36 @@ def build_user_profile_system_prompt():
             age = None
         age_clause = f" Aim for a reading level suitable for a {age}-year-old." if age else ""
 
-        # Optional tone/verbosity/reading level
+        # Get global tone/verbosity/reading level
         tone = (prefs.get('tone') or '').strip() if isinstance(prefs.get('tone'), str) else ''
         verbosity = (prefs.get('verbosity') or '').strip() if isinstance(prefs.get('verbosity'), str) else ''
         reading_level = (prefs.get('reading_level') or '').strip() if isinstance(prefs.get('reading_level'), str) else ''
+        
+        # If project exists, merge project-specific preferences (project overrides global)
+        project_id_str = None
+        if project:
+            try:
+                project_id_str = str(project.id) if hasattr(project, 'id') else None
+            except Exception:
+                pass
+        
+        if project_id_str:
+            project_profiles = prefs.get('project_profiles') or {}
+            project_prefs = project_profiles.get(project_id_str) or {}
+            # Project preferences override global
+            if project_prefs.get('tone'):
+                tone = str(project_prefs.get('tone')).strip()
+            if project_prefs.get('verbosity'):
+                verbosity = str(project_prefs.get('verbosity')).strip()
+            if project_prefs.get('reading_level'):
+                reading_level = str(project_prefs.get('reading_level')).strip()
+            
+            # Add project context note if project has specific preferences
+            if project_prefs.get('verbosity') or project_prefs.get('tone'):
+                project_name = getattr(project, 'name', 'this project')
+                project_context = f" (Note: In this {project_name} project, user prefers {verbosity or 'standard'} verbosity)"
+                details = details + project_context if details else project_context
+        
         style_bits = []
         if tone:
             style_bits.append(f"tone: {tone}")
@@ -2433,7 +2462,7 @@ def chat():
         user_display_name = session.get('display_name') or session.get('username') or 'User'
         # Build a dynamic user profile system prompt (based on the logged-in user)
         try:
-            user_profile_prompt = build_user_profile_system_prompt()
+            user_profile_prompt = build_user_profile_system_prompt(project=project)
             if user_profile_prompt:
                 messages.append({'role': 'system', 'content': user_profile_prompt})
                 app.logger.info("Applied user profile system prompt")
@@ -2730,29 +2759,70 @@ Use this context to provide accurate, detailed responses. When referencing infor
                 if user is not None:
                     prefs = user.preferences or {}
                     profile = prefs.get('profile') or {}
-                    # Extract signals
-                    msg_lower = (user_message or '').lower()
-                    simplify = any(k in msg_lower for k in ['simplify', 'explain again', 'easier'])
-                    shorter = any(k in msg_lower for k in ['shorter', 'tl;dr'])
-                    more_detail = any(k in msg_lower for k in ['more detail', 'step by step', 'show steps'])
-                    # Map to deltas
+                    
+                    # Get learning signal from button click OR extract from message text
+                    learning_signal = data.get('learning_signal', '').lower().strip()
+                    project_id_str = str(project.id) if project and hasattr(project, 'id') else None
+                    
+                    # Detect signals (priority: explicit button signal > text detection)
                     delta_v = 0.0
-                    if simplify or shorter: delta_v -= 0.1
-                    if more_detail: delta_v += 0.1
-                    # EMA update
+                    if learning_signal:
+                        # Button-based signals (explicit)
+                        if learning_signal in ['explain_again', 'simplify', 'easier']:
+                            delta_v -= 0.1  # User wants simpler = reduce verbosity
+                        elif learning_signal in ['got_it', 'understood', 'clear']:
+                            delta_v += 0.05  # User understood = slight increase (they're ready for more)
+                        elif learning_signal in ['try_similar', 'another_example']:
+                            delta_v += 0.03  # User wants practice = slight increase
+                        elif learning_signal in ['more_detail', 'show_steps', 'explain_more']:
+                            delta_v += 0.1  # User wants more detail = increase verbosity
+                    else:
+                        # Fallback: text-based signal detection (backwards compatible)
+                        msg_lower = (user_message or '').lower()
+                        simplify = any(k in msg_lower for k in ['simplify', 'explain again', 'easier'])
+                        shorter = any(k in msg_lower for k in ['shorter', 'tl;dr'])
+                        more_detail = any(k in msg_lower for k in ['more detail', 'step by step', 'show steps'])
+                        if simplify or shorter: delta_v -= 0.1
+                        if more_detail: delta_v += 0.1
+                    
+                    # EMA update function
                     def ema(old, delta, alpha=0.2, cap=0.05):
                         if delta > cap: delta = cap
                         if delta < -cap: delta = -cap
                         return max(0.0, min(1.0, (1-alpha)*old + alpha*(old+delta)))
-                    v_old = float(profile.get('preferred_verbosity_score', 0.5) or 0.5)
-                    v_new = ema(v_old, delta_v)
-                    profile['preferred_verbosity_score'] = round(v_new, 3)
-                    # Only derive discrete verbosity if adaptive_profile is true and user did not set it explicitly
-                    if prefs.get('adaptive_profile') and not prefs.get('verbosity'):
-                        if v_new < 0.3: prefs['verbosity'] = 'brief'
-                        elif v_new > 0.7: prefs['verbosity'] = 'detailed'
-                        else: prefs['verbosity'] = 'standard'
-                    prefs['profile'] = profile
+                    
+                    # Store per-project preferences if project exists, otherwise global
+                    if project_id_str and prefs.get('adaptive_profile'):
+                        # Initialize project_profiles structure if needed
+                        project_profiles = prefs.get('project_profiles') or {}
+                        project_prefs = project_profiles.get(project_id_str) or {}
+                        
+                        # Get existing verbosity score for this project (or global default)
+                        v_old_global = float(profile.get('preferred_verbosity_score', 0.5) or 0.5)
+                        v_old = float(project_prefs.get('preferred_verbosity_score', v_old_global) or v_old_global)
+                        v_new = ema(v_old, delta_v)
+                        project_prefs['preferred_verbosity_score'] = round(v_new, 3)
+                        
+                        # Update discrete verbosity for this project only
+                        if v_new < 0.3: project_prefs['verbosity'] = 'brief'
+                        elif v_new > 0.7: project_prefs['verbosity'] = 'detailed'
+                        else: project_prefs['verbosity'] = 'standard'
+                        
+                        project_profiles[project_id_str] = project_prefs
+                        prefs['project_profiles'] = project_profiles
+                        app.logger.info(f"Updated project-specific verbosity for project {project_id_str}: {v_new:.3f}")
+                    else:
+                        # Global preference update (backwards compatible)
+                        v_old = float(profile.get('preferred_verbosity_score', 0.5) or 0.5)
+                        v_new = ema(v_old, delta_v)
+                        profile['preferred_verbosity_score'] = round(v_new, 3)
+                        prefs['profile'] = profile
+                        # Only derive discrete verbosity if adaptive_profile is true and user did not set it explicitly
+                        if prefs.get('adaptive_profile') and not prefs.get('verbosity'):
+                            if v_new < 0.3: prefs['verbosity'] = 'brief'
+                            elif v_new > 0.7: prefs['verbosity'] = 'detailed'
+                            else: prefs['verbosity'] = 'standard'
+                    
                     user.preferences = prefs
                     db.session.commit()
         except Exception as _adaptive_error:
