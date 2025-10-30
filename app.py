@@ -4057,14 +4057,23 @@ def create_math_projects_for_user():
             return jsonify({'success': False, 'error': 'Admin access required'}), 403
 
         data = request.get_json(silent=True) or {}
-        username = (data.get('username') or '').strip()
-        if not username:
-            return jsonify({'success': False, 'error': 'username is required'}), 400
-
         from models import User, Persona, Project
-        user = User.query.filter_by(username=username).first()
+        user = None
+        user_id_str = (data.get('user_id') or '').strip()
+        username = (data.get('username') or '').strip()
+        if user_id_str:
+            try:
+                user_uuid = uuid.UUID(user_id_str)
+                user = User.query.get(user_uuid)
+            except Exception:
+                return jsonify({'success': False, 'error': 'Invalid user_id format'}), 400
+        elif username:
+            user = User.query.filter_by(username=username).first()
+        else:
+            return jsonify({'success': False, 'error': 'username or user_id is required'}), 400
+
         if not user:
-            return jsonify({'success': False, 'error': f'User not found: {username}'}), 404
+            return jsonify({'success': False, 'error': 'User not found'}), 404
 
         personas = Persona.query.filter_by(category='Mathematics', is_active=True).all()
         if not personas:
