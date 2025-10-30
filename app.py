@@ -4148,6 +4148,168 @@ def create_math_projects_for_user():
         db.session.rollback()
         return jsonify({'success': False, 'error': 'Failed to create projects'}), 500
 
+
+@csrf.exempt
+@app.route('/admin/seed_math_subtopics_for_user', methods=['POST'])
+@auth.login_required
+def seed_math_subtopics_for_user():
+    """Admin-only: create one conversation per subtopic in each Mathematics project for a user.
+    - Accepts { user_id?: UUID, username?: str }
+    - Skips creating a conversation if a conversation with the same title already exists in that project.
+    - Conversation title = subtopic; initial user message = "Explain what is meant by {subtopic}."
+    """
+    try:
+        identity = get_user_identity()
+        role_lower = str(identity.get('user_role') or '').lower()
+        is_admin_flag = bool(identity.get('is_admin', False) or role_lower in ('admin', 'super_admin'))
+        if not is_admin_flag:
+            return jsonify({'success': False, 'error': 'Admin access required'}), 403
+
+        data = request.get_json(silent=True) or {}
+        # Import User model with fallback
+        try:
+            from models import User
+        except Exception:
+            from user_models import User
+        from models import Project, Conversation, Message
+
+        # Resolve user
+        user = None
+        user_id_str = (data.get('user_id') or '').strip()
+        username = (data.get('username') or '').strip()
+        if user_id_str:
+            try:
+                user_uuid = uuid.UUID(user_id_str)
+                user = User.query.get(user_uuid)
+            except Exception:
+                return jsonify({'success': False, 'error': 'Invalid user_id format'}), 400
+        elif username:
+            user = User.query.filter_by(username=username).first()
+        else:
+            return jsonify({'success': False, 'error': 'username or user_id is required'}), 400
+        if not user:
+            return jsonify({'success': False, 'error': 'User not found'}), 404
+
+        # Subtopics by persona/project label
+        topics = {
+            'Number and Algebra': [
+                'Integers and rational numbers',
+                'Fractions, decimals, percentages',
+                'Ratios and rates (unit rates, proportional reasoning)',
+                'Indices and scientific notation',
+                'Algebraic expressions and simplification',
+                'Linear equations and inequalities',
+                'Simultaneous equations',
+                'Quadratic expressions and factorisation',
+                'Quadratic equations (roots, completing the square)',
+                'Sequences and series (arithmetic, geometric)'
+            ],
+            'Functions and Graphs': [
+                'Cartesian coordinates and gradient',
+                'Linear relationships (slope–intercept, point–slope)',
+                'Quadratic functions (graphs, vertex form)',
+                'Exponential functions and growth/decay',
+                'Piecewise and absolute value functions',
+                'Inverse and composite functions (intro)'
+            ],
+            'Measurement and Geometry': [
+                'Perimeter, area (triangles, circles, composite shapes)',
+                'Surface area and volume (prisms, cylinders, pyramids, cones, spheres)',
+                "Pythagoras’ theorem and distance",
+                'Trigonometry (sin, cos, tan in right triangles)',
+                'Angle properties (parallel lines, polygons)',
+                'Similarity and congruence',
+                'Circles (chords, tangents, arcs)',
+                'Coordinate geometry (midpoint, distance, gradient applications)'
+            ],
+            'Statistics and Probability': [
+                'Data displays (dot plots, histograms, box plots)',
+                'Measures of centre and spread (mean, median, mode, range, IQR, std dev)',
+                'Sampling methods and bias',
+                'Two-variable data (scatter plots, correlation, line of best fit)',
+                'Probability basics (simple, compound events)',
+                'Tree diagrams and Venn diagrams',
+                'Conditional probability (intro)'
+            ],
+            'Financial Mathematics': [
+                'Budgeting and financial planning',
+                'Simple and compound interest',
+                'Profit, loss, markup, discounts',
+                'Tax, wages, superannuation (contextual projects)'
+            ],
+            'Discrete and Modelling': [
+                'Networks and shortest paths (intro graph theory)',
+                'Scheduling and critical path (intro)',
+                'Linear programming (intro)',
+                'Simulation and Monte Carlo (intro)',
+                'Optimization projects (max/min under constraints)'
+            ],
+            'Extension / Pre-Calculus': [
+                'Polynomial functions (beyond quadratics)',
+                'Rational functions (asymptotes)',
+                'Logarithms and exponent laws (deeper)',
+                'Trigonometric graphs and identities (intro)',
+                'Limits and average/instantaneous rate of change (conceptual intro)'
+            ]
+        }
+
+        # Find user projects that match these persona labels
+        user_projects = Project.query.filter_by(owner_id=user.id).all()
+        # Accept both naming styles: exact persona name OR "{persona} – Math Project"
+        def matches(persona_name: str, project_name: str) -> bool:
+            return project_name == persona_name or project_name.startswith(persona_name + ' –')
+
+        created = 0
+        skipped = 0
+        results = []
+        for persona_name, subtopics in topics.items():
+            # Pick the first matching project for this persona
+            target = None
+            for p in user_projects:
+                if matches(persona_name, p.name):
+                    target = p
+                    break
+            if not target:
+                results.append({'persona': persona_name, 'status': 'no_project'})
+                continue
+
+            # Existing titles to prevent duplicates
+            existing_titles = {c.title for c in Conversation.query.filter_by(project_id=target.id).all()}
+
+            for sub in subtopics:
+                title = sub[:255]
+                if title in existing_titles:
+                    skipped += 1
+                    results.append({'persona': persona_name, 'project': target.name, 'topic': sub, 'status': 'skipped_exists'})
+                    continue
+
+                convo = Conversation(
+                    project_id=target.id,
+                    title=title,
+                    llm_model='claude-3.5-sonnet-20241022',
+                    user_id=user.id,
+                    tags=['math', persona_name]
+                )
+                db.session.add(convo)
+                db.session.flush()  # get convo.id
+
+                msg = Message(
+                    conversation_id=convo.id,
+                    role='user',
+                    content=f'Explain what is meant by {sub}.'
+                )
+                db.session.add(msg)
+
+                created += 1
+                results.append({'persona': persona_name, 'project': target.name, 'topic': sub, 'status': 'created'})
+
+        db.session.commit()
+        return jsonify({'success': True, 'created': created, 'skipped': skipped, 'results': results})
+    except Exception as e:
+        app.logger.error(f"seed_math_subtopics_for_user error: {e}", exc_info=True)
+        db.session.rollback()
+        return jsonify({'success': False, 'error': 'Failed to seed subtopics'}), 500
+
 # ==================== CONTEXT MANAGEMENT API ENDPOINTS ====================
 
 @app.route('/api/context', methods=['GET'])
