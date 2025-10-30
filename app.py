@@ -2121,55 +2121,72 @@ def get_conversations():
     if filter_user_id and not identity.get('is_admin', False):
         return jsonify({'error': 'User filtering is only available for admins'}), 403
     
-    # Start with base query
-    if identity.get('is_admin', False):
-        # Admin sees all conversations (optionally filtered by user_id)
-        query = Conversation.query
-        if filter_user_id:
-            try:
-                filter_uuid = uuid.UUID(filter_user_id)
-                query = query.filter(Conversation.user_id == filter_uuid)
+        # Start with base query
+        if identity.get('is_admin', False):
+            # Admin sees all conversations (optionally filtered by user_id)
+            query = Conversation.query
+            if filter_user_id:
+                try:
+                    filter_uuid = uuid.UUID(filter_user_id)
+                    query = query.filter(Conversation.user_id == filter_uuid)
+                    app.logger.info(f"Admin filtering conversations by user_id: {filter_user_id}")
+                except ValueError as e:
+                    app.logger.error(f"Invalid user_id format: {filter_user_id}, error: {e}")
+                    return jsonify({'error': 'Invalid user_id format'}), 400
+        else:
+            # Regular users: use existing filter
+            query = filter_conversations_by_user(Conversation.query)
+        
+        # Add project filter if specified
+        if project_id:
+           从未 try:
+                project_uuid = uuid.UUID(project_id)
+                query = query.filter(Conversation.project_id == project_uuid)
             except ValueError:
-                return jsonify({'error': 'Invalid user_id format'}), 400
-    else:
-        # Regular users: use existing filter
-        query = filter_conversations_by_user(Conversation.query)
-    
-    # Add project filter if specified
-    if project_id:
-        query = query.filter_by(project_id=project_id)
+                return jsonify({'error': 'Invalid project_id format'}), 400
     
     conversations = query.order_by(Conversation.updated_at.desc()).all()
     
     # Set session cookie for free users if needed
     response_data = []
     for conv in conversations:
-        # Get user information (for admin display)
-        user_info = None
-        if identity.get('is_admin', False) and conv.user_id:
+        try:
+            # Get user information (for admin display)
+            user_info = None
+            if identity.get('is_admin', False) and conv.user_id:
+                try:
+                    user = User.query.get(conv.user_id)
+                    if user:
+                        user_info = {
+                            'id': str(user.id),
+                            'username': user.username,
+                            'display_name': user.display_name or user.username
+                        }
+                except Exception as e:
+                    app.logger.debug(f"Error loading user info for conv {conv.id}: {e}")
+            
+            # Get message count safely (avoid lazy loading issues)
             try:
-                user = User.query.get(conv.user_id)
-                if user:
-                    user_info = {
-                        'id': str(user.id),
-                        'username': user.username,
-                        'display_name': user.display_name or user.username
-                    }
-            except Exception:
-                pass
-        
-        response_data.append({
-            'id': str(conv.id),
-            'project_id': str(conv.project_id) if conv.project_id else None,
-            'title': conv.title,
-            'llm_model': conv.llm_model,
-            'created_at': conv.created_at.isoformat(),
-            'updated_at': conv.updated_at.isoformat(),
-            'tags': conv.tags or [],
-            'user': user_info,  # Only populated for admin
-            'message_count': len(conv.messages) if hasattr(conv, 'messages') else 0,
-            'attachment_count': len(conv.context_documents) if conv.context_documents else 0
-        })
+                message_count = db.session.query(Message).filter(Message.conversation_id == conv.id).count()
+            except Exception as e:
+                app.logger.debug(f"Error counting messages for conv {conv.id}: {e}")
+                message_count = 0
+            
+            response_data.append({
+                'id': str(conv.id),
+                'project_id': str(conv.project_id) if conv.project_id else None,
+                'title': conv.title,
+                'llm_model': conv.llm_model,
+                'created_at': conv.created_at.isoformat(),
+                'updated_at': conv.updated_at.isoformat(),
+                'tags': conv.tags or [],
+                'user': user_info,  # Only populated for admin
+                'message_count': message_count,
+                'attachment_count': len(conv.context_documents) if conv.context_documents else 0
+            })
+        except Exception as e:
+            app.logger.error(f"Error processing conversation {conv.id if conv else 'unknown'}: {e}", exc_info=True)
+            continue
     
     response = jsonify(response_data)
     
