@@ -44,10 +44,20 @@
             const data = await response.json();
             const roleLower = (data.user_role || '').toLowerCase();
             this.isAdmin = data.authenticated && (roleLower === 'super_admin' || roleLower === 'admin' || data.user_type === 'admin');
+            console.log('🔍 Admin status check:', {
+                authenticated: data.authenticated,
+                user_role: data.user_role,
+                roleLower: roleLower,
+                user_type: data.user_type,
+                isAdmin: this.isAdmin
+            });
             
             // Load users list if admin (for filter dropdown)
             if (this.isAdmin) {
                 await this.loadUsersList();
+                console.log('👥 Loaded users list for admin:', this.usersList.length, 'users');
+                // Show admin filter controls in sidebar
+                this.showAdminFilters();
             }
         } catch (error) {
             console.error('Error checking admin status:', error);
@@ -219,8 +229,15 @@
             if (this.isAdmin && this.selectedUserFilter) {
                 url += `?user_id=${this.selectedUserFilter}`;
             }
+            console.log('📂 Loading projects:', { isAdmin: this.isAdmin, filter: this.selectedUserFilter, url });
             const response = await fetch(url);
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ error: response.statusText }));
+                console.error('❌ Failed to load projects:', response.status, errorData);
+                return;
+            }
             const projects = await response.json();
+            console.log('📂 Loaded projects:', projects.length, 'projects', projects.map(p => ({ id: p.id, name: p.name, owner: p.owner?.display_name })));
             this.projects = projects; // Store projects for later use
             this.renderProjects(projects);
         } catch (error) {
@@ -688,6 +705,7 @@
             }
             const response = await fetch(url);
             const conversations = await response.json();
+            console.log('💬 Loaded conversations:', conversations.length, 'conversations');
             // Filter on frontend as a fallback (in case backend returns all)
             let filtered = conversations;
             if (this.currentProject && this.currentProject.id) {

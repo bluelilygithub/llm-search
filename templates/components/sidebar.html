@@ -53,6 +53,11 @@
             </button>
             
             <div class="section-content expanded" id="recent-content">
+                <div id="conversations-filter-container" class="admin-filter-container" style="display: none; padding: 8px; border-bottom: 1px solid #e0e0e0;">
+                    <select id="sidebar-conversations-user-filter" class="user-filter-select" onchange="window.app.setUserFilter(this.value || null)" style="width: 100%; padding: 4px 8px; font-size: 12px; border: 1px solid #ddd; border-radius: 4px; background: white;">
+                        <option value="">All Users</option>
+                    </select>
+                </div>
                 <div class="conversations-scroll-area">
                     <div class="conversations-list" id="conversations-list">
                         <!-- Recent conversations will be loaded here -->
@@ -76,6 +81,11 @@
             </button>
             
             <div class="section-content" id="projects-content">
+                <div id="projects-filter-container" class="admin-filter-container" style="display: none; padding: 8px; border-bottom: 1px solid #e0e0e0;">
+                    <select id="sidebar-projects-user-filter" class="user-filter-select" onchange="window.app.setUserFilter(this.value || null)" style="width: 100%; padding: 4px 8px; font-size: 12px; border: 1px solid #ddd; border-radius: 4px; background: white;">
+                        <option value="">All Users</option>
+                    </select>
+                </div>
                 <div class="projects-scroll-area">
                     <!-- No Project Option -->
                     <div class="project-item no-project" id="no-project-item" onclick="selectNoProject()">
