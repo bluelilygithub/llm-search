@@ -2879,8 +2879,15 @@ When responding to math questions, please:
         # Process context_documents (from /upload-context endpoint)
         import json
         docs = None
-        if conversation_id and 'conversation' in locals():
-            docs = getattr(conversation, 'context_documents', None)
+        if conversation_id:
+            # conversation should be defined if conversation_id exists (set earlier in function)
+            try:
+                docs = getattr(conversation, 'context_documents', None)
+            except NameError:
+                # If conversation not defined, fetch it
+                conv_uuid = uuid.UUID(conversation_id)
+                conversation = Conversation.query.get_or_404(conv_uuid)
+                docs = getattr(conversation, 'context_documents', None)
         if docs:
             if isinstance(docs, str):
                 try:
@@ -2890,6 +2897,7 @@ When responding to math questions, please:
             
             # Always process context_documents if they exist (they're a different source than active_context)
             if docs and isinstance(docs, list) and len(docs) > 0:
+                app.logger.error(f"📄📄📄 PROCESSING CONTEXT_DOCUMENTS: {len(docs)} document(s) found")  # ERROR level for visibility
                 app.logger.info(f"📄 Processing {len(docs)} context document(s) from conversation.context_documents")
                 for doc in docs:
                     if doc and 'content' in doc:
@@ -2912,7 +2920,9 @@ When responding to math questions, please:
                             app.logger.info(f"✅ Added context_document {filename} to messages ({len(content)} chars)")
                         else:
                             app.logger.warning(f"⚠️ context_document {filename} has no content")
-                app.logger.info(f"✅ Successfully processed {len([d for d in docs if d and d.get('content')])} context document(s)")
+                processed_count = len([d for d in docs if d and d.get('content')])
+                app.logger.error(f"📄📄📄 CONTEXT_DOCUMENTS PROCESSED: {processed_count} document(s) added to messages")  # ERROR level for visibility
+                app.logger.info(f"✅ Successfully processed {processed_count} context document(s)")
         
         # Add user message
         messages.append({
