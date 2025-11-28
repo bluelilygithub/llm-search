@@ -2906,22 +2906,22 @@ When responding to math questions, please:
                 app.logger.info(f"📄 Processing {len(docs)} context document(s) from conversation.context_documents")
             for doc in docs:
                     if doc and isinstance(doc, dict) and 'content' in doc:
-                    task_type = doc.get('task_type', 'instructions')
-                    filename = doc.get('filename', 'uploaded file')
+                        task_type = doc.get('task_type', 'instructions')
+                        filename = doc.get('filename', 'uploaded file')
                         content = doc.get('content', '')
-                    
+                        
                         if content and len(content.strip()) > 0:  # Only add if content exists and is not empty
-                    if task_type == 'summary':
-                        system_msg = f"You have been provided with a document ({filename}) to summarize. You can analyze, count words, and provide detailed summaries of this content:\n\n{content}"
-                    elif task_type == 'analysis':
-                        system_msg = f"You have been provided with a document ({filename}) to analyze. You can examine, count words, and provide detailed analysis of this content:\n\n{content}"
-                    else:
-                        system_msg = f"Document reference ({filename}): You have access to this document content and can answer questions about it, count words, analyze it, or use it as guidelines:\n\n{content}"
-                    
-                    messages.insert(0, {
-                        'role': 'system',
-                        'content': system_msg
-                    })
+                            if task_type == 'summary':
+                                system_msg = f"You have been provided with a document ({filename}) to summarize. You can analyze, count words, and provide detailed summaries of this content:\n\n{content}"
+                            elif task_type == 'analysis':
+                                system_msg = f"You have been provided with a document ({filename}) to analyze. You can examine, count words, and provide detailed analysis of this content:\n\n{content}"
+                            else:
+                                system_msg = f"Document reference ({filename}): You have access to this document content and can answer questions about it, count words, analyze it, or use it as guidelines:\n\n{content}"
+                            
+                            messages.insert(0, {
+                                'role': 'system',
+                                'content': system_msg
+                            })
                             app.logger.info(f"✅ Added context_document {filename} to messages ({len(content)} chars)")
                         else:
                             app.logger.warning(f"⚠️ context_document {filename} has no content or empty content")
