@@ -2875,7 +2875,6 @@ When responding to math questions, please:
         
         # Log final message count and preview
         system_msg_count = sum(1 for msg in messages if msg.get('role') == 'system')
-        app.logger.info(f"📊 Final message array: {len(messages)} total messages ({system_msg_count} system, {len(messages)-system_msg_count} conversation)")
         
         # Process context_documents (from /upload-context endpoint)
         # conversation is loaded at line 2557 if conversation_id exists, initialized to None above
@@ -2895,39 +2894,41 @@ When responding to math questions, please:
                 docs = None
         
         if docs:
-        if isinstance(docs, str):
-            try:
-                docs = json.loads(docs)
-            except Exception:
-                docs = []
+            if isinstance(docs, str):
+                try:
+                    docs = json.loads(docs)
+                except Exception:
+                    docs = []
             
             # Always process context_documents if they exist (they're a different source than active_context)
             if docs and isinstance(docs, list) and len(docs) > 0:
                 app.logger.info(f"📄 Processing {len(docs)} context document(s) from conversation.context_documents")
-            for doc in docs:
+                for doc in docs:
                     if doc and isinstance(doc, dict) and 'content' in doc:
-                    task_type = doc.get('task_type', 'instructions')
-                    filename = doc.get('filename', 'uploaded file')
+                        task_type = doc.get('task_type', 'instructions')
+                        filename = doc.get('filename', 'uploaded file')
                         content = doc.get('content', '')
-                    
+                        
                         if content and len(content.strip()) > 0:  # Only add if content exists and is not empty
-                    if task_type == 'summary':
-                        system_msg = f"You have been provided with a document ({filename}) to summarize. You can analyze, count words, and provide detailed summaries of this content:\n\n{content}"
-                    elif task_type == 'analysis':
-                        system_msg = f"You have been provided with a document ({filename}) to analyze. You can examine, count words, and provide detailed analysis of this content:\n\n{content}"
-                    else:
-                        system_msg = f"Document reference ({filename}): You have access to this document content and can answer questions about it, count words, analyze it, or use it as guidelines:\n\n{content}"
-                    
-                    messages.insert(0, {
-                        'role': 'system',
-                        'content': system_msg
-                    })
-                            app.logger.info(f"✅ Added context_document {filename} to messages ({len(content)} chars)")
+                            if task_type == 'summary':
+                                system_msg = f"You have been provided with a document ({filename}) to summarize. You can analyze, count words, and provide detailed summaries of this content:\n\n{content}"
+                            elif task_type == 'analysis':
+                                system_msg = f"You have been provided with a document ({filename}) to analyze. You can examine, count words, and provide detailed analysis of this content:\n\n{content}"
+                            else:
+                                system_msg = f"Document reference ({filename}): You have access to this document content and can answer questions about it, count words, analyze it, or use it as guidelines:\n\n{content}"
+                            
+                            messages.insert(0, {{
+                                'role': 'system',
+                                'content': system_msg
+                            }})
+                            app.logger.info(f"✅ Added context_document {{filename}} to messages ({{len(content)}} chars)")
                         else:
-                            app.logger.warning(f"⚠️ context_document {filename} has no content or empty content")
+                            app.logger.warning(f"⚠️ context_document {{filename}} has no content or empty content")
                 processed_count = len([d for d in docs if d and isinstance(d, dict) and d.get('content') and len(d.get('content', '').strip()) > 0])
                 app.logger.info(f"✅ Successfully processed {processed_count} context document(s) with content")
         
+        # Add user message
+
         # Add user message
         messages.append({
             'role': 'user',
