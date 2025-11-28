@@ -2754,9 +2754,18 @@ When responding to math questions, please:
         if conversation_id:
             try:
                 # Get all attachments for this conversation
+                # Try both methods: join with Message, and direct query via message relationship
                 conversation_attachments = Attachment.query.join(Message).filter(
                     Message.conversation_id == conv_uuid
                 ).all()
+                
+                # Fallback: if no attachments found, try querying messages first then their attachments
+                if not conversation_attachments:
+                    messages_with_attachments = Message.query.filter_by(conversation_id=conv_uuid).all()
+                    conversation_attachments = []
+                    for msg in messages_with_attachments:
+                        if msg.attachments:
+                            conversation_attachments.extend(msg.attachments)
                 
                 app.logger.info(f"🔍 Found {len(conversation_attachments)} attachment(s) for conversation {conversation_id}")
                 
@@ -2831,12 +2840,21 @@ When responding to math questions, please:
                             })
                             app.logger.info(f"✅ Added system message for {att['filename']} ({len(att['content'])} chars)")
                         app.logger.info(f"✅ Successfully added {len(attachment_contents)} attachment(s) to conversation context")
+                        # Log the actual system messages being added
+                        for i, msg in enumerate(messages[:len(attachment_contents)]):
+                            if msg.get('role') == 'system' and 'Document reference' in msg.get('content', ''):
+                                preview = msg['content'][:200] + '...' if len(msg['content']) > 200 else msg['content']
+                                app.logger.info(f"📄 System message {i+1}: {preview}")
                     else:
                         app.logger.warning(f"⚠️ No attachment contents to add (all attachments failed processing?)")
                 else:
                     app.logger.info(f"ℹ️ No attachments found for conversation {conversation_id}")
             except Exception as attachment_error:
                 app.logger.error(f"❌ Failed to process attachments for conversation {conversation_id}: {attachment_error}", exc_info=True)
+        
+        # Log final message count and preview
+        system_msg_count = sum(1 for msg in messages if msg.get('role') == 'system')
+        app.logger.info(f"📊 Final message array: {len(messages)} total messages ({system_msg_count} system, {len(messages)-system_msg_count} conversation)")
         
         # Fallback to old context_documents system for backward compatibility
         import json
@@ -4637,6 +4655,79 @@ def get_conversation_context(conversation_id):
     except Exception as e:
         app.logger.error(f"❌ Error fetching conversation context: {str(e)}", exc_info=True)
         return jsonify({'success': False, 'error': 'Failed to fetch conversation context'}), 500
+
+@app.route('/api/conversation/<conversation_id>/attachments/debug', methods=['GET'])
+@require_conversation_access
+def debug_attachments(conversation_id):
+    """Debug endpoint to inspect attachments for a conversation"""
+    try:
+        conv_uuid = uuid.UUID(conversation_id)
+        conversation = Conversation.query.get_or_404(conv_uuid)
+        
+        # Get all messages for this conversation
+        messages = Message.query.filter_by(conversation_id=conv_uuid).all()
+        
+        # Get attachments via join
+        attachments_join = Attachment.query.join(Message).filter(
+            Message.conversation_id == conv_uuid
+        ).all()
+        
+        # Get attachments via message relationship
+        attachments_via_msg = []
+        for msg in messages:
+            if msg.attachments:
+                attachments_via_msg.extend(msg.attachments)
+        
+        debug_info = {
+            'conversation_id': str(conversation_id),
+            'total_messages': len(messages),
+            'attachments_via_join': len(attachments_join),
+            'attachments_via_message': len(attachments_via_msg),
+            'attachment_details': []
+        }
+        
+        # Collect details for all attachments
+        all_attachments = list(set(attachments_join + attachments_via_msg))
+        for att in all_attachments:
+            file_path = os.path.join(os.getcwd(), att.file_path)
+            file_exists = os.path.exists(file_path)
+            
+            possible_paths = [
+                os.path.join(os.getcwd(), att.file_path),
+                att.file_path,
+                os.path.join(UPLOAD_FOLDER, os.path.basename(att.file_path))
+            ]
+            
+            found_path = None
+            for path in possible_paths:
+                if os.path.exists(path):
+                    found_path = path
+                    break
+            
+            debug_info['attachment_details'].append({
+                'id': str(att.id),
+                'filename': att.filename,
+                'file_path_stored': att.file_path,
+                'file_exists': file_exists,
+                'found_path': found_path,
+                'has_processed_content': bool(att.processed_content),
+                'processed_content_length': len(att.processed_content) if att.processed_content else 0,
+                'message_id': str(att.message_id),
+                'content_type': att.content_type,
+                'created_at': att.created_at.isoformat() if att.created_at else None,
+                'possible_paths': possible_paths,
+                'current_working_dir': os.getcwd(),
+                'upload_folder': UPLOAD_FOLDER
+            })
+        
+        return jsonify({
+            'success': True,
+            'debug': debug_info
+        })
+    
+    except Exception as e:
+        app.logger.error(f"❌ Error in debug_attachments: {str(e)}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/conversation/<conversation_id>/context/<context_item_id>', methods=['POST'])
 def add_context_to_conversation(conversation_id, context_item_id):
