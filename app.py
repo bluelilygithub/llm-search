@@ -2883,7 +2883,7 @@ When responding to math questions, please:
         docs = None
         if conversation_id and conversation:
             # conversation is guaranteed to be loaded if conversation_id exists
-        docs = getattr(conversation, 'context_documents', None)
+            docs = getattr(conversation, 'context_documents', None)
         elif conversation_id:
             # Fallback: conversation wasn't loaded, load it now
             try:
@@ -2895,16 +2895,16 @@ When responding to math questions, please:
                 docs = None
         
         if docs:
-        if isinstance(docs, str):
-            try:
-                docs = json.loads(docs)
-            except Exception:
-                docs = []
+            if isinstance(docs, str):
+                try:
+                    docs = json.loads(docs)
+                except Exception:
+                    docs = []
             
             # Always process context_documents if they exist (they're a different source than active_context)
             if docs and isinstance(docs, list) and len(docs) > 0:
                 app.logger.info(f"📄 Processing {len(docs)} context document(s) from conversation.context_documents")
-            for doc in docs:
+                for doc in docs:
                     if doc and isinstance(doc, dict) and 'content' in doc:
                     task_type = doc.get('task_type', 'instructions')
                     filename = doc.get('filename', 'uploaded file')
