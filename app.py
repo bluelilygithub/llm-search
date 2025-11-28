@@ -2536,7 +2536,7 @@ def chat():
         model = data['model']
         project_id = data.get('project_id')  # Get project_id for new conversations
         
-        app.logger.info(f"💬 CHAT DEBUG: Received chat request - conversation_id={conversation_id}, model={model}")
+        app.logger.error(f"💬💬💬 CHAT ENDPOINT CALLED - conversation_id={conversation_id}, model={model}, message_length={len(user_message)}")  # ERROR level for visibility
         app.logger.info(f"💬 CHAT DEBUG: Received chat request - conversation_id={conversation_id}, model={model}")
         
         # Handle free tier access
