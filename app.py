@@ -2749,6 +2749,56 @@ When responding to math questions, please:
             except Exception as e:
                 app.logger.warning(f"Could not apply math model preference: {e}")
         
+        # Process attachments and add their content to context
+        if conversation_id:
+            try:
+                # Get all attachments for this conversation
+                conversation_attachments = Attachment.query.join(Message).filter(
+                    Message.conversation_id == conv_uuid
+                ).all()
+                
+                if conversation_attachments:
+                    attachment_contents = []
+                    for attachment in conversation_attachments:
+                        try:
+                            # Check if content is already processed
+                            if attachment.processed_content:
+                                content = attachment.processed_content
+                            else:
+                                # Extract content from file
+                                file_path = os.path.join(os.getcwd(), attachment.file_path)
+                                if os.path.exists(file_path):
+                                    with open(file_path, 'rb') as f:
+                                        f.seek(0)  # Ensure we're at the beginning
+                                        content = extract_document_content(f, attachment.filename)
+                                    # Cache the extracted content
+                                    attachment.processed_content = content
+                                    db.session.commit()
+                                else:
+                                    app.logger.warning(f"Attachment file not found: {file_path}")
+                                    continue
+                            
+                            attachment_contents.append({
+                                'filename': attachment.filename,
+                                'content': content
+                            })
+                        except Exception as e:
+                            app.logger.error(f"Failed to process attachment {attachment.filename}: {e}")
+                            continue
+                    
+                    # Add attachment contents to context if we have any
+                    if attachment_contents and not active_context:
+                        # Only add if we don't already have active_context to avoid duplication
+                        for att in attachment_contents:
+                            system_msg = f"Document reference ({att['filename']}): You have access to this document content and can answer questions about it, count words, analyze it, or use it as guidelines:\n\n{att['content']}"
+                            messages.insert(0, {
+                                'role': 'system',
+                                'content': system_msg
+                            })
+                        app.logger.info(f"Added {len(attachment_contents)} attachment(s) to conversation context")
+            except Exception as attachment_error:
+                app.logger.error(f"Failed to process attachments for conversation {conversation_id}: {attachment_error}")
+        
         # Fallback to old context_documents system for backward compatibility
         import json
         docs = getattr(conversation, 'context_documents', None)
