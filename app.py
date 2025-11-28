@@ -2776,12 +2776,17 @@ When responding to math questions, please:
                 
                 # Fallback: if no attachments found, try querying messages first then their attachments
                 if not conversation_attachments:
+                    app.logger.info(f"🔍 ATTACHMENT DEBUG: Join query found 0 attachments, trying fallback method")
                     messages_with_attachments = Message.query.filter_by(conversation_id=conv_uuid).all()
+                    app.logger.info(f"🔍 ATTACHMENT DEBUG: Found {len(messages_with_attachments)} messages for conversation")
                     conversation_attachments = []
                     for msg in messages_with_attachments:
                         if msg.attachments:
+                            app.logger.info(f"🔍 ATTACHMENT DEBUG: Message {msg.id} has {len(msg.attachments)} attachment(s)")
                             conversation_attachments.extend(msg.attachments)
+                    app.logger.info(f"🔍 ATTACHMENT DEBUG: Fallback method found {len(conversation_attachments)} total attachment(s)")
                 
+                app.logger.error(f"🔍🔍🔍 ATTACHMENT QUERY RESULT: Found {len(conversation_attachments)} attachment(s) for conversation {conversation_id}")  # ERROR level
                 app.logger.info(f"🔍 Found {len(conversation_attachments)} attachment(s) for conversation {conversation_id}")
                 
                 if conversation_attachments:
