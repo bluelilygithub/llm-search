@@ -2758,47 +2758,85 @@ When responding to math questions, please:
                     Message.conversation_id == conv_uuid
                 ).all()
                 
+                app.logger.info(f"🔍 Found {len(conversation_attachments)} attachment(s) for conversation {conversation_id}")
+                
                 if conversation_attachments:
                     attachment_contents = []
                     for attachment in conversation_attachments:
                         try:
+                            app.logger.info(f"📎 Processing attachment: {attachment.filename} (path: {attachment.file_path})")
+                            
                             # Check if content is already processed
                             if attachment.processed_content:
+                                app.logger.info(f"✅ Using cached content for {attachment.filename}")
                                 content = attachment.processed_content
                             else:
                                 # Extract content from file
-                                file_path = os.path.join(os.getcwd(), attachment.file_path)
-                                if os.path.exists(file_path):
-                                    with open(file_path, 'rb') as f:
-                                        f.seek(0)  # Ensure we're at the beginning
-                                        content = extract_document_content(f, attachment.filename)
-                                    # Cache the extracted content
-                                    attachment.processed_content = content
-                                    db.session.commit()
+                                # Try multiple path resolution strategies
+                                file_path = None
+                                possible_paths = [
+                                    os.path.join(os.getcwd(), attachment.file_path),
+                                    attachment.file_path,  # In case it's already absolute
+                                    os.path.join(UPLOAD_FOLDER, os.path.basename(attachment.file_path))
+                                ]
+                                
+                                for path_attempt in possible_paths:
+                                    if os.path.exists(path_attempt):
+                                        file_path = path_attempt
+                                        app.logger.info(f"✅ Found file at: {file_path}")
+                                        break
+                                
+                                if file_path and os.path.exists(file_path):
+                                    try:
+                                        with open(file_path, 'rb') as f:
+                                            f.seek(0)  # Ensure we're at the beginning
+                                            content = extract_document_content(f, attachment.filename)
+                                        
+                                        if content:
+                                            app.logger.info(f"✅ Extracted {len(content)} characters from {attachment.filename}")
+                                            # Cache the extracted content
+                                            attachment.processed_content = content
+                                            db.session.commit()
+                                        else:
+                                            app.logger.warning(f"⚠️ Extracted empty content from {attachment.filename}")
+                                            content = f"[File: {attachment.filename} - Content extraction returned empty]"
+                                    except Exception as extract_error:
+                                        app.logger.error(f"❌ Extraction error for {attachment.filename}: {extract_error}", exc_info=True)
+                                        content = f"[File: {attachment.filename} - Error during extraction: {str(extract_error)}]"
                                 else:
-                                    app.logger.warning(f"Attachment file not found: {file_path}")
-                                    continue
+                                    app.logger.error(f"❌ Attachment file not found. Tried paths: {possible_paths}")
+                                    app.logger.error(f"   Current working directory: {os.getcwd()}")
+                                    app.logger.error(f"   UPLOAD_FOLDER: {UPLOAD_FOLDER}")
+                                    content = f"[File: {attachment.filename} - File not found on server]"
                             
-                            attachment_contents.append({
-                                'filename': attachment.filename,
-                                'content': content
-                            })
+                            if content:
+                                attachment_contents.append({
+                                    'filename': attachment.filename,
+                                    'content': content
+                                })
+                                app.logger.info(f"✅ Added {attachment.filename} to attachment_contents (content length: {len(content)})")
                         except Exception as e:
-                            app.logger.error(f"Failed to process attachment {attachment.filename}: {e}")
+                            app.logger.error(f"❌ Failed to process attachment {attachment.filename}: {e}", exc_info=True)
                             continue
                     
                     # Add attachment contents to context if we have any
                     # Always add attachments, even if active_context exists (they're different sources)
                     if attachment_contents:
+                        app.logger.info(f"📤 Adding {len(attachment_contents)} attachment(s) to model context")
                         for att in attachment_contents:
                             system_msg = f"Document reference ({att['filename']}): You have access to this document content and can answer questions about it, count words, analyze it, or use it as guidelines:\n\n{att['content']}"
                             messages.insert(0, {
                                 'role': 'system',
                                 'content': system_msg
                             })
-                        app.logger.info(f"Added {len(attachment_contents)} attachment(s) to conversation context")
+                            app.logger.info(f"✅ Added system message for {att['filename']} ({len(att['content'])} chars)")
+                        app.logger.info(f"✅ Successfully added {len(attachment_contents)} attachment(s) to conversation context")
+                    else:
+                        app.logger.warning(f"⚠️ No attachment contents to add (all attachments failed processing?)")
+                else:
+                    app.logger.info(f"ℹ️ No attachments found for conversation {conversation_id}")
             except Exception as attachment_error:
-                app.logger.error(f"Failed to process attachments for conversation {conversation_id}: {attachment_error}")
+                app.logger.error(f"❌ Failed to process attachments for conversation {conversation_id}: {attachment_error}", exc_info=True)
         
         # Fallback to old context_documents system for backward compatibility
         import json
