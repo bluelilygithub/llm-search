@@ -2876,32 +2876,43 @@ When responding to math questions, please:
         system_msg_count = sum(1 for msg in messages if msg.get('role') == 'system')
         app.logger.info(f"📊 Final message array: {len(messages)} total messages ({system_msg_count} system, {len(messages)-system_msg_count} conversation)")
         
-        # Fallback to old context_documents system for backward compatibility
+        # Process context_documents (from /upload-context endpoint)
         import json
-        docs = getattr(conversation, 'context_documents', None)
-        if isinstance(docs, str):
-            try:
-                docs = json.loads(docs)
-            except Exception:
-                docs = []
-        if docs and not active_context:  # Only use old system if new system has no context
-            for doc in docs:
-                if doc and 'content' in doc:
-                    task_type = doc.get('task_type', 'instructions')
-                    filename = doc.get('filename', 'uploaded file')
-                    content = doc['content']
-                    
-                    if task_type == 'summary':
-                        system_msg = f"You have been provided with a document ({filename}) to summarize. You can analyze, count words, and provide detailed summaries of this content:\n\n{content}"
-                    elif task_type == 'analysis':
-                        system_msg = f"You have been provided with a document ({filename}) to analyze. You can examine, count words, and provide detailed analysis of this content:\n\n{content}"
-                    else:
-                        system_msg = f"Document reference ({filename}): You have access to this document content and can answer questions about it, count words, analyze it, or use it as guidelines:\n\n{content}"
-                    
-                    messages.insert(0, {
-                        'role': 'system',
-                        'content': system_msg
-                    })
+        docs = None
+        if conversation_id and 'conversation' in locals():
+            docs = getattr(conversation, 'context_documents', None)
+        if docs:
+            if isinstance(docs, str):
+                try:
+                    docs = json.loads(docs)
+                except Exception:
+                    docs = []
+            
+            # Always process context_documents if they exist (they're a different source than active_context)
+            if docs and isinstance(docs, list) and len(docs) > 0:
+                app.logger.info(f"📄 Processing {len(docs)} context document(s) from conversation.context_documents")
+                for doc in docs:
+                    if doc and 'content' in doc:
+                        task_type = doc.get('task_type', 'instructions')
+                        filename = doc.get('filename', 'uploaded file')
+                        content = doc.get('content', '')
+                        
+                        if content:  # Only add if content exists
+                            if task_type == 'summary':
+                                system_msg = f"You have been provided with a document ({filename}) to summarize. You can analyze, count words, and provide detailed summaries of this content:\n\n{content}"
+                            elif task_type == 'analysis':
+                                system_msg = f"You have been provided with a document ({filename}) to analyze. You can examine, count words, and provide detailed analysis of this content:\n\n{content}"
+                            else:
+                                system_msg = f"Document reference ({filename}): You have access to this document content and can answer questions about it, count words, analyze it, or use it as guidelines:\n\n{content}"
+                            
+                            messages.insert(0, {
+                                'role': 'system',
+                                'content': system_msg
+                            })
+                            app.logger.info(f"✅ Added context_document {filename} to messages ({len(content)} chars)")
+                        else:
+                            app.logger.warning(f"⚠️ context_document {filename} has no content")
+                app.logger.info(f"✅ Successfully processed {len([d for d in docs if d and d.get('content')])} context document(s)")
         
         # Add user message
         messages.append({
