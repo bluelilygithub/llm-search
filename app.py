@@ -2883,7 +2883,7 @@ When responding to math questions, please:
         docs = None
         if conversation_id and conversation:
             # conversation is guaranteed to be loaded if conversation_id exists
-        docs = getattr(conversation, 'context_documents', None)
+            docs = getattr(conversation, 'context_documents', None)
         elif conversation_id:
             # Fallback: conversation wasn't loaded, load it now
             try:
