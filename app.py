@@ -2895,7 +2895,7 @@ When responding to math questions, please:
                 docs = None
         
         if docs:
-        if isinstance(docs, str):
+            if isinstance(docs, str):
             try:
                 docs = json.loads(docs)
             except Exception:
