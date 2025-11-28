@@ -2626,6 +2626,7 @@ def chat():
             conversation_messages = llm_service.format_conversation_for_llm(db_messages)
             messages.extend(conversation_messages)
             # Add context items to prompt using new context management system
+            active_context = []  # Initialize to avoid NameError
             try:
                 active_context = ContextService.get_conversation_context(str(conversation_id))
                 if active_context:
@@ -2787,8 +2788,8 @@ When responding to math questions, please:
                             continue
                     
                     # Add attachment contents to context if we have any
-                    if attachment_contents and not active_context:
-                        # Only add if we don't already have active_context to avoid duplication
+                    # Always add attachments, even if active_context exists (they're different sources)
+                    if attachment_contents:
                         for att in attachment_contents:
                             system_msg = f"Document reference ({att['filename']}): You have access to this document content and can answer questions about it, count words, analyze it, or use it as guidelines:\n\n{att['content']}"
                             messages.insert(0, {
