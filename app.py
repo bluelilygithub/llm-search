@@ -2754,11 +2754,14 @@ When responding to math questions, please:
                 app.logger.warning(f"Could not apply math model preference: {e}")
         
         # Process attachments and add their content to context
+        app.logger.error(f"🔍🔍🔍 ATTACHMENT PROCESSING STARTED - conversation_id={conversation_id}")  # Using ERROR level to ensure visibility
         app.logger.info(f"🔍 ATTACHMENT DEBUG: Starting attachment processing - conversation_id={conversation_id}")
         if conversation_id:
             try:
-                # Ensure conv_uuid is defined
-                if 'conv_uuid' not in locals():
+                # Ensure conv_uuid is defined (it should be from earlier, but handle if not)
+                try:
+                    conv_uuid
+                except NameError:
                     conv_uuid = uuid.UUID(conversation_id)
                     app.logger.info(f"🔍 ATTACHMENT DEBUG: Created conv_uuid={conv_uuid}")
                 else:
@@ -2971,6 +2974,14 @@ Use this context to provide accurate, detailed responses. When referencing infor
         if model_identifier.startswith('stable-image') or model_identifier.startswith('stable-audio'):
             app.logger.error(f"Attempted to use image generation model {model_identifier} for chat")
             return jsonify({'error': f'Model {model} is for image generation only. Use a different model for text responses.'}), 400
+        
+        # Log messages being sent to LLM (for debugging)
+        system_msgs_with_attachments = [msg for msg in messages if msg.get('role') == 'system' and 'Document reference' in msg.get('content', '')]
+        app.logger.info(f"📤 SENDING TO LLM: {len(messages)} messages total, {len(system_msgs_with_attachments)} attachment system messages")
+        if system_msgs_with_attachments:
+            for i, msg in enumerate(system_msgs_with_attachments):
+                preview = msg['content'][:300] + '...' if len(msg['content']) > 300 else msg['content']
+                app.logger.info(f"📄 Attachment system message {i+1} being sent: {preview}")
         
         # Get AI response and usage info - use model_identifier for API call
         ai_response, tokens, estimated_cost = llm_service.get_response(model_identifier, messages)
