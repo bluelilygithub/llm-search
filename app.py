@@ -2877,17 +2877,24 @@ When responding to math questions, please:
         app.logger.info(f"📊 Final message array: {len(messages)} total messages ({system_msg_count} system, {len(messages)-system_msg_count} conversation)")
         
         # Process context_documents (from /upload-context endpoint)
+        # Note: conversation is already loaded above if conversation_id exists (line 2557)
         import json
         docs = None
         if conversation_id:
-            # conversation should be defined if conversation_id exists (set earlier in function)
+            # conversation variable is defined at line 2557 when conversation_id exists
+            # Access it directly - if NameError occurs, it means conversation wasn't loaded (shouldn't happen)
             try:
                 docs = getattr(conversation, 'context_documents', None)
             except NameError:
-                # If conversation not defined, fetch it
-                conv_uuid = uuid.UUID(conversation_id)
-                conversation = Conversation.query.get_or_404(conv_uuid)
-                docs = getattr(conversation, 'context_documents', None)
+                # Fallback: conversation wasn't loaded for some reason, fetch it now
+                app.logger.warning(f"conversation variable not found, fetching conversation {conversation_id}")
+                try:
+                    conv_uuid = uuid.UUID(conversation_id)
+                    conversation = Conversation.query.get_or_404(conv_uuid)
+                    docs = getattr(conversation, 'context_documents', None)
+                except Exception as conv_error:
+                    app.logger.error(f"Failed to load conversation for context_documents: {conv_error}")
+                    docs = None
         if docs:
             if isinstance(docs, str):
                 try:
