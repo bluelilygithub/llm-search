@@ -3160,6 +3160,7 @@ def transcribe_audio():
 @app.route('/conversations/<conversation_id>/attachments', methods=['POST'])
 @require_conversation_access
 def upload_attachments(conversation_id):
+    app.logger.error(f"📤📤📤 UPLOAD ENDPOINT CALLED - conversation_id={conversation_id}")  # ERROR level for visibility
     try:
         # Block uploads for demo guests
         try:
@@ -3167,29 +3168,42 @@ def upload_attachments(conversation_id):
             if uid:
                 user = User.query.filter(User.id == uid).first()
                 if user and isinstance(user.preferences, dict) and user.preferences.get('is_demo_guest'):
+                    app.logger.error(f"❌ Upload blocked for demo guest user")
                     return jsonify({'error': 'Uploads are disabled for demo users'}), 403
-        except Exception:
+        except Exception as e:
+            app.logger.warning(f"Could not check demo guest status: {e}")
             pass
         conv_uuid = uuid.UUID(conversation_id)
-    except ValueError:
+        app.logger.info(f"📤 Upload: Valid conversation ID, conv_uuid={conv_uuid}")
+    except ValueError as e:
+        app.logger.error(f"❌ Upload: Invalid conversation ID: {conversation_id}, error: {e}")
         return jsonify({'error': 'Invalid conversation ID'}), 400
     conversation = Conversation.query.get_or_404(conv_uuid)
+    app.logger.info(f"📤 Upload: Found conversation")
+    
     if 'files' not in request.files:
+        app.logger.error(f"❌ Upload: No 'files' key in request.files. Available keys: {list(request.files.keys())}")
         return jsonify({'error': 'No files part in the request'}), 400
     files = request.files.getlist('files')
+    app.logger.info(f"📤 Upload: Got {len(files)} file(s) from request")
     if not files or files[0].filename == '':
+        app.logger.error(f"❌ Upload: No files or empty filename. files={files}, first filename={files[0].filename if files else 'N/A'}")
         return jsonify({'error': 'No files selected'}), 400
     attachments = []
     try:
         for file in files:
+            app.logger.info(f"📤 Processing file: {file.filename}, content_type: {file.content_type}")
             # Validate file
             if not file.filename:
+                app.logger.error(f"❌ Upload: Empty filename")
                 return jsonify({'error': 'Empty filename not allowed'}), 400
             
             if not allowed_file(file.filename):
+                app.logger.error(f"❌ Upload: File type not allowed - {file.filename}. Allowed: {ALLOWED_EXTENSIONS}")
                 return jsonify({'error': f'File type not allowed. Allowed: {", ".join(ALLOWED_EXTENSIONS)}'}), 400
             
             if not validate_file_size(file):
+                app.logger.error(f"❌ Upload: File too large - {file.filename}")
                 return jsonify({'error': f'File too large. Maximum size: {MAX_FILE_SIZE // (1024*1024)}MB'}), 400
             
             filename = sanitize_filename(secure_filename(file.filename))
@@ -3204,6 +3218,7 @@ def upload_attachments(conversation_id):
                 counter += 1
             
             file.save(file_path)
+            app.logger.info(f"✅ Upload: Saved file to {file_path}")
             # Create a new message for the attachment (role='user', content='[file upload]')
             message = Message(
                 conversation_id=conv_uuid,
@@ -3212,6 +3227,7 @@ def upload_attachments(conversation_id):
             )
             db.session.add(message)
             db.session.flush()  # Get message.id
+            app.logger.info(f"✅ Upload: Created message with id={message.id}")
             attachment = Attachment(
                 message_id=message.id,
                 filename=filename,
@@ -3220,6 +3236,7 @@ def upload_attachments(conversation_id):
                 created_at=datetime.utcnow()  # Ensure created_at is set
             )
             db.session.add(attachment)
+            app.logger.info(f"✅ Upload: Created attachment with id={attachment.id}, file_path={attachment.file_path}")
             attachments.append({
                 'id': str(attachment.id),
                 'filename': filename,
@@ -3228,9 +3245,11 @@ def upload_attachments(conversation_id):
                 'created_at': attachment.created_at.isoformat() if hasattr(attachment, 'created_at') else datetime.utcnow().isoformat()
             })
         db.session.commit()
+        app.logger.info(f"✅ Upload: Successfully uploaded {len(attachments)} attachment(s) for conversation {conversation_id}")
+        app.logger.error(f"📤📤📤 UPLOAD SUCCESS - {len(attachments)} file(s) uploaded")  # ERROR level for visibility
         return jsonify({'attachments': attachments}), 201
     except Exception as e:
-        app.logger.error(f"Attachment upload error: {e}", exc_info=True)
+        app.logger.error(f"❌❌❌ Attachment upload error: {e}", exc_info=True)  # ERROR level for visibility
         return jsonify({'error': str(e)}), 500
 
 def sanitize_content(content):
