@@ -2552,6 +2552,7 @@ def chat():
         
         # Add project template as system prompt if available (for both existing and new conversations)
         project = None
+        conversation = None  # Initialize to ensure it's always in scope
         if conversation_id:
             conv_uuid = uuid.UUID(conversation_id)
             conversation = Conversation.query.get_or_404(conv_uuid)
@@ -2877,30 +2878,21 @@ When responding to math questions, please:
         app.logger.info(f"📊 Final message array: {len(messages)} total messages ({system_msg_count} system, {len(messages)-system_msg_count} conversation)")
         
         # Process context_documents (from /upload-context endpoint)
-        # Note: conversation is already loaded above if conversation_id exists (line 2557)
+        # conversation is loaded at line 2557 if conversation_id exists, initialized to None above
         import json
         docs = None
-        if conversation_id:
-            # conversation variable is defined at line 2557 when conversation_id exists
-            # Access it directly - if NameError occurs, it means conversation wasn't loaded (shouldn't happen)
+        if conversation_id and conversation:
+            # conversation is guaranteed to be loaded if conversation_id exists
+            docs = getattr(conversation, 'context_documents', None)
+        elif conversation_id:
+            # Fallback: conversation wasn't loaded, load it now
             try:
+                conv_uuid = uuid.UUID(conversation_id)
+                conversation = Conversation.query.get_or_404(conv_uuid)
                 docs = getattr(conversation, 'context_documents', None)
-                app.logger.error(f"🔍🔍🔍 CONTEXT_DOCS CHECK: conversation_id={conversation_id}, docs type={type(docs)}, docs value={docs}")  # ERROR level
-            except NameError:
-                # Fallback: conversation wasn't loaded for some reason, fetch it now
-                app.logger.warning(f"conversation variable not found, fetching conversation {conversation_id}")
-                try:
-                    conv_uuid = uuid.UUID(conversation_id)
-                    conversation = Conversation.query.get_or_404(conv_uuid)
-                    docs = getattr(conversation, 'context_documents', None)
-                    app.logger.error(f"🔍🔍🔍 CONTEXT_DOCS CHECK (fallback): docs type={type(docs)}, docs value={docs}")  # ERROR level
-                except Exception as conv_error:
-                    app.logger.error(f"Failed to load conversation for context_documents: {conv_error}")
-                    docs = None
-        else:
-            app.logger.error(f"🔍🔍🔍 CONTEXT_DOCS CHECK: No conversation_id provided")  # ERROR level
-        
-        app.logger.error(f"🔍🔍🔍 CONTEXT_DOCS BEFORE IF: docs={docs}, bool(docs)={bool(docs)}")  # ERROR level
+            except Exception as conv_error:
+                app.logger.error(f"Failed to load conversation for context_documents: {conv_error}")
+                docs = None
         
         if docs:
             if isinstance(docs, str):
@@ -2911,15 +2903,14 @@ When responding to math questions, please:
             
             # Always process context_documents if they exist (they're a different source than active_context)
             if docs and isinstance(docs, list) and len(docs) > 0:
-                app.logger.error(f"📄📄📄 PROCESSING CONTEXT_DOCUMENTS: {len(docs)} document(s) found")  # ERROR level for visibility
                 app.logger.info(f"📄 Processing {len(docs)} context document(s) from conversation.context_documents")
                 for doc in docs:
-                    if doc and 'content' in doc:
+                    if doc and isinstance(doc, dict) and 'content' in doc:
                         task_type = doc.get('task_type', 'instructions')
                         filename = doc.get('filename', 'uploaded file')
                         content = doc.get('content', '')
                         
-                        if content:  # Only add if content exists
+                        if content and len(content.strip()) > 0:  # Only add if content exists and is not empty
                             if task_type == 'summary':
                                 system_msg = f"You have been provided with a document ({filename}) to summarize. You can analyze, count words, and provide detailed summaries of this content:\n\n{content}"
                             elif task_type == 'analysis':
@@ -2933,14 +2924,9 @@ When responding to math questions, please:
                             })
                             app.logger.info(f"✅ Added context_document {filename} to messages ({len(content)} chars)")
                         else:
-                            app.logger.warning(f"⚠️ context_document {filename} has no content")
-                processed_count = len([d for d in docs if d and d.get('content')])
-                app.logger.error(f"📄📄📄 CONTEXT_DOCUMENTS PROCESSED: {processed_count} document(s) added to messages")  # ERROR level for visibility
-                app.logger.info(f"✅ Successfully processed {processed_count} context document(s)")
-            else:
-                app.logger.error(f"🔍🔍🔍 CONTEXT_DOCS: docs is not a list or is empty. docs={docs}, type={type(docs)}, len={len(docs) if isinstance(docs, list) else 'N/A'}")  # ERROR level
-        else:
-            app.logger.error(f"🔍🔍🔍 CONTEXT_DOCS: docs is None or falsy. docs={docs}")  # ERROR level
+                            app.logger.warning(f"⚠️ context_document {filename} has no content or empty content")
+                processed_count = len([d for d in docs if d and isinstance(d, dict) and d.get('content') and len(d.get('content', '').strip()) > 0])
+                app.logger.info(f"✅ Successfully processed {processed_count} context document(s) with content")
         
         # Add user message
         messages.append({
