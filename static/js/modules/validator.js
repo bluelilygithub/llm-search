@@ -14,7 +14,7 @@ class Validator {
      * Initialize validation schemas for different data types
      */
     initializeSchemas() {
-        return {
+        const schemas = {
             // Chat message validation
             chatMessage: {
                 message: {
@@ -157,6 +157,11 @@ class Validator {
                 }
             }
         };
+
+        // Temporary debug log to verify markdown MIME types in production build
+        console.debug('[validator] fileUpload.allowedTypes', schemas.fileUpload.file.allowedTypes);
+
+        return schemas;
     }
 
     /**
