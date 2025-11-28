@@ -2536,6 +2536,9 @@ def chat():
         model = data['model']
         project_id = data.get('project_id')  # Get project_id for new conversations
         
+        app.logger.info(f"💬 CHAT DEBUG: Received chat request - conversation_id={conversation_id}, model={model}")
+        app.logger.info(f"💬 CHAT DEBUG: Received chat request - conversation_id={conversation_id}, model={model}")
+        
         # Handle free tier access
         if getattr(request, 'access_type', None) == 'free_tier':
             from auth import FreeAccessManager
@@ -2751,10 +2754,19 @@ When responding to math questions, please:
                 app.logger.warning(f"Could not apply math model preference: {e}")
         
         # Process attachments and add their content to context
+        app.logger.info(f"🔍 ATTACHMENT DEBUG: Starting attachment processing - conversation_id={conversation_id}")
         if conversation_id:
             try:
+                # Ensure conv_uuid is defined
+                if 'conv_uuid' not in locals():
+                    conv_uuid = uuid.UUID(conversation_id)
+                    app.logger.info(f"🔍 ATTACHMENT DEBUG: Created conv_uuid={conv_uuid}")
+                else:
+                    app.logger.info(f"🔍 ATTACHMENT DEBUG: Using existing conv_uuid={conv_uuid}")
+                
                 # Get all attachments for this conversation
                 # Try both methods: join with Message, and direct query via message relationship
+                app.logger.info(f"🔍 ATTACHMENT DEBUG: Querying attachments with conv_uuid={conv_uuid}")
                 conversation_attachments = Attachment.query.join(Message).filter(
                     Message.conversation_id == conv_uuid
                 ).all()
