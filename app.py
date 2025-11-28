@@ -2885,6 +2885,7 @@ When responding to math questions, please:
             # Access it directly - if NameError occurs, it means conversation wasn't loaded (shouldn't happen)
             try:
                 docs = getattr(conversation, 'context_documents', None)
+                app.logger.error(f"🔍🔍🔍 CONTEXT_DOCS CHECK: conversation_id={conversation_id}, docs type={type(docs)}, docs value={docs}")  # ERROR level
             except NameError:
                 # Fallback: conversation wasn't loaded for some reason, fetch it now
                 app.logger.warning(f"conversation variable not found, fetching conversation {conversation_id}")
@@ -2892,9 +2893,15 @@ When responding to math questions, please:
                     conv_uuid = uuid.UUID(conversation_id)
                     conversation = Conversation.query.get_or_404(conv_uuid)
                     docs = getattr(conversation, 'context_documents', None)
+                    app.logger.error(f"🔍🔍🔍 CONTEXT_DOCS CHECK (fallback): docs type={type(docs)}, docs value={docs}")  # ERROR level
                 except Exception as conv_error:
                     app.logger.error(f"Failed to load conversation for context_documents: {conv_error}")
                     docs = None
+        else:
+            app.logger.error(f"🔍🔍🔍 CONTEXT_DOCS CHECK: No conversation_id provided")  # ERROR level
+        
+        app.logger.error(f"🔍🔍🔍 CONTEXT_DOCS BEFORE IF: docs={docs}, bool(docs)={bool(docs)}")  # ERROR level
+        
         if docs:
             if isinstance(docs, str):
                 try:
@@ -2930,6 +2937,10 @@ When responding to math questions, please:
                 processed_count = len([d for d in docs if d and d.get('content')])
                 app.logger.error(f"📄📄📄 CONTEXT_DOCUMENTS PROCESSED: {processed_count} document(s) added to messages")  # ERROR level for visibility
                 app.logger.info(f"✅ Successfully processed {processed_count} context document(s)")
+            else:
+                app.logger.error(f"🔍🔍🔍 CONTEXT_DOCS: docs is not a list or is empty. docs={docs}, type={type(docs)}, len={len(docs) if isinstance(docs, list) else 'N/A'}")  # ERROR level
+        else:
+            app.logger.error(f"🔍🔍🔍 CONTEXT_DOCS: docs is None or falsy. docs={docs}")  # ERROR level
         
         # Add user message
         messages.append({
@@ -4768,13 +4779,44 @@ def debug_attachments(conversation_id):
             if msg.attachments:
                 attachments_via_msg.extend(msg.attachments)
         
+        # Check context_documents
+        import json
+        context_docs = conversation.context_documents
+        context_docs_parsed = None
+        if context_docs:
+            if isinstance(context_docs, str):
+                try:
+                    context_docs_parsed = json.loads(context_docs)
+                except:
+                    context_docs_parsed = None
+            else:
+                context_docs_parsed = context_docs
+        
         debug_info = {
             'conversation_id': str(conversation_id),
             'total_messages': len(messages),
             'attachments_via_join': len(attachments_join),
             'attachments_via_message': len(attachments_via_msg),
+            'context_documents': {
+                'exists': context_docs is not None,
+                'type': type(context_docs).__name__ if context_docs else None,
+                'count': len(context_docs_parsed) if context_docs_parsed else 0,
+                'documents': []
+            },
             'attachment_details': []
         }
+        
+        # Add context_documents details
+        if context_docs_parsed:
+            for i, doc in enumerate(context_docs_parsed):
+                debug_info['context_documents']['documents'].append({
+                    'index': i,
+                    'filename': doc.get('filename', 'unknown'),
+                    'task_type': doc.get('task_type', 'unknown'),
+                    'has_content': bool(doc.get('content')),
+                    'content_length': len(doc.get('content', '')) if doc.get('content') else 0,
+                    'content_preview': doc.get('content', '')[:200] + '...' if doc.get('content') and len(doc.get('content', '')) > 200 else doc.get('content', '')
+                })
         
         # Collect details for all attachments
         all_attachments = list(set(attachments_join + attachments_via_msg))
