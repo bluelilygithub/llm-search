@@ -510,7 +510,7 @@ def filter_conversations_by_user(query):
 UPLOAD_FOLDER = os.path.join(os.getcwd(), 'uploads')
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 ALLOWED_EXTENSIONS = {
-    'txt', 'pdf', 'docx', 'doc', 'csv', 
+    'txt', 'pdf', 'docx', 'doc', 'csv', 'md',
     'jpg', 'jpeg', 'png', 'gif', 'webp',  # For image editing
     'mp3', 'wav', 'ogg', 'flac'  # For audio transcription
 }

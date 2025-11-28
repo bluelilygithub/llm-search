@@ -278,6 +278,8 @@ def validate_file_upload(file):
         'application/msword',
         'text/plain',
         'text/csv',
+        'text/markdown',
+        'text/x-markdown',
         'application/json'
     ]
     
