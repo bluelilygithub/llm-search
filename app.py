@@ -3224,6 +3224,20 @@ def upload_attachments(conversation_id):
             
             file.save(file_path)
             app.logger.info(f"✅ Upload: Saved file to {file_path}")
+            
+            # Extract content immediately (like /upload-context does)
+            # This ensures content is available even if chat endpoint isn't called
+            processed_content = None
+            try:
+                # Reopen file from disk for extraction (consistent with chat endpoint)
+                with open(file_path, 'rb') as f:
+                    processed_content = extract_document_content(f, filename)
+                app.logger.info(f"✅ Upload: Extracted {len(processed_content)} characters from {filename}")
+            except Exception as extract_error:
+                app.logger.error(f"⚠️ Upload: Failed to extract content from {filename}: {extract_error}", exc_info=True)
+                # Continue without content - attachment will still be created
+                processed_content = None
+            
             # Create a new message for the attachment (role='user', content='[file upload]')
             message = Message(
                 conversation_id=conv_uuid,
@@ -3238,10 +3252,11 @@ def upload_attachments(conversation_id):
                 filename=filename,
                 content_type=file.content_type,
                 file_path=os.path.relpath(file_path, os.getcwd()),
+                processed_content=processed_content,  # Store extracted content immediately
                 created_at=datetime.utcnow()  # Ensure created_at is set
             )
             db.session.add(attachment)
-            app.logger.info(f"✅ Upload: Created attachment with id={attachment.id}, file_path={attachment.file_path}")
+            app.logger.info(f"✅ Upload: Created attachment with id={attachment.id}, file_path={attachment.file_path}, content_extracted={processed_content is not None}")
             attachments.append({
                 'id': str(attachment.id),
                 'filename': filename,
