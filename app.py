@@ -2896,10 +2896,10 @@ When responding to math questions, please:
         
         if docs:
             if isinstance(docs, str):
-            try:
-                docs = json.loads(docs)
-            except Exception:
-                docs = []
+                try:
+                    docs = json.loads(docs)
+                except Exception:
+                    docs = []
             
             # Always process context_documents if they exist (they're a different source than active_context)
             if docs and isinstance(docs, list) and len(docs) > 0:
