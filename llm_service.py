@@ -105,8 +105,16 @@ class LLMService:
         if not self.anthropic_available or not self.claude_key:
             raise Exception("Anthropic API key not configured")
         
-        # Initialize Anthropic client
-        client = anthropic.Anthropic(api_key=self.claude_key)
+        # Try to create HTTP client without proxies to avoid 'proxies' argument error
+        # This prevents the SDK from trying to read proxy environment variables
+        try:
+            import httpx
+            http_client = httpx.Client(proxies=None, timeout=60.0)
+            client = anthropic.Anthropic(api_key=self.claude_key, http_client=http_client)
+        except ImportError:
+            # Fallback if httpx not available - just use api_key
+            # This might still have the proxies issue, but it's better than nothing
+            client = anthropic.Anthropic(api_key=self.claude_key)
         
         claude_models = [
             'claude-sonnet-4-20250514',

@@ -5628,8 +5628,17 @@ def _test_anthropic_model(model, api_key):
     """Test Anthropic (Claude) model with a minimal API call"""
     try:
         import anthropic
-        # Only pass api_key, no other arguments that might cause issues
-        client = anthropic.Anthropic(api_key=api_key)
+        
+        # Try to create HTTP client without proxies to avoid 'proxies' argument error
+        # This prevents the SDK from trying to read proxy environment variables
+        try:
+            import httpx
+            http_client = httpx.Client(proxies=None, timeout=60.0)
+            client = anthropic.Anthropic(api_key=api_key, http_client=http_client)
+        except ImportError:
+            # Fallback if httpx not available - just use api_key
+            # This might still have the proxies issue, but it's better than nothing
+            client = anthropic.Anthropic(api_key=api_key)
         
         # List of Claude models to try (same as in llm_service.py)
         claude_models = [
