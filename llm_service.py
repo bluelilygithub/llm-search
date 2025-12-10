@@ -225,9 +225,10 @@ class LLMService:
                 role = msg['role'].capitalize()
                 conversation_text += f"{role}: {msg['content']}\n\n"
             
-            # Use the new Hugging Face Inference Providers API endpoint
+            # Try standard Inference API endpoint first
+            url = f"https://api-inference.huggingface.co/models/{hf_model}"
             response = requests.post(
-                f"https://router.huggingface.co/hf-inference/{hf_model}",
+                url,
                 headers=self.hf_headers,
                 json={
                     "inputs": conversation_text,
@@ -239,6 +240,23 @@ class LLMService:
                 },
                 timeout=30
             )
+            
+            # If 404, try router endpoint as fallback
+            if response.status_code == 404:
+                url = f"https://router.huggingface.co/hf-inference/{hf_model}"
+                response = requests.post(
+                    url,
+                    headers=self.hf_headers,
+                    json={
+                        "inputs": conversation_text,
+                        "parameters": {
+                            "max_new_tokens": max_tokens,
+                            "temperature": temperature,
+                            "return_full_text": False
+                        }
+                    },
+                    timeout=30
+                )
             
             if response.status_code != 200:
                 raise Exception(f"HF API returned {response.status_code}: {response.text}")

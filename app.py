@@ -5489,6 +5489,10 @@ def check_model_access():
         
         app.logger.info(f"Checking access for model: {model}")
         
+        # Convert display name to API identifier if needed
+        model_identifier = get_model_identifier(model)
+        app.logger.debug(f"Model '{model}' -> identifier '{model_identifier}'")
+        
         # Get model info from dynamic model list to find custom API key
         models_file = os.path.join(app.instance_path, 'available_models.json')
         provider = None
@@ -5499,10 +5503,10 @@ def check_model_access():
             with open(models_file, 'r') as f:
                 models = json.load(f)
             
-            # Find the model in our dynamic list
+            # Find the model in our dynamic list (check both name and identifier)
             for model_info in models:
-                if model_info['name'] == model:
-                    provider = model_info['provider']
+                if model_info['name'] == model or model_info.get('model_value') == model_identifier:
+                    provider = model_info.get('provider')
                     custom_api_key = model_info.get('api_key')
                     break
         
@@ -5512,26 +5516,27 @@ def check_model_access():
         error_details = None
         
         try:
-            # Determine provider and API key from model name or custom config
+            # Determine provider and API key from model identifier or custom config
+            # Use model_identifier for pattern matching, not display name
             if custom_api_key:
                 api_key_name = custom_api_key
                 api_key_value = os.getenv(custom_api_key)
                 app.logger.info(f"Checking custom API key {custom_api_key}: {'configured' if api_key_value and api_key_value.strip() else 'not configured'}")
             else:
-                # Pattern matching for standard models
-                if model.startswith('gpt-') or model.startswith('o1-'):
+                # Pattern matching for standard models using identifier
+                if model_identifier.startswith('gpt-') or model_identifier.startswith('o1-'):
                     api_key_name = 'OPENAI_API_KEY'
                     api_key_value = os.getenv('OPENAI_API_KEY')
-                elif model.startswith('claude-'):
+                elif model_identifier.startswith('claude-'):
                     api_key_name = 'CLAUDE_API_KEY'
                     api_key_value = os.getenv('CLAUDE_API_KEY')
-                elif model.startswith('gemini-'):
+                elif model_identifier.startswith('gemini-'):
                     api_key_name = 'GEMINI_API_KEY'
                     api_key_value = os.getenv('GEMINI_API_KEY')
-                elif model in ['llama2-70b', 'mixtral-8x7b', 'mistral-7b', 'codellama-34b']:
+                elif model_identifier in ['llama2-70b', 'mixtral-8x7b', 'mistral-7b', 'codellama-34b']:
                     api_key_name = 'HUGGING_FACE_API_KEY'
                     api_key_value = os.getenv('HUGGING_FACE_API_KEY')
-                elif model.startswith('stable-'):
+                elif model_identifier.startswith('stable-'):
                     api_key_name = 'STABILITY_API_KEY'
                     api_key_value = os.getenv('STABILITY_API_KEY')
                 else:
@@ -5543,8 +5548,8 @@ def check_model_access():
                 error_details = f"API key {api_key_name} not configured"
                 app.logger.info(f"Model {model}: {error_details}")
             else:
-                # Perform actual API test call
-                has_access, error_details = _test_model_api_call(model, api_key_name, api_key_value)
+                # Perform actual API test call using identifier
+                has_access, error_details = _test_model_api_call(model_identifier, api_key_name, api_key_value)
                 
         except Exception as model_error:
             app.logger.error(f"Error checking model {model} access: {str(model_error)}")
@@ -5623,6 +5628,7 @@ def _test_anthropic_model(model, api_key):
     """Test Anthropic (Claude) model with a minimal API call"""
     try:
         import anthropic
+        # Only pass api_key, no other arguments that might cause issues
         client = anthropic.Anthropic(api_key=api_key)
         
         # List of Claude models to try (same as in llm_service.py)
@@ -5739,8 +5745,8 @@ def _test_huggingface_model(model, api_key):
         
         hf_model = model_mapping.get(model, model)
         
-        # Use the new Hugging Face Inference Providers API endpoint
-        url = f"https://router.huggingface.co/hf-inference/{hf_model}"
+        # Try standard Inference API endpoint first (more reliable)
+        url = f"https://api-inference.huggingface.co/models/{hf_model}"
         
         response = requests.post(url, headers=headers, json=payload, timeout=10)
         
@@ -5752,6 +5758,17 @@ def _test_huggingface_model(model, api_key):
             # Model is loaded but rate limited - still accessible
             app.logger.info(f"Hugging Face model {model} is accessible (rate limited)")
             return True, None
+        elif response.status_code == 404:
+            # Try alternative endpoint format
+            alt_url = f"https://router.huggingface.co/hf-inference/{hf_model}"
+            alt_response = requests.post(alt_url, headers=headers, json=payload, timeout=10)
+            if alt_response.status_code in [200, 503]:
+                app.logger.info(f"Hugging Face model {model} accessible via router endpoint")
+                return True, None
+            else:
+                error_msg = f"HTTP {alt_response.status_code}: Model {hf_model} not found. Check if model name is correct."
+                app.logger.warning(f"Hugging Face model {model} test failed: {error_msg}")
+                return False, error_msg
         else:
             error_msg = f"HTTP {response.status_code}: {response.text[:200]}"
             app.logger.warning(f"Hugging Face model {model} test failed: {error_msg}")
