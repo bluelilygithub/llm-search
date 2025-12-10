@@ -19,12 +19,12 @@ class LLMService:
             self.openai_available = True
             print("OpenAI API key configured")
         
-        # Initialize Anthropic for direct HTTP requests
+        # Initialize Anthropic SDK
         self.anthropic_available = False
         self.claude_key = os.getenv('CLAUDE_API_KEY')
-        if self.claude_key:
+        if self.claude_key and self.claude_key.strip():
             self.anthropic_available = True
-            print("Anthropic API key configured for direct HTTP requests")
+            print("Anthropic API key configured")
         else:
             print("No Claude API key found")
         
@@ -101,9 +101,13 @@ class LLMService:
             raise Exception(f"OpenAI API error: {str(e)}")
     
     def _get_anthropic_response(self, model, messages, max_tokens, temperature):
-        """Get response from Anthropic Claude models using direct HTTP requests."""
+        """Get response from Anthropic Claude models using the Anthropic SDK."""
         if not self.anthropic_available or not self.claude_key:
             raise Exception("Anthropic API key not configured")
+        
+        # Initialize Anthropic client
+        client = anthropic.Anthropic(api_key=self.claude_key)
+        
         claude_models = [
             'claude-sonnet-4-20250514',
             'claude-opus-4',
@@ -115,6 +119,7 @@ class LLMService:
             'claude-3-haiku-20240307'
         ]
         try_models = [model] + [m for m in claude_models if m != model]
+        
         # Convert messages format for Anthropic
         anthropic_messages = []
         system_message = None
@@ -126,34 +131,30 @@ class LLMService:
                     'role': msg['role'],
                     'content': msg['content']
                 })
+        
         last_error = None
         for try_model in try_models:
             try:
-                resp = requests.post(
-                    "https://api.anthropic.com/v1/messages",
-                    headers={
-                        "x-api-key": self.claude_key,
-                        "anthropic-version": "2023-06-01",
-                        "Content-Type": "application/json"
-                    },
-                    json={
-                        "model": try_model,
-                        "max_tokens": max_tokens,
-                        "temperature": temperature,
-                        "system": system_message or "You are a helpful AI assistant.",
-                        "messages": anthropic_messages
-                    },
-                    timeout=15
+                # Use Anthropic SDK for reliable API calls
+                response = client.messages.create(
+                    model=try_model,
+                    max_tokens=max_tokens,
+                    temperature=temperature,
+                    system=system_message or "You are a helpful AI assistant.",
+                    messages=anthropic_messages
                 )
-                data = resp.json()
-                if resp.ok and data.get('content') and data['content'][0].get('text'):
-                    text = data['content'][0]['text']
-                    # Anthropic usage: prefer output tokens; pricing per 1M tokens
+                
+                # Extract response text
+                if response.content and len(response.content) > 0:
+                    text = response.content[0].text
+                    
+                    # Extract usage information
                     out_tokens = 0
-                    if 'usage' in data and 'output_tokens' in data['usage']:
-                        out_tokens = data['usage']['output_tokens']
-                    elif 'usage_metadata' in data and 'output_tokens' in data['usage_metadata']:
-                        out_tokens = data['usage_metadata']['output_tokens']
+                    if hasattr(response, 'usage') and response.usage:
+                        out_tokens = response.usage.output_tokens
+                    elif hasattr(response, 'usage_metadata') and response.usage_metadata:
+                        out_tokens = response.usage_metadata.output_tokens
+                    
                     # Pricing (approx): Sonnet $15/1M output, Opus $15/1M, Haiku $0.25/1M
                     # Convert to per-token ($/token)
                     per_token = 0.000015  # default $15/1M
@@ -166,10 +167,24 @@ class LLMService:
                     cost = out_tokens * per_token
                     return text, out_tokens, cost
                 else:
-                    last_error = data
-            except Exception as e:
-                last_error = str(e)
+                    last_error = f"Invalid response format: no content in response"
+                    print(f"Anthropic API invalid response for {try_model}: {last_error}")
+                    
+            except anthropic.APIError as e:
+                # Handle Anthropic API errors with detailed information
+                error_msg = f"API Error for {try_model}: {e.message}"
+                if hasattr(e, 'status_code'):
+                    error_msg += f" (Status: {e.status_code})"
+                if hasattr(e, 'type'):
+                    error_msg += f" (Type: {e.type})"
+                last_error = error_msg
+                print(f"Anthropic API error for {try_model}: {last_error}")
                 continue
+            except Exception as e:
+                last_error = f"Unexpected error for {try_model}: {str(e)}"
+                print(f"Anthropic API unexpected error for {try_model}: {last_error}")
+                continue
+        
         raise Exception(f"Anthropic API error: All models failed. Last error: {last_error}")
     
     def _get_gemini_response(self, model, messages, max_tokens, temperature):
