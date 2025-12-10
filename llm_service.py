@@ -105,16 +105,23 @@ class LLMService:
         if not self.anthropic_available or not self.claude_key:
             raise Exception("Anthropic API key not configured")
         
-        # Try to create HTTP client without proxies to avoid 'proxies' argument error
-        # This prevents the SDK from trying to read proxy environment variables
+        # Try to create HTTP client without proxies parameter (httpx 0.28+ removed it)
+        # This prevents the 'proxies' keyword argument error
         try:
             import httpx
-            http_client = httpx.Client(proxies=None, timeout=60.0)
+            # Don't pass proxies parameter - newer httpx versions (0.28+) don't support it
+            http_client = httpx.Client(timeout=60.0)
             client = anthropic.Anthropic(api_key=self.claude_key, http_client=http_client)
-        except ImportError:
-            # Fallback if httpx not available - just use api_key
-            # This might still have the proxies issue, but it's better than nothing
-            client = anthropic.Anthropic(api_key=self.claude_key)
+        except (ImportError, TypeError) as e:
+            # If httpx not available or if there's still an error, try without http_client
+            # Some versions of Anthropic SDK have issues with http_client parameter
+            try:
+                client = anthropic.Anthropic(api_key=self.claude_key)
+            except TypeError as te:
+                # If still failing, the SDK itself might have the proxies issue
+                # This suggests httpx version incompatibility with Anthropic SDK
+                print(f"Anthropic SDK initialization issue: {te}. This may indicate httpx version incompatibility.")
+                raise Exception(f"Anthropic SDK error - may need to downgrade httpx to 0.27.2 or update Anthropic SDK: {te}")
         
         claude_models = [
             'claude-sonnet-4-20250514',
